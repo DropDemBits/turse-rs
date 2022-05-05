@@ -2700,7 +2700,15 @@ test_named_group! { typeck_array_ty,
         type _ : array 1 .. c of int",
 
         // not index ty
+        not_index_ty => "type _ : array real of real",
         // range sizing
+        positive_static_size => "type _ : array 1..1 of int",
+        zero_static_size => "type _ : array 1..0 of int",
+        negative_static_size => "type _ : array 1..-1 of int",
+        // Only flexible arrays allow zero-sized ranges
+        positive_flexible_size => "var _ : flexible array 1..1 of int",
+        zero_flexible_size => "type _ : flexible array 1..0 of int",
+        negative_flexible_size => "type _ : flexible array 1..-1 of int",
     ]
 }
 

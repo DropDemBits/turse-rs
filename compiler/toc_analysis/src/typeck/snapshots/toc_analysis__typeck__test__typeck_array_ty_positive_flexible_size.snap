@@ -1,0 +1,9 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 42
+expression: "var _ : flexible array 1..1 of int"
+
+---
+"_"@(FileId(1), 4..5) [Declared]: flexible array ( range of `int` (Unevaluated(LibraryId(0), BodyId(0)) .. Expr(Unevaluated(LibraryId(0), BodyId(1)), Yes)), ) of int
+"<root>"@(dummy) [Declared]: <error>
+

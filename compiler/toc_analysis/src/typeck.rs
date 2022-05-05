@@ -194,6 +194,10 @@ impl toc_hir::visitor::HirVisitor for TypeCheck<'_> {
         self.typeck_constrained_ty(id, ty);
     }
 
+    fn visit_array(&self, id: toc_hir::ty::TypeId, ty: &toc_hir::ty::Array) {
+        self.typeck_array_ty(id, ty);
+    }
+
     fn visit_set(&self, id: toc_hir::ty::TypeId, ty: &toc_hir::ty::Set) {
         self.typeck_set_ty(id, ty);
     }
@@ -1794,6 +1798,61 @@ impl TypeCheck<'_> {
         }
     }
 
+    fn typeck_array_ty(&self, id: toc_hir::ty::TypeId, ty: &toc_hir::ty::Array) {
+        let db = self.db;
+        let library = &self.library;
+        let library_id = self.library_id;
+
+        let in_module = db.inside_module((self.library_id, id).into());
+        let allow_zero_size = matches!(ty.sizing, toc_hir::ty::ArraySize::Flexible);
+
+        // - Ranges must be index type
+        //   - same index sizing restriction
+        // - element count must be smaller than maximum element count
+        // - must be positive size (or non-negative if flexible)
+        for &range_hir_ty in &ty.ranges {
+            let span = library.lookup_type(range_hir_ty).span.lookup_in(library);
+            let range_ty = db.from_hir_type(range_hir_ty.in_library(library_id));
+            let range_tyref = range_ty.in_db(db).peel_opaque(in_module);
+
+            if !range_tyref.clone().to_base_type().kind().is_index() {
+                // Not an index type
+                // FIXME: Switch to common "mismatched types" convention (either altering the rest or just this)
+                self.state()
+                .reporter
+                .error_detailed("mismatched types", span)
+                .with_error(format!("`{range_tyref}` is not an index type"), span)
+                .with_info(
+                    "an index type is an integer, a `boolean`, a `char`, an enumerated type, or a range",
+                )
+                .finish();
+            } else if range_tyref.clone().peel_aliases().kind().is_integer() {
+                // Is an integer type, but not from a range
+                // Range would be too big
+                self.state()
+                    .reporter
+                    .error_detailed("index range is too large", span)
+                    .with_error(
+                        format!("a range over all `{range_tyref}` values is too large"),
+                        span,
+                    )
+                    .with_info("use a range type to shrink the range of elements")
+                    .finish()
+            }
+
+            self.require_known_size(range_hir_ty, || "`array` types".into());
+            self.require_non_negative_size(range_hir_ty, allow_zero_size, |is_zero_sized| {
+                if is_zero_sized {
+                    "`array` types that aren't `flexible`".into()
+                } else {
+                    "`array` types".into()
+                }
+            });
+        }
+
+        // TODO: Check that the element count is under 2^32 elements
+    }
+
     fn typeck_set_ty(&self, id: toc_hir::ty::TypeId, ty: &toc_hir::ty::Set) {
         let db = self.db;
         let in_module = db.inside_module((self.library_id, id).into());
@@ -1833,7 +1892,6 @@ impl TypeCheck<'_> {
                 .with_info("use a range type to shrink the range of elements")
                 .finish()
         }
-
         self.require_known_positive_size(ty.elem_ty, || "`set` element types".into());
     }
 
@@ -1874,6 +1932,15 @@ impl TypeCheck<'_> {
 
     // Requirement that the size must be positive (greater than zero)
     fn require_positive_size(&self, ty_spec: toc_hir::ty::TypeId, in_where: impl Fn() -> String) {
+        self.require_non_negative_size(ty_spec, false, |_| in_where())
+    }
+
+    fn require_non_negative_size(
+        &self,
+        ty_spec: toc_hir::ty::TypeId,
+        allow_zero_size: bool,
+        in_where: impl Fn(bool) -> String,
+    ) {
         let db = self.db;
         let library_id = self.library_id;
         let library = &self.library;
@@ -1888,8 +1955,9 @@ impl TypeCheck<'_> {
 
             match ty_ref.element_count() {
                 Some(Ok(size)) if size.is_positive() && !size.is_zero() => {}
+                Some(Ok(size)) if size.is_zero() && allow_zero_size => {}
                 Some(Ok(size)) => {
-                    let place = in_where();
+                    let place = in_where(size.is_zero());
 
                     let size_kind = if size.is_zero() {
                         "zero sized ranges"
