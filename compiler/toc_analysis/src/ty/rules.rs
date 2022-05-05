@@ -160,6 +160,10 @@ impl TypeKind {
                 // Only if the base type is, but we don't have access to db
                 unreachable!("missing to_base_type")
             }
+            TypeKind::Array(..) => {
+                // Aggregate types of elements
+                false
+            }
             TypeKind::String | TypeKind::CharN(_) | TypeKind::StringN(_) => {
                 // Aggregate types of characters
                 false

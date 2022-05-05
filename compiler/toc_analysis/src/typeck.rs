@@ -960,7 +960,7 @@ impl TypeCheck<'_> {
                         None
                     }
                 }
-                body::BodyOwner::Type(_) => None,
+                _ => None,
             }
         } else {
             unreachable!()

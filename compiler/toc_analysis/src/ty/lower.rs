@@ -31,8 +31,8 @@ pub(crate) fn ty_from_hir_ty(db: &dyn TypeDatabase, hir_id: InLibrary<hir_ty::Ty
         hir_ty::TypeKind::Primitive(ty) => primitive_ty(db, hir_id, ty),
         hir_ty::TypeKind::Alias(ty) => alias_ty(db, hir_id, ty),
         hir_ty::TypeKind::Constrained(ty) => constrained_ty(db, hir_id, ty),
+        hir_ty::TypeKind::Array(ty) => array_ty(db, hir_id, ty),
         hir_ty::TypeKind::Enum(ty) => enum_ty(db, hir_id, ty),
-        hir_ty::TypeKind::Array(_ty) => db.mk_error(), // TODO(array-ty): Lower array types
         hir_ty::TypeKind::Set(ty) => set_ty(db, hir_id, ty),
         hir_ty::TypeKind::Pointer(ty) => pointer_ty(db, hir_id, ty),
         hir_ty::TypeKind::Subprogram(ty) => subprogram_ty(db, hir_id, ty),
@@ -163,6 +163,28 @@ fn constrained_ty(
     };
 
     db.mk_constrained(base_ty, start, end)
+}
+
+fn array_ty(
+    db: &dyn TypeDatabase,
+    hir_id: InLibrary<hir_ty::TypeId>,
+    ty: &hir_ty::Array,
+) -> TypeId {
+    let InLibrary(library_id, _) = hir_id;
+
+    let sizing = match ty.sizing {
+        hir_ty::ArraySize::Flexible => ty::ArraySizing::Flexible,
+        hir_ty::ArraySize::MaybeDyn => ty::ArraySizing::MaybeDyn,
+        hir_ty::ArraySize::Static => ty::ArraySizing::Static,
+    };
+    let ranges = ty
+        .ranges
+        .iter()
+        .map(|&range_ty| db.from_hir_type(range_ty.in_library(library_id)))
+        .collect();
+    let elem_ty = db.from_hir_type(ty.elem_ty.in_library(library_id));
+
+    db.mk_array(sizing, ranges, elem_ty)
 }
 
 fn enum_ty(db: &dyn TypeDatabase, hir_id: InLibrary<hir_ty::TypeId>, ty: &hir_ty::Enum) -> TypeId {
@@ -727,7 +749,9 @@ pub(super) fn ty_from_body_owner(
                 _ => db.mk_error(),
             }
         }
+        // Doesn't make sense to somehow infer it from a type or expr body owner
         body::BodyOwner::Type(_) => db.mk_error(),
+        body::BodyOwner::Expr(_) => db.mk_error(),
     }
 }
 

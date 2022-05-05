@@ -11,7 +11,7 @@ use crate::{
     ty::{IntSize, NatSize, RealSize, TyRef, TypeKind},
 };
 
-use super::{AllowDyn, EndBound, NotFixedLen, PassBy, TypeId, WithDef};
+use super::{AllowDyn, ArraySizing, EndBound, NotFixedLen, PassBy, TypeId, WithDef};
 
 impl<'db, DB> fmt::Debug for TyRef<'db, DB>
 where
@@ -67,6 +67,8 @@ impl TypeKind {
             TypeKind::Opaque(_, _) => "opaque",
             TypeKind::Forward => "forward",
             TypeKind::Constrained(..) => "range of",
+            TypeKind::Array(ArraySizing::Flexible, ..) => "flexible array",
+            TypeKind::Array(..) => "array",
             TypeKind::Enum(..) => "enum",
             TypeKind::Set(..) => "set",
             TypeKind::Pointer(Checked::Checked, _) => "pointer to",
@@ -100,6 +102,15 @@ where
         TypeKind::Constrained(base_ty, start, end) => {
             let base_ty = base_ty.in_db(db);
             out.write_fmt(format_args!(" `{base_ty:?}` ({start:?} .. {end:?})"))?;
+        }
+        TypeKind::Array(_is_flexible, ranges, elem) => {
+            write!(out, " ( ")?;
+            for &range in ranges {
+                emit_debug_ty(db, out, range)?;
+                write!(out, ", ")?;
+            }
+            write!(out, ") of ")?;
+            emit_debug_ty(db, out, *elem)?;
         }
         TypeKind::Enum(with_def, variants) => {
             let def_id = match with_def {
@@ -217,6 +228,7 @@ where
                 }
             };
 
+            // Only the end bound is allowed to be not compile-time
             match end {
                 EndBound::Expr(end, allow_dyn) => match db.evaluate_const(end.clone(), eval_params)
                 {
@@ -230,6 +242,21 @@ where
                 },
                 EndBound::Unsized(_) => write!(out, "*")?,
             }
+        }
+        TypeKind::Array(_is_flexible, ranges, elem_ty) => {
+            // `{range_ty} of {elem_ty}`, or
+            // `{range_ty}, {range_ty} of {elem_ty}`
+
+            // intersperse comma
+            let mut ranges = ranges.iter();
+            if let Some(range_ty) = ranges.next() {
+                write!(out, " {}", range_ty.in_db(db))?;
+            }
+            for range_ty in ranges {
+                write!(out, ", {}", range_ty.in_db(db))?;
+            }
+
+            write!(out, " of {}", elem_ty.in_db(db))?;
         }
         TypeKind::Enum(with_def, _) => {
             let def_id = match with_def {

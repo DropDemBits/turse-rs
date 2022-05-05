@@ -2682,6 +2682,28 @@ test_named_group! { typeck_constrained_ty,
     ]
 }
 
+test_named_group! { typeck_array_ty,
+    [
+        static_size => "type _ : array 1 .. 3 of int",
+        dynamic_size => "
+        var c : int
+        var _ : array 1 .. c of int",
+        flexible_size => "var _ : flexible array 1 .. 0 of int",
+        flexible_dynamic => "
+        var c : int
+        var _ : flexible array 1 .. c of int",
+        init_sized => "var _ : array 1 .. * of int := init(1, 2, 3)",
+
+        // not dyn
+        not_dynamic_size => "
+        var c : int
+        type _ : array 1 .. c of int",
+
+        // not index ty
+        // range sizing
+    ]
+}
+
 test_named_group! { typeck_enum_ty,
     [
         from_type_alias => "type e : enum(a, b, c)",
@@ -2789,6 +2811,7 @@ test_named_group! { report_aliased_type,
         // - set
         // - record
         // - union
+        // - array
     ]
 }
 

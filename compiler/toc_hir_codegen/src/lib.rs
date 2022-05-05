@@ -940,7 +940,7 @@ impl BodyCodeGenerator<'_> {
                 .expect("from stmt thing")
             {
                 hir_body::BodyOwner::Item(item_id) => item_id,
-                hir_body::BodyOwner::Type(_) => unreachable!(),
+                hir_body::BodyOwner::Type(_) | hir_body::BodyOwner::Expr(_) => unreachable!(),
             };
             let item_ty = gen
                 .db
@@ -997,7 +997,7 @@ impl BodyCodeGenerator<'_> {
             .expect("unowned body");
         let item_owner = match item_owner {
             hir_body::BodyOwner::Item(item) => item,
-            hir_body::BodyOwner::Type(_) => unreachable!(),
+            hir_body::BodyOwner::Type(_) | hir_body::BodyOwner::Expr(_) => unreachable!(),
         };
         let item_ty = db
             .type_of((self.library_id, item_owner).into())
@@ -2404,6 +2404,7 @@ impl BodyCodeGenerator<'_> {
             }
             ty::TypeKind::Opaque(_, ty) => return self.generate_assign(*ty, order), // defer to the opaque type
             ty::TypeKind::Constrained(..) => unimplemented!(),
+            ty::TypeKind::Array(..) => unimplemented!(),
             ty::TypeKind::Enum(..) => unimplemented!(),
             ty::TypeKind::Set(..) => unimplemented!(),
             ty::TypeKind::Pointer(..) => unimplemented!(),
@@ -2472,6 +2473,7 @@ impl BodyCodeGenerator<'_> {
             ty::TypeKind::CharN(_) => return None, // don't need to dereference the pointer to storage
             ty::TypeKind::Opaque(_, ty) => return self.pick_fetch_op(*ty), // defer to the opaque type
             ty::TypeKind::Constrained(..) => unimplemented!(),
+            ty::TypeKind::Array(..) => unimplemented!(),
             ty::TypeKind::Enum(..) => unimplemented!(),
             ty::TypeKind::Set(..) => unimplemented!(),
             ty::TypeKind::Pointer(..) => unimplemented!(),

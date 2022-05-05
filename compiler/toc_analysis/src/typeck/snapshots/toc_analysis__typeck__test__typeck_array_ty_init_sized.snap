@@ -1,0 +1,9 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 42
+expression: "var _ : array 1 .. * of int := init(1, 2, 3)"
+
+---
+"_"@(FileId(1), 4..5) [Declared]: array ( range of `int` (Unevaluated(LibraryId(0), BodyId(0)) .. Unsized(3)), ) of int
+"<root>"@(dummy) [Declared]: <error>
+

@@ -77,6 +77,8 @@ pub enum TypeKind {
     /// Constrained value type, with base type, range start, and range end.
     /// Base type is already de-aliased
     Constrained(TypeId, Const, EndBound),
+    /// Array type, with flexibility, types for each index, and the element type.
+    Array(ArraySizing, Vec<TypeId>, TypeId),
     /// An enumeration type, with associated definition point and variants.
     Enum(WithDef, Vec<DefId>),
     /// Set type, with associated definition point
@@ -187,7 +189,17 @@ pub enum EndBound {
     Unsized(u32),
 }
 
-// FIXME: Replace with comparison to "<anonymous>" symbol id
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum ArraySizing {
+    /// Array size is not fixed, and zero-sized ranges are allowed.
+    /// Initialization from dynamic values is implied to be allowed.
+    Flexible,
+    /// Array size is fixed, but allowed to be derived from runtime values
+    MaybeDyn,
+    /// Array size is fixed, and must be known at compile-time
+    Static,
+}
+
 /// Type with an associated definition
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum WithDef {
@@ -300,6 +312,7 @@ where
                 // Defer to the base type
                 return base_ty.in_db(self.db).peel_aliases().align_of();
             }
+            TypeKind::Array(..) => POINTER_ALIGNMENT, // ???: It's to an array descriptor
             TypeKind::Enum(..) => 4, // ???: Alignment based on user-specified size?
             TypeKind::Set(..) => 2,
             TypeKind::Pointer(_, _) => POINTER_ALIGNMENT,
@@ -352,6 +365,7 @@ where
                 // Defer to the base type
                 return base_ty.in_db(self.db).peel_aliases().size_of();
             }
+            TypeKind::Array(..) => POINTER_SIZE, // To an array descriptor
             TypeKind::Enum(..) => 4, // FIXME: Have size be based on a user-specified size
             TypeKind::Set(_, _elem_ty) => return None, // FIXME: Compute size of sets
             TypeKind::Pointer(Checked::Checked, _) => POINTER_SIZE * 2, // address + metadata

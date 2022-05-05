@@ -330,6 +330,7 @@ pub(super) fn value_produced(
                     }
                     _ => Ok(ValueKind::Scalar),
                 },
+                // TODO: For ExprKind call (subprog refs & stuff)
                 _ => {
                     // Take from the expr's type (always produces a value)
                     let expr_ty = db.type_of((lib_id, body_expr).into());
@@ -656,6 +657,20 @@ where
         self.intern_type(
             Type {
                 kind: TypeKind::Constrained(base_ty, start, end),
+            }
+            .into(),
+        )
+    }
+
+    fn mk_array(
+        &self,
+        sizing: super::ArraySizing,
+        ranges: Vec<super::TypeId>,
+        elem_ty: super::TypeId,
+    ) -> super::TypeId {
+        self.intern_type(
+            Type {
+                kind: TypeKind::Array(sizing, ranges, elem_ty),
             }
             .into(),
         )

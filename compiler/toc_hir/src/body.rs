@@ -58,6 +58,8 @@ pub enum BodyKind {
 pub enum BodyOwner {
     Item(item::ItemId),
     Type(ty::TypeId),
+    Expr(expr::BodyExpr),
+    // Stmts can be body owners, but `case` currently users normal exprs
 }
 
 /// Mapping between a [`BodyId`] and the corresponding [`BodyOwner`]
