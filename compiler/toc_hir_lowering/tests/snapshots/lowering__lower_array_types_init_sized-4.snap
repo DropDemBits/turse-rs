@@ -16,12 +16,13 @@ Library@(dummy)
                   Literal@(FileId(1), 14..15): Integer(1)
               Primitive@(FileId(1), 36..39): Int
             ExprBody@(FileId(1), 43..50)
+              InitExpr@(FileId(1), 43..50)
+                ExprBody@(FileId(1), 48..49)
+                  Literal@(FileId(1), 48..49): Integer(1)
 error in file FileId(1) at 14..20: extra ranges specified
 | error in file FileId(1) for 22..32: extra ranges after
 | note in file FileId(1) for 14..20: this must be the only range present
 | info: `init`-sized arrays must have this range be the only range present
 error in file FileId(1) at 27..28: unexpected token
 | error in file FileId(1) for 27..28: expected type specifier, but found `,`
-error in file FileId(1) at 43..50: unsupported expression
-| error in file FileId(1) for 43..50: this expression is not supported yet
 

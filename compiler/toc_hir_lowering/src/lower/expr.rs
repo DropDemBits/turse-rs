@@ -46,7 +46,9 @@ impl super::BodyLowering<'_, '_> {
             ast::Expr::LiteralExpr(expr) => self.lower_literal_expr(expr),
 
             ast::Expr::ObjClassExpr(_) => self.unsupported_expr(span),
-            ast::Expr::InitExpr(_) => self.unsupported_expr(span),
+
+            ast::Expr::InitExpr(expr) => self.lower_init_expr(expr),
+
             ast::Expr::NilExpr(_) => self.unsupported_expr(span),
             ast::Expr::SizeOfExpr(_) => self.unsupported_expr(span),
 
@@ -130,6 +132,17 @@ impl super::BodyLowering<'_, '_> {
         };
 
         Some(expr::ExprKind::Literal(value))
+    }
+
+    fn lower_init_expr(&mut self, expr: ast::InitExpr) -> Option<expr::ExprKind> {
+        let exprs = expr
+            .expr_list()
+            .unwrap()
+            .exprs()
+            .map(|expr| self.lower_expr_body(expr))
+            .collect();
+
+        Some(expr::ExprKind::Init(expr::Init { exprs }))
     }
 
     fn lower_binary_expr(&mut self, expr: ast::BinaryExpr) -> Option<expr::ExprKind> {

@@ -1480,3 +1480,13 @@ fn lower_array_types_init_sized() {
     // both
     assert_lower("var _ : array char, 1 .. *, char of int := init(1)");
 }
+
+#[test]
+fn lower_init_expr() {
+    // Ok with non-aggregate types (check deferred to typeck)
+    assert_lower("var _ : int := init(1, 2, 3, 4)");
+    // Type spec required (handled by AST validation)
+    assert_lower("var _ := init(1, 2, 3, 4)");
+    // Can't be used outside of a ConstVar decl (handled by AST validation)
+    assert_lower("var a : int a := init(1, 2, 3, 4)");
+}

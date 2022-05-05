@@ -16,6 +16,11 @@ Library@(dummy)
                   Literal@(FileId(1), 14..15): Integer(1)
               Primitive@(FileId(1), 24..27): Int
             ExprBody@(FileId(1), 31..44)
-error in file FileId(1) at 31..44: unsupported expression
-| error in file FileId(1) for 31..44: this expression is not supported yet
+              InitExpr@(FileId(1), 31..44)
+                ExprBody@(FileId(1), 36..37)
+                  Literal@(FileId(1), 36..37): Integer(1)
+                ExprBody@(FileId(1), 39..40)
+                  Literal@(FileId(1), 39..40): Integer(2)
+                ExprBody@(FileId(1), 42..43)
+                  Literal@(FileId(1), 42..43): Integer(3)
 

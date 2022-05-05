@@ -361,18 +361,6 @@ fn bind_decl_in_inner_blocks() {
 }
 
 #[test]
-fn report_init_expr_with_int_ty() {
-    check(
-        "var a : int := init(1)",
-        expect![[r#"
-            error in file FileId(1) at 15..22: mismatched initializer
-            | error in file FileId(1) for 15..22: `init` initializer is not allowed here
-            | error in file FileId(1) for 8..11: cannot use `init` initializer with this type
-            | info: `init` initializer can only be used with array, record, or union types"#]],
-    );
-}
-
-#[test]
 fn report_init_expr_with_no_ty() {
     check(
         "var a := init(1)",

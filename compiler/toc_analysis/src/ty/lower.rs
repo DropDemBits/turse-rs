@@ -524,6 +524,7 @@ pub(crate) fn ty_from_expr(
             db.mk_error()
         }
         expr::ExprKind::Literal(expr) => literal_ty(db, expr),
+        expr::ExprKind::Init(_) => db.mk_error(), // always inferred from
         expr::ExprKind::Binary(expr) => binary_ty(db, body, expr, body_expr),
         expr::ExprKind::Unary(expr) => unary_ty(db, body, expr, body_expr),
         expr::ExprKind::All => db.mk_error(), // Special case calling

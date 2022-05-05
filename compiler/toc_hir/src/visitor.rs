@@ -45,6 +45,7 @@ pub trait HirVisitor {
     fn visit_expr(&self, id: BodyExpr, expr: &expr::Expr) {}
     fn visit_missing_expr(&self, id: BodyExpr) {}
     fn visit_literal(&self, id: BodyExpr, expr: &expr::Literal) {}
+    fn visit_init_expr(&self, id: BodyExpr, expr: &expr::Init) {}
     fn visit_binary(&self, id: BodyExpr, expr: &expr::Binary) {}
     fn visit_unary(&self, id: BodyExpr, expr: &expr::Unary) {}
     fn visit_all_expr(&self, id: BodyExpr) {}
@@ -100,6 +101,7 @@ pub trait HirVisitor {
         match &expr.kind {
             expr::ExprKind::Missing => self.visit_missing_expr(id),
             expr::ExprKind::Literal(expr) => self.visit_literal(id, expr),
+            expr::ExprKind::Init(expr) => self.visit_init_expr(id, expr),
             expr::ExprKind::Binary(expr) => self.visit_binary(id, expr),
             expr::ExprKind::Unary(expr) => self.visit_unary(id, expr),
             expr::ExprKind::All => self.visit_all_expr(id),
@@ -519,6 +521,7 @@ impl<'hir> Walker<'hir> {
         match &expr.kind {
             expr::ExprKind::Missing => {}
             expr::ExprKind::Literal(_) => {}
+            expr::ExprKind::Init(node) => self.walk_init_expr(in_body, node),
             expr::ExprKind::Binary(node) => self.walk_binary(in_body, node),
             expr::ExprKind::Unary(node) => self.walk_unary(in_body, node),
             expr::ExprKind::All => {}
@@ -527,6 +530,12 @@ impl<'hir> Walker<'hir> {
             expr::ExprKind::Field(node) => self.walk_field(in_body, node),
             expr::ExprKind::Deref(node) => self.walk_deref(in_body, node),
             expr::ExprKind::Call(node) => self.walk_call_expr(in_body, node),
+        }
+    }
+
+    fn walk_init_expr(&mut self, _in_body: body::BodyId, node: &expr::Init) {
+        for &body_id in &node.exprs {
+            self.enter_body(body_id, self.lib.body(body_id));
         }
     }
 

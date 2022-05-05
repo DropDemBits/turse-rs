@@ -42,27 +42,12 @@ pub(super) fn validate_constvar_decl(decl: ast::ConstVarDecl, ctx: &mut Validate
     //        and array_ty.ranges() contains unbounded range
 
     // Note: array case + `init` initializer is handled during lowering to HIR
+    // Note: `init` + compatible type deferred to typeck, since it's also valid for aliases of the
+    // supported types.
 
     if let Some(ast::Expr::InitExpr(init_expr)) = decl.init() {
         // Has init expr initializer, allowed here?
-        if let Some(ty) = decl.type_spec() {
-            // Yes type spec, only allowed for array, record, or union types
-            if !matches!(
-                ty,
-                ast::Type::ArrayType(_) | ast::Type::RecordType(_) | ast::Type::UnionType(_)
-            ) {
-                let span = ctx.mk_span(ty.syntax().text_range());
-                let init_span = ctx.mk_span(init_expr.syntax().text_range());
-
-                ctx.push_detailed_error("mismatched initializer", init_span)
-                    .with_error("`init` initializer is not allowed here", init_span)
-                    .with_error("cannot use `init` initializer with this type", span)
-                    .with_info(
-                        "`init` initializer can only be used with array, record, or union types",
-                    )
-                    .finish();
-            }
-        } else {
+        if decl.type_spec().is_none() {
             // No type spec, never allowed
             let span = ctx.mk_span(init_expr.syntax().text_range());
 

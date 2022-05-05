@@ -1015,6 +1015,21 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
         );
     }
 
+    fn visit_init_expr(&self, id: BodyExpr, expr: &expr::Init) {
+        let expr_id = self.expr_id(id);
+        let mut v_layout = vec![];
+
+        for (idx, &body_id) in expr.exprs.iter().enumerate() {
+            v_layout.push(Layout::Hbox(vec![
+                Layout::Node(format!("{idx}")),
+                Layout::NamedPort(format!("{expr_id}:body_{idx}"), "".into()),
+            ]));
+            self.emit_edge(format!("{expr_id}:body_{idx}"), self.body_id(body_id))
+        }
+
+        self.emit_expr(id, "InitExpr", Layout::Vbox(v_layout));
+    }
+
     fn visit_binary(&self, id: BodyExpr, expr: &expr::Binary) {
         self.emit_expr(
             id,
