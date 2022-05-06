@@ -1312,9 +1312,10 @@ impl TypeCheck<'_> {
             return;
         }
 
-        enum CallKind {
+        enum CallKind<'db> {
             SubprogramCall,
             SetCons(ty::TypeId),
+            ArrayIndexing(&'db [ty::TypeId]),
         }
 
         // Check if lhs is callable
@@ -1326,6 +1327,9 @@ impl TypeCheck<'_> {
             // All the other kinds require parens
             ty::TypeKind::Set(_, elem_ty) if has_parens && from_ty_binding => {
                 Some(CallKind::SetCons(*elem_ty))
+            }
+            ty::TypeKind::Array(_, ranges, _) if has_parens && !from_ty_binding => {
+                Some(CallKind::ArrayIndexing(ranges.as_slice()))
             }
             _ => None,
         };
@@ -1344,15 +1348,23 @@ impl TypeCheck<'_> {
                 }
                 None => "expression".to_string(),
             };
-            let extra_info = match lhs_tyref.kind() {
+            let (extra_info, is_callable) = match lhs_tyref.kind() {
+                ty::TypeKind::Array(..) if has_parens && from_ty_binding => {
+                    // Trying to subscript an array, but on the type
+                    (Some("only array variables can be subscripted"), true)
+                }
                 ty::TypeKind::Set(..) if has_parens && !from_ty_binding => {
                     // Trying to construct a set, but from a variable
-                    Some("sets can only be constructed from their type names")
+                    (
+                        Some("sets can only be constructed from their type names"),
+                        true,
+                    )
                 }
-                ty::TypeKind::Subprogram(SubprogramKind::Process, ..) => {
-                    Some("to start a new process, use a `fork` statement")
-                }
-                _ => None,
+                ty::TypeKind::Subprogram(SubprogramKind::Process, ..) => (
+                    Some("to start a new process, use a `fork` statement"),
+                    false,
+                ),
+                _ => (None, false),
             };
 
             if has_parens {
@@ -1361,8 +1373,12 @@ impl TypeCheck<'_> {
                 let mut builder = state
                     .reporter
                     .error_detailed(format!("cannot call or subscript {thing}"), lhs_span)
-                    .with_note(format!("this is of type `{full_lhs_tyref}`"), lhs_span)
-                    .with_error(format!("`{lhs_tyref}` is not callable"), lhs_span);
+                    .with_note(format!("this is of type `{full_lhs_tyref}`"), lhs_span);
+
+                if !is_callable {
+                    builder =
+                        builder.with_error(format!("`{lhs_tyref}` is not callable"), lhs_span);
+                }
 
                 if let Some(extra_info) = extra_info {
                     builder = builder.with_info(extra_info);
@@ -1395,7 +1411,7 @@ impl TypeCheck<'_> {
 
         match call_kind {
             CallKind::SetCons(elem_ty) => {
-                self.typeck_call_set_cons(lhs_expr, lhs_span, arg_list, body, elem_ty);
+                self.typeck_call_set_cons(lhs_expr, lhs_span, arg_list.unwrap(), body, elem_ty);
             }
             CallKind::SubprogramCall => self.typeck_call_subprogram(
                 lhs_tyref,
@@ -1405,6 +1421,9 @@ impl TypeCheck<'_> {
                 body,
                 require_value,
             ),
+            CallKind::ArrayIndexing(ranges) => {
+                self.typeck_call_array_indexing(lhs_span, arg_list.unwrap(), body, ranges);
+            }
         }
     }
 
@@ -1412,17 +1431,10 @@ impl TypeCheck<'_> {
         &self,
         lhs_expr: (LibraryId, body::BodyId, expr::ExprId),
         lhs_span: Span,
-        arg_list: Option<&expr::ArgList>,
+        arg_list: &expr::ArgList,
         body_id: body::BodyId,
         elem_ty: ty::TypeId,
     ) {
-        let arg_list = if let Some(arg_list) = arg_list {
-            arg_list
-        } else {
-            // already checked to have an arg list
-            unreachable!()
-        };
-
         let body = self.library.body(body_id);
         let has_all = arg_list
             .iter()
@@ -1694,6 +1706,111 @@ impl TypeCheck<'_> {
                 "procedure calls cannot be used as expressions",
                 lhs_span,
             );
+        }
+    }
+
+    fn typeck_call_array_indexing(
+        &self,
+        lhs_span: Span,
+        arg_list: &expr::ArgList,
+        body_id: body::BodyId,
+        ranges: &[ty::TypeId],
+    ) {
+        let db = self.db;
+        let library = &self.library;
+        let library_id = self.library_id;
+
+        let expecteds = ranges;
+        let actuals = arg_list;
+        let mut expected_things = expecteds.iter();
+        let mut actual_things = actuals.iter();
+
+        loop {
+            let (expected_ty, actual_expr) = match (expected_things.next(), actual_things.next()) {
+                (Some(expected), Some(actual)) => (*expected, *actual),
+                (None, None) => {
+                    // exact
+                    break;
+                }
+                _ => {
+                    // too few
+                    let things = |count| plural(count, "argument", "arguments");
+                    let expected_count = expecteds.len();
+                    let actual_count = actuals.len();
+
+                    // FIXME: Find the last non-missing argument, and use that as the span
+                    let mut state = self.state();
+                    let builder = state.reporter.error_detailed(
+                        format!(
+                            "expected {expected_count} {things}, found {actual_count}",
+                            things = things(expected_count)
+                        ),
+                        lhs_span,
+                    );
+
+                    let difference = expected_count.abs_diff(actual_count);
+                    let diff_things = things(difference);
+
+                    let message = if expected_count > actual_count {
+                        format!("subscript is missing {difference} {diff_things}")
+                    } else {
+                        format!("subscript has {difference} extra {diff_things}")
+                    };
+                    builder.with_error(message, lhs_span).finish();
+
+                    break;
+                }
+            };
+
+            // Check type & binding
+            let expr_id = (library_id, body_id, actual_expr);
+            let actual_expr = library.body(body_id).expr(expr_id.2);
+
+            let actual_ty = db.type_of(expr_id.into());
+            let actual_value = db.value_produced(expr_id.into());
+            let actual_span = actual_expr.span.lookup_in(library);
+
+            // Check that it isn't `all` or a range expr
+            match &actual_expr.kind {
+                expr::ExprKind::All => {
+                    self.state().reporter.error(
+                        "cannot use `all` here",
+                        "`all` can't be used in array subscripting",
+                        actual_span,
+                    );
+                    continue;
+                }
+                expr::ExprKind::Range(_) => {
+                    self.state().reporter.error(
+                        "cannot use range expression here",
+                        "range expressions can't be used in array subscripting",
+                        actual_span,
+                    );
+                    continue;
+                }
+                _ => {}
+            }
+
+            if !actual_value.map(ValueKind::is_value).or_missing() {
+                self.report_mismatched_binding(
+                    BindingTo::Storage(Mutability::Var),
+                    expr_id.into(),
+                    actual_span,
+                    actual_span,
+                    |thing| format!("cannot pass {thing} to this parameter"),
+                    None,
+                );
+            } else if !ty::rules::is_assignable(self.db, expected_ty, actual_ty) {
+                // FIXME: change wording from parameter(s) to index/indices
+                self.report_mismatched_param_tys(
+                    expected_ty,
+                    actual_ty,
+                    actual_span,
+                    actual_span,
+                    actual_span,
+                    ty::PassBy::Value,
+                );
+            }
         }
     }
 

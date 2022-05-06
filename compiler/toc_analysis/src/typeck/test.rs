@@ -2462,6 +2462,49 @@ test_named_group! { typeck_set_cons_call,
     ]
 }
 
+test_named_group! { typeck_array_indexing_call,
+    [
+        single_index => "
+        var a : array 1..2 of int
+        var _ : int := a(1)",
+        multi_index => "
+        var a : array 1..2, 'c'..'d' of int
+        var _ : int := a(1, 'c')",
+
+        err_extra_for_single => "
+        var a : array 1..2 of int
+        var _ := a(1,2,3,4)",
+        err_extra_for_multiple => "
+        var a : array 1..2, 3..4 of int
+        var _ := a(1,2,3,4)",
+        err_missing_for_single => "
+        var a : array 1..2 of int
+        var _ := a()",
+        err_missing_for_multiple => "
+        var a : array 1..2, 3..4 of int
+        var _ := a(1)",
+
+        err_wrong_ty => "
+        var a : array 1..2, 'c'..'d' of int
+        var _ : int := a(1.0, true)",
+        err_wrong_binding => "
+        type i : int
+        var a : array 1..2 of int
+        var _ : int := a(i)",
+
+        // mutability is inherited
+        from_const_ref => "
+        const a : array 1..* of int := init(1)
+        a(1) := 1",
+        from_var_ref => "
+        var a : array 1..* of int := init(1)
+        a(1) := 1",
+        err_from_type_binding => "
+        type a : array 1..1 of int
+        a(1) := 1",
+    ]
+}
+
 test_named_group! { typeck_return_stmt,
     [
         in_top_level => "return",

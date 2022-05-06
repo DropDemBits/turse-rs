@@ -1,0 +1,18 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 42
+expression: "var a : array 1..2, 'c'..'d' of int\nvar _ : int := a(1.0, true)"
+
+---
+"a"@(FileId(1), 4..5) [Declared]: array ( range of `int` (Unevaluated(LibraryId(0), BodyId(0)) .. Expr(Unevaluated(LibraryId(0), BodyId(1)), Yes)), range of `char` (Unevaluated(LibraryId(0), BodyId(2)) .. Expr(Unevaluated(LibraryId(0), BodyId(3)), Yes)), ) of int
+"_"@(FileId(1), 40..41) [Declared]: int
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 53..56: mismatched types
+| note in file FileId(1) for 53..56: this is of type `real`
+| note in file FileId(1) for 53..56: parameter expects type `1 .. 2`
+| info: `real` is not assignable into `1 .. 2`
+error in file FileId(1) at 58..62: mismatched types
+| note in file FileId(1) for 58..62: this is of type `boolean`
+| note in file FileId(1) for 58..62: parameter expects type `'c' .. 'd'`
+| info: `boolean` is not assignable into `'c' .. 'd'`

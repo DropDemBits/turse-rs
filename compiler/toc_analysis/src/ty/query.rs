@@ -235,6 +235,21 @@ pub(super) fn value_produced(
         }
     }
 
+    fn expr_fallback(
+        db: &dyn TypeDatabase,
+        lib_id: toc_hir::library::LibraryId,
+        body_expr: BodyExpr,
+    ) -> Result<db::ValueKind, db::NotValue> {
+        let expr_ty = db.type_of((lib_id, body_expr).into());
+        let expr_ty_ref = expr_ty.in_db(db).to_base_type();
+
+        match expr_ty_ref.kind() {
+            kind if kind.is_scalar() => Ok(ValueKind::Scalar),
+            kind if !kind.is_error() => Ok(ValueKind::Reference(symbol::Mutability::Const)),
+            _ => Err(NotValue::Missing),
+        }
+    }
+
     match value_src {
         ValueSource::Body(lib_id, body_id) => {
             let library = db.library(lib_id);
@@ -252,9 +267,9 @@ pub(super) fn value_produced(
             let library = db.library(lib_id);
 
             match &library.body(body_id).expr(expr_id).kind {
-                toc_hir::expr::ExprKind::Missing => Err(NotValue::Missing),
-                toc_hir::expr::ExprKind::Name(name) => match name {
-                    toc_hir::expr::Name::Name(def_id) => {
+                expr::ExprKind::Missing => Err(NotValue::Missing),
+                expr::ExprKind::Name(name) => match name {
+                    expr::Name::Name(def_id) => {
                         let def_id = DefId(lib_id, *def_id);
 
                         if let Some(DefOwner::Export(mod_id, export_id)) = db.def_owner(def_id) {
@@ -287,9 +302,9 @@ pub(super) fn value_produced(
                             value_kind_from_binding(db, def_id)
                         }
                     }
-                    toc_hir::expr::Name::Self_ => unimplemented!(),
+                    expr::Name::Self_ => unimplemented!(),
                 },
-                toc_hir::expr::ExprKind::Field(field) => {
+                expr::ExprKind::Field(field) => {
                     // Look up field's corresponding def & mutability, or treat as missing if not there
                     let (def_id, mutability) = db
                         .fields_of((lib_id, body_id, field.lhs).into())
@@ -319,30 +334,111 @@ pub(super) fn value_produced(
                         (_, ValueKind::Reference(_)) => ValueKind::Reference(Mutability::Const),
                     })
                 }
-                toc_hir::expr::ExprKind::Deref(_) => {
+                expr::ExprKind::Deref(_) => {
                     // Always produces a mutable reference
                     // Non-ptr types are handled by normal typeck
                     Ok(ValueKind::Reference(Mutability::Var))
                 }
-                toc_hir::expr::ExprKind::Literal(literal) => match literal {
+                expr::ExprKind::Literal(literal) => match literal {
                     toc_hir::expr::Literal::CharSeq(_) | toc_hir::expr::Literal::String(_) => {
                         Ok(ValueKind::Reference(symbol::Mutability::Const))
                     }
                     _ => Ok(ValueKind::Scalar),
                 },
-                // TODO: For ExprKind call (subprog refs & stuff)
+                expr::ExprKind::Call(expr) => {
+                    use toc_hir::symbol::BindingResultExt;
+                    // The following does always produces a const reference:
+                    // - set cons
+                    //
+                    // The following does produce references, depending on the inherited
+                    // mutability:
+                    // - subprog call
+                    // - array indexing
+                    // - pointer ascription
+
+                    // Note: yoinked from typeck
+                    // FIXME: really extract this into a `ty::rules` fn
+                    let lhs_expr = (lib_id, body_id, expr.lhs);
+                    let lhs_mut = match db.value_produced(lhs_expr.into()) {
+                        Ok(ValueKind::Reference(muta)) | Ok(ValueKind::Register(muta)) => {
+                            Some(muta)
+                        }
+                        _ => None,
+                    };
+
+                    // Fetch type of lhs
+                    // Always try to do it by `DefId` first, so that we can properly support paren-less functions
+                    // We still need to defer to expression type lookup, since things like `expr::Deref` can produce
+                    // references to subprograms.
+                    let (lhs_ty, from_ty_binding) =
+                        if let Some(def_id) = db.binding_def(lhs_expr.into()) {
+                            // From an item
+                            let is_ty_binding = db
+                                .binding_to(def_id.into())
+                                .map(|a| a.is_type())
+                                .or_missing();
+                            (db.type_of(def_id.into()), is_ty_binding)
+                        } else {
+                            // From an actual expression
+                            (db.type_of(lhs_expr.into()), false)
+                        };
+                    let in_module = db.inside_module(lhs_expr.into());
+                    let lhs_tyref = lhs_ty.in_db(db).peel_opaque(in_module).to_base_type();
+
+                    // Bail on error types
+                    if lhs_tyref.kind().is_error() {
+                        return Err(NotValue::Missing);
+                    }
+
+                    enum CallKind<'db> {
+                        SubprogramCall,
+                        SetCons(TypeId),
+                        ArrayIndexing(&'db [TypeId]),
+                    }
+
+                    // Check if lhs is callable
+                    let has_parens = true;
+                    let call_kind = match lhs_tyref.kind() {
+                        TypeKind::Subprogram(toc_hir::symbol::SubprogramKind::Process, ..) => None,
+                        // Parens are only potentially optional in subprograms
+                        TypeKind::Subprogram(..) if !from_ty_binding => {
+                            Some(CallKind::SubprogramCall)
+                        }
+                        // All the other kinds require parens
+                        TypeKind::Set(_, elem_ty) if has_parens && from_ty_binding => {
+                            Some(CallKind::SetCons(*elem_ty))
+                        }
+                        TypeKind::Array(_, ranges, _) if has_parens && !from_ty_binding => {
+                            Some(CallKind::ArrayIndexing(ranges.as_slice()))
+                        }
+                        _ => None,
+                    };
+
+                    let call_kind = if let Some(call_kind) = call_kind {
+                        call_kind
+                    } else {
+                        // Defer to the fallback
+                        // This always produces some sort of value
+                        //
+                        // ???: Does this make sense? this is mostly here to prevent panicking
+                        // when expecting a reference value, but we get a non-value
+                        return expr_fallback(db, lib_id, body_expr);
+                    };
+
+                    match call_kind {
+                        CallKind::SubprogramCall => {
+                            // Defer to the default case
+                            expr_fallback(db, lib_id, body_expr)
+                        }
+                        CallKind::SetCons(..) => Ok(ValueKind::Reference(Mutability::Const)),
+                        CallKind::ArrayIndexing(..) => {
+                            Ok(ValueKind::Reference(lhs_mut.unwrap_or(Mutability::Const)))
+                        }
+                    }
+                }
                 _ => {
                     // Take from the expr's type (always produces a value)
-                    let expr_ty = db.type_of((lib_id, body_expr).into());
-                    let expr_ty_ref = expr_ty.in_db(db).to_base_type();
-
-                    match expr_ty_ref.kind() {
-                        kind if kind.is_scalar() => Ok(ValueKind::Scalar),
-                        kind if !kind.is_error() => {
-                            Ok(ValueKind::Reference(symbol::Mutability::Const))
-                        }
-                        _ => Err(NotValue::Missing),
-                    }
+                    expr_fallback(db, lib_id, body_expr)
                 }
             }
         }

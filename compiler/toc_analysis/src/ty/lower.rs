@@ -713,6 +713,11 @@ fn call_expr_ty(
             db.binding_def(lhs_expr.into())
                 .map_or_else(|| db.mk_error(), |def_id| db.type_of(def_id.into()))
         }
+        TypeKind::Array(.., elem_ty) => {
+            // Array indexing
+            // Use the element type
+            *elem_ty
+        }
         _ => {
             // Not a callable subprogram
             db.mk_error()
