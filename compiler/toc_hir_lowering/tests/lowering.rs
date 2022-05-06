@@ -1453,7 +1453,7 @@ fn lower_array_types() {
     // One bound
     assert_lower("type _ : array char of int");
     // Multiple bounds
-    assert_lower("type _ : array char, boolean of int");
+    assert_lower("type _ : array char, boolean, 1..2 of int");
     // No bounds
     assert_lower("type _ : array of int");
 

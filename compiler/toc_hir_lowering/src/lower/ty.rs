@@ -294,7 +294,7 @@ impl super::BodyLowering<'_, '_> {
                 let is_init_sized = range
                     .end()
                     .map(|end| matches!(end, ast::EndBound::UnsizedBound(_)))
-                    .is_some();
+                    .unwrap_or(false);
 
                 is_init_sized.then(|| range)
             } else {
