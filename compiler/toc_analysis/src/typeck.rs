@@ -288,11 +288,9 @@ impl TypeCheck<'_> {
 
                                 return;
                             }
-                            Err(ty::NotInteger::ConstError(err)) => {
+                            Err(ty::NotInteger::ConstError(_err)) => {
                                 // Static array, but error while computing count
-                                // Should be reported later, but just in case
-                                // TODO: This should be covered as part of array typeck
-                                err.report_to(db, &mut self.state().reporter);
+                                // FIXME(hidden-span): should be covered by other errors
 
                                 return;
                             }
@@ -1957,12 +1955,15 @@ impl TypeCheck<'_> {
     }
 
     fn typeck_array_ty(&self, id: toc_hir::ty::TypeId, ty: &toc_hir::ty::Array) {
+        const ELEM_LIMIT: u64 = u32::MAX as u64;
+
         let db = self.db;
         let library = &self.library;
         let library_id = self.library_id;
 
         let in_module = db.inside_module((self.library_id, id).into());
         let allow_zero_size = matches!(ty.sizing, toc_hir::ty::ArraySize::Flexible);
+        let mut already_big = false; // for preventing duplicate errors during count checking
 
         // - Ranges must be index type
         //   - same index sizing restriction
@@ -1984,18 +1985,43 @@ impl TypeCheck<'_> {
                     "an index type is an integer, a `boolean`, a `char`, an enumerated type, or a range",
                 )
                 .finish();
-            } else if range_tyref.clone().peel_aliases().kind().is_integer() {
-                // Is an integer type, but not from a range
-                // Range would be too big
-                self.state()
-                    .reporter
-                    .error_detailed("index range is too large", span)
-                    .with_error(
-                        format!("a range over all `{range_tyref}` values is too large"),
-                        span,
-                    )
-                    .with_info("use a range type to shrink the range of elements")
-                    .finish()
+            } else {
+                // Make sure that each range is small enough
+                // FIXME: reuse logic for set element ranges
+                let range_peeled = range_tyref.clone().peel_aliases();
+
+                let too_large = match range_peeled.kind() {
+                    ty::TypeKind::Int(sz) => *sz >= ty::IntSize::Int4,
+                    ty::TypeKind::Nat(sz) => *sz >= ty::NatSize::Nat4,
+                    ty::TypeKind::Constrained(..) => range_peeled
+                        .element_count()
+                        .ok()
+                        .and_then(|sz| sz.into_u64())
+                        .map_or(false, |sz| sz > ELEM_LIMIT),
+                    _ => false,
+                };
+
+                if too_large {
+                    // Range would be too big
+                    // Change suggestion based on origin
+                    let suggest = if matches!(range_peeled.kind(), ty::TypeKind::Constrained(..)) {
+                        "use a range type with a smaller element range"
+                    } else {
+                        "use a range type to shrink the range of elements"
+                    };
+
+                    self.state()
+                        .reporter
+                        .error_detailed("index range is too large", span)
+                        .with_error(
+                            format!("a range over all `{range_tyref}` values is too large"),
+                            span,
+                        )
+                        .with_info(suggest)
+                        .finish();
+
+                    already_big = true;
+                }
             }
 
             self.require_known_size(range_hir_ty, || "`array` types".into());
@@ -2008,7 +2034,49 @@ impl TypeCheck<'_> {
             });
         }
 
-        // TODO: Check that the element count is under 2^32 elements
+        // Ensure that there's less than 2^32 elements
+        if already_big {
+            // Encountered a large range already, don't need to duplicate reporting
+            return;
+        }
+
+        let array_ty = db.from_hir_type(id.in_library(library_id)).in_db(db);
+        let array_span = library.lookup_type(id).span.lookup_in(library);
+
+        let within_limit = match array_ty.element_count() {
+            Ok(v) if v.is_positive() => dbg!(v).into_u64(),
+            Err(ty::NotInteger::ConstError(err))
+                if matches!(err.kind(), const_eval::ErrorKind::IntOverflow) =>
+            {
+                // Overflow, definitely over limit
+                None
+            }
+            _ => {
+                // Already handled by previous typeck
+                return;
+            }
+        };
+
+        match within_limit {
+            Some(v) if v > ELEM_LIMIT => self
+                .state()
+                .reporter
+                .error_detailed("`array` has too many elements", array_span)
+                .with_error(
+                    format!("computed element count is {v} elements"),
+                    array_span,
+                )
+                .with_info(format!(
+                    "maxium element count for arrays is {ELEM_LIMIT} elements"
+                ))
+                .finish(),
+            None => self.state().reporter.error(
+                "`array` has too many elements",
+                "overflow while computing element count",
+                array_span,
+            ),
+            _ => {}
+        }
     }
 
     fn typeck_set_ty(&self, id: toc_hir::ty::TypeId, ty: &toc_hir::ty::Set) {

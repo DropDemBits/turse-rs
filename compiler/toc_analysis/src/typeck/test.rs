@@ -2709,6 +2709,17 @@ test_named_group! { typeck_array_ty,
         positive_flexible_size => "var _ : flexible array 1..1 of int",
         zero_flexible_size => "type _ : flexible array 1..0 of int",
         negative_flexible_size => "type _ : flexible array 1..-1 of int",
+
+        // array sizing
+        sizing_int1 => "type _ : array int1, 1..2 of int",
+        sizing_nat1 => "type _ : array nat1, 1..2 of int",
+        sizing_int2 => "type _ : array int2, 1..2 of int",
+        sizing_nat2 => "type _ : array nat2, 1..2 of int",
+        sizing_int => "type _ : array int, 1..2 of int",
+        sizing_nat => "type _ : array nat, 1..2 of int",
+        // until we have 64-bit types or widen ints during computation, this will always be an overflow
+        sizing_large => "type _ : array -16#7FFFFFFF..16#7FFFFFFF, 1..2 of int",
+        sizing_overflow => "type _ : array 0..16#7FFFFFFF, 0..16#7FFFFFFF of int",
     ]
 }
 
@@ -2720,6 +2731,9 @@ test_named_group! { typeck_array_ty_init,
         var a : array 1..c of int := init(1)",
         on_static => "var a : array 1..1 of int := init(1)",
         on_init_sized => "var a : array 1..* of int := init(1,2,3,4,5)",
+        on_too_large => "
+        const mx : nat4 := 16#FFFFFFFF
+        var a : array 0..mx, 0..mx of int := init(1,2,3)",
 
         more_two => "var a : array 1..3 of int := init(1,2,3,4,5)",
         more_one => "var a : array 1..3 of int := init(1,2,3,4)",
@@ -2730,8 +2744,6 @@ test_named_group! { typeck_array_ty_init,
         var c : int
         var a : array 1..1 of int := init(c)",
         mismatched_ty => "var a : array 1..1 of int := init(1.0)",
-
-        // TODO: add test for dealing with too large of an array
     ]
 }
 

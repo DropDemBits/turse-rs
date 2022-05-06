@@ -1,0 +1,16 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 42
+expression: "const mx : nat4 := 16#FFFFFFFF\nvar a : array 0..mx, 0..mx of int := init(1,2,3)"
+
+---
+"mx"@(FileId(1), 6..8) [Declared]: nat4
+"a"@(FileId(1), 35..36) [Declared]: array ( range of `nat4` (Unevaluated(LibraryId(0), BodyId(1)) .. Expr(Unevaluated(LibraryId(0), BodyId(2)), Yes)), range of `nat4` (Unevaluated(LibraryId(0), BodyId(3)) .. Expr(Unevaluated(LibraryId(0), BodyId(4)), Yes)), ) of int
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 39..64: `array` has too many elements
+| error in file FileId(1) for 39..64: overflow while computing element count
+error in file FileId(1) at 45..50: invalid range size
+| error in file FileId(1) for 45..50: range size is too large
+error in file FileId(1) at 52..57: invalid range size
+| error in file FileId(1) for 52..57: range size is too large

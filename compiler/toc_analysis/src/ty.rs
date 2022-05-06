@@ -103,7 +103,7 @@ pub enum TypeKind {
 // - collection
 
 /// Size variant of an `Int`.
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum IntSize {
     Int1,
     Int2,
@@ -113,7 +113,7 @@ pub enum IntSize {
 }
 
 /// Size variant of a Nat
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum NatSize {
     Nat1,
     Nat2,
