@@ -216,6 +216,10 @@ impl toc_hir::visitor::HirVisitor for TypeCheck<'_> {
 
 impl TypeCheck<'_> {
     fn typeck_constvar(&self, id: item::ItemId, item: &item::ConstVar) {
+        let db = self.db;
+        let library = &self.library;
+        let library_id = self.library_id;
+
         if let Some(ty_spec) = item.type_spec {
             // Type spec must be resolved at this point
             self.require_resolved_type(ty_spec);
@@ -232,7 +236,7 @@ impl TypeCheck<'_> {
         }
 
         if let Some(init_body) = item.init_expr {
-            self.expect_expression((self.library_id, init_body).into());
+            self.expect_expression((library_id, init_body).into());
         }
 
         // Check the initializer expression
@@ -243,22 +247,169 @@ impl TypeCheck<'_> {
             return;
         };
 
-        let def_id = DefId(self.library_id, self.library.item(id).def_id);
-        let left = self.db.type_of(def_id.into());
-        let right = self.db.type_of((self.library_id, init).into());
+        let def_id = DefId(library_id, library.item(id).def_id);
+        let left = db.type_of(def_id.into());
+        let right = db.type_of((library_id, init).into());
 
         // Peel opaque just for assignability
-        let in_module = self.db.inside_module((self.library_id, id).into());
-        let left = left.in_db(self.db).peel_opaque(in_module).id();
+        let in_module = db.inside_module((library_id, id).into());
+        let left = left.in_db(db).peel_opaque(in_module).id();
 
-        if !ty::rules::is_assignable(self.db, left, right) {
+        // Deal with `init` exprs specially
+        if let toc_hir::body::BodyKind::Exprs(root_expr) = &library.body(init).kind {
+            let root_expr = library.body(init).expr(*root_expr);
+
+            if let toc_hir::expr::ExprKind::Init(init_expr) = &root_expr.kind {
+                let spec_span = library.lookup_type(ty_spec).span.lookup_in(library);
+                let init_span = library.body(init).span.lookup_in(library);
+
+                // Target type must support aggregate initialization, i.e. be one of the following
+                // types:
+                // - array
+                // - record
+                // - union
+                let left_tyref = left.in_db(db);
+                let left_peeled = left_tyref.clone().peel_aliases();
+                match left_peeled.kind() {
+                    // Flexible arrays don't allow aggregate initialization
+                    ty::TypeKind::Array(sizing, _ranges, elem_ty)
+                        if !matches!(sizing, ty::ArraySizing::Flexible) =>
+                    {
+                        let elem_count = match left_peeled.element_count() {
+                            Ok(v) => v,
+                            Err(ty::NotInteger::ConstError(err)) if err.is_not_compile_time() => {
+                                // Dynamic array, can't do anything
+                                self.state()
+                                    .reporter
+                                    .error_detailed("cannot use `init` here", init_span)
+                                    .with_error("`init` initializer cannot be used for dynamically sized arrays", init_span)
+                                    .with_info("dynamically-sized `array`s cannot initialized using `init` since their size is not known at compile-time")
+                                    .finish();
+
+                                return;
+                            }
+                            Err(ty::NotInteger::ConstError(err)) => {
+                                // Static array, but error while computing count
+                                // Should be reported later, but just in case
+                                // TODO: This should be covered as part of array typeck
+                                err.report_to(db, &mut self.state().reporter);
+
+                                return;
+                            }
+                            Err(ty::NotInteger::NotInteger) => {
+                                // Not evaluable, can safely bail
+                                // This is covered as part of array typeck
+                                return;
+                            }
+                        };
+
+                        // Make an iter to compare against
+                        let elem_count = if let Some(count) = elem_count
+                            .into_u64()
+                            .and_then(|sz| usize::try_from(sz).ok())
+                        {
+                            count
+                        } else {
+                            // This should be covered as part of array typeck
+                            return;
+                        };
+
+                        // `init` elements should be both compile-time evaluable and match elem ty
+                        let mut exprs = init_expr.exprs.iter();
+                        let mut elem_tys = std::iter::once(elem_ty).cycle().take(elem_count);
+
+                        loop {
+                            // FIXME: this portion of the loop is similar to arg count, probably
+                            // extract to a common fn
+                            let (elem_ty, expr) = match (elem_tys.next(), exprs.next()) {
+                                (Some(elem_ty), Some(expr)) => (*elem_ty, *expr),
+                                (None, None) => break, // exact
+                                (Some(_), None) | (None, Some(_)) => {
+                                    // too few/many
+                                    let elements = |count| plural(count, "element", "elements");
+
+                                    let init_count = init_expr.exprs.len();
+                                    let elems = elements(elem_count);
+
+                                    // FIXME: Find the last non-missing expr, and use that as the
+                                    // span
+                                    let mut state = self.state();
+                                    let builder = state.reporter.error_detailed(
+                                        format!(
+                                            "expected {elem_count} {elems}, found {init_count}"
+                                        ),
+                                        init_span,
+                                    );
+
+                                    let difference = elem_count.abs_diff(init_count);
+                                    let diff_elems = elements(difference);
+
+                                    let message = if elem_count > init_count {
+                                        format!("`init` list is missing {difference} {diff_elems}")
+                                    } else {
+                                        format!("`init` list has {difference} extra {diff_elems}")
+                                    };
+                                    builder.with_error(message, init_span).finish();
+
+                                    break;
+                                }
+                            };
+
+                            let expr_ty = db.type_of((library_id, expr).into());
+
+                            // Must be assignable into, and be a compile-time expr
+                            if !ty::rules::is_assignable(db, elem_ty, expr_ty) {
+                                let expr_span = library.body(expr).span.lookup_in(library);
+
+                                // points to the array spec
+                                self.report_mismatched_assign_tys(
+                                    elem_ty,
+                                    expr_ty,
+                                    expr_span,
+                                    spec_span,
+                                    expr_span,
+                                    Some(|ty| format!("array expects type {ty}")),
+                                );
+                            } else if let Err(err) = db.evaluate_const(
+                                Const::from_body(library_id, expr),
+                                Default::default(),
+                            ) {
+                                err.report_to(db, &mut self.state().reporter)
+                            }
+                        }
+
+                        return;
+                    }
+                    // No other type supports aggregate init
+                    ty_kind => {
+                        let mut state = self.state();
+                        let mut builder = state
+                            .reporter
+                            .error_detailed("cannot use `init` here", init_span)
+                            .with_error(
+                                format!("`init` initializer cannot be used for `{left_tyref}`"),
+                                init_span,
+                            )
+                            .with_note(
+                                format!("`{left_peeled}` does not support aggregate initialzation"),
+                                spec_span,
+                            );
+
+                        if matches!(ty_kind, ty::TypeKind::Array(ty::ArraySizing::Flexible, ..)) {
+                            builder = builder.with_info("`flexible array`s cannot initialized using `init` since their size is not known at compile-time");
+                        }
+
+                        builder.finish();
+                        return;
+                    }
+                };
+            }
+        }
+
+        if !ty::rules::is_assignable(db, left, right) {
             // Incompatible, report it
-            let init_span = self.library.body(init).span.lookup_in(&self.library);
-            let spec_span = self
-                .library
-                .lookup_type(ty_spec)
-                .span
-                .lookup_in(&self.library);
+            let init_span = library.body(init).span.lookup_in(library);
+            let spec_span = library.lookup_type(ty_spec).span.lookup_in(library);
 
             self.report_mismatched_assign_tys(left, right, init_span, spec_span, init_span, None);
 
@@ -2374,4 +2525,12 @@ enum ExpectedValue {
     Value,
     Ref(Mutability),
     NonRegisterRef(Mutability),
+}
+
+fn plural<'a>(count: usize, single: &'a str, multiple: &'a str) -> &'a str {
+    if count == 1 {
+        single
+    } else {
+        multiple
+    }
 }

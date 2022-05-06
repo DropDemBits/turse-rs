@@ -567,8 +567,10 @@ where
                                 .map_err(NotInteger::ConstError)?;
 
                         // Offset by the gathered count
-                        start_bound
-                            .checked_add(count)
+                        // Sub by 1 since it's an inclusive range
+                        count
+                            .checked_sub(ConstInt::ONE)
+                            .and_then(|count| count.checked_add(start_bound))
                             .map_err(NotInteger::ConstError)?
                     }
                 }

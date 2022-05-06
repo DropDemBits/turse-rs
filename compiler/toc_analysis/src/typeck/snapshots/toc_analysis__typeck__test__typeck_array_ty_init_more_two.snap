@@ -1,0 +1,11 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 42
+expression: "var a : array 1..3 of int := init(1,2,3,4,5)"
+
+---
+"a"@(FileId(1), 4..5) [Declared]: array ( range of `int` (Unevaluated(LibraryId(0), BodyId(0)) .. Expr(Unevaluated(LibraryId(0), BodyId(1)), Yes)), ) of int
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 29..44: expected 3 elements, found 5
+| error in file FileId(1) for 29..44: `init` list has 2 extra elements

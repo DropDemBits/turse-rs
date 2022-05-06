@@ -2712,6 +2712,29 @@ test_named_group! { typeck_array_ty,
     ]
 }
 
+test_named_group! { typeck_array_ty_init,
+    [
+        on_flexible => "var a : flexible array 1..1 of int := init(1)",
+        on_dynamic => "
+        var c : int
+        var a : array 1..c of int := init(1)",
+        on_static => "var a : array 1..1 of int := init(1)",
+        on_init_sized => "var a : array 1..* of int := init(1,2,3,4,5)",
+
+        more_two => "var a : array 1..3 of int := init(1,2,3,4,5)",
+        more_one => "var a : array 1..3 of int := init(1,2,3,4)",
+        less_one => "var a : array 1..3 of int := init(1,2)",
+        less_two => "var a : array 1..3 of int := init(1)",
+
+        not_comp_time => "
+        var c : int
+        var a : array 1..1 of int := init(c)",
+        mismatched_ty => "var a : array 1..1 of int := init(1.0)",
+
+        // TODO: add test for dealing with too large of an array
+    ]
+}
+
 test_named_group! { typeck_enum_ty,
     [
         from_type_alias => "type e : enum(a, b, c)",
