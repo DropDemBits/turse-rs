@@ -250,13 +250,16 @@ where
             // intersperse comma
             let mut ranges = ranges.iter();
             if let Some(range_ty) = ranges.next() {
-                write!(out, " {}", range_ty.in_db(db))?;
+                write!(out, " ")?;
+                emit_display_ty(db, out, *range_ty, PokeAliases::Yes)?;
             }
             for range_ty in ranges {
-                write!(out, ", {}", range_ty.in_db(db))?;
+                write!(out, ", ")?;
+                emit_display_ty(db, out, *range_ty, PokeAliases::Yes)?;
             }
 
-            write!(out, " of {}", elem_ty.in_db(db))?;
+            write!(out, " of ")?;
+            emit_display_ty(db, out, *elem_ty, PokeAliases::No)?;
         }
         TypeKind::Enum(with_def, _) => {
             let def_id = match with_def {

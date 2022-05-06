@@ -1494,7 +1494,104 @@ test_named_group! { equivalence_of,
         a := c
         a := f.v
         ",
-        // FIXME: add equivalence tests for arrays (covers both arrays and constrained/ranges)
+        // Over constrained types
+        constraineds => "
+        % using array types as a proxy for constrained ty equivalence
+        type r1 : 1..2
+        type r2 : 3..4
+
+        var a : array r1 of int
+        var b : array r2 of int
+        var c : array (1+1-1)..(4 div 2) of int
+
+        % bounds must be equal
+        a := b
+        % if they evaluate to the same values, they're equivalent
+        a := c
+
+        var d : array 0..0 of int
+        var e : array false..false of int
+
+        % base types must be the same
+        d := e
+        ",
+        // Over arrays
+        // Note: `0+` is used to guarantee uniqueness of ranges
+        arrays_elements => "
+        % over array elements
+        var a : array 0+1..1 of int
+        var b : array 0+1..1 of int1
+        var c : array 0+1..1 of int % trying to make unique types
+
+        % element types must be equivalent
+        a := b
+        a := c
+        ",
+        arrays_ranges => "
+        % over array ranges
+        var a : array 0+1..1 of int
+        var b : array 0+2..2 of int
+        var c : array 0+1..1 of int
+
+        % ranges must be equivalent
+        a := b % not equivalent
+        a := c % is equivalent
+
+        var d : array 0+1..1, 0+2..2 of char
+        var e : array 0+1..1 of char
+        var f : array 0+1..1, 0+2..2 of char
+
+        % must have the same number of ranges
+        d := e
+        d := f
+        ",
+        arrays_sizing => "
+        % categories
+        % - Static
+        % - MaybeDyn-Static
+        % - MaybeDyn-Dynamic
+        % - Flexible
+        % init-sized are implied Static
+
+        % guarantee that these are static arrays
+        type tsta : array 0+1..1 of int
+        type tstb : array 0+1..1 of int
+        var c : int
+
+        var fxa : flexible array 0+1..1 of int
+        var fxb : flexible array 0+1..1 of int
+        var fxc : flexible array 0+1..2 of int
+        var fxd : flexible array 0+1..1 of int1
+
+        var dyna : array 0+1..c of int
+        var dynb : array 0+1..c of int
+
+        var msta : array 0+1..1 of int
+        var mstb : array 0+1..1 of int
+
+        var sta : tsta
+        var stb : tstb
+
+        % identity
+        sta := stb
+        msta := mstb
+
+        % Static & MaybeDyn-Static are equivalent
+        sta := msta
+        msta := sta
+
+        % MaybeDyn-Dynamic is never equivalent to anything (except itself)
+        dyna := dyna % succeed
+        dyna := dynb % fail
+
+        % usual equivalence rules apply for flexible arrays...
+        fxa := fxb % same ranges
+        fxa := fxc % different ranges
+        fxa := fxd % different elem tys
+
+        % except that arrays must be of the same flexibility
+        sta := fxa
+        ",
         // Over set types
         sets => r#"
         type sb : set of boolean

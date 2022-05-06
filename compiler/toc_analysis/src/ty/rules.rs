@@ -10,7 +10,7 @@ use crate::{
     ty::{self, NotFixedLen, SeqSize, TypeId, TypeKind},
 };
 
-use super::{AllowDyn, TyRef};
+use super::{AllowDyn, ArraySizing, TyRef};
 
 impl TypeKind {
     // ???: Do we want to move all of these into `TyRef`?
@@ -396,6 +396,36 @@ pub fn is_equivalent<T: db::ConstEval + ?Sized>(db: &T, left: TypeId, right: Typ
         (TypeKind::Enum(left_def, _), TypeKind::Enum(right_def, _))
         | (TypeKind::Set(left_def, _), TypeKind::Set(right_def, _)) => {
             left_def.def_id() == right_def.def_id()
+        }
+
+        // Array types are equivalent if both the ranges and the element type are equivalent, and
+        // if they have the same flexibility
+        (
+            TypeKind::Array(left_sizing, left_ranges, left_elem),
+            TypeKind::Array(right_sizing, right_ranges, right_elem),
+        ) => {
+            let same_flex = match (left_sizing, right_sizing) {
+                // If either is flexible, the other must be too
+                (ArraySizing::Flexible, other) | (other, ArraySizing::Flexible) => {
+                    *other == ArraySizing::Flexible
+                }
+                // The rest are equivalent
+                _ => true,
+            };
+
+            if !same_flex {
+                return false;
+            }
+
+            // Element types must be equivalent
+            if !is_equivalent(db, *left_elem, *right_elem) {
+                return false;
+            }
+
+            // Ranges must be the same length, and all ranges must be equivalent types
+            left_ranges.len() == right_ranges.len()
+                && std::iter::zip(left_ranges.iter(), right_ranges.iter())
+                    .all(|(left, right)| is_equivalent(db, *left, *right))
         }
 
         // Pointer types are equivalent if they have the same checkedness and equivalent target types
