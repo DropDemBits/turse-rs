@@ -1764,7 +1764,9 @@ impl TypeCheck<'_> {
         if let Some(value) =
             check_const_bound(start_bound.clone(), ty::AllowDyn::No, &mut state.reporter)
         {
-            if let Some((ordinal, min_value)) = value.ordinal().zip(base_tyref.min_int_of()) {
+            if let Some((ordinal, min_value)) =
+                Option::zip(value.ordinal(), base_tyref.min_int_of().ok())
+            {
                 if ordinal < min_value {
                     state.reporter.error(
                         "computed value is outside the type's range",
@@ -1782,7 +1784,9 @@ impl TypeCheck<'_> {
             if let Some(value) =
                 check_const_bound(end_bound.clone(), *allow_dyn, &mut state.reporter)
             {
-                if let Some((ordinal, max_value)) = value.ordinal().zip(base_tyref.max_int_of()) {
+                if let Some((ordinal, max_value)) =
+                    value.ordinal().zip(base_tyref.max_int_of().ok())
+                {
                     if max_value < ordinal {
                         state.reporter.error(
                             "computed value is outside the type's range",
@@ -1954,9 +1958,9 @@ impl TypeCheck<'_> {
             let ty_span = library.lookup_type(ty_spec).span.lookup_in(library);
 
             match ty_ref.element_count() {
-                Some(Ok(size)) if size.is_positive() && !size.is_zero() => {}
-                Some(Ok(size)) if size.is_zero() && allow_zero_size => {}
-                Some(Ok(size)) => {
+                Ok(size) if size.is_positive() && !size.is_zero() => {}
+                Ok(size) if size.is_zero() && allow_zero_size => {}
+                Ok(size) => {
                     let place = in_where(size.is_zero());
 
                     let size_kind = if size.is_zero() {
@@ -1973,7 +1977,7 @@ impl TypeCheck<'_> {
                         .with_error(format!("{size_kind} cannot be used in {place}"), ty_span)
                         .finish();
                 }
-                Some(Err(_err)) => {
+                Err(ty::NotInteger::ConstError(_err)) => {
                     // Overflow
                     self.state()
                         .reporter
@@ -1981,7 +1985,7 @@ impl TypeCheck<'_> {
                         .with_error("range size is too large", ty_span)
                         .finish();
                 }
-                None => {
+                Err(ty::NotInteger::NotInteger) => {
                     // Error during const-eval, already reported
                 }
             }

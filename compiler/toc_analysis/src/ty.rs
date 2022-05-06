@@ -400,20 +400,55 @@ where
 
     /// If this type were to be used as a range, computes the number of elements in the range,
     /// or `None` if it can't be used as a range
-    pub fn element_count(&self) -> Option<Result<ConstInt, ConstError>> {
-        // FIXME: Properly compute element count for array types
-        let min = self.min_int_of()?;
-        let max = self.max_int_of()?;
+    pub fn element_count(&self) -> Result<ConstInt, NotInteger> {
+        match self.kind() {
+            TypeKind::Array(ArraySizing::Static | ArraySizing::MaybeDyn, ranges, _) => {
+                // Element count is just the product of the range element counts
+                let mut count = ConstInt::ONE;
 
-        // Range is inclusive, so also add 1
-        Some(
-            max.checked_sub(min)
-                .and_then(|count| count.checked_add(ConstInt::ONE)),
-        )
+                for &range_ty in ranges {
+                    // Forcefully poke through opaque
+                    // Observing through is okay, since we don't leak the type itself
+                    let range_tyref = {
+                        let ty_ref = range_ty.in_db(self.db);
+                        if let TypeKind::Opaque(_, type_id) = ty_ref.kind() {
+                            type_id.in_db(self.db)
+                        } else {
+                            ty_ref.peel_aliases()
+                        }
+                    };
+
+                    // If this isn't an index type, stop
+                    // Prevents a cycle if we happen to have the same array type as one of the
+                    // range types.
+                    if !range_tyref.clone().to_base_type().kind().is_index() {
+                        return Err(NotInteger::NotInteger);
+                    }
+
+                    let index_count = range_tyref.element_count()?;
+
+                    count = count
+                        .checked_mul(index_count)
+                        .map_err(|err| NotInteger::ConstError(err))?;
+                }
+
+                Ok(count)
+            }
+            _ => {
+                // Simple range subtraction
+                let min = self.min_int_of()?;
+                let max = self.max_int_of()?;
+
+                // Range is inclusive, so also add 1
+                max.checked_sub(min)
+                    .and_then(|count| count.checked_add(ConstInt::ONE))
+                    .map_err(|err| NotInteger::ConstError(err))
+            }
+        }
     }
 
     /// Minimum integer value of this type, or `None` if this is not an integer
-    pub fn min_int_of(&self) -> Option<ConstInt> {
+    pub fn min_int_of(&self) -> Result<ConstInt, NotInteger> {
         let value = match self.kind() {
             TypeKind::Char => ConstValue::Char('\x00')
                 .ordinal()
@@ -452,17 +487,18 @@ where
                 // Just the ordinal value of the start bound
                 self.db
                     .evaluate_const(start_bound.clone(), Default::default())
-                    .ok()
-                    .and_then(|v| v.ordinal())?
+                    .map_err(|err| NotInteger::ConstError(err))?
+                    .ordinal()
+                    .ok_or(NotInteger::NotInteger)?
             }
-            _ => return None,
+            _ => return Err(NotInteger::NotInteger),
         };
 
-        Some(value)
+        Ok(value)
     }
 
     /// Maximum integer value of this type, or `None` if this is not an integer
-    pub fn max_int_of(&self) -> Option<ConstInt> {
+    pub fn max_int_of(&self) -> Result<ConstInt, NotInteger> {
         let value = match self.kind() {
             TypeKind::Char => {
                 // Codepoint can only fit inside of a u8
@@ -497,9 +533,13 @@ where
             TypeKind::Integer => unreachable!("integer should be concrete"),
             TypeKind::Enum(_, variants) => {
                 // Always the ordinal of the last variant
-                let last_ord = variants.len().checked_sub(1)?;
-                ConstInt::from_unsigned(last_ord.try_into().ok()?, false)
-                    .expect("const construction")
+                let last_ord = variants
+                    .len()
+                    .checked_sub(1)
+                    .and_then(|last_ord| u64::try_from(last_ord).ok())
+                    .ok_or(NotInteger::NotInteger)?;
+
+                ConstInt::from_unsigned(last_ord, false).expect("const construction")
             }
             TypeKind::Constrained(_, start_bound, end_bound) => {
                 // FIXME: use the correct eval params
@@ -510,29 +550,40 @@ where
                         // Just the ordinal value of the end bound
                         self.db
                             .evaluate_const(end_bound.clone(), eval_params)
-                            .ok()
-                            .and_then(|v| v.ordinal())?
+                            .map_err(NotInteger::ConstError)?
+                            .ordinal()
+                            .ok_or(NotInteger::NotInteger)?
                     }
                     EndBound::Unsized(count) => {
                         // Based on the ordinal value of the start bound
                         let start_bound = self
                             .db
                             .evaluate_const(start_bound.clone(), eval_params)
-                            .ok()
-                            .and_then(|v| v.ordinal())?;
+                            .map_err(NotInteger::ConstError)?
+                            .ordinal()
+                            .ok_or(NotInteger::NotInteger)?;
+                        let count =
+                            ConstInt::from_unsigned((*count).into(), eval_params.allow_64bit_ops)
+                                .map_err(NotInteger::ConstError)?;
 
                         // Offset by the gathered count
-                        ConstInt::from_unsigned((*count).into(), eval_params.allow_64bit_ops)
-                            .and_then(|count| start_bound.checked_add(count))
-                            .ok()?
+                        start_bound
+                            .checked_add(count)
+                            .map_err(NotInteger::ConstError)?
                     }
                 }
             }
-            _ => return None,
+            _ => return Err(NotInteger::NotInteger),
         };
 
-        Some(value)
+        Ok(value)
     }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum NotInteger {
+    ConstError(ConstError),
+    NotInteger,
 }
 
 impl<'db, DB: ?Sized + 'db> Clone for TyRef<'db, DB> {
