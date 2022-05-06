@@ -580,6 +580,7 @@ where
     }
 }
 
+// FIXME: replace with just constructing a WrongOperandType error
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum NotInteger {
     ConstError(ConstError),

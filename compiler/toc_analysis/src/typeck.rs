@@ -17,7 +17,10 @@ use toc_hir::{
 use toc_reporting::CompileResult;
 use toc_span::Span;
 
-use crate::ty::db::{NotValueErrExt, ValueKind};
+use crate::{
+    const_eval,
+    ty::db::{NotValueErrExt, ValueKind},
+};
 use crate::{
     const_eval::{Const, ConstValue},
     db::HirAnalysis,
@@ -1977,13 +1980,23 @@ impl TypeCheck<'_> {
                         .with_error(format!("{size_kind} cannot be used in {place}"), ty_span)
                         .finish();
                 }
-                Err(ty::NotInteger::ConstError(_err)) => {
-                    // Overflow
-                    self.state()
-                        .reporter
-                        .error_detailed("invalid range size", ty_span)
-                        .with_error("range size is too large", ty_span)
-                        .finish();
+                Err(ty::NotInteger::ConstError(err)) => {
+                    match err.kind() {
+                        const_eval::ErrorKind::IntOverflow => {
+                            // Overflow
+                            self.state()
+                                .reporter
+                                .error_detailed("invalid range size", ty_span)
+                                .with_error("range size is too large", ty_span)
+                                .finish();
+                        }
+                        _ if err.is_not_compile_time() => {
+                            // Checked during constrained ty typeck
+                        }
+                        _ => {
+                            // Error during const-eval, already reported
+                        }
+                    }
                 }
                 Err(ty::NotInteger::NotInteger) => {
                     // Error during const-eval, already reported

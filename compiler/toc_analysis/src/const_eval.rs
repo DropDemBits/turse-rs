@@ -25,6 +25,8 @@ mod value;
 
 use toc_hir::{body::BodyId, expr::BodyExpr, library::LibraryId};
 
+pub(crate) use errors::ErrorKind;
+
 pub use errors::ConstError;
 pub use integer::ConstInt;
 pub use value::ConstValue;
