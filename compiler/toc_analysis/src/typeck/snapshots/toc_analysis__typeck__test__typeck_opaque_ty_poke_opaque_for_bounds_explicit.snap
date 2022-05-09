@@ -8,7 +8,7 @@ expression: "module m\n    export opaque t, v\n    type t : int\n    var v : t\n
 "t"@(FileId(1), 41..42) [Resolved(Type)]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
 "v"@(FileId(1), 57..58) [Declared]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
 "_"@(FileId(1), 71..72) [Declared]: alias[DefId(LibraryId(0), LocalDefId(1))] of int
-"t"@(FileId(1), 20..28) [ItemExport(LocalDefId(1))]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
+"t"@(FileId(1), 27..28) [ItemExport(LocalDefId(1))]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
 "v"@(FileId(1), 30..31) [ItemExport(LocalDefId(2))]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
 "_"@(FileId(1), 101..102) [Declared]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
 "<root>"@(dummy) [Declared]: <error>

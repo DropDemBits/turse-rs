@@ -10,7 +10,7 @@ expression: "module m\n    export opaque t, a, p\n    type t : int\n    proc p(a
 "<unnamed>"@(dummy) [Declared]: <error>
 "a"@(FileId(1), 63..64) [Declared]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
 "a"@(FileId(1), 84..85) [Declared]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
-"t"@(FileId(1), 20..28) [ItemExport(LocalDefId(1))]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
+"t"@(FileId(1), 27..28) [ItemExport(LocalDefId(1))]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
 "a"@(FileId(1), 30..31) [ItemExport(LocalDefId(5))]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
 "p"@(FileId(1), 33..34) [ItemExport(LocalDefId(2))]: procedure ( pass(value) opaque[DefId(LibraryId(0), LocalDefId(1))] type to int, ) -> void
 "a"@(FileId(1), 168..169) [Declared]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to int

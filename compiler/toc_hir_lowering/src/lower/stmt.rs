@@ -647,7 +647,9 @@ impl super::BodyLowering<'_, '_> {
             }
 
             let (mutability, qualify_as, is_opaque) = lower_export_attrs(&exports_all, self.ctx);
-            let export_span = self.ctx.intern_range(exports_all.syntax().text_range());
+            let export_span = self
+                .ctx
+                .intern_range(exports_all.all_token().unwrap().text_range());
 
             exported_items
                 .into_iter()
@@ -810,7 +812,7 @@ impl super::BodyLowering<'_, '_> {
                             };
 
                         let item_def = item.def_id;
-                        let export_span = self.ctx.intern_range(exports_item.syntax().text_range());
+                        let export_span = self.ctx.intern_range(name_tok.text_range());
                         let def_id = self.ctx.library.add_def(
                             name_text,
                             export_span,

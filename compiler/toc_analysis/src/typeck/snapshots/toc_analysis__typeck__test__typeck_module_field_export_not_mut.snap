@@ -8,7 +8,7 @@ expression: "module a export b, var c\n    var b : int\n    const c : int := 1\n
 "b"@(FileId(1), 33..34) [Declared]: int
 "c"@(FileId(1), 51..52) [Declared]: int
 "b"@(FileId(1), 16..17) [ItemExport(LocalDefId(1))]: int
-"c"@(FileId(1), 19..24) [ItemExport(LocalDefId(2))]: int
+"c"@(FileId(1), 23..24) [ItemExport(LocalDefId(2))]: int
 "<root>"@(dummy) [Declared]: <error>
 
 error in file FileId(1) at 74..76: cannot assign into `b`

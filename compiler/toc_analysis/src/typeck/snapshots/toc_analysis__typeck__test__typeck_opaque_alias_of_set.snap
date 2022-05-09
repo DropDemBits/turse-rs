@@ -9,8 +9,8 @@ expression: "var *_ : boolean\n\nmodule m\n    export opaque s, var a\n    type 
 "s"@(FileId(1), 67..81) [Declared]: <error>
 "s"@(FileId(1), 63..64) [Resolved(Type)]: opaque[DefId(LibraryId(0), LocalDefId(3))] type to set[DefId(LibraryId(0), LocalDefId(2))] of boolean
 "a"@(FileId(1), 90..91) [Declared]: opaque[DefId(LibraryId(0), LocalDefId(3))] type to set[DefId(LibraryId(0), LocalDefId(2))] of boolean
-"s"@(FileId(1), 38..46) [ItemExport(LocalDefId(3))]: opaque[DefId(LibraryId(0), LocalDefId(3))] type to set[DefId(LibraryId(0), LocalDefId(2))] of boolean
-"a"@(FileId(1), 48..53) [ItemExport(LocalDefId(4))]: opaque[DefId(LibraryId(0), LocalDefId(3))] type to set[DefId(LibraryId(0), LocalDefId(2))] of boolean
+"s"@(FileId(1), 45..46) [ItemExport(LocalDefId(3))]: opaque[DefId(LibraryId(0), LocalDefId(3))] type to set[DefId(LibraryId(0), LocalDefId(2))] of boolean
+"a"@(FileId(1), 52..53) [ItemExport(LocalDefId(4))]: opaque[DefId(LibraryId(0), LocalDefId(3))] type to set[DefId(LibraryId(0), LocalDefId(2))] of boolean
 "vs"@(FileId(1), 147..149) [Declared]: <error>
 "<root>"@(dummy) [Declared]: <error>
 
