@@ -31,10 +31,10 @@ Library@(dummy)
             Primitive@(FileId(1), 212..215): Int
         Assign@(FileId(1), 224..230)
           Name@(FileId(1), 224..225): "i"@(FileId(1), 208..209)
-          Name@(FileId(1), 229..230): "a"@(FileId(1), 37..40)
+          Name@(FileId(1), 229..230): "a"@(FileId(1), 39..40)
         Assign@(FileId(1), 239..245)
           Name@(FileId(1), 239..240): "i"@(FileId(1), 208..209)
-          Name@(FileId(1), 244..245): "b"@(FileId(1), 42..45)
+          Name@(FileId(1), 244..245): "b"@(FileId(1), 44..45)
         StmtItem@(FileId(1), 275..359): ItemId(8)
           Module@(FileId(1), 275..359): "x"@(FileId(1), 282..283)
             StmtBody@(FileId(1), 296..345): []
@@ -43,8 +43,8 @@ Library@(dummy)
                   Primitive@(FileId(1), 304..307): Int
               Assign@(FileId(1), 320..326)
                 Name@(FileId(1), 320..321): "i"@(FileId(1), 300..301)
-                Name@(FileId(1), 325..326): "c"@(FileId(1), 123..129)
+                Name@(FileId(1), 325..326): "c"@(FileId(1), 126..129)
               Assign@(FileId(1), 339..345)
                 Name@(FileId(1), 339..340): "i"@(FileId(1), 300..301)
-                Name@(FileId(1), 344..345): "d"@(FileId(1), 123..129)
+                Name@(FileId(1), 344..345): "d"@(FileId(1), 126..129)
 

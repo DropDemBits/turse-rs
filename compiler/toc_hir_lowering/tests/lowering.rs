@@ -1344,6 +1344,14 @@ fn lower_module_exports() {
         const b := 8080
     end z",
     );
+
+    // duplicate all
+    assert_lower(
+        "
+    module z
+        export all, all, all
+    end z",
+    );
 }
 
 #[test]

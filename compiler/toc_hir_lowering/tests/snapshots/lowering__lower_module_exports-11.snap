@@ -1,0 +1,20 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+assertion_line: 61
+expression: "\n    module z\n        export all, all, all\n    end z"
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(1)
+    Module@(FileId(1), 0..52): "<root>"@(dummy)
+      StmtBody@(FileId(1), 5..52): []
+        StmtItem@(FileId(1), 5..52): ItemId(0)
+          Module@(FileId(1), 5..52): "z"@(FileId(1), 12..13)
+            StmtBody@(FileId(1), 47..47): []
+warn in file FileId(1) at 34..37: export item is ignored
+| warn in file FileId(1) for 34..37: this `all` is already exported...
+| note in file FileId(1) for 29..32: by this first `all`
+warn in file FileId(1) at 39..42: export item is ignored
+| warn in file FileId(1) for 39..42: this `all` is already exported...
+| note in file FileId(1) for 29..32: by this first `all`
+

@@ -12,7 +12,7 @@ expression: "module z\n    export unqualified opaque ty, unwrap, make\n\n    typ
 "make"@(FileId(1), 146..150) [Declared]: function ( pass(value) int, ) -> opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
 "<unnamed>"@(dummy) [Declared]: <error>
 "i"@(FileId(1), 151..152) [Declared]: int
-"ty"@(FileId(1), 20..41) [ItemExport(LocalDefId(1))]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
+"ty"@(FileId(1), 39..41) [ItemExport(LocalDefId(1))]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
 "unwrap"@(FileId(1), 43..49) [ItemExport(LocalDefId(2))]: function ( pass(value) opaque[DefId(LibraryId(0), LocalDefId(1))] type to int, ) -> int
 "make"@(FileId(1), 51..55) [ItemExport(LocalDefId(5))]: function ( pass(value) int, ) -> opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
 "a"@(FileId(1), 257..258) [Declared]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to int

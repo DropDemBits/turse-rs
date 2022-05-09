@@ -11,8 +11,8 @@ expression: "var *_ : boolean\n\nmodule m\n    export opaque e, var a\n    type 
 "e"@(FileId(1), 63..64) [Resolved(Type)]: opaque[DefId(LibraryId(0), LocalDefId(4))] type to enum[DefId(LibraryId(0), LocalDefId(3))] ( "a"@(FileId(1), 72..73), )
 "a"@(FileId(1), 83..84) [Declared]: opaque[DefId(LibraryId(0), LocalDefId(4))] type to enum[DefId(LibraryId(0), LocalDefId(3))] ( "a"@(FileId(1), 72..73), )
 "not_ty"@(FileId(1), 167..173) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(6))] of <error>
-"e"@(FileId(1), 38..46) [ItemExport(LocalDefId(4))]: opaque[DefId(LibraryId(0), LocalDefId(4))] type to enum[DefId(LibraryId(0), LocalDefId(3))] ( "a"@(FileId(1), 72..73), )
-"a"@(FileId(1), 48..53) [ItemExport(LocalDefId(5))]: opaque[DefId(LibraryId(0), LocalDefId(4))] type to enum[DefId(LibraryId(0), LocalDefId(3))] ( "a"@(FileId(1), 72..73), )
+"e"@(FileId(1), 45..46) [ItemExport(LocalDefId(4))]: opaque[DefId(LibraryId(0), LocalDefId(4))] type to enum[DefId(LibraryId(0), LocalDefId(3))] ( "a"@(FileId(1), 72..73), )
+"a"@(FileId(1), 52..53) [ItemExport(LocalDefId(5))]: opaque[DefId(LibraryId(0), LocalDefId(4))] type to enum[DefId(LibraryId(0), LocalDefId(3))] ( "a"@(FileId(1), 72..73), )
 "u"@(FileId(1), 191..192) [Declared]: opaque[DefId(LibraryId(0), LocalDefId(4))] type to enum[DefId(LibraryId(0), LocalDefId(3))] ( "a"@(FileId(1), 72..73), )
 "no_field"@(FileId(1), 228..236) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(10))] of <error>
 "<root>"@(dummy) [Declared]: <error>
