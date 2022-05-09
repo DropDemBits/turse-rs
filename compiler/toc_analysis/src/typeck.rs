@@ -1687,15 +1687,20 @@ impl TypeCheck<'_> {
                     None,
                 );
             } else if !param.coerced_type {
-                // Allow coercion for pass by value, but not for ref-args
-                let predicate = match param.pass_by {
-                    ty::PassBy::Value => ty::rules::is_assignable,
-                    ty::PassBy::Reference(_) => ty::rules::is_coercible_into_param,
-                };
-
                 let param_ty = param.param_ty.in_db(self.db).peel_opaque(in_module).id();
 
-                if !predicate(self.db, param_ty, arg_ty) {
+                // Allow all coercion for pass by value, but only param-coercion for ref-args
+                let predicate = match param.pass_by {
+                    ty::PassBy::Value => {
+                        ty::rules::is_assignable(self.db, param_ty, arg_ty)
+                            || ty::rules::is_coercible_into_param(self.db, param_ty, arg_ty)
+                    }
+                    ty::PassBy::Reference(_) => {
+                        ty::rules::is_coercible_into_param(self.db, param_ty, arg_ty)
+                    }
+                };
+
+                if !predicate {
                     self.report_mismatched_param_tys(
                         param.param_ty,
                         arg_ty,
@@ -1973,9 +1978,11 @@ impl TypeCheck<'_> {
 
         let start_span = library.body(ty.start).span.lookup_in(library);
         let end_span = match ty.end {
-            toc_hir::ty::ConstrainedEnd::Expr(end) => library.body(end).span.lookup_in(library),
-            toc_hir::ty::ConstrainedEnd::Unsized(sz) => sz.span().lookup_in(library),
+            toc_hir::ty::ConstrainedEnd::Expr(end) => library.body(end).span,
+            toc_hir::ty::ConstrainedEnd::Unsized(sz) => sz.span(),
+            toc_hir::ty::ConstrainedEnd::Any(any) => any,
         };
+        let end_span = end_span.lookup_in(library);
 
         let end = match ty.end {
             toc_hir::ty::ConstrainedEnd::Expr(end) => Some(end),

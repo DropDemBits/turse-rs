@@ -1414,7 +1414,37 @@ test_named_group! { assignability_into,
         _ := i in s
         _ := n in s
         ",
-        // FIXME: add coercion tests for range element types and set member ops
+        // note: `constrained_array_range` and `array_param` also test that param-coercion
+        // is applicable to both by-value and by-reference parameters
+        constrained_array_range => "
+        type tp : proc(var _ : array 1 .. * of int)
+        var a : array 1 .. 3 of int
+        var b : array 2 .. 3 of int
+        var p : tp
+
+        % only coercible if start bound is the same
+        p(a) % success
+        p(b) % fail
+        ",
+        array_param => "
+        type tp: proc(_ : array 1..2 of char(*))
+        var a : array 1..2 of char
+        var b : array 1..2 of char(42)
+        var p : tp
+
+        % element type is also coercible
+        p(a)
+        p(b)
+        ",
+        dyn_array_param_err => "
+        % dyn arrays aren't allowed, since the range is expected to be known at compile-time
+        var c : int
+        var a : array 1..c of char
+        proc p(_ : array 1..2 of char(*)) end p
+
+        p(a)
+        ",
+        // FIXME: add coercion tests for set member ops
     ]
 }
 

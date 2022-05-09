@@ -187,6 +187,8 @@ pub enum EndBound {
     Expr(Const, AllowDyn),
     /// From an element count
     Unsized(u32),
+    /// Derived at runtime
+    Any,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -572,6 +574,10 @@ where
                             .checked_sub(ConstInt::ONE)
                             .and_then(|count| count.checked_add(start_bound))
                             .map_err(NotInteger::ConstError)?
+                    }
+                    EndBound::Any => {
+                        // FIXME: This should be a non-const error?
+                        return Err(NotInteger::NotInteger);
                     }
                 }
             }

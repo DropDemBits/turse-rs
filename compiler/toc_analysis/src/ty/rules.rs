@@ -524,10 +524,106 @@ pub fn is_coercible_into_param<T: ?Sized + db::ConstEval>(
         return true;
     }
 
-    // FIXME: Be transitive over arrays and ranges
     match (left.kind(), right.kind()) {
+        // CharSeq-likes are coercible into the corresponding any-sized CharSeq
         (TypeKind::CharN(SeqSize::Any), _) => right.kind().is_char_like(),
         (TypeKind::StringN(SeqSize::Any), _) => right.kind().is_string_like(),
+        // Arrays are coercible if the ranges and elem ty are
+        (
+            TypeKind::Array(left_sizing, left_ranges, left_elem),
+            TypeKind::Array(right_sizing, right_ranges, right_elem),
+        ) => {
+            let same_flex = match (left_sizing, right_sizing) {
+                // If either is flexible, the other must be too
+                (ArraySizing::Flexible, other) | (other, ArraySizing::Flexible) => {
+                    *other == ArraySizing::Flexible
+                }
+                // The rest are equivalent
+                _ => true,
+            };
+
+            if !same_flex {
+                return false;
+            }
+
+            // Element types must be param-coercible
+            if !is_coercible_into_param(db, *left_elem, *right_elem) {
+                return false;
+            }
+
+            // Ranges must be the same length, and all ranges must be param-coercible types
+            left_ranges.len() == right_ranges.len()
+                && std::iter::zip(left_ranges.iter(), right_ranges.iter())
+                    .all(|(left, right)| is_coercible_into_param(db, *left, *right))
+        }
+        (
+            TypeKind::Constrained(left_base, left_start, left_end),
+            TypeKind::Constrained(right_base, right_start, right_end),
+        ) => {
+            // Base types must be param-coercible
+            if !is_coercible_into_param(db, *left_base, *right_base) {
+                return false;
+            }
+
+            // FIXME: use the correct eval params
+            let eval_params = Default::default();
+
+            let left_start = match db.evaluate_const(left_start.clone(), eval_params) {
+                Ok(v) => v,
+                Err(_) => return true, // invalid evaluations treated as equivalent types
+            };
+            let right_start = match db.evaluate_const(right_start.clone(), eval_params) {
+                Ok(v) => v,
+                Err(_) => return true, // invalid evaluations treated as equivalent types
+            };
+
+            // Bail if the start bounds weren't the same
+            if left_start != right_start {
+                return false;
+            }
+
+            // Fully equivalent if the end bounds are also the same
+            match (left_end, right_end) {
+                (
+                    ty::EndBound::Expr(left_end, left_dyn),
+                    ty::EndBound::Expr(right_end, right_dyn),
+                ) => {
+                    let eval_bound = |cons| {
+                        db.evaluate_const(cons, eval_params).map_err(|err| {
+                            if err.is_not_compile_time() {
+                                // Only treat as an invalid expression (and therefore equivalent) if
+                                // neither allow dynamic expressions, since dynamic expressions are
+                                // never equivalent
+                                matches!(left_dyn, AllowDyn::No)
+                                    && matches!(right_dyn, AllowDyn::No)
+                            } else {
+                                // invalid evaluations treated as equivalent types
+                                true
+                            }
+                        })
+                    };
+
+                    let left_end = match eval_bound(left_end.clone()) {
+                        Ok(v) => v,
+                        Err(equi) => return equi,
+                    };
+                    let right_end = match eval_bound(right_end.clone()) {
+                        Ok(v) => v,
+                        Err(equi) => return equi,
+                    };
+
+                    left_end == right_end
+                }
+                // Unsized bounds must be the same length (both are known to start at the same element)
+                (ty::EndBound::Unsized(left_end), ty::EndBound::Unsized(right_end)) => {
+                    left_end == right_end
+                }
+                // Any bound is trivially param-coercible into an `any`-sized bound
+                (ty::EndBound::Any, _) => true,
+                // Different end bound kinds
+                _ => false,
+            }
+        }
         _ => false,
     }
 }

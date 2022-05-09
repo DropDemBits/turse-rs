@@ -125,7 +125,7 @@ fn constrained_ty(
         let start_tyref = db.type_of(ty.start.in_library(library_id).into()).in_db(db);
         let end_tyref = match ty.end {
             hir_ty::ConstrainedEnd::Expr(end) => db.type_of(end.in_library(library_id).into()),
-            hir_ty::ConstrainedEnd::Unsized(_) => db.mk_error(),
+            _ => db.mk_error(),
         }
         .in_db(db);
 
@@ -160,6 +160,7 @@ fn constrained_ty(
             ty::EndBound::Expr(Const::from_body(library_id, end), allow_dyn)
         }
         hir_ty::ConstrainedEnd::Unsized(sz) => ty::EndBound::Unsized(sz.item().unwrap_or(0)),
+        hir_ty::ConstrainedEnd::Any(_) => ty::EndBound::Any,
     };
 
     db.mk_constrained(base_ty, start, end)

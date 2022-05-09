@@ -240,7 +240,7 @@ where
                         unreachable!("should not show errors! ({err:?})")
                     }
                 },
-                EndBound::Unsized(_) => write!(out, "*")?,
+                EndBound::Unsized(_) | EndBound::Any => write!(out, "*")?,
             }
         }
         TypeKind::Array(_is_flexible, ranges, elem_ty) => {
