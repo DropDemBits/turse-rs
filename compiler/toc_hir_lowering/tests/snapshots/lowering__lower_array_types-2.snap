@@ -1,0 +1,22 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+assertion_line: 61
+expression: "type _ : array char, boolean, 1..2 of int"
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(1)
+    Module@(FileId(1), 0..41): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..41): []
+        StmtItem@(FileId(1), 0..41): ItemId(0)
+          Type@(FileId(1), 0..41): "_"@(FileId(1), 5..6)
+            Array@(FileId(1), 9..41): Static
+              Primitive@(FileId(1), 15..19): Char
+              Primitive@(FileId(1), 21..28): Boolean
+              Constrained@(FileId(1), 30..34): end => Expr
+                ExprBody@(FileId(1), 30..31)
+                  Literal@(FileId(1), 30..31): Integer(1)
+                ExprBody@(FileId(1), 33..34)
+                  Literal@(FileId(1), 33..34): Integer(2)
+              Primitive@(FileId(1), 38..41): Int
+

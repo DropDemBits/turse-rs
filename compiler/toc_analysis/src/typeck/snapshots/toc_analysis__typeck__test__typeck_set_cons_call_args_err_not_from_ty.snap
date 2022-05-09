@@ -11,5 +11,4 @@ expression: "type s : set of boolean\nvar k : s\nk := k()\n"
 
 error in file FileId(1) at 39..40: cannot call or subscript `k`
 | note in file FileId(1) for 39..40: this is of type `set s (of boolean)`
-| error in file FileId(1) for 39..40: `set s (of boolean)` is not callable
 | info: sets can only be constructed from their type names

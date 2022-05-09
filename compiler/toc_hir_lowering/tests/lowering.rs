@@ -1435,9 +1435,7 @@ fn lower_constrained_type_sized() {
     assert_lower("var _ : ..");
 }
 
-// FIXME: Uncomment once array types are being lowered
-// #[test]
-#[allow(unused)] // waiting on array types to be lowered
+#[test]
 fn lower_constrained_type_unsized() {
     // Valid everything
     assert_lower("var _ : array 1 .. * of int := init(1, 2, 3)");
@@ -1448,4 +1446,66 @@ fn lower_constrained_type_unsized() {
     // Outside of an array
     assert_lower("var _ : 1 .. *");
     assert_lower("type _ : 1 .. *");
+}
+
+#[test]
+fn lower_array_types() {
+    // One bound
+    assert_lower("type _ : array char of int");
+    // Multiple bounds
+    assert_lower("type _ : array char, boolean, 1..2 of int");
+    // No bounds
+    assert_lower("type _ : array of int");
+
+    // Maybe dyn
+    assert_lower("var _ : array boolean of int");
+
+    // Flexible
+    assert_lower("var _ : flexible array 1 .. 0 of int");
+}
+
+#[test]
+fn lower_array_types_init_sized() {
+    // Init-sized
+    assert_lower("var _ : array 1 .. * of int := init(1)");
+    // Only 1 init-sized range allowed
+    assert_lower("var _ : array 1 .. *, 1 .. * of int := init(1)");
+    // Init-sized range must be the first
+    // ranges before
+    assert_lower("var _ : array 1 .. *, char of int := init(1)");
+    assert_lower("var _ : array 1 .. *, char,,char of int := init(1)");
+    // ranges after
+    assert_lower("var _ : array char, 1 .. * of int := init(1)");
+    assert_lower("var _ : array char,,char, 1 .. * of int := init(1)");
+    // both
+    assert_lower("var _ : array char, 1 .. *, char of int := init(1)");
+}
+
+#[test]
+fn lower_array_types_any_sized() {
+    // Same restrictions as init-sized, just in param decl context
+
+    // Any-sized
+    assert_lower("type _ : proc uwu(_ : array 1 .. * of int)");
+    // Only 1 any-sized range allowed
+    assert_lower("type _ : proc uwu(_ : array 1 .. *, 1 .. * of int)");
+    // Any-sized range must be the first
+    // ranges before
+    assert_lower("type _ : proc uwu(_ : array 1 .. *, char of int)");
+    assert_lower("type _ : proc uwu(_ : array 1 .. *, char,,char of int)");
+    // ranges after
+    assert_lower("type _ : proc uwu(_ : array char, 1 .. * of int)");
+    assert_lower("type _ : proc uwu(_ : array char,,char, 1 .. * of int)");
+    // both
+    assert_lower("type _ : proc uwu(_ : array char, 1 .. *, char of int)");
+}
+
+#[test]
+fn lower_init_expr() {
+    // Ok with non-aggregate types (check deferred to typeck)
+    assert_lower("var _ : int := init(1, 2, 3, 4)");
+    // Type spec required (handled by AST validation)
+    assert_lower("var _ := init(1, 2, 3, 4)");
+    // Can't be used outside of a ConstVar decl (handled by AST validation)
+    assert_lower("var a : int a := init(1, 2, 3, 4)");
 }

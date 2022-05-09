@@ -1,0 +1,17 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+assertion_line: 61
+expression: "type _ : array of int"
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(1)
+    Module@(FileId(1), 0..21): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..21): []
+        StmtItem@(FileId(1), 0..21): ItemId(0)
+          Type@(FileId(1), 0..21): "_"@(FileId(1), 5..6)
+            Array@(FileId(1), 9..21): Static
+              Primitive@(FileId(1), 18..21): Int
+error in file FileId(1) at 15..17: unexpected token
+| error in file FileId(1) for 15..17: expected type specifier, but found `of`
+

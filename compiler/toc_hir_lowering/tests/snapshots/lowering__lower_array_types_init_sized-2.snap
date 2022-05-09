@@ -1,0 +1,26 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+assertion_line: 61
+expression: "var _ : array 1 .. *, 1 .. * of int := init(1)"
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(1)
+    Module@(FileId(1), 0..46): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..46): []
+        StmtItem@(FileId(1), 0..46): ItemId(0)
+          ConstVar@(FileId(1), 0..46): var "_"@(FileId(1), 4..5)
+            Array@(FileId(1), 8..35): MaybeDyn
+              Constrained@(FileId(1), 14..20): end => Unsized(Some(1))
+                ExprBody@(FileId(1), 14..15)
+                  Literal@(FileId(1), 14..15): Integer(1)
+              Primitive@(FileId(1), 32..35): Int
+            ExprBody@(FileId(1), 39..46)
+              InitExpr@(FileId(1), 39..46)
+                ExprBody@(FileId(1), 44..45)
+                  Literal@(FileId(1), 44..45): Integer(1)
+error in file FileId(1) at 14..20: extra ranges specified
+| error in file FileId(1) for 22..28: extra ranges after
+| note in file FileId(1) for 14..20: this must be the only range present
+| info: `init`-sized arrays must have this range be the only range present
+

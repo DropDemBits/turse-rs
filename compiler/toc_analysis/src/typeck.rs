@@ -17,7 +17,10 @@ use toc_hir::{
 use toc_reporting::CompileResult;
 use toc_span::Span;
 
-use crate::ty::db::{NotValueErrExt, ValueKind};
+use crate::{
+    const_eval,
+    ty::db::{NotValueErrExt, ValueKind},
+};
 use crate::{
     const_eval::{Const, ConstValue},
     db::HirAnalysis,
@@ -194,6 +197,10 @@ impl toc_hir::visitor::HirVisitor for TypeCheck<'_> {
         self.typeck_constrained_ty(id, ty);
     }
 
+    fn visit_array(&self, id: toc_hir::ty::TypeId, ty: &toc_hir::ty::Array) {
+        self.typeck_array_ty(id, ty);
+    }
+
     fn visit_set(&self, id: toc_hir::ty::TypeId, ty: &toc_hir::ty::Set) {
         self.typeck_set_ty(id, ty);
     }
@@ -209,6 +216,10 @@ impl toc_hir::visitor::HirVisitor for TypeCheck<'_> {
 
 impl TypeCheck<'_> {
     fn typeck_constvar(&self, id: item::ItemId, item: &item::ConstVar) {
+        let db = self.db;
+        let library = &self.library;
+        let library_id = self.library_id;
+
         if let Some(ty_spec) = item.type_spec {
             // Type spec must be resolved at this point
             self.require_resolved_type(ty_spec);
@@ -225,7 +236,7 @@ impl TypeCheck<'_> {
         }
 
         if let Some(init_body) = item.init_expr {
-            self.expect_expression((self.library_id, init_body).into());
+            self.expect_expression((library_id, init_body).into());
         }
 
         // Check the initializer expression
@@ -236,22 +247,167 @@ impl TypeCheck<'_> {
             return;
         };
 
-        let def_id = DefId(self.library_id, self.library.item(id).def_id);
-        let left = self.db.type_of(def_id.into());
-        let right = self.db.type_of((self.library_id, init).into());
+        let def_id = DefId(library_id, library.item(id).def_id);
+        let left = db.type_of(def_id.into());
+        let right = db.type_of((library_id, init).into());
 
         // Peel opaque just for assignability
-        let in_module = self.db.inside_module((self.library_id, id).into());
-        let left = left.in_db(self.db).peel_opaque(in_module).id();
+        let in_module = db.inside_module((library_id, id).into());
+        let left = left.in_db(db).peel_opaque(in_module).id();
 
-        if !ty::rules::is_assignable(self.db, left, right) {
+        // Deal with `init` exprs specially
+        if let toc_hir::body::BodyKind::Exprs(root_expr) = &library.body(init).kind {
+            let root_expr = library.body(init).expr(*root_expr);
+
+            if let toc_hir::expr::ExprKind::Init(init_expr) = &root_expr.kind {
+                let spec_span = library.lookup_type(ty_spec).span.lookup_in(library);
+                let init_span = library.body(init).span.lookup_in(library);
+
+                // Target type must support aggregate initialization, i.e. be one of the following
+                // types:
+                // - array
+                // - record
+                // - union
+                let left_tyref = left.in_db(db);
+                let left_peeled = left_tyref.clone().peel_aliases();
+                match left_peeled.kind() {
+                    // Flexible arrays don't allow aggregate initialization
+                    ty::TypeKind::Array(sizing, _ranges, elem_ty)
+                        if !matches!(sizing, ty::ArraySizing::Flexible) =>
+                    {
+                        let elem_count = match left_peeled.element_count() {
+                            Ok(v) => v,
+                            Err(ty::NotInteger::ConstError(err)) if err.is_not_compile_time() => {
+                                // Dynamic array, can't do anything
+                                self.state()
+                                    .reporter
+                                    .error_detailed("cannot use `init` here", init_span)
+                                    .with_error("`init` initializer cannot be used for dynamically sized arrays", init_span)
+                                    .with_info("dynamically-sized `array`s cannot initialized using `init` since their size is not known at compile-time")
+                                    .finish();
+
+                                return;
+                            }
+                            Err(ty::NotInteger::ConstError(_err)) => {
+                                // Static array, but error while computing count
+                                // FIXME(hidden-span): should be covered by other errors
+
+                                return;
+                            }
+                            Err(ty::NotInteger::NotInteger) => {
+                                // Not evaluable, can safely bail
+                                // This is covered as part of array typeck
+                                return;
+                            }
+                        };
+
+                        // Make an iter to compare against
+                        let elem_count = if let Some(count) = elem_count
+                            .into_u64()
+                            .and_then(|sz| usize::try_from(sz).ok())
+                        {
+                            count
+                        } else {
+                            // This should be covered as part of array typeck
+                            return;
+                        };
+
+                        // `init` elements should be both compile-time evaluable and match elem ty
+                        let mut exprs = init_expr.exprs.iter();
+                        let mut elem_tys = std::iter::once(elem_ty).cycle().take(elem_count);
+
+                        loop {
+                            // FIXME: this portion of the loop is similar to arg count, probably
+                            // extract to a common fn
+                            let (elem_ty, expr) = match (elem_tys.next(), exprs.next()) {
+                                (Some(elem_ty), Some(expr)) => (*elem_ty, *expr),
+                                (None, None) => break, // exact
+                                (Some(_), None) | (None, Some(_)) => {
+                                    // too few/many
+                                    let elements = |count| plural(count, "element", "elements");
+
+                                    let init_count = init_expr.exprs.len();
+                                    let elems = elements(elem_count);
+
+                                    // FIXME: Find the last non-missing expr, and use that as the
+                                    // span
+                                    let mut state = self.state();
+                                    let builder = state.reporter.error_detailed(
+                                        format!(
+                                            "expected {elem_count} {elems}, found {init_count}"
+                                        ),
+                                        init_span,
+                                    );
+
+                                    let difference = elem_count.abs_diff(init_count);
+                                    let diff_elems = elements(difference);
+
+                                    let message = if elem_count > init_count {
+                                        format!("`init` list is missing {difference} {diff_elems}")
+                                    } else {
+                                        format!("`init` list has {difference} extra {diff_elems}")
+                                    };
+                                    builder.with_error(message, init_span).finish();
+
+                                    break;
+                                }
+                            };
+
+                            let expr_ty = db.type_of((library_id, expr).into());
+
+                            // Must be assignable into, and be a compile-time expr
+                            if !ty::rules::is_assignable(db, elem_ty, expr_ty) {
+                                let expr_span = library.body(expr).span.lookup_in(library);
+
+                                // points to the array spec
+                                self.report_mismatched_assign_tys(
+                                    elem_ty,
+                                    expr_ty,
+                                    expr_span,
+                                    spec_span,
+                                    expr_span,
+                                    Some(|ty| format!("array expects type {ty}")),
+                                );
+                            } else if let Err(err) = db.evaluate_const(
+                                Const::from_body(library_id, expr),
+                                Default::default(),
+                            ) {
+                                err.report_to(db, &mut self.state().reporter)
+                            }
+                        }
+
+                        return;
+                    }
+                    // No other type supports aggregate init
+                    ty_kind => {
+                        let mut state = self.state();
+                        let mut builder = state
+                            .reporter
+                            .error_detailed("cannot use `init` here", init_span)
+                            .with_error(
+                                format!("`init` initializer cannot be used for `{left_tyref}`"),
+                                init_span,
+                            )
+                            .with_note(
+                                format!("`{left_peeled}` does not support aggregate initialzation"),
+                                spec_span,
+                            );
+
+                        if matches!(ty_kind, ty::TypeKind::Array(ty::ArraySizing::Flexible, ..)) {
+                            builder = builder.with_info("`flexible array`s cannot initialized using `init` since their size is not known at compile-time");
+                        }
+
+                        builder.finish();
+                        return;
+                    }
+                };
+            }
+        }
+
+        if !ty::rules::is_assignable(db, left, right) {
             // Incompatible, report it
-            let init_span = self.library.body(init).span.lookup_in(&self.library);
-            let spec_span = self
-                .library
-                .lookup_type(ty_spec)
-                .span
-                .lookup_in(&self.library);
+            let init_span = library.body(init).span.lookup_in(library);
+            let spec_span = library.lookup_type(ty_spec).span.lookup_in(library);
 
             self.report_mismatched_assign_tys(left, right, init_span, spec_span, init_span, None);
 
@@ -627,14 +783,22 @@ impl TypeCheck<'_> {
                     let bounds_tyref = bounds_ty.in_db(db).peel_opaque(in_module);
                     let bounds_base_ty = bounds_tyref.clone().peel_aliases();
 
-                    // FIXME(for-each): Specialize message for iterables
-                    self.state()
-                        .reporter
-                        .error_detailed("mismatched types", bounds_span)
-                        .with_note(format!("this is of type `{bounds_tyref}`"), bounds_span)
-                        .with_error(format!("`{bounds_base_ty}` is not iterable"), bounds_span)
-                        .with_info("only arrays types can be iterated over")
-                        .finish();
+                    if bounds_base_ty.kind().is_array() {
+                        // Specialize the message for iterables
+                        self.state().reporter.error(
+                            "unsupported operation",
+                            "for-each loops are not implemented yet",
+                            bounds_span,
+                        );
+                    } else {
+                        self.state()
+                            .reporter
+                            .error_detailed("mismatched types", bounds_span)
+                            .with_note(format!("this is of type `{bounds_tyref}`"), bounds_span)
+                            .with_error(format!("`{bounds_base_ty}` is not iterable"), bounds_span)
+                            .with_info("only arrays types can be iterated over")
+                            .finish();
+                    }
 
                     return;
                 }
@@ -960,7 +1124,7 @@ impl TypeCheck<'_> {
                         None
                     }
                 }
-                body::BodyOwner::Type(_) => None,
+                _ => None,
             }
         } else {
             unreachable!()
@@ -1156,9 +1320,10 @@ impl TypeCheck<'_> {
             return;
         }
 
-        enum CallKind {
+        enum CallKind<'db> {
             SubprogramCall,
             SetCons(ty::TypeId),
+            ArrayIndexing(&'db [ty::TypeId]),
         }
 
         // Check if lhs is callable
@@ -1170,6 +1335,9 @@ impl TypeCheck<'_> {
             // All the other kinds require parens
             ty::TypeKind::Set(_, elem_ty) if has_parens && from_ty_binding => {
                 Some(CallKind::SetCons(*elem_ty))
+            }
+            ty::TypeKind::Array(_, ranges, _) if has_parens && !from_ty_binding => {
+                Some(CallKind::ArrayIndexing(ranges.as_slice()))
             }
             _ => None,
         };
@@ -1188,15 +1356,23 @@ impl TypeCheck<'_> {
                 }
                 None => "expression".to_string(),
             };
-            let extra_info = match lhs_tyref.kind() {
+            let (extra_info, is_callable) = match lhs_tyref.kind() {
+                ty::TypeKind::Array(..) if has_parens && from_ty_binding => {
+                    // Trying to subscript an array, but on the type
+                    (Some("only array variables can be subscripted"), true)
+                }
                 ty::TypeKind::Set(..) if has_parens && !from_ty_binding => {
                     // Trying to construct a set, but from a variable
-                    Some("sets can only be constructed from their type names")
+                    (
+                        Some("sets can only be constructed from their type names"),
+                        true,
+                    )
                 }
-                ty::TypeKind::Subprogram(SubprogramKind::Process, ..) => {
-                    Some("to start a new process, use a `fork` statement")
-                }
-                _ => None,
+                ty::TypeKind::Subprogram(SubprogramKind::Process, ..) => (
+                    Some("to start a new process, use a `fork` statement"),
+                    false,
+                ),
+                _ => (None, false),
             };
 
             if has_parens {
@@ -1205,8 +1381,12 @@ impl TypeCheck<'_> {
                 let mut builder = state
                     .reporter
                     .error_detailed(format!("cannot call or subscript {thing}"), lhs_span)
-                    .with_note(format!("this is of type `{full_lhs_tyref}`"), lhs_span)
-                    .with_error(format!("`{lhs_tyref}` is not callable"), lhs_span);
+                    .with_note(format!("this is of type `{full_lhs_tyref}`"), lhs_span);
+
+                if !is_callable {
+                    builder =
+                        builder.with_error(format!("`{lhs_tyref}` is not callable"), lhs_span);
+                }
 
                 if let Some(extra_info) = extra_info {
                     builder = builder.with_info(extra_info);
@@ -1239,7 +1419,7 @@ impl TypeCheck<'_> {
 
         match call_kind {
             CallKind::SetCons(elem_ty) => {
-                self.typeck_call_set_cons(lhs_expr, lhs_span, arg_list, body, elem_ty);
+                self.typeck_call_set_cons(lhs_expr, lhs_span, arg_list.unwrap(), body, elem_ty);
             }
             CallKind::SubprogramCall => self.typeck_call_subprogram(
                 lhs_tyref,
@@ -1249,6 +1429,9 @@ impl TypeCheck<'_> {
                 body,
                 require_value,
             ),
+            CallKind::ArrayIndexing(ranges) => {
+                self.typeck_call_array_indexing(lhs_span, arg_list.unwrap(), body, ranges);
+            }
         }
     }
 
@@ -1256,17 +1439,10 @@ impl TypeCheck<'_> {
         &self,
         lhs_expr: (LibraryId, body::BodyId, expr::ExprId),
         lhs_span: Span,
-        arg_list: Option<&expr::ArgList>,
+        arg_list: &expr::ArgList,
         body_id: body::BodyId,
         elem_ty: ty::TypeId,
     ) {
-        let arg_list = if let Some(arg_list) = arg_list {
-            arg_list
-        } else {
-            // already checked to have an arg list
-            unreachable!()
-        };
-
         let body = self.library.body(body_id);
         let has_all = arg_list
             .iter()
@@ -1511,15 +1687,20 @@ impl TypeCheck<'_> {
                     None,
                 );
             } else if !param.coerced_type {
-                // Allow coercion for pass by value, but not for ref-args
-                let predicate = match param.pass_by {
-                    ty::PassBy::Value => ty::rules::is_assignable,
-                    ty::PassBy::Reference(_) => ty::rules::is_coercible_into_param,
-                };
-
                 let param_ty = param.param_ty.in_db(self.db).peel_opaque(in_module).id();
 
-                if !predicate(self.db, param_ty, arg_ty) {
+                // Allow all coercion for pass by value, but only param-coercion for ref-args
+                let predicate = match param.pass_by {
+                    ty::PassBy::Value => {
+                        ty::rules::is_assignable(self.db, param_ty, arg_ty)
+                            || ty::rules::is_coercible_into_param(self.db, param_ty, arg_ty)
+                    }
+                    ty::PassBy::Reference(_) => {
+                        ty::rules::is_coercible_into_param(self.db, param_ty, arg_ty)
+                    }
+                };
+
+                if !predicate {
                     self.report_mismatched_param_tys(
                         param.param_ty,
                         arg_ty,
@@ -1538,6 +1719,111 @@ impl TypeCheck<'_> {
                 "procedure calls cannot be used as expressions",
                 lhs_span,
             );
+        }
+    }
+
+    fn typeck_call_array_indexing(
+        &self,
+        lhs_span: Span,
+        arg_list: &expr::ArgList,
+        body_id: body::BodyId,
+        ranges: &[ty::TypeId],
+    ) {
+        let db = self.db;
+        let library = &self.library;
+        let library_id = self.library_id;
+
+        let expecteds = ranges;
+        let actuals = arg_list;
+        let mut expected_things = expecteds.iter();
+        let mut actual_things = actuals.iter();
+
+        loop {
+            let (expected_ty, actual_expr) = match (expected_things.next(), actual_things.next()) {
+                (Some(expected), Some(actual)) => (*expected, *actual),
+                (None, None) => {
+                    // exact
+                    break;
+                }
+                _ => {
+                    // too few
+                    let things = |count| plural(count, "argument", "arguments");
+                    let expected_count = expecteds.len();
+                    let actual_count = actuals.len();
+
+                    // FIXME: Find the last non-missing argument, and use that as the span
+                    let mut state = self.state();
+                    let builder = state.reporter.error_detailed(
+                        format!(
+                            "expected {expected_count} {things}, found {actual_count}",
+                            things = things(expected_count)
+                        ),
+                        lhs_span,
+                    );
+
+                    let difference = expected_count.abs_diff(actual_count);
+                    let diff_things = things(difference);
+
+                    let message = if expected_count > actual_count {
+                        format!("subscript is missing {difference} {diff_things}")
+                    } else {
+                        format!("subscript has {difference} extra {diff_things}")
+                    };
+                    builder.with_error(message, lhs_span).finish();
+
+                    break;
+                }
+            };
+
+            // Check type & binding
+            let expr_id = (library_id, body_id, actual_expr);
+            let actual_expr = library.body(body_id).expr(expr_id.2);
+
+            let actual_ty = db.type_of(expr_id.into());
+            let actual_value = db.value_produced(expr_id.into());
+            let actual_span = actual_expr.span.lookup_in(library);
+
+            // Check that it isn't `all` or a range expr
+            match &actual_expr.kind {
+                expr::ExprKind::All => {
+                    self.state().reporter.error(
+                        "cannot use `all` here",
+                        "`all` can't be used in array subscripting",
+                        actual_span,
+                    );
+                    continue;
+                }
+                expr::ExprKind::Range(_) => {
+                    self.state().reporter.error(
+                        "cannot use range expression here",
+                        "range expressions can't be used in array subscripting",
+                        actual_span,
+                    );
+                    continue;
+                }
+                _ => {}
+            }
+
+            if !actual_value.map(ValueKind::is_value).or_missing() {
+                self.report_mismatched_binding(
+                    BindingTo::Storage(Mutability::Var),
+                    expr_id.into(),
+                    actual_span,
+                    actual_span,
+                    |thing| format!("cannot pass {thing} to this parameter"),
+                    None,
+                );
+            } else if !ty::rules::is_assignable(self.db, expected_ty, actual_ty) {
+                // FIXME: change wording from parameter(s) to index/indices
+                self.report_mismatched_param_tys(
+                    expected_ty,
+                    actual_ty,
+                    actual_span,
+                    actual_span,
+                    actual_span,
+                    ty::PassBy::Value,
+                );
+            }
         }
     }
 
@@ -1692,9 +1978,11 @@ impl TypeCheck<'_> {
 
         let start_span = library.body(ty.start).span.lookup_in(library);
         let end_span = match ty.end {
-            toc_hir::ty::ConstrainedEnd::Expr(end) => library.body(end).span.lookup_in(library),
-            toc_hir::ty::ConstrainedEnd::Unsized(sz) => sz.span().lookup_in(library),
+            toc_hir::ty::ConstrainedEnd::Expr(end) => library.body(end).span,
+            toc_hir::ty::ConstrainedEnd::Unsized(sz) => sz.span(),
+            toc_hir::ty::ConstrainedEnd::Any(any) => any,
         };
+        let end_span = end_span.lookup_in(library);
 
         let end = match ty.end {
             toc_hir::ty::ConstrainedEnd::Expr(end) => Some(end),
@@ -1740,15 +2028,29 @@ impl TypeCheck<'_> {
         // FIXME: use the correct eval params
         let eval_params = Default::default();
 
-        let check_const_bound = |bound_const, reporter: &mut toc_reporting::MessageSink| {
-            db.evaluate_const(bound_const, eval_params)
-                .map_err(|err| err.report_to(db, reporter))
-                .ok()
-        };
+        // Note: report type is specified to make lifetime disjoint from db
+        let check_const_bound =
+            |bound_const, allow_dyn, reporter: &mut toc_reporting::MessageSink| match db
+                .evaluate_const(bound_const, eval_params)
+            {
+                Ok(v) => Some(v),
+                Err(err) => {
+                    // Only report if it's not a compile-time expr and we allow dynamic expressions
+                    if !(err.is_not_compile_time() && matches!(allow_dyn, ty::AllowDyn::Yes)) {
+                        err.report_to(db, reporter);
+                    }
+
+                    None
+                }
+            };
 
         let mut state = self.state();
-        if let Some(value) = check_const_bound(start_bound.clone(), &mut state.reporter) {
-            if let Some((ordinal, min_value)) = value.ordinal().zip(base_tyref.min_int_of()) {
+        if let Some(value) =
+            check_const_bound(start_bound.clone(), ty::AllowDyn::No, &mut state.reporter)
+        {
+            if let Some((ordinal, min_value)) =
+                Option::zip(value.ordinal(), base_tyref.min_int_of().ok())
+            {
                 if ordinal < min_value {
                     state.reporter.error(
                         "computed value is outside the type's range",
@@ -1762,9 +2064,13 @@ impl TypeCheck<'_> {
             }
         }
 
-        if let ty::EndBound::Expr(end_bound) = end_bound {
-            if let Some(value) = check_const_bound(end_bound.clone(), &mut state.reporter) {
-                if let Some((ordinal, max_value)) = value.ordinal().zip(base_tyref.max_int_of()) {
+        if let ty::EndBound::Expr(end_bound, allow_dyn) = end_bound {
+            if let Some(value) =
+                check_const_bound(end_bound.clone(), *allow_dyn, &mut state.reporter)
+            {
+                if let Some((ordinal, max_value)) =
+                    value.ordinal().zip(base_tyref.max_int_of().ok())
+                {
                     if max_value < ordinal {
                         state.reporter.error(
                             "computed value is outside the type's range",
@@ -1777,6 +2083,131 @@ impl TypeCheck<'_> {
                     }
                 }
             }
+        }
+    }
+
+    fn typeck_array_ty(&self, id: toc_hir::ty::TypeId, ty: &toc_hir::ty::Array) {
+        const ELEM_LIMIT: u64 = u32::MAX as u64;
+
+        let db = self.db;
+        let library = &self.library;
+        let library_id = self.library_id;
+
+        let in_module = db.inside_module((self.library_id, id).into());
+        let allow_zero_size = matches!(ty.sizing, toc_hir::ty::ArraySize::Flexible);
+        let mut already_big = false; // for preventing duplicate errors during count checking
+
+        // - Ranges must be index type
+        //   - same index sizing restriction
+        // - element count must be smaller than maximum element count
+        // - must be positive size (or non-negative if flexible)
+        for &range_hir_ty in &ty.ranges {
+            let span = library.lookup_type(range_hir_ty).span.lookup_in(library);
+            let range_ty = db.from_hir_type(range_hir_ty.in_library(library_id));
+            let range_tyref = range_ty.in_db(db).peel_opaque(in_module);
+
+            if !range_tyref.clone().to_base_type().kind().is_index() {
+                // Not an index type
+                // FIXME: Switch to common "mismatched types" convention (either altering the rest or just this)
+                self.state()
+                .reporter
+                .error_detailed("mismatched types", span)
+                .with_error(format!("`{range_tyref}` is not an index type"), span)
+                .with_info(
+                    "an index type is an integer, a `boolean`, a `char`, an enumerated type, or a range",
+                )
+                .finish();
+            } else {
+                // Make sure that each range is small enough
+                // FIXME: reuse logic for set element ranges
+                let range_peeled = range_tyref.clone().peel_aliases();
+
+                let too_large = match range_peeled.kind() {
+                    ty::TypeKind::Int(sz) => *sz >= ty::IntSize::Int4,
+                    ty::TypeKind::Nat(sz) => *sz >= ty::NatSize::Nat4,
+                    ty::TypeKind::Constrained(..) => range_peeled
+                        .element_count()
+                        .ok()
+                        .and_then(|sz| sz.into_u64())
+                        .map_or(false, |sz| sz > ELEM_LIMIT),
+                    _ => false,
+                };
+
+                if too_large {
+                    // Range would be too big
+                    // Change suggestion based on origin
+                    let suggest = if matches!(range_peeled.kind(), ty::TypeKind::Constrained(..)) {
+                        "use a range type with a smaller element range"
+                    } else {
+                        "use a range type to shrink the range of elements"
+                    };
+
+                    self.state()
+                        .reporter
+                        .error_detailed("index range is too large", span)
+                        .with_error(
+                            format!("a range over all `{range_tyref}` values is too large"),
+                            span,
+                        )
+                        .with_info(suggest)
+                        .finish();
+
+                    already_big = true;
+                }
+            }
+
+            self.require_known_size(range_hir_ty, || "`array` types".into());
+            self.require_non_negative_size(range_hir_ty, allow_zero_size, |is_zero_sized| {
+                if is_zero_sized {
+                    "`array` types that aren't `flexible`".into()
+                } else {
+                    "`array` types".into()
+                }
+            });
+        }
+
+        // Ensure that there's less than 2^32 elements
+        if already_big {
+            // Encountered a large range already, don't need to duplicate reporting
+            return;
+        }
+
+        let array_ty = db.from_hir_type(id.in_library(library_id)).in_db(db);
+        let array_span = library.lookup_type(id).span.lookup_in(library);
+
+        let within_limit = match array_ty.element_count() {
+            Ok(v) if v.is_positive() => dbg!(v).into_u64(),
+            Err(ty::NotInteger::ConstError(err))
+                if matches!(err.kind(), const_eval::ErrorKind::IntOverflow) =>
+            {
+                // Overflow, definitely over limit
+                None
+            }
+            _ => {
+                // Already handled by previous typeck
+                return;
+            }
+        };
+
+        match within_limit {
+            Some(v) if v > ELEM_LIMIT => self
+                .state()
+                .reporter
+                .error_detailed("`array` has too many elements", array_span)
+                .with_error(
+                    format!("computed element count is {v} elements"),
+                    array_span,
+                )
+                .with_info(format!(
+                    "maxium element count for arrays is {ELEM_LIMIT} elements"
+                ))
+                .finish(),
+            None => self.state().reporter.error(
+                "`array` has too many elements",
+                "overflow while computing element count",
+                array_span,
+            ),
+            _ => {}
         }
     }
 
@@ -1819,7 +2250,6 @@ impl TypeCheck<'_> {
                 .with_info("use a range type to shrink the range of elements")
                 .finish()
         }
-
         self.require_known_positive_size(ty.elem_ty, || "`set` element types".into());
     }
 
@@ -1860,6 +2290,15 @@ impl TypeCheck<'_> {
 
     // Requirement that the size must be positive (greater than zero)
     fn require_positive_size(&self, ty_spec: toc_hir::ty::TypeId, in_where: impl Fn() -> String) {
+        self.require_non_negative_size(ty_spec, false, |_| in_where())
+    }
+
+    fn require_non_negative_size(
+        &self,
+        ty_spec: toc_hir::ty::TypeId,
+        allow_zero_size: bool,
+        in_where: impl Fn(bool) -> String,
+    ) {
         let db = self.db;
         let library_id = self.library_id;
         let library = &self.library;
@@ -1873,9 +2312,10 @@ impl TypeCheck<'_> {
             let ty_span = library.lookup_type(ty_spec).span.lookup_in(library);
 
             match ty_ref.element_count() {
-                Some(Ok(size)) if size.is_positive() && !size.is_zero() => {}
-                Some(Ok(size)) => {
-                    let place = in_where();
+                Ok(size) if size.is_positive() && !size.is_zero() => {}
+                Ok(size) if size.is_zero() && allow_zero_size => {}
+                Ok(size) => {
+                    let place = in_where(size.is_zero());
 
                     let size_kind = if size.is_zero() {
                         "zero sized ranges"
@@ -1891,15 +2331,25 @@ impl TypeCheck<'_> {
                         .with_error(format!("{size_kind} cannot be used in {place}"), ty_span)
                         .finish();
                 }
-                Some(Err(_err)) => {
-                    // Overflow
-                    self.state()
-                        .reporter
-                        .error_detailed("invalid range size", ty_span)
-                        .with_error("range size is too large", ty_span)
-                        .finish();
+                Err(ty::NotInteger::ConstError(err)) => {
+                    match err.kind() {
+                        const_eval::ErrorKind::IntOverflow => {
+                            // Overflow
+                            self.state()
+                                .reporter
+                                .error_detailed("invalid range size", ty_span)
+                                .with_error("range size is too large", ty_span)
+                                .finish();
+                        }
+                        _ if err.is_not_compile_time() => {
+                            // Checked during constrained ty typeck
+                        }
+                        _ => {
+                            // Error during const-eval, already reported
+                        }
+                    }
                 }
-                None => {
+                Err(ty::NotInteger::NotInteger) => {
                     // Error during const-eval, already reported
                 }
             }
@@ -2275,4 +2725,12 @@ enum ExpectedValue {
     Value,
     Ref(Mutability),
     NonRegisterRef(Mutability),
+}
+
+fn plural<'a>(count: usize, single: &'a str, multiple: &'a str) -> &'a str {
+    if count == 1 {
+        single
+    } else {
+        multiple
+    }
 }

@@ -1,0 +1,26 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+assertion_line: 61
+expression: "type _ : proc uwu(_ : array char,,char, 1 .. * of int)"
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(1)
+    Module@(FileId(1), 0..54): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..54): []
+        StmtItem@(FileId(1), 0..54): ItemId(0)
+          Type@(FileId(1), 0..54): "_"@(FileId(1), 5..6)
+            Procedure@(FileId(1), 9..54): [...]
+              Array@(FileId(1), 22..53): Static
+                Constrained@(FileId(1), 40..46): end => Any
+                  ExprBody@(FileId(1), 40..41)
+                    Literal@(FileId(1), 40..41): Integer(1)
+                Primitive@(FileId(1), 50..53): Int
+              Void@(FileId(1), 9..54)
+error in file FileId(1) at 33..34: unexpected token
+| error in file FileId(1) for 33..34: expected type specifier, but found `,`
+error in file FileId(1) at 40..46: extra ranges specified
+| error in file FileId(1) for 28..38: extra ranges before
+| note in file FileId(1) for 40..46: this must be the only range present
+| info: any-sized arrays must have this range be the only range present
+

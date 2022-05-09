@@ -77,6 +77,8 @@ pub enum TypeKind {
     /// Constrained value type, with base type, range start, and range end.
     /// Base type is already de-aliased
     Constrained(TypeId, Const, EndBound),
+    /// Array type, with flexibility, types for each index, and the element type.
+    Array(ArraySizing, Vec<TypeId>, TypeId),
     /// An enumeration type, with associated definition point and variants.
     Enum(WithDef, Vec<DefId>),
     /// Set type, with associated definition point
@@ -101,7 +103,7 @@ pub enum TypeKind {
 // - collection
 
 /// Size variant of an `Int`.
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum IntSize {
     Int1,
     Int2,
@@ -111,7 +113,7 @@ pub enum IntSize {
 }
 
 /// Size variant of a Nat
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum NatSize {
     Nat1,
     Nat2,
@@ -171,16 +173,35 @@ pub enum NotFixedLen {
     ConstError(ConstError),
 }
 
+/// If dynamic (i.e. runtime-evaluable) expressions are allowed
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum AllowDyn {
+    No,
+    Yes,
+}
+
 /// End bound of a [`TypeKind::Constrained`]
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum EndBound {
     /// From a constant expression
-    Expr(Const),
+    Expr(Const, AllowDyn),
     /// From an element count
     Unsized(u32),
+    /// Derived at runtime
+    Any,
 }
 
-// FIXME: Replace with comparison to "<anonymous>" symbol id
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum ArraySizing {
+    /// Array size is not fixed, and zero-sized ranges are allowed.
+    /// Initialization from dynamic values is implied to be allowed.
+    Flexible,
+    /// Array size is fixed, but allowed to be derived from runtime values
+    MaybeDyn,
+    /// Array size is fixed, and must be known at compile-time
+    Static,
+}
+
 /// Type with an associated definition
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum WithDef {
@@ -293,6 +314,7 @@ where
                 // Defer to the base type
                 return base_ty.in_db(self.db).peel_aliases().align_of();
             }
+            TypeKind::Array(..) => POINTER_ALIGNMENT, // ???: It's to an array descriptor
             TypeKind::Enum(..) => 4, // ???: Alignment based on user-specified size?
             TypeKind::Set(..) => 2,
             TypeKind::Pointer(_, _) => POINTER_ALIGNMENT,
@@ -345,6 +367,7 @@ where
                 // Defer to the base type
                 return base_ty.in_db(self.db).peel_aliases().size_of();
             }
+            TypeKind::Array(..) => POINTER_SIZE, // To an array descriptor
             TypeKind::Enum(..) => 4, // FIXME: Have size be based on a user-specified size
             TypeKind::Set(_, _elem_ty) => return None, // FIXME: Compute size of sets
             TypeKind::Pointer(Checked::Checked, _) => POINTER_SIZE * 2, // address + metadata
@@ -379,20 +402,55 @@ where
 
     /// If this type were to be used as a range, computes the number of elements in the range,
     /// or `None` if it can't be used as a range
-    pub fn element_count(&self) -> Option<Result<ConstInt, ConstError>> {
-        // FIXME: Properly compute element count for array types
-        let min = self.min_int_of()?;
-        let max = self.max_int_of()?;
+    pub fn element_count(&self) -> Result<ConstInt, NotInteger> {
+        match self.kind() {
+            TypeKind::Array(ArraySizing::Static | ArraySizing::MaybeDyn, ranges, _) => {
+                // Element count is just the product of the range element counts
+                let mut count = ConstInt::ONE;
 
-        // Range is inclusive, so also add 1
-        Some(
-            max.checked_sub(min)
-                .and_then(|count| count.checked_add(ConstInt::ONE)),
-        )
+                for &range_ty in ranges {
+                    // Forcefully poke through opaque
+                    // Observing through is okay, since we don't leak the type itself
+                    let range_tyref = {
+                        let ty_ref = range_ty.in_db(self.db);
+                        if let TypeKind::Opaque(_, type_id) = ty_ref.kind() {
+                            type_id.in_db(self.db)
+                        } else {
+                            ty_ref.peel_aliases()
+                        }
+                    };
+
+                    // If this isn't an index type, stop
+                    // Prevents a cycle if we happen to have the same array type as one of the
+                    // range types.
+                    if !range_tyref.clone().to_base_type().kind().is_index() {
+                        return Err(NotInteger::NotInteger);
+                    }
+
+                    let index_count = range_tyref.element_count()?;
+
+                    count = count
+                        .checked_mul(index_count)
+                        .map_err(NotInteger::ConstError)?;
+                }
+
+                Ok(count)
+            }
+            _ => {
+                // Simple range subtraction
+                let min = self.min_int_of()?;
+                let max = self.max_int_of()?;
+
+                // Range is inclusive, so also add 1
+                max.checked_sub(min)
+                    .and_then(|count| count.checked_add(ConstInt::ONE))
+                    .map_err(NotInteger::ConstError)
+            }
+        }
     }
 
     /// Minimum integer value of this type, or `None` if this is not an integer
-    pub fn min_int_of(&self) -> Option<ConstInt> {
+    pub fn min_int_of(&self) -> Result<ConstInt, NotInteger> {
         let value = match self.kind() {
             TypeKind::Char => ConstValue::Char('\x00')
                 .ordinal()
@@ -431,17 +489,18 @@ where
                 // Just the ordinal value of the start bound
                 self.db
                     .evaluate_const(start_bound.clone(), Default::default())
-                    .ok()
-                    .and_then(|v| v.ordinal())?
+                    .map_err(NotInteger::ConstError)?
+                    .ordinal()
+                    .ok_or(NotInteger::NotInteger)?
             }
-            _ => return None,
+            _ => return Err(NotInteger::NotInteger),
         };
 
-        Some(value)
+        Ok(value)
     }
 
     /// Maximum integer value of this type, or `None` if this is not an integer
-    pub fn max_int_of(&self) -> Option<ConstInt> {
+    pub fn max_int_of(&self) -> Result<ConstInt, NotInteger> {
         let value = match self.kind() {
             TypeKind::Char => {
                 // Codepoint can only fit inside of a u8
@@ -476,42 +535,64 @@ where
             TypeKind::Integer => unreachable!("integer should be concrete"),
             TypeKind::Enum(_, variants) => {
                 // Always the ordinal of the last variant
-                let last_ord = variants.len().checked_sub(1)?;
-                ConstInt::from_unsigned(last_ord.try_into().ok()?, false)
-                    .expect("const construction")
+                let last_ord = variants
+                    .len()
+                    .checked_sub(1)
+                    .and_then(|last_ord| u64::try_from(last_ord).ok())
+                    .ok_or(NotInteger::NotInteger)?;
+
+                ConstInt::from_unsigned(last_ord, false).expect("const construction")
             }
             TypeKind::Constrained(_, start_bound, end_bound) => {
                 // FIXME: use the correct eval params
                 let eval_params = Default::default();
 
                 match end_bound {
-                    EndBound::Expr(end_bound) => {
+                    EndBound::Expr(end_bound, _) => {
                         // Just the ordinal value of the end bound
                         self.db
                             .evaluate_const(end_bound.clone(), eval_params)
-                            .ok()
-                            .and_then(|v| v.ordinal())?
+                            .map_err(NotInteger::ConstError)?
+                            .ordinal()
+                            .ok_or(NotInteger::NotInteger)?
                     }
                     EndBound::Unsized(count) => {
                         // Based on the ordinal value of the start bound
                         let start_bound = self
                             .db
                             .evaluate_const(start_bound.clone(), eval_params)
-                            .ok()
-                            .and_then(|v| v.ordinal())?;
+                            .map_err(NotInteger::ConstError)?
+                            .ordinal()
+                            .ok_or(NotInteger::NotInteger)?;
+                        let count =
+                            ConstInt::from_unsigned((*count).into(), eval_params.allow_64bit_ops)
+                                .map_err(NotInteger::ConstError)?;
 
                         // Offset by the gathered count
-                        ConstInt::from_unsigned((*count).into(), eval_params.allow_64bit_ops)
-                            .and_then(|count| start_bound.checked_add(count))
-                            .ok()?
+                        // Sub by 1 since it's an inclusive range
+                        count
+                            .checked_sub(ConstInt::ONE)
+                            .and_then(|count| count.checked_add(start_bound))
+                            .map_err(NotInteger::ConstError)?
+                    }
+                    EndBound::Any => {
+                        // FIXME: This should be a non-const error?
+                        return Err(NotInteger::NotInteger);
                     }
                 }
             }
-            _ => return None,
+            _ => return Err(NotInteger::NotInteger),
         };
 
-        Some(value)
+        Ok(value)
     }
+}
+
+// FIXME: replace with just constructing a WrongOperandType error
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum NotInteger {
+    ConstError(ConstError),
+    NotInteger,
 }
 
 impl<'db, DB: ?Sized + 'db> Clone for TyRef<'db, DB> {

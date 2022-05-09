@@ -45,6 +45,7 @@ pub trait HirVisitor {
     fn visit_expr(&self, id: BodyExpr, expr: &expr::Expr) {}
     fn visit_missing_expr(&self, id: BodyExpr) {}
     fn visit_literal(&self, id: BodyExpr, expr: &expr::Literal) {}
+    fn visit_init_expr(&self, id: BodyExpr, expr: &expr::Init) {}
     fn visit_binary(&self, id: BodyExpr, expr: &expr::Binary) {}
     fn visit_unary(&self, id: BodyExpr, expr: &expr::Unary) {}
     fn visit_all_expr(&self, id: BodyExpr) {}
@@ -60,6 +61,7 @@ pub trait HirVisitor {
     fn visit_alias(&self, id: ty::TypeId, ty: &ty::Alias) {}
     fn visit_constrained(&self, id: ty::TypeId, ty: &ty::Constrained) {}
     fn visit_enum(&self, id: ty::TypeId, ty: &ty::Enum) {}
+    fn visit_array(&self, id: ty::TypeId, ty: &ty::Array) {}
     fn visit_set(&self, id: ty::TypeId, ty: &ty::Set) {}
     fn visit_pointer(&self, id: ty::TypeId, ty: &ty::Pointer) {}
     fn visit_subprogram_ty(&self, id: ty::TypeId, ty: &ty::Subprogram) {}
@@ -99,6 +101,7 @@ pub trait HirVisitor {
         match &expr.kind {
             expr::ExprKind::Missing => self.visit_missing_expr(id),
             expr::ExprKind::Literal(expr) => self.visit_literal(id, expr),
+            expr::ExprKind::Init(expr) => self.visit_init_expr(id, expr),
             expr::ExprKind::Binary(expr) => self.visit_binary(id, expr),
             expr::ExprKind::Unary(expr) => self.visit_unary(id, expr),
             expr::ExprKind::All => self.visit_all_expr(id),
@@ -117,6 +120,7 @@ pub trait HirVisitor {
             ty::TypeKind::Alias(ty) => self.visit_alias(id, ty),
             ty::TypeKind::Constrained(ty) => self.visit_constrained(id, ty),
             ty::TypeKind::Enum(ty) => self.visit_enum(id, ty),
+            ty::TypeKind::Array(ty) => self.visit_array(id, ty),
             ty::TypeKind::Set(ty) => self.visit_set(id, ty),
             ty::TypeKind::Pointer(ty) => self.visit_pointer(id, ty),
             ty::TypeKind::Subprogram(ty) => self.visit_subprogram_ty(id, ty),
@@ -517,6 +521,7 @@ impl<'hir> Walker<'hir> {
         match &expr.kind {
             expr::ExprKind::Missing => {}
             expr::ExprKind::Literal(_) => {}
+            expr::ExprKind::Init(node) => self.walk_init_expr(in_body, node),
             expr::ExprKind::Binary(node) => self.walk_binary(in_body, node),
             expr::ExprKind::Unary(node) => self.walk_unary(in_body, node),
             expr::ExprKind::All => {}
@@ -525,6 +530,12 @@ impl<'hir> Walker<'hir> {
             expr::ExprKind::Field(node) => self.walk_field(in_body, node),
             expr::ExprKind::Deref(node) => self.walk_deref(in_body, node),
             expr::ExprKind::Call(node) => self.walk_call_expr(in_body, node),
+        }
+    }
+
+    fn walk_init_expr(&mut self, _in_body: body::BodyId, node: &expr::Init) {
+        for &body_id in &node.exprs {
+            self.enter_body(body_id, self.lib.body(body_id));
         }
     }
 
@@ -574,6 +585,7 @@ impl<'hir> Walker<'hir> {
             ty::TypeKind::Alias(_) => {}
             ty::TypeKind::Constrained(ty) => self.walk_constrained(ty),
             ty::TypeKind::Enum(_) => {}
+            ty::TypeKind::Array(ty) => self.walk_array(ty),
             ty::TypeKind::Set(ty) => self.walk_set(ty),
             ty::TypeKind::Pointer(ty) => self.walk_pointer(ty),
             ty::TypeKind::Subprogram(ty) => self.walk_subprogram_ty(ty),
@@ -597,6 +609,14 @@ impl<'hir> Walker<'hir> {
         if let ty::ConstrainedEnd::Expr(end) = node.end {
             self.enter_body(end, self.lib.body(end))
         }
+    }
+
+    fn walk_array(&mut self, node: &ty::Array) {
+        for range_ty in &node.ranges {
+            self.enter_type(*range_ty, self.lib.lookup_type(*range_ty));
+        }
+
+        self.enter_type(node.elem_ty, self.lib.lookup_type(node.elem_ty));
     }
 
     fn walk_set(&mut self, node: &ty::Set) {

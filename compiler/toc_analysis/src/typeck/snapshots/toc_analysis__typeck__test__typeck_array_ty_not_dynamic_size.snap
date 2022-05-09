@@ -1,0 +1,13 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 42
+expression: "var c : int\ntype _ : array 1 .. c of int"
+
+---
+"c"@(FileId(1), 4..5) [Declared]: int
+"_"@(FileId(1), 17..18) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(1))] of array ( range of `int` (Unevaluated(LibraryId(0), BodyId(0)) .. Expr(Unevaluated(LibraryId(0), BodyId(1)), No)), ) of int
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 32..33: cannot compute `c` at compile-time
+| error in file FileId(1) for 32..33: `c` is a reference to a variable, not a constant
+| note in file FileId(1) for 4..5: `c` declared here

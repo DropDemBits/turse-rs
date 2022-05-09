@@ -202,6 +202,7 @@ pub(crate) fn lookup_inside_module(
             match owner {
                 BodyOwner::Item(item_id) => (library_id, item_id).into(),
                 BodyOwner::Type(type_id) => (library_id, type_id).into(),
+                BodyOwner::Expr(expr_id) => (library_id, expr_id).into(),
             }
         }
         // Body{Stmt,Expr} gets referred to the owning body
@@ -349,6 +350,12 @@ impl HirVisitor for BodyCollector<'_> {
         self.add_owner(item.body, BodyOwner::Item(id));
     }
 
+    fn visit_init_expr(&self, id: expr::BodyExpr, expr: &expr::Init) {
+        for &body_id in &expr.exprs {
+            self.add_owner(body_id, BodyOwner::Expr(id));
+        }
+    }
+
     fn visit_primitive(&self, id: ty::TypeId, ty: &ty::Primitive) {
         match ty {
             ty::Primitive::SizedChar(ty::SeqLength::Expr(body))
@@ -400,6 +407,14 @@ impl HirVisitor for TypeCollector {
         }
 
         self.add_owner(item.result.ty, TypeOwner::Item(id));
+    }
+
+    fn visit_array(&self, id: ty::TypeId, ty: &ty::Array) {
+        for &range_ty in &ty.ranges {
+            self.add_owner(range_ty, TypeOwner::Type(id));
+        }
+
+        self.add_owner(ty.elem_ty, TypeOwner::Type(id));
     }
 
     fn visit_set(&self, id: ty::TypeId, ty: &ty::Set) {

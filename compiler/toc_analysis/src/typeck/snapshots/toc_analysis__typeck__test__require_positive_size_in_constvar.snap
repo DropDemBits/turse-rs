@@ -4,7 +4,7 @@ assertion_line: 42
 expression: "var _ : 1 .. 0"
 
 ---
-"_"@(FileId(1), 4..5) [Declared]: range of `int` (Unevaluated(LibraryId(0), BodyId(0)) .. Expr(Unevaluated(LibraryId(0), BodyId(1))))
+"_"@(FileId(1), 4..5) [Declared]: range of `int` (Unevaluated(LibraryId(0), BodyId(0)) .. Expr(Unevaluated(LibraryId(0), BodyId(1)), No))
 "<root>"@(dummy) [Declared]: <error>
 
 error in file FileId(1) at 8..14: element range is too small

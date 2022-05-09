@@ -5,10 +5,10 @@ expression: "module m\n    export opaque t\n    type t : 1 .. 2\n    for _ : t e
 
 ---
 "m"@(FileId(1), 7..8) [Declared]: <error>
-"t"@(FileId(1), 38..39) [Resolved(Type)]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to range of `int` (Unevaluated(LibraryId(0), BodyId(0)) .. Expr(Unevaluated(LibraryId(0), BodyId(1))))
-"_"@(FileId(1), 57..58) [Declared]: alias[DefId(LibraryId(0), LocalDefId(1))] of range of `int` (Unevaluated(LibraryId(0), BodyId(0)) .. Expr(Unevaluated(LibraryId(0), BodyId(1))))
-"t"@(FileId(1), 20..28) [ItemExport(LocalDefId(1))]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to range of `int` (Unevaluated(LibraryId(0), BodyId(0)) .. Expr(Unevaluated(LibraryId(0), BodyId(1))))
-"_"@(FileId(1), 82..83) [Declared]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to range of `int` (Unevaluated(LibraryId(0), BodyId(0)) .. Expr(Unevaluated(LibraryId(0), BodyId(1))))
+"t"@(FileId(1), 38..39) [Resolved(Type)]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to range of `int` (Unevaluated(LibraryId(0), BodyId(0)) .. Expr(Unevaluated(LibraryId(0), BodyId(1)), No))
+"_"@(FileId(1), 57..58) [Declared]: alias[DefId(LibraryId(0), LocalDefId(1))] of range of `int` (Unevaluated(LibraryId(0), BodyId(0)) .. Expr(Unevaluated(LibraryId(0), BodyId(1)), No))
+"t"@(FileId(1), 20..28) [ItemExport(LocalDefId(1))]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to range of `int` (Unevaluated(LibraryId(0), BodyId(0)) .. Expr(Unevaluated(LibraryId(0), BodyId(1)), No))
+"_"@(FileId(1), 82..83) [Declared]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to range of `int` (Unevaluated(LibraryId(0), BodyId(0)) .. Expr(Unevaluated(LibraryId(0), BodyId(1)), No))
 "<root>"@(dummy) [Declared]: <error>
 
 error in file FileId(1) at 86..89: mismatched types

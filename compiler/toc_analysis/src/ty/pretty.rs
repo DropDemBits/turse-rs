@@ -11,7 +11,7 @@ use crate::{
     ty::{IntSize, NatSize, RealSize, TyRef, TypeKind},
 };
 
-use super::{EndBound, NotFixedLen, PassBy, TypeId, WithDef};
+use super::{AllowDyn, ArraySizing, EndBound, NotFixedLen, PassBy, TypeId, WithDef};
 
 impl<'db, DB> fmt::Debug for TyRef<'db, DB>
 where
@@ -67,6 +67,8 @@ impl TypeKind {
             TypeKind::Opaque(_, _) => "opaque",
             TypeKind::Forward => "forward",
             TypeKind::Constrained(..) => "range of",
+            TypeKind::Array(ArraySizing::Flexible, ..) => "flexible array",
+            TypeKind::Array(..) => "array",
             TypeKind::Enum(..) => "enum",
             TypeKind::Set(..) => "set",
             TypeKind::Pointer(Checked::Checked, _) => "pointer to",
@@ -100,6 +102,15 @@ where
         TypeKind::Constrained(base_ty, start, end) => {
             let base_ty = base_ty.in_db(db);
             out.write_fmt(format_args!(" `{base_ty:?}` ({start:?} .. {end:?})"))?;
+        }
+        TypeKind::Array(_is_flexible, ranges, elem) => {
+            write!(out, " ( ")?;
+            for &range in ranges {
+                emit_debug_ty(db, out, range)?;
+                write!(out, ", ")?;
+            }
+            write!(out, ") of ")?;
+            emit_debug_ty(db, out, *elem)?;
         }
         TypeKind::Enum(with_def, variants) => {
             let def_id = match with_def {
@@ -217,15 +228,38 @@ where
                 }
             };
 
+            // Only the end bound is allowed to be not compile-time
             match end {
-                EndBound::Expr(end) => match db.evaluate_const(end.clone(), eval_params) {
+                EndBound::Expr(end, allow_dyn) => match db.evaluate_const(end.clone(), eval_params)
+                {
                     Ok(v) => write!(out, "{v}", v = v.display(db))?,
+                    Err(err) if err.is_not_compile_time() && matches!(allow_dyn, AllowDyn::Yes) => {
+                        write!(out, "{{dynamic}}")?
+                    }
                     Err(err) => {
                         unreachable!("should not show errors! ({err:?})")
                     }
                 },
-                EndBound::Unsized(_) => write!(out, "*")?,
+                EndBound::Unsized(_) | EndBound::Any => write!(out, "*")?,
             }
+        }
+        TypeKind::Array(_is_flexible, ranges, elem_ty) => {
+            // `{range_ty} of {elem_ty}`, or
+            // `{range_ty}, {range_ty} of {elem_ty}`
+
+            // intersperse comma
+            let mut ranges = ranges.iter();
+            if let Some(range_ty) = ranges.next() {
+                write!(out, " ")?;
+                emit_display_ty(db, out, *range_ty, PokeAliases::Yes)?;
+            }
+            for range_ty in ranges {
+                write!(out, ", ")?;
+                emit_display_ty(db, out, *range_ty, PokeAliases::Yes)?;
+            }
+
+            write!(out, " of ")?;
+            emit_display_ty(db, out, *elem_ty, PokeAliases::No)?;
         }
         TypeKind::Enum(with_def, _) => {
             let def_id = match with_def {

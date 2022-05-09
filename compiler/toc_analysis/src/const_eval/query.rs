@@ -162,7 +162,9 @@ pub(crate) fn evaluate_const(
                         }
 
                         // If bounds of `left` is known, check if `right` is in the range
-                        if let Some((min, max)) = left_ty.min_int_of().zip(left_ty.max_int_of()) {
+                        if let Some((min, max)) =
+                            Option::zip(left_ty.min_int_of().ok(), left_ty.max_int_of().ok())
+                        {
                             // Since right is assignable into left, we can treat right as ConstInt
                             let as_ordinal = value.ordinal().ok_or_else(|| {
                                 // Definitely the wrong type

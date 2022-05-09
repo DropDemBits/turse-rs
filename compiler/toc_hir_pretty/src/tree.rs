@@ -441,6 +441,10 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
         let span = self.expr_span(id);
         self.emit_node("Literal", span, Some(format_args!("{expr:?}")))
     }
+    fn visit_init_expr(&self, id: BodyExpr, _expr: &expr::Init) {
+        let span = self.expr_span(id);
+        self.emit_node("InitExpr", span, None);
+    }
     fn visit_binary(&self, id: BodyExpr, expr: &expr::Binary) {
         let span = self.expr_span(id);
         self.emit_node("Binary", span, Some(format_args!("{:?}", expr.op.item())))
@@ -512,6 +516,7 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
         let extra = match ty.end {
             ty::ConstrainedEnd::Expr(_) => "end => Expr".into(),
             ty::ConstrainedEnd::Unsized(sz) => format!("end => Unsized({sz:?})", sz = sz.item()),
+            ty::ConstrainedEnd::Any(_) => "end => Any".into(),
         };
         self.emit_node("Constrained", span, Some(format_args!("{extra}")))
     }
@@ -530,6 +535,10 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
             span,
             Some(format_args!("{def_name} [ {variants} ]")),
         )
+    }
+    fn visit_array(&self, id: ty::TypeId, ty: &ty::Array) {
+        let span = self.type_span(id);
+        self.emit_node("Array", span, Some(format_args!("{:?}", ty.sizing)))
     }
     fn visit_set(&self, id: ty::TypeId, ty: &ty::Set) {
         let span = self.type_span(id);

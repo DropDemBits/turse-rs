@@ -4,7 +4,7 @@ assertion_line: 42
 expression: "fcn _() : 1..0 end _"
 
 ---
-"_"@(FileId(1), 4..5) [Declared]: function ( ) -> range of `int` (Unevaluated(LibraryId(0), BodyId(0)) .. Expr(Unevaluated(LibraryId(0), BodyId(1))))
+"_"@(FileId(1), 4..5) [Declared]: function ( ) -> range of `int` (Unevaluated(LibraryId(0), BodyId(0)) .. Expr(Unevaluated(LibraryId(0), BodyId(1)), No))
 "<unnamed>"@(dummy) [Declared]: <error>
 "<root>"@(dummy) [Declared]: <error>
 

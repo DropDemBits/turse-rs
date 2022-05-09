@@ -1414,7 +1414,37 @@ test_named_group! { assignability_into,
         _ := i in s
         _ := n in s
         ",
-        // FIXME: add coercion tests for range element types and set member ops
+        // note: `constrained_array_range` and `array_param` also test that param-coercion
+        // is applicable to both by-value and by-reference parameters
+        constrained_array_range => "
+        type tp : proc(var _ : array 1 .. * of int)
+        var a : array 1 .. 3 of int
+        var b : array 2 .. 3 of int
+        var p : tp
+
+        % only coercible if start bound is the same
+        p(a) % success
+        p(b) % fail
+        ",
+        array_param => "
+        type tp: proc(_ : array 1..2 of char(*))
+        var a : array 1..2 of char
+        var b : array 1..2 of char(42)
+        var p : tp
+
+        % element type is also coercible
+        p(a)
+        p(b)
+        ",
+        dyn_array_param_err => "
+        % dyn arrays aren't allowed, since the range is expected to be known at compile-time
+        var c : int
+        var a : array 1..c of char
+        proc p(_ : array 1..2 of char(*)) end p
+
+        p(a)
+        ",
+        // FIXME: add coercion tests for set member ops
     ]
 }
 
@@ -1494,7 +1524,104 @@ test_named_group! { equivalence_of,
         a := c
         a := f.v
         ",
-        // FIXME: add equivalence tests for arrays (covers both arrays and constrained/ranges)
+        // Over constrained types
+        constraineds => "
+        % using array types as a proxy for constrained ty equivalence
+        type r1 : 1..2
+        type r2 : 3..4
+
+        var a : array r1 of int
+        var b : array r2 of int
+        var c : array (1+1-1)..(4 div 2) of int
+
+        % bounds must be equal
+        a := b
+        % if they evaluate to the same values, they're equivalent
+        a := c
+
+        var d : array 0..0 of int
+        var e : array false..false of int
+
+        % base types must be the same
+        d := e
+        ",
+        // Over arrays
+        // Note: `0+` is used to guarantee uniqueness of ranges
+        arrays_elements => "
+        % over array elements
+        var a : array 0+1..1 of int
+        var b : array 0+1..1 of int1
+        var c : array 0+1..1 of int % trying to make unique types
+
+        % element types must be equivalent
+        a := b
+        a := c
+        ",
+        arrays_ranges => "
+        % over array ranges
+        var a : array 0+1..1 of int
+        var b : array 0+2..2 of int
+        var c : array 0+1..1 of int
+
+        % ranges must be equivalent
+        a := b % not equivalent
+        a := c % is equivalent
+
+        var d : array 0+1..1, 0+2..2 of char
+        var e : array 0+1..1 of char
+        var f : array 0+1..1, 0+2..2 of char
+
+        % must have the same number of ranges
+        d := e
+        d := f
+        ",
+        arrays_sizing => "
+        % categories
+        % - Static
+        % - MaybeDyn-Static
+        % - MaybeDyn-Dynamic
+        % - Flexible
+        % init-sized are implied Static
+
+        % guarantee that these are static arrays
+        type tsta : array 0+1..1 of int
+        type tstb : array 0+1..1 of int
+        var c : int
+
+        var fxa : flexible array 0+1..1 of int
+        var fxb : flexible array 0+1..1 of int
+        var fxc : flexible array 0+1..2 of int
+        var fxd : flexible array 0+1..1 of int1
+
+        var dyna : array 0+1..c of int
+        var dynb : array 0+1..c of int
+
+        var msta : array 0+1..1 of int
+        var mstb : array 0+1..1 of int
+
+        var sta : tsta
+        var stb : tstb
+
+        % identity
+        sta := stb
+        msta := mstb
+
+        % Static & MaybeDyn-Static are equivalent
+        sta := msta
+        msta := sta
+
+        % MaybeDyn-Dynamic is never equivalent to anything (except itself)
+        dyna := dyna % succeed
+        dyna := dynb % fail
+
+        % usual equivalence rules apply for flexible arrays...
+        fxa := fxb % same ranges
+        fxa := fxc % different ranges
+        fxa := fxd % different elem tys
+
+        % except that arrays must be of the same flexibility
+        sta := fxa
+        ",
         // Over set types
         sets => r#"
         type sb : set of boolean
@@ -1925,7 +2052,10 @@ test_named_group! { typeck_for,
         //   - is int (error, range too large)
         //   - other
         for_each_not_iterable => "for : 1 end for",
-        // FIXME: Add test for `for-each` on array (only iterable so far)
+        for_each_unimpl => "
+        var a : array 1 .. 2 of int
+        for : a end for
+        ",
 
         implied_bounds_boolean => "type b : boolean for _ : b end for",
         implied_bounds_char => "type b : char for _ : b end for",
@@ -2365,6 +2495,49 @@ test_named_group! { typeck_set_cons_call,
     ]
 }
 
+test_named_group! { typeck_array_indexing_call,
+    [
+        single_index => "
+        var a : array 1..2 of int
+        var _ : int := a(1)",
+        multi_index => "
+        var a : array 1..2, 'c'..'d' of int
+        var _ : int := a(1, 'c')",
+
+        err_extra_for_single => "
+        var a : array 1..2 of int
+        var _ := a(1,2,3,4)",
+        err_extra_for_multiple => "
+        var a : array 1..2, 3..4 of int
+        var _ := a(1,2,3,4)",
+        err_missing_for_single => "
+        var a : array 1..2 of int
+        var _ := a()",
+        err_missing_for_multiple => "
+        var a : array 1..2, 3..4 of int
+        var _ := a(1)",
+
+        err_wrong_ty => "
+        var a : array 1..2, 'c'..'d' of int
+        var _ : int := a(1.0, true)",
+        err_wrong_binding => "
+        type i : int
+        var a : array 1..2 of int
+        var _ : int := a(i)",
+
+        // mutability is inherited
+        from_const_ref => "
+        const a : array 1..* of int := init(1)
+        a(1) := 1",
+        from_var_ref => "
+        var a : array 1..* of int := init(1)
+        a(1) := 1",
+        err_from_type_binding => "
+        type a : array 1..1 of int
+        a(1) := 1",
+    ]
+}
+
 test_named_group! { typeck_return_stmt,
     [
         in_top_level => "return",
@@ -2682,6 +2855,71 @@ test_named_group! { typeck_constrained_ty,
     ]
 }
 
+test_named_group! { typeck_array_ty,
+    [
+        static_size => "type _ : array 1 .. 3 of int",
+        dynamic_size => "
+        var c : int
+        var _ : array 1 .. c of int",
+        flexible_size => "var _ : flexible array 1 .. 0 of int",
+        flexible_dynamic => "
+        var c : int
+        var _ : flexible array 1 .. c of int",
+        init_sized => "var _ : array 1 .. * of int := init(1, 2, 3)",
+
+        // not dyn
+        not_dynamic_size => "
+        var c : int
+        type _ : array 1 .. c of int",
+
+        // not index ty
+        not_index_ty => "type _ : array real of real",
+        // range sizing
+        positive_static_size => "type _ : array 1..1 of int",
+        zero_static_size => "type _ : array 1..0 of int",
+        negative_static_size => "type _ : array 1..-1 of int",
+        // Only flexible arrays allow zero-sized ranges
+        positive_flexible_size => "var _ : flexible array 1..1 of int",
+        zero_flexible_size => "type _ : flexible array 1..0 of int",
+        negative_flexible_size => "type _ : flexible array 1..-1 of int",
+
+        // array sizing
+        sizing_int1 => "type _ : array int1, 1..2 of int",
+        sizing_nat1 => "type _ : array nat1, 1..2 of int",
+        sizing_int2 => "type _ : array int2, 1..2 of int",
+        sizing_nat2 => "type _ : array nat2, 1..2 of int",
+        sizing_int => "type _ : array int, 1..2 of int",
+        sizing_nat => "type _ : array nat, 1..2 of int",
+        // until we have 64-bit types or widen ints during computation, this will always be an overflow
+        sizing_large => "type _ : array -16#7FFFFFFF..16#7FFFFFFF, 1..2 of int",
+        sizing_overflow => "type _ : array 0..16#7FFFFFFF, 0..16#7FFFFFFF of int",
+    ]
+}
+
+test_named_group! { typeck_array_ty_init,
+    [
+        on_flexible => "var a : flexible array 1..1 of int := init(1)",
+        on_dynamic => "
+        var c : int
+        var a : array 1..c of int := init(1)",
+        on_static => "var a : array 1..1 of int := init(1)",
+        on_init_sized => "var a : array 1..* of int := init(1,2,3,4,5)",
+        on_too_large => "
+        const mx : nat4 := 16#FFFFFFFF
+        var a : array 0..mx, 0..mx of int := init(1,2,3)",
+
+        more_two => "var a : array 1..3 of int := init(1,2,3,4,5)",
+        more_one => "var a : array 1..3 of int := init(1,2,3,4)",
+        less_one => "var a : array 1..3 of int := init(1,2)",
+        less_two => "var a : array 1..3 of int := init(1)",
+
+        not_comp_time => "
+        var c : int
+        var a : array 1..1 of int := init(c)",
+        mismatched_ty => "var a : array 1..1 of int := init(1.0)",
+    ]
+}
+
 test_named_group! { typeck_enum_ty,
     [
         from_type_alias => "type e : enum(a, b, c)",
@@ -2789,6 +3027,7 @@ test_named_group! { report_aliased_type,
         // - set
         // - record
         // - union
+        // - array
     ]
 }
 

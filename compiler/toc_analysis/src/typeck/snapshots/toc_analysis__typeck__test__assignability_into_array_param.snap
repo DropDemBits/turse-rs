@@ -1,0 +1,14 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 42
+expression: "type tp: proc(_ : array 1..2 of char(*))\nvar a : array 1..2 of char\nvar b : array 1..2 of char(42)\nvar p : tp\n\n% element type is also coercible\np(a)\np(b)\n"
+
+---
+"<unnamed>"@(dummy) [Declared]: <error>
+"_"@(FileId(1), 14..15) [Declared]: <error>
+"tp"@(FileId(1), 5..7) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(2))] of procedure ( pass(value) array ( range of `int` (Unevaluated(LibraryId(0), BodyId(0)) .. Expr(Unevaluated(LibraryId(0), BodyId(1)), No)), ) of char_n Any, ) -> void
+"a"@(FileId(1), 45..46) [Declared]: array ( range of `int` (Unevaluated(LibraryId(0), BodyId(2)) .. Expr(Unevaluated(LibraryId(0), BodyId(3)), Yes)), ) of char
+"b"@(FileId(1), 72..73) [Declared]: array ( range of `int` (Unevaluated(LibraryId(0), BodyId(4)) .. Expr(Unevaluated(LibraryId(0), BodyId(5)), Yes)), ) of char_n Fixed(Unevaluated(LibraryId(0), BodyId(6)))
+"p"@(FileId(1), 103..104) [Declared]: alias[DefId(LibraryId(0), LocalDefId(2))] of procedure ( pass(value) array ( range of `int` (Unevaluated(LibraryId(0), BodyId(0)) .. Expr(Unevaluated(LibraryId(0), BodyId(1)), No)), ) of char_n Any, ) -> void
+"<root>"@(dummy) [Declared]: <error>
+

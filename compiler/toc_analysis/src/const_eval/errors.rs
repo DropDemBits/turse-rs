@@ -29,6 +29,10 @@ impl ConstError {
         }
     }
 
+    pub(crate) fn kind(&self) -> &ErrorKind {
+        &self.kind
+    }
+
     /// Reports the detailed version of the `ConstError` to the given reporter
     pub fn report_to<DB: db::ConstEval + ?Sized>(
         &self,
@@ -93,7 +97,7 @@ impl ConstError {
 }
 
 #[derive(Debug, Clone, thiserror::Error, PartialEq, Eq, Hash)]
-pub(super) enum ErrorKind {
+pub(crate) enum ErrorKind {
     // Traversal errors
     /// Encountered an evaluation cycle
     #[allow(dead_code)] // TODO: add cycle fixup when we can generate cycles

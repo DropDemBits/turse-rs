@@ -1,0 +1,12 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 42
+expression: "type _ : array int, 1..2 of int"
+
+---
+"_"@(FileId(1), 5..6) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(0))] of array ( int, range of `int` (Unevaluated(LibraryId(0), BodyId(0)) .. Expr(Unevaluated(LibraryId(0), BodyId(1)), No)), ) of int
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 15..18: index range is too large
+| error in file FileId(1) for 15..18: a range over all `int` values is too large
+| info: use a range type to shrink the range of elements

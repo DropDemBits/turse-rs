@@ -1,0 +1,22 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+assertion_line: 61
+expression: "var _ : array 1 .. * of int := init(1)"
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(1)
+    Module@(FileId(1), 0..38): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..38): []
+        StmtItem@(FileId(1), 0..38): ItemId(0)
+          ConstVar@(FileId(1), 0..38): var "_"@(FileId(1), 4..5)
+            Array@(FileId(1), 8..27): MaybeDyn
+              Constrained@(FileId(1), 14..20): end => Unsized(Some(1))
+                ExprBody@(FileId(1), 14..15)
+                  Literal@(FileId(1), 14..15): Integer(1)
+              Primitive@(FileId(1), 24..27): Int
+            ExprBody@(FileId(1), 31..38)
+              InitExpr@(FileId(1), 31..38)
+                ExprBody@(FileId(1), 36..37)
+                  Literal@(FileId(1), 36..37): Integer(1)
+

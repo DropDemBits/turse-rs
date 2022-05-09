@@ -20,7 +20,7 @@ use crate::{
     },
 };
 
-use super::{IntSize, NatSize, RealSize, SeqSize};
+use super::{AllowDyn, IntSize, NatSize, RealSize, SeqSize};
 
 pub(crate) fn ty_from_hir_ty(db: &dyn TypeDatabase, hir_id: InLibrary<hir_ty::TypeId>) -> TypeId {
     let library = db.library(hir_id.0);
@@ -31,6 +31,7 @@ pub(crate) fn ty_from_hir_ty(db: &dyn TypeDatabase, hir_id: InLibrary<hir_ty::Ty
         hir_ty::TypeKind::Primitive(ty) => primitive_ty(db, hir_id, ty),
         hir_ty::TypeKind::Alias(ty) => alias_ty(db, hir_id, ty),
         hir_ty::TypeKind::Constrained(ty) => constrained_ty(db, hir_id, ty),
+        hir_ty::TypeKind::Array(ty) => array_ty(db, hir_id, ty),
         hir_ty::TypeKind::Enum(ty) => enum_ty(db, hir_id, ty),
         hir_ty::TypeKind::Set(ty) => set_ty(db, hir_id, ty),
         hir_ty::TypeKind::Pointer(ty) => pointer_ty(db, hir_id, ty),
@@ -124,7 +125,7 @@ fn constrained_ty(
         let start_tyref = db.type_of(ty.start.in_library(library_id).into()).in_db(db);
         let end_tyref = match ty.end {
             hir_ty::ConstrainedEnd::Expr(end) => db.type_of(end.in_library(library_id).into()),
-            hir_ty::ConstrainedEnd::Unsized(_) => db.mk_error(),
+            _ => db.mk_error(),
         }
         .in_db(db);
 
@@ -148,13 +149,43 @@ fn constrained_ty(
         base_tyref.id()
     };
 
+    let allow_dyn = if ty.allow_dyn {
+        AllowDyn::Yes
+    } else {
+        AllowDyn::No
+    };
     let start = Const::from_body(library_id, ty.start);
     let end = match ty.end {
-        hir_ty::ConstrainedEnd::Expr(end) => ty::EndBound::Expr(Const::from_body(library_id, end)),
+        hir_ty::ConstrainedEnd::Expr(end) => {
+            ty::EndBound::Expr(Const::from_body(library_id, end), allow_dyn)
+        }
         hir_ty::ConstrainedEnd::Unsized(sz) => ty::EndBound::Unsized(sz.item().unwrap_or(0)),
+        hir_ty::ConstrainedEnd::Any(_) => ty::EndBound::Any,
     };
 
     db.mk_constrained(base_ty, start, end)
+}
+
+fn array_ty(
+    db: &dyn TypeDatabase,
+    hir_id: InLibrary<hir_ty::TypeId>,
+    ty: &hir_ty::Array,
+) -> TypeId {
+    let InLibrary(library_id, _) = hir_id;
+
+    let sizing = match ty.sizing {
+        hir_ty::ArraySize::Flexible => ty::ArraySizing::Flexible,
+        hir_ty::ArraySize::MaybeDyn => ty::ArraySizing::MaybeDyn,
+        hir_ty::ArraySize::Static => ty::ArraySizing::Static,
+    };
+    let ranges = ty
+        .ranges
+        .iter()
+        .map(|&range_ty| db.from_hir_type(range_ty.in_library(library_id)))
+        .collect();
+    let elem_ty = db.from_hir_type(ty.elem_ty.in_library(library_id));
+
+    db.mk_array(sizing, ranges, elem_ty)
 }
 
 fn enum_ty(db: &dyn TypeDatabase, hir_id: InLibrary<hir_ty::TypeId>, ty: &hir_ty::Enum) -> TypeId {
@@ -523,6 +554,7 @@ pub(crate) fn ty_from_expr(
             db.mk_error()
         }
         expr::ExprKind::Literal(expr) => literal_ty(db, expr),
+        expr::ExprKind::Init(_) => db.mk_error(), // always inferred from
         expr::ExprKind::Binary(expr) => binary_ty(db, body, expr, body_expr),
         expr::ExprKind::Unary(expr) => unary_ty(db, body, expr, body_expr),
         expr::ExprKind::All => db.mk_error(), // Special case calling
@@ -682,6 +714,11 @@ fn call_expr_ty(
             db.binding_def(lhs_expr.into())
                 .map_or_else(|| db.mk_error(), |def_id| db.type_of(def_id.into()))
         }
+        TypeKind::Array(.., elem_ty) => {
+            // Array indexing
+            // Use the element type
+            *elem_ty
+        }
         _ => {
             // Not a callable subprogram
             db.mk_error()
@@ -718,7 +755,9 @@ pub(super) fn ty_from_body_owner(
                 _ => db.mk_error(),
             }
         }
+        // Doesn't make sense to somehow infer it from a type or expr body owner
         body::BodyOwner::Type(_) => db.mk_error(),
+        body::BodyOwner::Expr(_) => db.mk_error(),
     }
 }
 

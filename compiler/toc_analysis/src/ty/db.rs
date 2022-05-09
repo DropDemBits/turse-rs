@@ -75,6 +75,12 @@ pub trait TypeInternExt {
         start: const_eval::Const,
         end: ty::EndBound,
     ) -> ty::TypeId;
+    fn mk_array(
+        &self,
+        sizing: ty::ArraySizing,
+        ranges: Vec<ty::TypeId>,
+        elem_ty: ty::TypeId,
+    ) -> ty::TypeId;
     fn mk_enum(&self, with_def: ty::WithDef, variants: Vec<DefId>) -> ty::TypeId;
     fn mk_set(&self, with_def: ty::WithDef, elem_ty: ty::TypeId) -> ty::TypeId;
     fn mk_pointer(&self, checked: ty::Checked, target_ty: ty::TypeId) -> ty::TypeId;

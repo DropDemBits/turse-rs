@@ -1,0 +1,18 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 42
+expression: "type tp : proc(var _ : array 1 .. * of int)\nvar a : array 1 .. 3 of int\nvar b : array 2 .. 3 of int\nvar p : tp\n\n% only coercible if start bound is the same\np(a) % success\np(b) % fail\n"
+
+---
+"<unnamed>"@(dummy) [Declared]: <error>
+"_"@(FileId(1), 19..20) [Declared]: <error>
+"tp"@(FileId(1), 5..7) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(2))] of procedure ( pass(var ref) array ( range of `int` (Unevaluated(LibraryId(0), BodyId(0)) .. Any), ) of int, ) -> void
+"a"@(FileId(1), 48..49) [Declared]: array ( range of `int` (Unevaluated(LibraryId(0), BodyId(1)) .. Expr(Unevaluated(LibraryId(0), BodyId(2)), Yes)), ) of int
+"b"@(FileId(1), 76..77) [Declared]: array ( range of `int` (Unevaluated(LibraryId(0), BodyId(3)) .. Expr(Unevaluated(LibraryId(0), BodyId(4)), Yes)), ) of int
+"p"@(FileId(1), 104..105) [Declared]: alias[DefId(LibraryId(0), LocalDefId(2))] of procedure ( pass(var ref) array ( range of `int` (Unevaluated(LibraryId(0), BodyId(0)) .. Any), ) of int, ) -> void
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 173..174: mismatched types
+| note in file FileId(1) for 173..174: this is of type `array 2 .. 3 of int`
+| note in file FileId(1) for 173..174: parameter expects type `array 1 .. * of int`
+| info: `array 2 .. 3 of int` is not equivalent to `array 1 .. * of int`

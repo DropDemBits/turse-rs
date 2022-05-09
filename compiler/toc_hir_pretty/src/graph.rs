@@ -1015,6 +1015,21 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
         );
     }
 
+    fn visit_init_expr(&self, id: BodyExpr, expr: &expr::Init) {
+        let expr_id = self.expr_id(id);
+        let mut v_layout = vec![];
+
+        for (idx, &body_id) in expr.exprs.iter().enumerate() {
+            v_layout.push(Layout::Hbox(vec![
+                Layout::Node(format!("{idx}")),
+                Layout::NamedPort(format!("{expr_id}:body_{idx}"), "".into()),
+            ]));
+            self.emit_edge(format!("{expr_id}:body_{idx}"), self.body_id(body_id))
+        }
+
+        self.emit_expr(id, "InitExpr", Layout::Vbox(v_layout));
+    }
+
     fn visit_binary(&self, id: BodyExpr, expr: &expr::Binary) {
         self.emit_expr(
             id,
@@ -1220,6 +1235,7 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
             ty::ConstrainedEnd::Unsized(sz) => {
                 v_layout.push(Layout::Node(format!("Unsized({sz:?})", sz = sz.item())))
             }
+            ty::ConstrainedEnd::Any(_) => v_layout.push(Layout::Node("Any".into())),
         }
 
         self.emit_type(id, "Constrained", Layout::Vbox(v_layout));
@@ -1234,6 +1250,24 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
         );
 
         self.emit_type(id, "Enum", Layout::Vbox(v_layout))
+    }
+
+    fn visit_array(&self, id: ty::TypeId, ty: &ty::Array) {
+        let mut v_layout = vec![Layout::Node(format!("{:?}", ty.sizing))];
+        v_layout.extend(
+            ty.ranges
+                .iter()
+                .enumerate()
+                .map(|(idx, _range)| Layout::Port(format!("dim{idx}"))),
+        );
+        v_layout.push(Layout::Port("element".into()));
+
+        self.emit_type(id, "Array", Layout::Vbox(v_layout));
+
+        let type_id = self.type_id(id);
+        for (idx, range_ty) in ty.ranges.iter().enumerate() {
+            self.emit_edge(format!("{type_id}:dim{idx}"), self.type_id(*range_ty));
+        }
     }
 
     fn visit_set(&self, id: ty::TypeId, ty: &ty::Set) {

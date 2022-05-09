@@ -1,7 +1,10 @@
 //! Expression nodes
 use toc_span::{SpanId, Spanned};
 
-use crate::symbol::{self, Symbol};
+use crate::{
+    body,
+    symbol::{self, Symbol},
+};
 
 pub use crate::ids::{BodyExpr, ExprId};
 
@@ -19,7 +22,8 @@ pub enum ExprKind {
     /// Literal values
     Literal(Literal),
     //ObjClass(ObjClass),
-    //Init(Init),
+    /// Aggregate initialization expression, containing initialization values
+    Init(Init),
     //Nil(Nil),
     //SizeOf(SizeOf),
     Binary(Binary),
@@ -79,6 +83,12 @@ impl PartialEq for Literal {
 // Literal::Real satisfies the requirements for `Eq` by comparing
 // the raw bit representations
 impl Eq for Literal {}
+
+/// Aggregate initialization
+#[derive(Debug, PartialEq, Eq)]
+pub struct Init {
+    pub exprs: Vec<body::BodyId>,
+}
 
 /// Binary operator expression
 #[derive(Debug, PartialEq, Eq)]

@@ -26,9 +26,7 @@ impl super::BodyLowering<'_, '_> {
             ast::Type::NameType(ty) => self.lower_name_type(ty),
             ast::Type::RangeType(ty) => self.lower_constrained_type(ty),
             ast::Type::EnumType(ty) => self.lower_enum_type(ty),
-
-            ast::Type::ArrayType(_) => self.unsupported_ty(span),
-
+            ast::Type::ArrayType(ty) => self.lower_array_type(ty),
             ast::Type::SetType(ty) => self.lower_set_type(ty),
 
             ast::Type::RecordType(_) => self.unsupported_ty(span),
@@ -141,16 +139,46 @@ impl super::BodyLowering<'_, '_> {
 
     fn lower_constrained_type(&mut self, ty: ast::RangeType) -> Option<ty::TypeKind> {
         let start = self.lower_required_expr_body(ty.start());
-        let end = match ty.end() {
+        let end = self.lower_constrained_end(&ty);
+
+        // Dynamic end bound is only allowed if we're in a `var` decl, and part of the array ranges
+        let allow_dyn = if let Some(cv_decl) = ty
+            .syntax()
+            .parent()
+            .and_then(ast::RangeList::cast)
+            .and_then(|ty| ty.syntax().parent())
+            .and_then(ast::ArrayType::cast)
+            .and_then(|ty| ty.syntax().parent())
+            .and_then(ast::ConstVarDecl::cast)
+        {
+            cv_decl.var_token().is_some()
+        } else {
+            false
+        };
+
+        Some(ty::TypeKind::Constrained(ty::Constrained {
+            start,
+            end,
+            allow_dyn,
+        }))
+    }
+
+    fn lower_constrained_end(&mut self, ty: &ast::RangeType) -> ty::ConstrainedEnd {
+        match ty.end() {
             Some(ast::EndBound::Expr(end)) => ty::ConstrainedEnd::Expr(self.lower_expr_body(end)),
             Some(ast::EndBound::UnsizedBound(bound)) => {
                 let bound_span = self.ctx.intern_range(bound.syntax().text_range());
 
-                // Get the closest `init` initializer to steal from
-                let elem_count = if let Some(array) =
-                    ty.syntax().parent().and_then(ast::ArrayType::cast)
+                let elem_count = if let Some(array) = ty
+                    .syntax()
+                    .parent()
+                    .and_then(ast::RangeList::cast)
+                    .and_then(|list| list.syntax().parent())
+                    .and_then(ast::ArrayType::cast)
                 {
+                    // If we're in an array type, look at the surrounding context
                     if let Some(decl) = array.syntax().parent().and_then(ast::ConstVarDecl::cast) {
+                        // Get the closest `init` initializer to steal from
                         if let Some(ast::Expr::InitExpr(init)) = decl.init() {
                             // Count elems directly
                             let elem_count = init
@@ -208,6 +236,11 @@ impl super::BodyLowering<'_, '_> {
 
                             None
                         }
+                    } else if let Some(_param) =
+                        array.syntax().parent().and_then(ast::ParamDecl::cast)
+                    {
+                        // Inside of a parameter declaration, treat as an any upper bound
+                        return ty::ConstrainedEnd::Any(bound_span);
                     } else {
                         // Not inside a `ConstVar` type spec
                         let this_span = self.ctx.mk_span(ty.syntax().text_range());
@@ -234,9 +267,7 @@ impl super::BodyLowering<'_, '_> {
             }
             // Treat as a missing end
             None => ty::ConstrainedEnd::Expr(self.lower_required_expr_body(None)),
-        };
-
-        Some(ty::TypeKind::Constrained(ty::Constrained { start, end }))
+        }
     }
 
     fn lower_enum_type(&mut self, ty: ast::EnumType) -> Option<ty::TypeKind> {
@@ -262,6 +293,117 @@ impl super::BodyLowering<'_, '_> {
                 .add_def(type_decl_name(ty), span, symbol::SymbolKind::Declared);
 
         Some(ty::TypeKind::Enum(ty::Enum { def_id, variants }))
+    }
+
+    fn lower_array_type(&mut self, ty: ast::ArrayType) -> Option<ty::TypeKind> {
+        let range_list = ty.range_list().unwrap();
+
+        // If there's one init-sized bound, then that must be the only one
+        let init_bound = range_list.ranges().find_map(|range| {
+            if let ast::Type::RangeType(range) = range {
+                let is_init_sized = range
+                    .end()
+                    .map(|end| matches!(end, ast::EndBound::UnsizedBound(_)))
+                    .unwrap_or(false);
+
+                is_init_sized.then(|| range)
+            } else {
+                None
+            }
+        });
+
+        let ranges = if let Some(init_sized) = init_bound {
+            // Treated as an any-sized array if in a param decl
+            let is_any_sized = ty
+                .syntax()
+                .parent()
+                .and_then(ast::ParamDecl::cast)
+                .is_some();
+
+            // Must be the only bound
+            let (mut ranges_before, ranges_after) =
+                range_list.ranges().partition::<Vec<_>, _>(|range| {
+                    range
+                        .syntax()
+                        .text_range()
+                        .ordering(init_sized.syntax().text_range())
+                        .is_le()
+                });
+
+            // Remove the duplicate init-sized range
+            {
+                let before = ranges_before.pop();
+                assert!(matches!(before, Some(ast::Type::RangeType(other)) if other == init_sized));
+            }
+
+            if !ranges_before.is_empty() || !ranges_after.is_empty() {
+                // Extra ranges specified
+                let before_span = ranges_before
+                    .first()
+                    .zip(ranges_before.last())
+                    .map(|(a, b)| {
+                        self.ctx
+                            .mk_span(a.syntax().text_range().cover(b.syntax().text_range()))
+                    });
+                let after_span = ranges_after.first().zip(ranges_after.last()).map(|(a, b)| {
+                    self.ctx
+                        .mk_span(a.syntax().text_range().cover(b.syntax().text_range()))
+                });
+                let init_span = self.ctx.mk_span(init_sized.syntax().text_range());
+
+                // Change what we're sized by based on surrounding context
+                let thing = if is_any_sized { "any" } else { "`init`" };
+
+                let mut builder = self
+                    .ctx
+                    .messages
+                    .error_detailed("extra ranges specified", init_span);
+                if let Some(before_span) = before_span {
+                    builder = builder.with_error("extra ranges before", before_span);
+                }
+                if let Some(after_span) = after_span {
+                    builder = builder.with_error("extra ranges after", after_span);
+                }
+                builder
+                    .with_note("this must be the only range present", init_span)
+                    .with_info(format!(
+                        "{thing}-sized arrays must have this range be the only range present"
+                    ))
+                    .finish();
+            }
+
+            // Let this be the only bound
+            vec![self.lower_required_type(Some(ast::Type::RangeType(init_sized)))]
+        } else {
+            // Lower all of the bounds
+            range_list
+                .ranges()
+                .map(|ty| self.lower_required_type(Some(ty)))
+                .collect()
+        };
+
+        let is_flexible = ty.flexible_token().is_some();
+        let allow_dyn_size = ty
+            .syntax()
+            .parent()
+            .and_then(ast::ConstVarDecl::cast)
+            .map(|cv_decl| cv_decl.var_token().is_some())
+            .unwrap_or(false);
+
+        let sizing = if is_flexible {
+            ty::ArraySize::Flexible
+        } else if allow_dyn_size {
+            ty::ArraySize::MaybeDyn
+        } else {
+            ty::ArraySize::Static
+        };
+        let elem_ty = self.lower_required_type(ty.elem_ty());
+
+        Some(ty::TypeKind::Array(ty::Array {
+            sizing,
+            ranges,
+            elem_ty,
+        }))
     }
 
     fn lower_set_type(&mut self, ty: ast::SetType) -> Option<ty::TypeKind> {
