@@ -68,7 +68,6 @@ impl MessageBundle {
 /// A reported message
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReportMessage {
-    // FIXME: These don't need to be pub crate
     pub(crate) header: SourceAnnotation,
     pub(crate) annotations: Vec<SourceAnnotation>,
     pub(crate) footer: Vec<Annotation>,

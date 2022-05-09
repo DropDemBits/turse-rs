@@ -31,7 +31,6 @@ impl fmt::Display for AnnotateKind {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SourceAnnotation {
-    // FIXME: These don't need to be pub crate
     pub(crate) annotation: Annotation,
     pub(crate) span: Span,
 }
