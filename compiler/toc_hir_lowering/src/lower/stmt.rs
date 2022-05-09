@@ -612,28 +612,38 @@ impl super::BodyLowering<'_, '_> {
         if let Some(exports_all) = exports_all {
             // Warn about ignored export items
             for exports_item in exports.exports() {
+                // Skip selected `all`
                 if exports_item == exports_all {
                     continue;
                 }
-
-                let name_tok = if let Some(name) = exports_item.name() {
-                    name.identifier_token().unwrap()
-                } else {
-                    continue;
-                };
-                let name = name_tok.text();
 
                 let export_span = self.ctx.mk_span(exports_item.syntax().text_range());
                 let all_span = self
                     .ctx
                     .mk_span(exports_all.all_token().unwrap().text_range());
 
-                self.ctx
-                    .messages
-                    .warn_detailed("export item is ignored", export_span)
-                    .with_warn(format!("`{name}` is already exported..."), export_span)
-                    .with_note("by this `all`", all_span)
-                    .finish();
+                if let Some(name) = exports_item.name() {
+                    // Some named export
+                    let name_tok = name.identifier_token().unwrap();
+                    let name = name_tok.text();
+
+                    self.ctx
+                        .messages
+                        .warn_detailed("export item is ignored", export_span)
+                        .with_warn(format!("`{name}` is already exported..."), export_span)
+                        .with_note("by this `all`", all_span)
+                        .finish();
+                } else if exports_item.all_token().is_some() {
+                    // Duplicate `all` item
+                    self.ctx
+                        .messages
+                        .warn_detailed("export item is ignored", export_span)
+                        .with_warn("this `all` is already exported...", export_span)
+                        .with_note("by this first `all`", all_span)
+                        .finish();
+                } else {
+                    continue;
+                }
             }
 
             let (mutability, qualify_as, is_opaque) = lower_export_attrs(&exports_all, self.ctx);
