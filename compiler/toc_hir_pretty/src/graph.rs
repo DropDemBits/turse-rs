@@ -1235,6 +1235,7 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
             ty::ConstrainedEnd::Unsized(sz) => {
                 v_layout.push(Layout::Node(format!("Unsized({sz:?})", sz = sz.item())))
             }
+            ty::ConstrainedEnd::Any(_) => v_layout.push(Layout::Node("Any".into())),
         }
 
         self.emit_type(id, "Constrained", Layout::Vbox(v_layout));

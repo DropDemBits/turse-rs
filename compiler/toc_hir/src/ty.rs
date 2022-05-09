@@ -126,6 +126,8 @@ pub enum ConstrainedEnd {
     /// An unsized bound, where the element count is taken from
     /// the closest `init` initializer
     Unsized(Spanned<Option<u32>>),
+    /// Upper bound is determined at runtime
+    Any(SpanId),
 }
 
 #[derive(Debug, PartialEq, Eq, Hash)]

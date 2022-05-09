@@ -1482,6 +1482,25 @@ fn lower_array_types_init_sized() {
 }
 
 #[test]
+fn lower_array_types_any_sized() {
+    // Same restrictions as init-sized, just in param decl context
+
+    // Any-sized
+    assert_lower("type _ : proc uwu(_ : array 1 .. * of int)");
+    // Only 1 any-sized range allowed
+    assert_lower("type _ : proc uwu(_ : array 1 .. *, 1 .. * of int)");
+    // Any-sized range must be the first
+    // ranges before
+    assert_lower("type _ : proc uwu(_ : array 1 .. *, char of int)");
+    assert_lower("type _ : proc uwu(_ : array 1 .. *, char,,char of int)");
+    // ranges after
+    assert_lower("type _ : proc uwu(_ : array char, 1 .. * of int)");
+    assert_lower("type _ : proc uwu(_ : array char,,char, 1 .. * of int)");
+    // both
+    assert_lower("type _ : proc uwu(_ : array char, 1 .. *, char of int)");
+}
+
+#[test]
 fn lower_init_expr() {
     // Ok with non-aggregate types (check deferred to typeck)
     assert_lower("var _ : int := init(1, 2, 3, 4)");

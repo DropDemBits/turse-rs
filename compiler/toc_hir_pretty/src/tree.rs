@@ -516,6 +516,7 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
         let extra = match ty.end {
             ty::ConstrainedEnd::Expr(_) => "end => Expr".into(),
             ty::ConstrainedEnd::Unsized(sz) => format!("end => Unsized({sz:?})", sz = sz.item()),
+            ty::ConstrainedEnd::Any(_) => "end => Any".into(),
         };
         self.emit_node("Constrained", span, Some(format_args!("{extra}")))
     }

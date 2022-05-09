@@ -139,12 +139,36 @@ impl super::BodyLowering<'_, '_> {
 
     fn lower_constrained_type(&mut self, ty: ast::RangeType) -> Option<ty::TypeKind> {
         let start = self.lower_required_expr_body(ty.start());
-        let end = match ty.end() {
+        let end = self.lower_constrained_end(&ty);
+
+        // Dynamic end bound is only allowed if we're in a `var` decl, and part of the array ranges
+        let allow_dyn = if let Some(cv_decl) = ty
+            .syntax()
+            .parent()
+            .and_then(ast::RangeList::cast)
+            .and_then(|ty| ty.syntax().parent())
+            .and_then(ast::ArrayType::cast)
+            .and_then(|ty| ty.syntax().parent())
+            .and_then(ast::ConstVarDecl::cast)
+        {
+            cv_decl.var_token().is_some()
+        } else {
+            false
+        };
+
+        Some(ty::TypeKind::Constrained(ty::Constrained {
+            start,
+            end,
+            allow_dyn,
+        }))
+    }
+
+    fn lower_constrained_end(&mut self, ty: &ast::RangeType) -> ty::ConstrainedEnd {
+        match ty.end() {
             Some(ast::EndBound::Expr(end)) => ty::ConstrainedEnd::Expr(self.lower_expr_body(end)),
             Some(ast::EndBound::UnsizedBound(bound)) => {
                 let bound_span = self.ctx.intern_range(bound.syntax().text_range());
 
-                // Get the closest `init` initializer to steal from
                 let elem_count = if let Some(array) = ty
                     .syntax()
                     .parent()
@@ -152,7 +176,9 @@ impl super::BodyLowering<'_, '_> {
                     .and_then(|list| list.syntax().parent())
                     .and_then(ast::ArrayType::cast)
                 {
+                    // If we're in an array type, look at the surrounding context
                     if let Some(decl) = array.syntax().parent().and_then(ast::ConstVarDecl::cast) {
+                        // Get the closest `init` initializer to steal from
                         if let Some(ast::Expr::InitExpr(init)) = decl.init() {
                             // Count elems directly
                             let elem_count = init
@@ -210,6 +236,11 @@ impl super::BodyLowering<'_, '_> {
 
                             None
                         }
+                    } else if let Some(_param) =
+                        array.syntax().parent().and_then(ast::ParamDecl::cast)
+                    {
+                        // Inside of a parameter declaration, treat as an any upper bound
+                        return ty::ConstrainedEnd::Any(bound_span);
                     } else {
                         // Not inside a `ConstVar` type spec
                         let this_span = self.ctx.mk_span(ty.syntax().text_range());
@@ -236,28 +267,7 @@ impl super::BodyLowering<'_, '_> {
             }
             // Treat as a missing end
             None => ty::ConstrainedEnd::Expr(self.lower_required_expr_body(None)),
-        };
-
-        // Dynamic end bound is only allowed if we're in a `var` decl, and part of the array ranges
-        let allow_dyn = if let Some(cv_decl) = ty
-            .syntax()
-            .parent()
-            .and_then(ast::RangeList::cast)
-            .and_then(|ty| ty.syntax().parent())
-            .and_then(ast::ArrayType::cast)
-            .and_then(|ty| ty.syntax().parent())
-            .and_then(ast::ConstVarDecl::cast)
-        {
-            cv_decl.var_token().is_some()
-        } else {
-            false
-        };
-
-        Some(ty::TypeKind::Constrained(ty::Constrained {
-            start,
-            end,
-            allow_dyn,
-        }))
+        }
     }
 
     fn lower_enum_type(&mut self, ty: ast::EnumType) -> Option<ty::TypeKind> {
@@ -303,6 +313,13 @@ impl super::BodyLowering<'_, '_> {
         });
 
         let ranges = if let Some(init_sized) = init_bound {
+            // Treated as an any-sized array if in a param decl
+            let is_any_sized = ty
+                .syntax()
+                .parent()
+                .and_then(ast::ParamDecl::cast)
+                .is_some();
+
             // Must be the only bound
             let (mut ranges_before, ranges_after) =
                 range_list.ranges().partition::<Vec<_>, _>(|range| {
@@ -334,6 +351,9 @@ impl super::BodyLowering<'_, '_> {
                 });
                 let init_span = self.ctx.mk_span(init_sized.syntax().text_range());
 
+                // Change what we're sized by based on surrounding context
+                let thing = if is_any_sized { "any" } else { "`init`" };
+
                 let mut builder = self
                     .ctx
                     .messages
@@ -346,7 +366,9 @@ impl super::BodyLowering<'_, '_> {
                 }
                 builder
                     .with_note("this must be the only range present", init_span)
-                    .with_info("`init`-sized arrays must have this range be the only range present")
+                    .with_info(format!(
+                        "{thing}-sized arrays must have this range be the only range present"
+                    ))
                     .finish();
             }
 
