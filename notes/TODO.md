@@ -36,9 +36,10 @@
     - [ ] AssertStmt
     - [~] CallStmt
       - [x] On subprograms
-      - [ ] On arrays
+      - [x] On arrays
       - [x] On set constructor
       - [ ] On pointer types
+      - [ ] On character sequences
     - [x] ReturnStmt
     - [x] ResultStmt
     - [ ] NewStmt
@@ -62,7 +63,7 @@
   - [ ] Expr
     - [x] LiteralExpr
     - [ ] ObjClassExpr
-    - [ ] InitExpr
+    - [x] InitExpr
     - [ ] NilExpr
     - [ ] SizeOfExpr
     - [x] BinaryExpr
@@ -81,15 +82,16 @@
     - [ ] BitsExpr
     - [~] CallExpr
       - [x] On subprograms
-      - [ ] On arrays
+      - [x] On arrays
       - [x] On set constructor
       - [ ] On pointer types
+      - [ ] On character sequences
   - [ ] Type
     - [x] PrimType
-    - [ ] NameType
-    - [ ] RangeType
+    - [x] NameType
+    - [x] RangeType
     - [x] EnumType
-    - [ ] ArrayType
+    - [x] ArrayType
     - [x] SetType
     - [ ] RecordType
     - [ ] UnionType
@@ -106,9 +108,9 @@
 - [ ] Import & dependency resolution
 - [ ] Typeck
   - [ ] Stmt
-    - [~] ConstVar
+    - [x] ConstVar
       - [x] Binding type to def
-      - [ ] Handling `init()` as the initialzer expression
+      - [x] Handling `init()` as the initialzer expression
     - [x] Type
     - [x] Bind
     - [x] Proc
@@ -130,7 +132,7 @@
     - [ ] Write
     - [ ] Seek
     - [ ] Tell
-    - [ ] For
+    - [x] For
     - [x] Loop
     - [x] Exit
     - [x] If
@@ -140,9 +142,10 @@
     - [ ] Assert
     - [~] Call
       - [x] On subprograms
-      - [ ] On arrays
+      - [x] On arrays
       - [x] On set constructor
       - [ ] On pointer types
+      - [ ] On character sequences
     - [x] Return
     - [x] Result
     - [ ] New
@@ -161,7 +164,7 @@
   - [ ] Expr
     - [x] Literal
     - [ ] ObjClass
-    - [ ] Init
+    - [x] Init
     - [ ] Nil
     - [ ] SizeOf
     - [ ] Binary
@@ -188,17 +191,18 @@
     - [ ] Bits
     - [~] Call
       - [x] On subprograms
-      - [ ] On arrays
+      - [x] On arrays
       - [x] On set constructor
       - [ ] On pointer types
+      - [ ] On character sequences
   - [ ] Type
     - [x] Prim (SeqLength)
     - [x] Name
       - [x] Just name
       - [x] Through module paths
-    - [ ] Range
+    - [x] Range
     - [x] Enum
-    - [ ] Array
+    - [x] Array
     - [x] Set
     - [ ] Record
     - [ ] Union
