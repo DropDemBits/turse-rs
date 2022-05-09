@@ -429,7 +429,7 @@ where
 
                     count = count
                         .checked_mul(index_count)
-                        .map_err(|err| NotInteger::ConstError(err))?;
+                        .map_err(NotInteger::ConstError)?;
                 }
 
                 Ok(count)
@@ -442,7 +442,7 @@ where
                 // Range is inclusive, so also add 1
                 max.checked_sub(min)
                     .and_then(|count| count.checked_add(ConstInt::ONE))
-                    .map_err(|err| NotInteger::ConstError(err))
+                    .map_err(NotInteger::ConstError)
             }
         }
     }
@@ -487,7 +487,7 @@ where
                 // Just the ordinal value of the start bound
                 self.db
                     .evaluate_const(start_bound.clone(), Default::default())
-                    .map_err(|err| NotInteger::ConstError(err))?
+                    .map_err(NotInteger::ConstError)?
                     .ordinal()
                     .ok_or(NotInteger::NotInteger)?
             }
