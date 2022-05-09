@@ -783,14 +783,22 @@ impl TypeCheck<'_> {
                     let bounds_tyref = bounds_ty.in_db(db).peel_opaque(in_module);
                     let bounds_base_ty = bounds_tyref.clone().peel_aliases();
 
-                    // FIXME(for-each): Specialize message for iterables
-                    self.state()
-                        .reporter
-                        .error_detailed("mismatched types", bounds_span)
-                        .with_note(format!("this is of type `{bounds_tyref}`"), bounds_span)
-                        .with_error(format!("`{bounds_base_ty}` is not iterable"), bounds_span)
-                        .with_info("only arrays types can be iterated over")
-                        .finish();
+                    if bounds_base_ty.kind().is_array() {
+                        // Specialize the message for iterables
+                        self.state().reporter.error(
+                            "unsupported operation",
+                            "for-each loops are not implemented yet",
+                            bounds_span,
+                        );
+                    } else {
+                        self.state()
+                            .reporter
+                            .error_detailed("mismatched types", bounds_span)
+                            .with_note(format!("this is of type `{bounds_tyref}`"), bounds_span)
+                            .with_error(format!("`{bounds_base_ty}` is not iterable"), bounds_span)
+                            .with_info("only arrays types can be iterated over")
+                            .finish();
+                    }
 
                     return;
                 }

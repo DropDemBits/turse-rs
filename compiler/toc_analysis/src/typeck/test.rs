@@ -2022,7 +2022,10 @@ test_named_group! { typeck_for,
         //   - is int (error, range too large)
         //   - other
         for_each_not_iterable => "for : 1 end for",
-        // FIXME: Add test for `for-each` on array (only iterable so far)
+        for_each_unimpl => "
+        var a : array 1 .. 2 of int
+        for : a end for
+        ",
 
         implied_bounds_boolean => "type b : boolean for _ : b end for",
         implied_bounds_char => "type b : char for _ : b end for",

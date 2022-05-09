@@ -49,6 +49,10 @@ impl TypeKind {
         matches!(self, TypeKind::Alias(..))
     }
 
+    pub fn is_array(&self) -> bool {
+        matches!(self, TypeKind::Array(..))
+    }
+
     pub fn is_enum(&self) -> bool {
         matches!(self, TypeKind::Enum(..))
     }
