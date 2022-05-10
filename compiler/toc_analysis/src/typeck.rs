@@ -302,9 +302,10 @@ impl TypeCheck<'_> {
 
                                 return;
                             }
-                            Err(ty::NotInteger::ConstError(_err)) => {
+                            Err(ty::NotInteger::ConstError(err)) => {
                                 // Static array, but error while computing count
-                                // FIXME(hidden-span): should be covered by other errors
+                                // Should be covered by other errors
+                                err.report_delayed_to(db, &mut self.state().reporter);
 
                                 return;
                             }
@@ -2190,14 +2191,28 @@ impl TypeCheck<'_> {
         let array_span = library.lookup_type(id).span.lookup_in(library);
 
         let within_limit = match array_ty.element_count() {
-            Ok(v) if v.is_positive() => dbg!(v).into_u64(),
-            Err(ty::NotInteger::ConstError(err))
-                if matches!(err.kind(), const_eval::ErrorKind::IntOverflow) =>
-            {
-                // Overflow, definitely over limit
-                None
+            Ok(v) if v.is_positive() => v.into_u64(),
+            Ok(_) => {
+                // Negative, handled by previous typeck
+                return;
             }
-            _ => {
+            Err(ty::NotInteger::ConstError(err)) => {
+                match err.kind() {
+                    const_eval::ErrorKind::IntOverflow => {
+                        // Overflow, definitely over limit
+                        None
+                    }
+                    _ if err.is_not_compile_time() => {
+                        // Dynamic array, no need to check
+                        return;
+                    }
+                    _ => {
+                        err.report_delayed_to(db, &mut self.state().reporter);
+                        return;
+                    }
+                }
+            }
+            Err(ty::NotInteger::NotInteger) => {
                 // Already handled by previous typeck
                 return;
             }
@@ -2213,7 +2228,7 @@ impl TypeCheck<'_> {
                     array_span,
                 )
                 .with_info(format!(
-                    "maxium element count for arrays is {ELEM_LIMIT} elements"
+                    "maximum element count for arrays is {ELEM_LIMIT} elements"
                 ))
                 .finish(),
             None => self.state().reporter.error(
@@ -2359,7 +2374,8 @@ impl TypeCheck<'_> {
                             // Checked during constrained ty typeck
                         }
                         _ => {
-                            // Error during const-eval, already reported
+                            // Error during const-eval, should already reported
+                            err.report_delayed_to(db, &mut self.state().reporter);
                         }
                     }
                 }

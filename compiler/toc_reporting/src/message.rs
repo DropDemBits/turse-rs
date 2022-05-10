@@ -125,7 +125,7 @@ impl MessageBundle {
 
         if let Some(delayed) = any_delayed {
             panic!(
-                "detected delayed report message at {:?}, should have been reported over\n\nOriginal message:\n{}\n",
+                "detected delayed report message at {:?}, should have been reported over\n\nOriginal message:\n{:#?}\n",
                 delayed.span(),
                 delayed
             );
