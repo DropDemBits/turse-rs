@@ -881,8 +881,10 @@ fn report_return_stmt_in_unit() {
     check(
         "unit return",
         expect![[r#"
-        error in file FileId(1) at 5..11: invalid unit file
-        | error in file FileId(1) for 5..11: expected a module, class, or monitor declaration"#]],
+            error in file FileId(1) at 5..11: invalid unit file
+            | error in file FileId(1) for 5..11: expected a module, class, or monitor declaration
+            error in file FileId(1) at 5..11: cannot use `return` here
+            | error in file FileId(1) for 5..11: `return` statement is only allowed in subprogram bodies and module-kind declarations"#]],
     );
 }
 
@@ -937,8 +939,10 @@ fn report_result_stmt_in_unit() {
     check(
         "unit result 'uwu'",
         expect![[r#"
-        error in file FileId(1) at 5..17: invalid unit file
-        | error in file FileId(1) for 5..17: expected a module, class, or monitor declaration"#]],
+            error in file FileId(1) at 5..17: invalid unit file
+            | error in file FileId(1) for 5..17: expected a module, class, or monitor declaration
+            error in file FileId(1) at 5..17: cannot use `result` here
+            | error in file FileId(1) for 5..17: `result` statement is only allowed in function bodies"#]],
     );
 }
 
@@ -1211,8 +1215,10 @@ fn report_import_stmt_in_unit() {
     check(
         "unit import ()",
         expect![[r#"
-        error in file FileId(1) at 5..14: invalid unit file
-        | error in file FileId(1) for 5..14: expected a module, class, or monitor declaration"#]],
+            error in file FileId(1) at 5..14: invalid unit file
+            | error in file FileId(1) for 5..14: expected a module, class, or monitor declaration
+            error in file FileId(1) at 5..14: cannot use `import` statement here
+            | error in file FileId(1) for 5..14: `import` statement is only allowed at the top level of subprograms, module-likes, or programs"#]],
     );
 }
 

@@ -6,7 +6,7 @@ mod message;
 mod reporter;
 
 pub use annotate::{AnnotateKind, Annotation, SourceAnnotation};
-pub use message::{MessageBundle, ReportMessage};
+pub use message::{MessageBundle, ReportMessage, ReportWhen};
 pub use reporter::{MessageBuilder, MessageSink};
 
 /// A compilation result, including a bundle of associated messages

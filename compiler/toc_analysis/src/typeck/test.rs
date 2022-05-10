@@ -45,6 +45,7 @@ fn assert_typecheck(source: &str) {
 fn do_typecheck(source: &str) -> String {
     let (db, lib) = TestDb::from_source(source);
     let typeck_res = db.typecheck_library(lib);
+    typeck_res.messages().assert_no_delayed_reports();
 
     stringify_typeck_results(&db, lib, typeck_res.messages())
 }

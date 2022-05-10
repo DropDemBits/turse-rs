@@ -92,6 +92,7 @@ fn main() {
     for msg in msgs.iter() {
         emit_message(&db, &mut cache, msg);
     }
+    msgs.assert_no_delayed_reports();
 
     if let Some(blob) = codegen_res.result() {
         let mut encoded = vec![];

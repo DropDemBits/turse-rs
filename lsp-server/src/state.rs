@@ -108,6 +108,9 @@ impl ServerState {
         let analyze_res = self.db.analyze_libraries();
         let msgs = analyze_res.messages();
 
+        // Note: this does noisily fail, but we don't gracefully handle panics yet
+        msgs.assert_no_delayed_reports();
+
         fn to_diag_level(kind: toc_reporting::AnnotateKind) -> DiagnosticSeverity {
             use toc_reporting::AnnotateKind;
 

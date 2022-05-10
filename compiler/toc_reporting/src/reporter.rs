@@ -2,7 +2,7 @@
 
 use toc_span::Span;
 
-use crate::{AnnotateKind, Annotation, MessageBundle, ReportMessage, SourceAnnotation};
+use crate::{AnnotateKind, Annotation, MessageBundle, ReportMessage, ReportWhen, SourceAnnotation};
 
 /// Sink for message reports
 #[derive(Debug, Default)]
@@ -68,6 +68,7 @@ pub struct MessageBuilder<'a> {
     span: Span,
     annotations: Vec<SourceAnnotation>,
     footer: Vec<Annotation>,
+    when: ReportWhen,
 }
 
 impl<'a> MessageBuilder<'a> {
@@ -85,6 +86,7 @@ impl<'a> MessageBuilder<'a> {
             span,
             annotations: vec![],
             footer: vec![],
+            when: Default::default(),
         }
     }
 
@@ -119,6 +121,28 @@ impl<'a> MessageBuilder<'a> {
         self
     }
 
+    pub fn report_always(self) -> Self {
+        self.with_when(ReportWhen::Always)
+    }
+
+    pub fn report_first_always(self) -> Self {
+        self.with_when(ReportWhen::FirstAlways)
+    }
+
+    pub fn report_delayed(self) -> Self {
+        self.with_when(ReportWhen::Delayed)
+    }
+
+    pub fn report_hidden(self) -> Self {
+        self.with_when(ReportWhen::Hidden)
+    }
+
+    fn with_when(mut self, when: ReportWhen) -> Self {
+        self.when = when;
+
+        self
+    }
+
     pub fn finish(self) {
         let MessageBuilder {
             mut drop_bomb,
@@ -128,6 +152,7 @@ impl<'a> MessageBuilder<'a> {
             span,
             annotations,
             footer,
+            when,
         } = self;
 
         // Defuse bomb now
@@ -140,6 +165,7 @@ impl<'a> MessageBuilder<'a> {
             },
             annotations,
             footer,
+            when,
         });
     }
 }

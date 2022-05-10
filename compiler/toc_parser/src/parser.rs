@@ -357,18 +357,22 @@ impl<'p, 't, 's> UnexpectedBuilder<'p, 't, 's> {
             "unexpected end of file"
         };
 
-        self.p.msg_sink.error(
-            header,
-            &format!(
-                "{}",
-                ParseMessage::UnexpectedToken {
-                    expected: mem::take(&mut self.p.expected_kinds),
-                    expected_category: self.category,
-                    found,
-                }
-            ),
-            span,
-        );
+        self.p
+            .msg_sink
+            .error_detailed(header, span)
+            .with_error(
+                &format!(
+                    "{}",
+                    ParseMessage::UnexpectedToken {
+                        expected: mem::take(&mut self.p.expected_kinds),
+                        expected_category: self.category,
+                        found,
+                    }
+                ),
+                span,
+            )
+            .report_first_always()
+            .finish();
 
         // If the cursor is part of the recovery set (and if we're set to respect recovery sets),
         // error node does not need to be built

@@ -616,10 +616,10 @@ mod cond {
                       PPElseif@0..7
                         PPKwElseif@0..7 "#elseif"
                         PPTokenBody@7..7
-                warn in file FileId(1) at 0..7: `#elseif` found
-                | warn in file FileId(1) for 0..7: assuming it to be `#elsif`
                 error in file FileId(1) at 0..7: unexpected end of file
-                | error in file FileId(1) for 0..7: expected preprocessor condition after here"##]],
+                | error in file FileId(1) for 0..7: expected preprocessor condition after here
+                warn in file FileId(1) at 0..7: `#elseif` found
+                | warn in file FileId(1) for 0..7: assuming it to be `#elsif`"##]],
         );
     }
 

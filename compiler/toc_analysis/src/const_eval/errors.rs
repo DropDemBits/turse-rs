@@ -39,6 +39,25 @@ impl ConstError {
         db: &DB,
         reporter: &mut toc_reporting::MessageSink,
     ) {
+        self.make_report_to(db, reporter, false);
+    }
+
+    /// Reports the detailed version of the `ConstError` to the given reporter as a delayed report.
+    /// This message should already be covered by other spans
+    pub fn report_delayed_to<DB: db::ConstEval + ?Sized>(
+        &self,
+        db: &DB,
+        reporter: &mut toc_reporting::MessageSink,
+    ) {
+        self.make_report_to(db, reporter, true);
+    }
+
+    fn make_report_to<DB: db::ConstEval + ?Sized>(
+        &self,
+        db: &DB,
+        reporter: &mut toc_reporting::MessageSink,
+        always_delayed: bool,
+    ) {
         // FIXME: This error needs to be clarify where it came from
         //
         // In the following code:
@@ -59,7 +78,12 @@ impl ConstError {
             return;
         }
 
-        match &self.kind {
+        // Delayed reports need a real span
+        if always_delayed && self.span.into_parts().is_none() {
+            return;
+        }
+
+        let mut builder = match &self.kind {
             ErrorKind::NotConstExpr(Some(def_id)) => {
                 // Report at the reference's definition spot
                 let bind_to = match db.binding_to((*def_id).into()) {
@@ -87,8 +111,22 @@ impl ConstError {
             _ => reporter
                 .error_detailed("cannot compute expression at compile-time", self.span)
                 .with_error(format!("{}", self.kind), self.span),
+        };
+
+        // These errors should be covered by earlier reporting
+        if always_delayed
+            || matches!(
+                self.kind,
+                ErrorKind::MissingExpr
+                    | ErrorKind::WrongOperandType
+                    | ErrorKind::WrongResultType
+                    | ErrorKind::NoFields(..)
+            )
+        {
+            builder = builder.report_delayed();
         }
-        .finish();
+
+        builder.finish();
     }
 
     pub fn is_not_compile_time(&self) -> bool {
