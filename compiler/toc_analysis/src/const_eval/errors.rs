@@ -59,7 +59,7 @@ impl ConstError {
             return;
         }
 
-        match &self.kind {
+        let mut builder = match &self.kind {
             ErrorKind::NotConstExpr(Some(def_id)) => {
                 // Report at the reference's definition spot
                 let bind_to = match db.binding_to((*def_id).into()) {
@@ -87,8 +87,20 @@ impl ConstError {
             _ => reporter
                 .error_detailed("cannot compute expression at compile-time", self.span)
                 .with_error(format!("{}", self.kind), self.span),
+        };
+
+        // These errors should be covered by earlier reporting
+        if matches!(
+            self.kind,
+            ErrorKind::MissingExpr
+                | ErrorKind::WrongOperandType
+                | ErrorKind::WrongResultType
+                | ErrorKind::NoFields(..)
+        ) {
+            builder = builder.report_delayed();
         }
-        .finish();
+
+        builder.finish();
     }
 
     pub fn is_not_compile_time(&self) -> bool {

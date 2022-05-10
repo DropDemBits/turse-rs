@@ -91,7 +91,21 @@ impl<'db> TypeCheck<'db> {
 
         // Check bodies, starting from the root
         for body_id in db.bodies_of(library_id).iter().copied() {
-            toc_hir::visitor::Walker::from_body(&typeck.library, body_id).visit_postorder(&typeck);
+            use toc_hir::visitor::{WalkEvent, WalkNode, Walker};
+
+            let mut walker = Walker::from_body(&typeck.library, body_id);
+
+            while let Some(peek) = walker.peek_event() {
+                // Don't walk into inner bodies, we'll enter them later on anyways
+                if matches!(peek, WalkEvent::Enter(WalkNode::Body(id, _)) if *id != body_id) {
+                    walker.skip_event();
+                    continue;
+                }
+
+                if let Some(WalkEvent::Leave(event)) = walker.next_event() {
+                    event.visit_node(&typeck);
+                }
+            }
         }
 
         let state = typeck.state.into_inner();

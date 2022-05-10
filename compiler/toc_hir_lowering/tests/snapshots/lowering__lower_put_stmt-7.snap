@@ -1,5 +1,6 @@
 ---
 source: compiler/toc_hir_lowering/tests/lowering.rs
+assertion_line: 61
 expression: "put : a"
 
 ---
@@ -9,6 +10,8 @@ Library@(dummy)
       StmtBody@(FileId(1), 0..7): []
         Put@(FileId(1), 0..7): newline
           Name@(FileId(1), 6..7): "a"@(FileId(1), 6..7), undeclared
+error in file FileId(1) at 6..7: unexpected end of file
+| error in file FileId(1) for 6..7: expected `,` after here
 error in file FileId(1) at 6..7: `a` is undeclared
 | error in file FileId(1) for 6..7: no definitions of `a` are in scope
 
