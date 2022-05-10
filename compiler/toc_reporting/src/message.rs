@@ -115,6 +115,22 @@ impl MessageBundle {
             .iter()
             .any(|msg| matches!(msg.kind(), AnnotateKind::Error))
     }
+
+    /// Asserts that there aren't any delayed reports present
+    pub fn assert_no_delayed_reports(&self) {
+        let any_delayed = self
+            .messages
+            .iter()
+            .find(|msg| msg.when == ReportWhen::Delayed);
+
+        if let Some(delayed) = any_delayed {
+            panic!(
+                "detected delayed report message at {:?}, should have been reported over\n\nOriginal message:\n{}\n",
+                delayed.span(),
+                delayed
+            );
+        }
+    }
 }
 
 /// A reported message
@@ -345,5 +361,25 @@ mod tests {
         // Collapses to first
         assert_eq!(msgs.messages.len(), 1);
         assert_eq!(msgs.messages[0].header.message(), "first");
+    }
+
+    #[test]
+    #[should_panic]
+    fn assert_no_delayed_reports() {
+        let mut reporter = MessageSink::default();
+
+        reporter
+            .error_detailed(
+                "oops",
+                Span::new(
+                    toc_span::FileId::new_testing(1).unwrap(),
+                    Default::default(),
+                ),
+            )
+            .report_delayed()
+            .finish();
+
+        let msgs = reporter.finish();
+        msgs.assert_no_delayed_reports();
     }
 }

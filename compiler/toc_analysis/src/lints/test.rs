@@ -13,6 +13,7 @@ fn assert_lint(source: &str) {
 fn do_lint(source: &str) -> String {
     let (db, lib) = TestDb::from_source(source);
     let res = db.lint_library(lib);
+    res.messages().assert_no_delayed_reports();
 
     stringify_lint_results(res.messages())
 }
