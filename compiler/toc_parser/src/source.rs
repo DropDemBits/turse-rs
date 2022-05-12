@@ -13,7 +13,7 @@ impl<'t, 'src> Source<'t, 'src> {
     }
 
     pub(crate) fn next_token(&mut self) -> Option<&Token> {
-        self.skip_trivia();
+        self.cursor = self.skip_trivia(self.cursor)?;
         let token = self.tokens.get(self.cursor)?;
 
         self.cursor += 1;
@@ -21,15 +21,15 @@ impl<'t, 'src> Source<'t, 'src> {
     }
 
     /// Peeks at the next `TokenKind`
-    pub(crate) fn peek_kind(&mut self) -> Option<TokenKind> {
-        self.skip_trivia();
-        self.token_kind_at(self.cursor)
+    pub(crate) fn peek_kind(&self) -> Option<TokenKind> {
+        let peek_to = self.skip_trivia(self.cursor)?;
+        self.token_kind_at(peek_to)
     }
 
     /// Peeks at the next `Token`
-    pub(crate) fn peek_token(&mut self) -> Option<&Token> {
-        self.skip_trivia();
-        self.token_at(self.cursor)
+    pub(crate) fn peek_token(&self) -> Option<&Token> {
+        let peek_to = self.skip_trivia(self.cursor)?;
+        self.token_at(peek_to)
     }
 
     /// Gets the last non-trivia token, or looks up the last token
@@ -50,11 +50,15 @@ impl<'t, 'src> Source<'t, 'src> {
         self.tokens.get(cursor)
     }
 
-    /// Skips over all trivia tokens
-    fn skip_trivia(&mut self) {
-        while self.at_trivia(self.cursor) {
-            self.cursor += 1;
+    /// Skips over all trivia tokens starting from `usize`,
+    /// returning the index of the first non-trivia token
+    /// (or `None` if it's outside the token list)
+    fn skip_trivia(&self, mut cursor: usize) -> Option<usize> {
+        while self.at_trivia(cursor) {
+            cursor += 1;
         }
+
+        Some(cursor).filter(|cursor| *cursor < self.tokens.len())
     }
 
     fn at_trivia(&self, cursor: usize) -> bool {
