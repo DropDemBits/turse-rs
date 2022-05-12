@@ -14,7 +14,7 @@ use crate::{
     source::Source,
 };
 
-use std::{cell::RefCell, mem, rc::Rc};
+use std::mem;
 use toc_scanner::token::TokenKind;
 use toc_syntax::SyntaxKind;
 
@@ -104,8 +104,7 @@ pub(crate) struct Parser<'t, 'src> {
     events: Vec<Event>,
     msg_sink: MessageSink,
     expected_kinds: Vec<TokenKind>,
-    // Invariant: can only be modified in `with_extra_recovery`
-    extra_recovery: Rc<RefCell<Vec<TokenKind>>>,
+    extra_recovery: Vec<TokenKind>,
 }
 
 impl<'t, 'src> Parser<'t, 'src> {
@@ -116,7 +115,7 @@ impl<'t, 'src> Parser<'t, 'src> {
             events: vec![],
             msg_sink: MessageSink::new(),
             expected_kinds: vec![],
-            extra_recovery: Rc::new(RefCell::new(vec![])),
+            extra_recovery: vec![],
         }
     }
 
@@ -125,7 +124,7 @@ impl<'t, 'src> Parser<'t, 'src> {
         (self.events, self.msg_sink.finish())
     }
 
-    fn peek(&mut self) -> Option<TokenKind> {
+    fn peek(&self) -> Option<TokenKind> {
         self.source.peek_kind()
     }
 
@@ -214,12 +213,12 @@ impl<'t, 'src> Parser<'t, 'src> {
         extra: &[TokenKind],
         f: impl FnOnce(&mut Parser) -> T,
     ) -> T {
-        let previous_set = self.extra_recovery.borrow().len();
-        self.extra_recovery.borrow_mut().extend_from_slice(extra);
+        let previous_set = self.extra_recovery.len();
+        self.extra_recovery.extend_from_slice(extra);
 
         let t = f(self);
 
-        self.extra_recovery.borrow_mut().truncate(previous_set);
+        self.extra_recovery.truncate(previous_set);
 
         t
     }
@@ -247,12 +246,12 @@ impl<'t, 'src> Parser<'t, 'src> {
     }
 
     /// Checks if the cursor is past the end of the file
-    pub(crate) fn at_end(&mut self) -> bool {
+    pub(crate) fn at_end(&self) -> bool {
         self.peek().is_none()
     }
 
     /// Checks if the current token is in the given set
-    fn at_set(&mut self, set: &[TokenKind]) -> bool {
+    fn at_set(&self, set: &[TokenKind]) -> bool {
         self.peek().map_or(false, |k| set.contains(&k))
     }
 
@@ -377,8 +376,7 @@ impl<'p, 't, 's> UnexpectedBuilder<'p, 't, 's> {
         // If the cursor is part of the recovery set (and if we're set to respect recovery sets),
         // error node does not need to be built
         let should_eat = matches!(self.eat_behaviour, EatBehaviour::Forced)
-            || !(self.p.at_set(STMT_START_RECOVERY_SET)
-                || self.p.at_set(&self.p.extra_recovery.clone().borrow())); // just cloning the Rc & reborrowing the contents
+            || !(self.p.at_set(STMT_START_RECOVERY_SET) || self.p.at_set(&self.p.extra_recovery));
 
         // Never build a marker if we're at the end of the file, or behaviour is set to never eat
         if !matches!(self.eat_behaviour, EatBehaviour::Never) && !self.p.at_end() && should_eat {
