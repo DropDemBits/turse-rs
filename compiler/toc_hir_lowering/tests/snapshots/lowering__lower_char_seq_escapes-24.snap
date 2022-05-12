@@ -1,5 +1,6 @@
 ---
 source: compiler/toc_hir_lowering/tests/lowering.rs
+assertion_line: 61
 expression: "var _ : int _ := \"\\x00Ak\""
 
 ---
@@ -12,5 +13,5 @@ Library@(dummy)
             Primitive@(FileId(1), 8..11): Int
         Assign@(FileId(1), 12..25)
           Name@(FileId(1), 12..13): "_"@(FileId(1), 4..5)
-          Literal@(FileId(1), 17..25): String("\u{0}Ak")
+          Literal@(FileId(1), 17..25): String("\0Ak")
 
