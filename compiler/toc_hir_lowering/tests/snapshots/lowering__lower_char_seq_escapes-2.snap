@@ -1,5 +1,6 @@
 ---
 source: compiler/toc_hir_lowering/tests/lowering.rs
+assertion_line: 61
 expression: "var _ : int _ := \"\\'\""
 
 ---
@@ -12,5 +13,5 @@ Library@(dummy)
             Primitive@(FileId(1), 8..11): Int
         Assign@(FileId(1), 12..21)
           Name@(FileId(1), 12..13): "_"@(FileId(1), 4..5)
-          Literal@(FileId(1), 17..21): String("'")
+          Literal@(FileId(1), 17..21): String("\'")
 
