@@ -11,18 +11,18 @@ pub struct ConstError {
 }
 
 impl ConstError {
-    pub(super) fn new(kind: ErrorKind, span: Span) -> Self {
+    pub(crate) fn new(kind: ErrorKind, span: Span) -> Self {
         Self { kind, span }
     }
 
-    pub(super) fn without_span(kind: ErrorKind) -> Self {
+    pub(crate) fn without_span(kind: ErrorKind) -> Self {
         Self {
             kind,
             span: Span::default(),
         }
     }
 
-    pub(super) fn change_span(self, new_span: Span) -> Self {
+    pub(crate) fn change_span(self, new_span: Span) -> Self {
         Self {
             kind: self.kind,
             span: new_span,
