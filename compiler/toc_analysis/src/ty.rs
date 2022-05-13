@@ -5,7 +5,7 @@ use std::{fmt::Debug, sync::Arc};
 use toc_hir::symbol::{self, DefId};
 use toc_span::Span;
 
-use crate::const_eval::{Const, ConstError, ConstInt, ConstValue};
+use crate::const_eval::{Const, ConstError, ConstInt, ConstValue, ErrorKind};
 
 pub(crate) mod db;
 mod lower;
@@ -402,7 +402,7 @@ where
 
     /// If this type were to be used as a range, computes the number of elements in the range,
     /// or `None` if it can't be used as a range
-    pub fn element_count(&self) -> Result<ConstInt, NotInteger> {
+    pub fn element_count(&self) -> Result<ConstInt, ConstError> {
         match self.kind() {
             TypeKind::Array(ArraySizing::Static | ArraySizing::MaybeDyn, ranges, _) => {
                 // Element count is just the product of the range element counts
@@ -424,14 +424,12 @@ where
                     // Prevents a cycle if we happen to have the same array type as one of the
                     // range types.
                     if !range_tyref.clone().to_base_type().kind().is_index() {
-                        return Err(NotInteger::NotInteger);
+                        return Err(ConstError::without_span(ErrorKind::WrongOperandType));
                     }
 
                     let index_count = range_tyref.element_count()?;
 
-                    count = count
-                        .checked_mul(index_count)
-                        .map_err(NotInteger::ConstError)?;
+                    count = count.checked_mul(index_count)?
                 }
 
                 Ok(count)
@@ -442,22 +440,20 @@ where
                 let max = self.max_int_of()?;
 
                 // Range is inclusive, so also add 1
-                max.checked_sub(min)
-                    .and_then(|count| count.checked_add(ConstInt::ONE))
-                    .map_err(NotInteger::ConstError)
+                max.checked_sub(min)?.checked_add(ConstInt::ONE)
             }
         }
     }
 
     /// Minimum integer value of this type, or `None` if this is not an integer
-    pub fn min_int_of(&self) -> Result<ConstInt, NotInteger> {
-        let value = match self.kind() {
-            TypeKind::Char => ConstValue::Char('\x00')
+    pub fn min_int_of(&self) -> Result<ConstInt, ConstError> {
+        match self.kind() {
+            TypeKind::Char => Ok(ConstValue::Char('\x00')
                 .ordinal()
-                .expect("const construction"),
-            TypeKind::Boolean => ConstValue::Bool(false)
+                .expect("const construction")),
+            TypeKind::Boolean => Ok(ConstValue::Bool(false)
                 .ordinal()
-                .expect("const construction"),
+                .expect("const construction")),
             TypeKind::Int(size) => {
                 let (min, allow_64bit_ops) = match size {
                     IntSize::Int1 => (0x80, false),
@@ -467,9 +463,9 @@ where
                     IntSize::Int => (0x7FFF_FFFF, false),
                 };
 
-                ConstInt::from_unsigned(min, allow_64bit_ops)
+                Ok(ConstInt::from_unsigned(min, allow_64bit_ops)
                     .and_then(ConstInt::negate)
-                    .expect("const construction")
+                    .expect("const construction"))
             }
             TypeKind::Nat(size) => {
                 let (max, allow_64bit_ops) = match size {
@@ -477,40 +473,37 @@ where
                     NatSize::AddressInt => (0, false),
                 };
 
-                ConstInt::from_unsigned(max, allow_64bit_ops).expect("const construction")
+                Ok(ConstInt::from_unsigned(max, allow_64bit_ops).expect("const construction"))
             }
             TypeKind::Integer => unreachable!("integer should be concrete"),
             TypeKind::Enum(_, _) => {
                 // Always zero
-                ConstInt::from_unsigned(0, false).expect("const construction")
+                Ok(ConstInt::from_unsigned(0, false).expect("const construction"))
             }
             TypeKind::Constrained(_, start_bound, _end_bound) => {
                 // FIXME: use the correct eval params
                 // Just the ordinal value of the start bound
                 self.db
-                    .evaluate_const(start_bound.clone(), Default::default())
-                    .map_err(NotInteger::ConstError)?
+                    .evaluate_const(start_bound.clone(), Default::default())?
                     .ordinal()
-                    .ok_or(NotInteger::NotInteger)?
+                    .ok_or_else(|| ConstError::without_span(ErrorKind::WrongOperandType))
             }
-            _ => return Err(NotInteger::NotInteger),
-        };
-
-        Ok(value)
+            _ => Err(ConstError::without_span(ErrorKind::WrongOperandType)),
+        }
     }
 
     /// Maximum integer value of this type, or `None` if this is not an integer
-    pub fn max_int_of(&self) -> Result<ConstInt, NotInteger> {
-        let value = match self.kind() {
+    pub fn max_int_of(&self) -> Result<ConstInt, ConstError> {
+        match self.kind() {
             TypeKind::Char => {
                 // Codepoint can only fit inside of a u8
-                ConstValue::Char('\u{FF}')
+                Ok(ConstValue::Char('\u{FF}')
                     .ordinal()
-                    .expect("const construction")
+                    .expect("const construction"))
             }
-            TypeKind::Boolean => ConstValue::Bool(true)
+            TypeKind::Boolean => Ok(ConstValue::Bool(true)
                 .ordinal()
-                .expect("const construction"),
+                .expect("const construction")),
             TypeKind::Int(size) => {
                 let (max, allow_64bit_ops) = match size {
                     IntSize::Int1 => (0x7F, false),
@@ -518,7 +511,7 @@ where
                     IntSize::Int4 | IntSize::Int => (0x7FFF_FFFF, false),
                 };
 
-                ConstInt::from_unsigned(max, allow_64bit_ops).expect("const construction")
+                Ok(ConstInt::from_unsigned(max, allow_64bit_ops).expect("const construction"))
             }
             TypeKind::Nat(size) => {
                 let (max, allow_64bit_ops) = match size {
@@ -530,18 +523,22 @@ where
                     NatSize::AddressInt => (0xFFFF_FFFF, false),
                 };
 
-                ConstInt::from_unsigned(max, allow_64bit_ops).expect("const construction")
+                Ok(ConstInt::from_unsigned(max, allow_64bit_ops).expect("const construction"))
             }
             TypeKind::Integer => unreachable!("integer should be concrete"),
             TypeKind::Enum(_, variants) => {
                 // Always the ordinal of the last variant
+                if variants.len() == 0 {
+                    return Err(ConstError::without_span(ErrorKind::NotConstExpr(None)));
+                }
+
                 let last_ord = variants
                     .len()
                     .checked_sub(1)
                     .and_then(|last_ord| u64::try_from(last_ord).ok())
-                    .ok_or(NotInteger::NotInteger)?;
+                    .unwrap();
 
-                ConstInt::from_unsigned(last_ord, false).expect("const construction")
+                Ok(ConstInt::from_unsigned(last_ord, false).expect("const construction"))
             }
             TypeKind::Constrained(_, start_bound, end_bound) => {
                 // FIXME: use the correct eval params
@@ -551,48 +548,33 @@ where
                     EndBound::Expr(end_bound, _) => {
                         // Just the ordinal value of the end bound
                         self.db
-                            .evaluate_const(end_bound.clone(), eval_params)
-                            .map_err(NotInteger::ConstError)?
+                            .evaluate_const(end_bound.clone(), eval_params)?
                             .ordinal()
-                            .ok_or(NotInteger::NotInteger)?
+                            .ok_or_else(|| ConstError::without_span(ErrorKind::WrongOperandType))
                     }
                     EndBound::Unsized(count) => {
                         // Based on the ordinal value of the start bound
                         let start_bound = self
                             .db
-                            .evaluate_const(start_bound.clone(), eval_params)
-                            .map_err(NotInteger::ConstError)?
+                            .evaluate_const(start_bound.clone(), eval_params)?
                             .ordinal()
-                            .ok_or(NotInteger::NotInteger)?;
+                            .ok_or_else(|| ConstError::without_span(ErrorKind::WrongOperandType))?;
                         let count =
-                            ConstInt::from_unsigned((*count).into(), eval_params.allow_64bit_ops)
-                                .map_err(NotInteger::ConstError)?;
+                            ConstInt::from_unsigned((*count).into(), eval_params.allow_64bit_ops)?;
 
                         // Offset by the gathered count
                         // Sub by 1 since it's an inclusive range
-                        count
-                            .checked_sub(ConstInt::ONE)
-                            .and_then(|count| count.checked_add(start_bound))
-                            .map_err(NotInteger::ConstError)?
+                        count.checked_sub(ConstInt::ONE)?.checked_add(start_bound)
                     }
                     EndBound::Any => {
                         // FIXME: This should be a non-const error?
-                        return Err(NotInteger::NotInteger);
+                        Err(ConstError::without_span(ErrorKind::NotConstExpr(None)))
                     }
                 }
             }
-            _ => return Err(NotInteger::NotInteger),
-        };
-
-        Ok(value)
+            _ => Err(ConstError::without_span(ErrorKind::WrongOperandType)),
+        }
     }
-}
-
-// FIXME: replace with just constructing a WrongOperandType error
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum NotInteger {
-    ConstError(ConstError),
-    NotInteger,
 }
 
 impl<'db, DB: ?Sized + 'db> Clone for TyRef<'db, DB> {

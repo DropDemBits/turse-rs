@@ -291,7 +291,7 @@ impl TypeCheck<'_> {
                     {
                         let elem_count = match left_peeled.element_count() {
                             Ok(v) => v,
-                            Err(ty::NotInteger::ConstError(err)) if err.is_not_compile_time() => {
+                            Err(err) if err.is_not_compile_time() => {
                                 // Dynamic array, can't do anything
                                 self.state()
                                     .reporter
@@ -302,16 +302,11 @@ impl TypeCheck<'_> {
 
                                 return;
                             }
-                            Err(ty::NotInteger::ConstError(err)) => {
+                            Err(err) => {
                                 // Static array, but error while computing count
                                 // Should be covered by other errors
                                 err.report_delayed_to(db, &mut self.state().reporter);
 
-                                return;
-                            }
-                            Err(ty::NotInteger::NotInteger) => {
-                                // Not evaluable, can safely bail
-                                // This is covered as part of array typeck
                                 return;
                             }
                         };
@@ -2196,7 +2191,7 @@ impl TypeCheck<'_> {
                 // Negative, handled by previous typeck
                 return;
             }
-            Err(ty::NotInteger::ConstError(err)) => {
+            Err(err) => {
                 match err.kind() {
                     const_eval::ErrorKind::IntOverflow => {
                         // Overflow, definitely over limit
@@ -2211,10 +2206,6 @@ impl TypeCheck<'_> {
                         return;
                     }
                 }
-            }
-            Err(ty::NotInteger::NotInteger) => {
-                // Already handled by previous typeck
-                return;
             }
         };
 
@@ -2360,7 +2351,7 @@ impl TypeCheck<'_> {
                         .with_error(format!("{size_kind} cannot be used in {place}"), ty_span)
                         .finish();
                 }
-                Err(ty::NotInteger::ConstError(err)) => {
+                Err(err) => {
                     match err.kind() {
                         const_eval::ErrorKind::IntOverflow => {
                             // Overflow
@@ -2378,9 +2369,6 @@ impl TypeCheck<'_> {
                             err.report_delayed_to(db, &mut self.state().reporter);
                         }
                     }
-                }
-                Err(ty::NotInteger::NotInteger) => {
-                    // Error during const-eval, already reported
                 }
             }
         }
