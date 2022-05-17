@@ -141,6 +141,16 @@ impl<'ctx> FileLowering<'ctx> {
         // lower root as a module
         // - lower stmts as part of a body
 
+        // We aren't handling external imports yet.
+        if let Some(import) = root.import_stmt() {
+            let span = self.mk_span(import.syntax().text_range());
+            self.messages.error(
+                "unsupported statement",
+                "importing from other files is not supported yet",
+                span,
+            );
+        }
+
         let (body, declared_items) = self.lower_stmt_body(
             scopes::ScopeKind::Block,
             root.stmt_list().unwrap(),

@@ -77,11 +77,15 @@ impl super::BodyLowering<'_, '_> {
             ast::Stmt::InitStmt(_) => self.unsupported_stmt(span),
             ast::Stmt::PostStmt(_) => self.unsupported_stmt(span),
             ast::Stmt::HandlerStmt(_) => self.unsupported_stmt(span),
+
+            // These are for versions of the statement that aren't in the correct position
+            // They're already handled by `toc_validator`, so they can just be `None`
             ast::Stmt::InheritStmt(_) => self.unsupported_stmt(span),
             ast::Stmt::ImplementStmt(_) => self.unsupported_stmt(span),
             ast::Stmt::ImplementByStmt(_) => self.unsupported_stmt(span),
-            ast::Stmt::ImportStmt(_) => self.unsupported_stmt(span),
-            ast::Stmt::ExportStmt(_) => self.unsupported_stmt(span),
+            ast::Stmt::ImportStmt(_) => None,
+            ast::Stmt::ExportStmt(_) => None,
+
             ast::Stmt::PreprocGlob(_) => self.unsupported_stmt(span),
         };
 

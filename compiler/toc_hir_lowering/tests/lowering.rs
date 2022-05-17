@@ -1517,3 +1517,8 @@ fn lower_init_expr() {
     // Can't be used outside of a ConstVar decl (handled by AST validation)
     assert_lower("var a : int a := init(1, 2, 3, 4)");
 }
+
+#[test]
+fn unsupported_external_import() {
+    assert_lower("import()");
+}
