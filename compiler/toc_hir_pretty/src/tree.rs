@@ -185,6 +185,34 @@ impl<'out, 'hir> PrettyVisitor<'out, 'hir> {
         let level = self.indent_level.get();
         self.indent_level.set(level.saturating_sub(1));
     }
+
+    fn emit_import_list(
+        &self,
+        out: &mut dyn fmt::Write,
+        imports: &[item::ImportItem],
+    ) -> fmt::Result {
+        if !imports.is_empty() {
+            writeln!(out)?;
+            self.emit_indent(out)?;
+
+            writeln!(out, "imports [")?;
+            self.indent();
+            for item in imports {
+                self.emit_indent(out)?;
+                writeln!(
+                    out,
+                    "{:?} {},",
+                    item.mutability,
+                    self.display_def(item.def_id)
+                )?;
+            }
+            self.unindent();
+            self.emit_indent(out)?;
+            write!(out, "]")?;
+        }
+
+        Ok(())
+    }
 }
 
 impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
@@ -297,6 +325,9 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
             write!(extra, " -> {}", self.display_def(result)).unwrap();
         }
 
+        self.emit_import_list(&mut extra, &item.body.imports)
+            .unwrap();
+
         self.emit_node("Subprogram", span, Some(format_args!("{extra}")))
     }
     fn visit_module(&self, id: item::ItemId, item: &item::Module) {
@@ -340,27 +371,7 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
                 write!(extra, "]").unwrap();
             }
 
-            if !item.imports.is_empty() {
-                let imports = item.imports.iter();
-                writeln!(extra).unwrap();
-                self.emit_indent(&mut extra).unwrap();
-
-                writeln!(extra, "imports [").unwrap();
-                self.indent();
-                for rest in imports {
-                    self.emit_indent(&mut extra).unwrap();
-                    writeln!(
-                        extra,
-                        "{:?} {},",
-                        rest.mutability,
-                        self.display_def(rest.def_id)
-                    )
-                    .unwrap();
-                }
-                self.unindent();
-                self.emit_indent(&mut extra).unwrap();
-                write!(extra, "]").unwrap();
-            }
+            self.emit_import_list(&mut extra, &item.imports).unwrap();
 
             extra
         };

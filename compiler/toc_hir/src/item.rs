@@ -196,6 +196,7 @@ impl SubprogramExtra {
 #[derive(Debug, PartialEq, Eq)]
 pub struct SubprogramBody {
     pub body: body::BodyId,
+    pub imports: Vec<ImportItem>,
 }
 
 #[derive(Debug, PartialEq, Eq)]

@@ -469,9 +469,10 @@ impl super::BodyLowering<'_, '_> {
         param_list: &Option<item::ParamList>,
         result_name: Option<symbol::LocalDefId>,
     ) -> item::SubprogramBody {
-        // None of the extra bits are supported yet
+        // Only importation is lowered
+        let imports = self.lower_import_list(decl.import_stmt());
+
         // TODO: Figure out a way of embedding these into the stmt_list
-        self.unsupported_node(decl.import_stmt());
         self.unsupported_node(decl.pre_stmt());
         self.unsupported_node(decl.init_stmt());
         self.unsupported_node(decl.post_stmt());
@@ -481,6 +482,8 @@ impl super::BodyLowering<'_, '_> {
             .as_ref()
             .map_or(vec![], |params| params.names.clone());
 
+        // TODO: Import defs from imports
+
         let (body, _) = self.ctx.lower_stmt_body(
             ScopeKind::Subprogram,
             decl.stmt_list().unwrap(),
@@ -488,7 +491,7 @@ impl super::BodyLowering<'_, '_> {
             result_name,
         );
 
-        item::SubprogramBody { body }
+        item::SubprogramBody { body, imports }
     }
 
     fn lower_module_decl(&mut self, decl: ast::ModuleDecl) -> Option<stmt::StmtKind> {

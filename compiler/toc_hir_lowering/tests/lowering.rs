@@ -1530,7 +1530,7 @@ fn lower_import_stmt() {
         "
     var a, b, c : int
     module _
-        import a, var c, const c
+        import a, var b, const c
     end _",
     );
 
@@ -1551,4 +1551,33 @@ fn lower_import_stmt() {
         import forward a
     end _",
     );
+
+    // In subprograms
+    assert_lower(
+        "
+    var a, b, c : int
+    proc _
+        import a, var b, const c
+    end _",
+    );
+
+    // const with var
+    assert_lower(
+        "
+    var a : int
+    proc _
+        import const var a
+    end _",
+    );
+
+    // forward (unsupported)
+    assert_lower(
+        "
+    var a : int
+    proc _
+        import forward a
+    end _",
+    );
+
+    // TODO: Duplicate imports
 }
