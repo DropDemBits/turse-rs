@@ -1522,3 +1522,33 @@ fn lower_init_expr() {
 fn unsupported_external_import() {
     assert_lower("import()");
 }
+
+#[test]
+fn lower_import_stmt() {
+    // Only lowering import statements
+    assert_lower(
+        "
+    var a, b, c : int
+    module _
+        import a, var c, const c
+    end _",
+    );
+
+    // const with var
+    assert_lower(
+        "
+    var a : int
+    module _
+        import const var a
+    end _",
+    );
+
+    // forward (unsupported)
+    assert_lower(
+        "
+    var a : int
+    module _
+        import forward a
+    end _",
+    );
+}

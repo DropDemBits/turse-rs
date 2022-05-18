@@ -1,0 +1,28 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+assertion_line: 61
+expression: "\n    var a, b, c : int\n    module _\n        import a, var c, const c\n    end _"
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(4)
+    Module@(FileId(1), 0..78): "<root>"@(dummy)
+      StmtBody@(FileId(1), 5..78): []
+        StmtItem@(FileId(1), 5..22): ItemId(0)
+          ConstVar@(FileId(1), 5..22): var "a"@(FileId(1), 9..10)
+            Primitive@(FileId(1), 19..22): Int
+        StmtItem@(FileId(1), 5..22): ItemId(1)
+          ConstVar@(FileId(1), 5..22): var "b"@(FileId(1), 12..13)
+            Primitive@(FileId(1), 19..22): Int
+        StmtItem@(FileId(1), 5..22): ItemId(2)
+          ConstVar@(FileId(1), 5..22): var "c"@(FileId(1), 15..16)
+            Primitive@(FileId(1), 19..22): Int
+        StmtItem@(FileId(1), 27..78): ItemId(3)
+          Module@(FileId(1), 27..78): "_"@(FileId(1), 34..35)
+          imports [
+            SameAsItem "a"@(FileId(1), 51..52),
+            Explicit(Var) "c"@(FileId(1), 58..59),
+            Explicit(Const) "c"@(FileId(1), 67..68),
+          ]
+            StmtBody@(FileId(1), 73..73): []
+

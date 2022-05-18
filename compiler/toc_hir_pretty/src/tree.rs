@@ -306,6 +306,7 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
             let mut extra = String::new();
             write!(extra, "{}", self.display_def(def_id)).unwrap();
 
+            // FIXME: Change to be the same format as import list
             if !item.exports.is_empty() {
                 let mut exports = item.exports.iter();
                 write!(extra, ", exports [").unwrap();
@@ -336,6 +337,28 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
                     .unwrap();
                 }
 
+                write!(extra, "]").unwrap();
+            }
+
+            if !item.imports.is_empty() {
+                let imports = item.imports.iter();
+                writeln!(extra).unwrap();
+                self.emit_indent(&mut extra).unwrap();
+
+                writeln!(extra, "imports [").unwrap();
+                self.indent();
+                for rest in imports {
+                    self.emit_indent(&mut extra).unwrap();
+                    writeln!(
+                        extra,
+                        "{:?} {},",
+                        rest.mutability,
+                        self.display_def(rest.def_id)
+                    )
+                    .unwrap();
+                }
+                self.unindent();
+                self.emit_indent(&mut extra).unwrap();
                 write!(extra, "]").unwrap();
             }
 

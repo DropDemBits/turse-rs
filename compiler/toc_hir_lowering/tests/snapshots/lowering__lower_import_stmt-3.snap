@@ -1,0 +1,24 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+assertion_line: 61
+expression: "\n    var a : int\n    module _\n        import forward a\n    end _"
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(2)
+    Module@(FileId(1), 0..64): "<root>"@(dummy)
+      StmtBody@(FileId(1), 5..64): []
+        StmtItem@(FileId(1), 5..16): ItemId(0)
+          ConstVar@(FileId(1), 5..16): var "a"@(FileId(1), 9..10)
+            Primitive@(FileId(1), 13..16): Int
+        StmtItem@(FileId(1), 21..64): ItemId(1)
+          Module@(FileId(1), 21..64): "_"@(FileId(1), 28..29)
+          imports [
+            SameAsItem "a"@(FileId(1), 53..54),
+          ]
+            StmtBody@(FileId(1), 59..59): []
+error in file FileId(1) at 45..52: unsupported import attribute
+| error in file FileId(1) for 45..52: `forward` imports are not supported yet
+error in file FileId(1) at 45..52: cannot use `forward` attribute here
+| error in file FileId(1) for 45..52: `forward` attribute can only be used in `forward` declarations
+

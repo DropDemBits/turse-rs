@@ -88,6 +88,8 @@ pub enum SymbolKind {
     /// The symbol is from an export of an item, with a [`LocalDefId`]
     /// pointing to the original item.
     ItemExport(LocalDefId),
+    /// The symbol is of an imported item.
+    ItemImport,
 }
 
 /// Disambiguates between different forward declaration kinds

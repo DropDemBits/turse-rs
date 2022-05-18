@@ -495,20 +495,25 @@ impl super::BodyLowering<'_, '_> {
         let is_pervasive = decl.pervasive_attr().is_some();
         let def_id = self.lower_name_def(decl.name()?, SymbolKind::Declared, is_pervasive);
 
-        self.unsupported_node(decl.import_stmt());
         self.unsupported_node(decl.implement_stmt());
         self.unsupported_node(decl.implement_by_stmt());
 
         self.unsupported_node(decl.pre_stmt());
         self.unsupported_node(decl.post_stmt());
 
+        // Build imports
+        let imports = self.lower_import_list(decl.import_stmt());
+
         self.ctx.scopes.push_scope(ScopeKind::Module);
         let (body, declares) = {
             if !is_pervasive {
                 // Also make visible in the inner scope if it's not pervasive
                 self.introduce_def(def_id, false);
-            }
+            };
 
+            // TODO: Introduce imported defs into scope
+
+            // Lower the rest of the body
             self.ctx.lower_stmt_body(
                 ScopeKind::Subprogram,
                 decl.stmt_list().unwrap(),
@@ -539,13 +544,120 @@ impl super::BodyLowering<'_, '_> {
                 as_monitor: false,
                 def_id,
                 declares,
-                body,
+                imports,
                 exports,
+                body,
             }),
             span,
         });
 
         Some(stmt::StmtKind::Item(item_id))
+    }
+
+    // Exposed to parent mod for handling external imports
+    pub(super) fn lower_import_list(
+        &mut self,
+        imports: Option<ast::ImportStmt>,
+    ) -> Vec<item::ImportItem> {
+        let imports = if let Some(imports) = imports {
+            imports
+        } else {
+            return vec![];
+        };
+
+        let mut import_list = vec![];
+
+        for import in imports.imports().unwrap().import_item() {
+            let ext_item = if let Some(item) = import.external_item() {
+                item
+            } else {
+                continue;
+            };
+
+            let is_const = import.attrs().and_then(|attrs| match attrs {
+                ast::ImportAttr::ConstAttr(node) => Some(node),
+                _ => None,
+            });
+            let is_var = import.attrs().and_then(|attrs| match attrs {
+                ast::ImportAttr::VarAttr(node) => Some(node),
+                _ => None,
+            });
+            let is_forward = import.attrs().and_then(|attrs| match attrs {
+                ast::ImportAttr::ForwardAttr(node) => Some(node),
+                _ => None,
+            });
+
+            // Mutabilty can only be one or the other, or not specified
+            let import_mut = match (is_const, is_var) {
+                (None, None) => item::ImportMutability::SameAsItem,
+                (Some(_), None) => item::ImportMutability::Explicit(Mutability::Const),
+                (None, Some(_)) => item::ImportMutability::Explicit(Mutability::Var),
+                (Some(is_const), Some(is_var)) => {
+                    // Can't be both mutable and constant
+                    let const_span = self.ctx.mk_span(is_const.syntax().text_range());
+                    let var_span = self.ctx.mk_span(is_var.syntax().text_range());
+
+                    // Pick reporting span to be the later one
+                    let report_at = const_span.max(var_span);
+                    self.ctx
+                        .messages
+                        .error_detailed(
+                            "cannot use `const` and `var` on the same import",
+                            report_at,
+                        )
+                        .with_error("first conflicting `const`", const_span)
+                        .with_error("first conflicting `var`", var_span)
+                        .finish();
+
+                    // Just use the same mutability as the item
+                    item::ImportMutability::SameAsItem
+                }
+            };
+
+            // Forms:
+            // Name
+            // Path
+            // Name in Path
+            // FIXME: If we're reusing this code, places for external imports need to be handled differently
+            if let Some(_path) = ext_item.path() {
+                // External imports aren't allowed here
+                let report_span = self.ctx.mk_span(ext_item.syntax().text_range());
+
+                self.ctx.messages.error(
+                    "cannot import external items here",
+                    "importing external items is not allowed inside inner module-likes",
+                    report_span,
+                );
+
+                continue;
+            }
+            // Skip items without names
+            let name = if let Some(name) = ext_item.name() {
+                name
+            } else {
+                continue;
+            };
+
+            // ???: Handling forward imports :???
+            // For now, we'll reject it, and properly deal with it when we deal with
+            // `forward` declarations
+            if let Some(is_forward) = is_forward {
+                self.ctx.messages.error(
+                    "unsupported import attribute",
+                    "`forward` imports are not supported yet",
+                    self.ctx.mk_span(is_forward.syntax().text_range()),
+                );
+            }
+
+            let def_id = self.name_to_def(name, SymbolKind::ItemImport);
+
+            import_list.push(item::ImportItem {
+                def_id,
+                mutability: import_mut,
+            });
+        }
+
+        import_list
     }
 
     fn lower_export_list(

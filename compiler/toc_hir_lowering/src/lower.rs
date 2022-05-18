@@ -168,6 +168,7 @@ impl<'ctx> FileLowering<'ctx> {
             as_monitor: false,
             def_id: module_def,
             declares: declared_items,
+            imports: vec![],
             exports: vec![],
             body,
         };

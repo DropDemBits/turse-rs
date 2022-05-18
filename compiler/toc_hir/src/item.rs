@@ -203,8 +203,22 @@ pub struct Module {
     pub as_monitor: bool,
     pub def_id: symbol::LocalDefId,
     pub declares: Vec<ItemId>,
+    pub imports: Vec<ImportItem>,
     pub exports: Vec<ExportItem>,
     pub body: body::BodyId,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct ImportItem {
+    /// [`LocalDefId`](symbol::LocalDefId) to uniquely identify this specific import
+    pub def_id: symbol::LocalDefId,
+    pub mutability: ImportMutability,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum ImportMutability {
+    SameAsItem,
+    Explicit(symbol::Mutability),
 }
 
 #[derive(Debug, PartialEq, Eq)]
