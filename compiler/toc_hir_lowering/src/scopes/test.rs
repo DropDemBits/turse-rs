@@ -1,6 +1,8 @@
 //! Scope testing
 use toc_hir::symbol::{ForwardKind, LocalDefId, SymbolKind};
 
+use crate::scopes::ScopeKind;
+
 use super::ScopeTracker;
 
 #[derive(Default)]
@@ -415,4 +417,95 @@ fn test_forward_resolve_only_same_scope() {
         scopes.take_resolved_forwards("fwd".into(), ForwardKind::Type),
         Some(vec![forward_def])
     );
+}
+
+#[test]
+fn test_import_def_no_boundary() {
+    // import ---
+    let mut scopes = ScopeTracker::new();
+    let mut defs = LocalDefAlloc::default();
+
+    // shouldn't be peeked at
+    scopes.def_sym("a".into(), defs.next(), SymbolKind::Declared, true);
+
+    assert_eq!(scopes.import_sym("a".into()), None);
+}
+
+#[test]
+fn test_import_def_between_boundaries() {
+    // import --- import -*- import
+    let mut scopes = ScopeTracker::new();
+    let mut defs = LocalDefAlloc::default();
+
+    let outer_pv = defs.next();
+    let outer = defs.next();
+    let middle = defs.next();
+    let inner = defs.next();
+
+    scopes.def_sym("outer_pv".into(), outer_pv, SymbolKind::Declared, true);
+    scopes.def_sym("outer".into(), outer, SymbolKind::Declared, false);
+
+    scopes.push_scope(ScopeKind::Module);
+    {
+        scopes.def_sym("middle".into(), middle, SymbolKind::Declared, false);
+
+        scopes.push_scope(ScopeKind::Module);
+        {
+            scopes.def_sym("inner".into(), inner, SymbolKind::Declared, false);
+
+            // outer_pv visible
+            assert_eq!(scopes.import_sym("outer_pv".into()), Some((outer_pv, true)));
+            // outer invisible
+            assert_eq!(scopes.import_sym("outer".into()), None);
+            // middle visible
+            assert_eq!(scopes.import_sym("middle".into()), Some((middle, false)));
+            // inner not importable
+            assert_eq!(scopes.import_sym("inner".into()), None);
+        }
+        scopes.pop_scope();
+    }
+    scopes.pop_scope();
+}
+
+#[test]
+fn test_import_def_implicit_boundary() {
+    // import --- import -*- import
+
+    // --- explicit -*- implicit
+    // --- implicit -*- implicit (never encountered, would do scope hopping)
+    // --- implicit -*- explicit
+    let mut scopes = ScopeTracker::new();
+    let mut defs = LocalDefAlloc::default();
+
+    let outer_pv = defs.next();
+    let outer = defs.next();
+    let middle = defs.next();
+    let inner = defs.next();
+
+    scopes.def_sym("outer_pv".into(), outer_pv, SymbolKind::Declared, true);
+    scopes.def_sym("outer".into(), outer, SymbolKind::Declared, false);
+
+    scopes.push_scope(ScopeKind::Module);
+    {
+        scopes.def_sym("middle".into(), middle, SymbolKind::Declared, false);
+
+        scopes.push_scope(ScopeKind::Subprogram);
+        {
+            scopes.def_sym("inner".into(), inner, SymbolKind::Declared, false);
+
+            // outer_pv visible
+            assert_eq!(scopes.import_sym("outer_pv".into()), Some((outer_pv, true)));
+            // outer invisible
+            assert_eq!(scopes.import_sym("outer".into()), None);
+            // middle visible
+            assert_eq!(scopes.import_sym("middle".into()), Some((middle, false)));
+            // inner not importable
+            assert_eq!(scopes.import_sym("inner".into()), None);
+
+            // middle should also be visible
+            assert_eq!(scopes.use_sym("middle".into(), assert_declared), middle);
+        }
+        scopes.pop_scope();
+    }
+    scopes.pop_scope();
 }

@@ -8,7 +8,7 @@ mod test;
 
 use std::collections::{HashMap, HashSet};
 
-use toc_hir::symbol::{self, ForwardKind, Symbol, SymbolKind};
+use toc_hir::symbol::{self, ForwardKind, LocalDefId, Symbol, SymbolKind};
 
 #[derive(Debug)]
 pub(crate) struct Scope {
@@ -42,20 +42,44 @@ enum LookupKind {
     OnDef,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ImportBoundary {
+    /// No import boundary for this scope, and all definitions are allowed
+    /// through. This scope will not be a starting point for import lookup.
+    None,
+    /// Non-pervasive definitions are allowed to also be implicitly imported,
+    /// and this scope will also serve as a starting point for import lookup.
+    Implicit,
+    /// Only pervasive definitions are allowed to be implicitly imported.
+    /// and this scope will serve as a starting point for import lookup.
+    Explicit,
+}
+
+impl ImportBoundary {
+    /// If this boundary only allows pervasive definitions to be implicitly imported.
+    fn only_pervasive(self) -> bool {
+        matches!(self, Self::Explicit)
+    }
+
+    /// If this is the starting for import lookup
+    fn starts_import_lookup(self) -> bool {
+        matches!(self, Self::Explicit | Self::Implicit)
+    }
+}
+
 impl ScopeKind {
-    /// If the scope kind forms an import boundary.
-    ///
-    /// An import boundary only allows pervasive identifiers to be implicitly
-    /// imported.
-    fn is_import_boundary(&self) -> bool {
-        // Only the root scope and modules forms an import boundary,
-        // everything else isn't one
-        matches!(self, ScopeKind::Root | ScopeKind::Module)
+    /// What kind of import boundary this scope forms
+    fn import_boundary(&self) -> ImportBoundary {
+        match self {
+            ScopeKind::Root | ScopeKind::Module => ImportBoundary::Explicit,
+            ScopeKind::Subprogram | ScopeKind::SubprogramHeader => ImportBoundary::Implicit,
+            _ => ImportBoundary::None,
+        }
     }
 
     /// If the scope allows shadowing of identifiers.
     fn allows_shadowing(&self) -> bool {
-        self.is_import_boundary() || matches!(self, ScopeKind::Subprogram)
+        self.import_boundary().only_pervasive() || matches!(self, ScopeKind::Subprogram)
     }
 }
 
@@ -208,6 +232,44 @@ impl ScopeTracker {
         })
     }
 
+    /// Looks up the definition that would be imported by `name`, along with whether that definition was pervasive or not
+    pub fn import_sym(&mut self, name: Symbol) -> Option<(LocalDefId, bool)> {
+        // Lookup is performed between two boundaries
+        //
+        // Get the first scope after the one that starts the lookup, since we want everything declared outside of it
+        let scopes = self
+            .scopes
+            .iter()
+            .rev()
+            .skip_while(|scope| !scope.kind.import_boundary().starts_import_lookup())
+            .skip(1);
+
+        let mut restrict_to_pervasive = false;
+
+        for scope in scopes {
+            if let Some(def_id) = scope.symbols.get(&name) {
+                let def_id = *def_id;
+                let is_pervasive = self.pervasive_tracker.contains(&def_id);
+
+                // Only allow an identifier to be fetched if we haven't
+                // restricted our search to pervasive identifiers, or any
+                // pervasive identifiers
+                if !restrict_to_pervasive || is_pervasive {
+                    return Some((def_id, is_pervasive));
+                }
+            }
+
+            if scope.kind.import_boundary().only_pervasive() {
+                // First case: Crossing an explicit import boundary
+                // Restrict search to pervasive identifiers after import boundaries
+                restrict_to_pervasive = true;
+            }
+        }
+
+        None
+    }
+
+    /// Takes the list of definitions that are resolved by `name`.
     pub fn take_resolved_forwards(
         &mut self,
         name: Symbol,
@@ -238,15 +300,13 @@ impl ScopeTracker {
         // Top-down search through all scopes for a DefId
         let mut restrict_to_pervasive = false;
 
-        if matches!(lookup_kind, LookupKind::OnDef)
-            && self
-                .scopes
-                .last()
-                .map(|scope| scope.kind == ScopeKind::SubprogramHeader)
-                .unwrap_or_default()
-        {
-            // In subprogram header for new definition, only look in this scope for duplicate parameter naming
-            return self.scopes.last().unwrap().symbols.get(&name).copied();
+        if matches!(lookup_kind, LookupKind::OnDef) {
+            if let Some(scope) = self.scopes.last() {
+                if scope.kind == ScopeKind::SubprogramHeader {
+                    // In subprogram header for new definition, only look in this scope for duplicate parameter naming
+                    return scope.symbols.get(&name).copied();
+                }
+            }
         }
 
         for scope in self.scopes.iter().rev() {
@@ -261,10 +321,10 @@ impl ScopeTracker {
                 }
             }
 
-            if scope.kind.is_import_boundary()
+            if scope.kind.import_boundary().only_pervasive()
                 || (matches!(lookup_kind, LookupKind::OnDef) && scope.kind.allows_shadowing())
             {
-                // First case: Crossing an import boundary
+                // First case: Crossing an explicit import boundary
                 // Restrict search to pervasive identifiers after import boundaries
                 //
                 // Second case: Part of redeclaration checking, allows shadowing
@@ -279,7 +339,7 @@ impl ScopeTracker {
 
     fn boundary_scope(scopes: &mut [Scope]) -> &mut Scope {
         for scope in scopes.iter_mut().rev() {
-            if scope.kind.is_import_boundary() {
+            if scope.kind.import_boundary().only_pervasive() {
                 return scope;
             }
         }
