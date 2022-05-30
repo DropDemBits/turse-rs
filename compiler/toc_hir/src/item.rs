@@ -10,7 +10,7 @@ use crate::{
     ty,
 };
 
-pub use crate::ids::{ExportId, ItemId, ModuleId};
+pub use crate::ids::{ExportId, ImportId, ItemId, ModuleId};
 
 /// An entity representing a declaration.
 ///

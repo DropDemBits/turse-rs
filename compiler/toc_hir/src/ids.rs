@@ -88,6 +88,11 @@ impl ModuleId {
 #[repr(transparent)]
 pub struct ExportId(pub usize);
 
+/// An item-local reference to a specific import
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[repr(transparent)]
+pub struct ImportId(pub usize);
+
 crate::arena_id_wrapper!(
     /// A library local reference to a body.
     pub struct BodyId(body::Body);

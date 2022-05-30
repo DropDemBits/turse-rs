@@ -8,7 +8,7 @@ use toc_span::SpanId;
 
 pub use crate::ids::{DefId, LocalDefId};
 use crate::{
-    ids::{ExportId, ItemId, LocalDefIndex, ModuleId},
+    ids::{ExportId, ImportId, ItemId, LocalDefIndex, ModuleId},
     stmt::BodyStmt,
     ty::{FieldId, TypeId},
 };
@@ -113,12 +113,14 @@ pub enum LimitedKind {
 /// Any HIR node that contains a definition
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DefOwner {
-    /// Owned directly by an `Item`
+    /// Owned directly by an [`Item`](crate::item::Item)
     Item(ItemId),
-    /// Parameter on a given `Item`
+    /// Parameter on a given [`Item`](crate::item::Item)
     ItemParam(ItemId, LocalDefId),
     /// Export from a given `Module`
     Export(ModuleId, ExportId),
+    /// Import on a given [`Item`](crate::item::Item)
+    Import(ItemId, ImportId),
     /// Field on a given `Type`
     Field(TypeId, FieldId),
     /// Owned by a `Stmt`
