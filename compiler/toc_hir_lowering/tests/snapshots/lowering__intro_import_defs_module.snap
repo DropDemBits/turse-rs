@@ -1,0 +1,17 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+expression: "\n    module _\n        import nothing\n    end _"
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(1)
+    Module@(FileId(1), 0..46): "<root>"@(dummy)
+      StmtBody@(FileId(1), 5..46): []
+        StmtItem@(FileId(1), 5..46): ItemId(0)
+          Module@(FileId(1), 5..46): "_"@(FileId(1), 12..13)
+          imports [
+            SameAsItem "nothing"@(FileId(1), 29..36),
+          ]
+            StmtBody@(FileId(1), 41..41): []
+error in file FileId(1) at 29..36: `nothing` could not be imported
+| error in file FileId(1) for 29..36: no definitions of `nothing` found in the surrounding scope
+

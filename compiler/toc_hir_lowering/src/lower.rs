@@ -26,7 +26,7 @@ mod ty;
 use std::sync::Arc;
 
 use toc_ast_db::db::SourceParser;
-use toc_hir::symbol::{syms, Symbol};
+use toc_hir::symbol::{syms, Symbol, SymbolKind};
 use toc_hir::{
     body,
     builder::{self, BodyBuilder},
@@ -151,11 +151,15 @@ impl<'ctx> FileLowering<'ctx> {
             );
         }
 
+        // FIXME: Handle external imports
+        // This is where we'd inject external definitions
+
         let (body, declared_items) = self.lower_stmt_body(
             scopes::ScopeKind::Block,
             root.stmt_list().unwrap(),
             vec![],
             None,
+            &[],
         );
 
         let module_def = self.library.add_def(
@@ -186,6 +190,7 @@ impl<'ctx> FileLowering<'ctx> {
         stmt_list: ast::StmtList,
         param_defs: Vec<LocalDefId>,
         result_name: Option<LocalDefId>,
+        imports: &[item::ImportItem],
     ) -> (body::BodyId, Vec<item::ItemId>) {
         // Lower stmts
         let span = stmt_list.syntax().text_range();
@@ -194,11 +199,51 @@ impl<'ctx> FileLowering<'ctx> {
             self.scopes.push_scope(scope_kind);
 
             // Reintroduce the names
-            for def_id in param_defs.iter().copied().chain(result_name) {
+            for &def_id in param_defs.iter().chain(&result_name) {
                 let def_info = self.library.local_def(def_id);
 
                 self.scopes
                     .def_sym(def_info.name, def_id, def_info.kind, false);
+            }
+
+            // Link imports to defs
+            for import in imports {
+                let def_info = self.library.local_def(import.def_id);
+
+                let imported_def = if let Some(def_id) = self.scopes.import_sym(def_info.name) {
+                    def_id
+                } else {
+                    // Make an undeclared
+                    let name = def_info.name;
+                    let def_at = def_info.def_at;
+
+                    self.messages.error(
+                        format!("`{name}` could not be imported"),
+                        format!("no definitions of `{name}` found in the surrounding scope"),
+                        def_at.lookup_in(&self.library),
+                    );
+
+                    let undecl_def =
+                        self.library
+                            .add_def(name, def_at, symbol::SymbolKind::Undeclared);
+
+                    undecl_def
+                };
+
+                // Reborrow as mut here, since we're going to be altering the sym kind
+                let def_info = self.library.local_def_mut(import.def_id);
+
+                // Resolve the def
+                if let SymbolKind::ItemImport(to_def @ None) = &mut def_info.kind {
+                    *to_def = Some(imported_def);
+                } else {
+                    unreachable!("not an unresolved def")
+                };
+
+                // Carry the pervasiveness through
+                // We're essentially redeclaring over the pervasive definition, so we still want to
+                // preserve the pervasive property
+                self.introduce_def(import.def_id, self.scopes.is_pervasive(imported_def));
             }
 
             let body_stmts = BodyLowering::new(self, &mut body).lower_stmt_list(stmt_list);
@@ -278,6 +323,148 @@ impl<'ctx> FileLowering<'ctx> {
             self.library
                 .add_def(name, span, symbol::SymbolKind::Undeclared)
         })
+    }
+
+    /// Introduces a definition into the current scope, handling redecleration with any existing defs
+    fn introduce_def(&mut self, def_id: symbol::LocalDefId, is_pervasive: bool) {
+        let def_info = self.library.local_def(def_id);
+        let name = def_info.name;
+        let span = def_info.def_at;
+        let kind = def_info.kind;
+
+        // Bring into scope
+        let old_def = self.scopes.def_sym(name, def_id, kind, is_pervasive);
+
+        // Resolve any associated forward decls
+        if let SymbolKind::Resolved(resolve_kind) = kind {
+            let forward_list = self.scopes.take_resolved_forwards(name, resolve_kind);
+
+            if let Some(forward_list) = forward_list {
+                // Point all of these local defs to this one
+                for forward_def in forward_list {
+                    let def_info = self.library.local_def_mut(forward_def);
+
+                    match &mut def_info.kind {
+                        SymbolKind::Forward(_, resolve_to) => *resolve_to = Some(def_id),
+                        _ => unreachable!("not a forward def"),
+                    }
+                }
+            }
+        }
+
+        if let Some(old_def) = old_def {
+            // Report redeclares, specializing based on what kind of declaration it is
+            let old_def_info = self.library.local_def(old_def);
+
+            let old_span = old_def_info.def_at.lookup_in(&self.library);
+            let new_span = span.lookup_in(&self.library);
+
+            // Just use the name from the old def for both, since by definition they are the same
+            let name = old_def_info.name;
+
+            match (old_def_info.kind, kind) {
+                (SymbolKind::Undeclared, _) | (_, SymbolKind::Undeclared) => {
+                    // Always ok to declare over undeclared symbols
+                }
+                (SymbolKind::Forward(other_kind, _), SymbolKind::Forward(this_kind, _))
+                    if other_kind == this_kind =>
+                {
+                    // Duplicate forward declare
+                    self.messages
+                        .error_detailed(
+                            format!("`{name}` is already a forward declaration"),
+                            new_span,
+                        )
+                        .with_note("previous forward declaration here", old_span)
+                        .with_error("new one here", new_span)
+                        .finish();
+                }
+                (SymbolKind::Forward(other_kind, resolve_to), SymbolKind::Resolved(this_kind))
+                    if other_kind == this_kind =>
+                {
+                    // resolve_to: none -> didn't change
+                    // resolve_to: some(== def_id) -> did change, this resolved it
+                    // resolve_to: some(!= def_id) -> didn't change, this didn't resolve it (ok to note as redeclare)
+
+                    if resolve_to.is_none() {
+                        // Forwards must be resolved to the same scope
+                        // This declaration didn't resolve it, which only happens if they're not in the same scope
+                        self.messages
+                            .error_detailed(
+                                format!("`{name}` must be resolved in the same scope"),
+                                new_span,
+                            )
+                            .with_note(format!("forward declaration of `{name}` here"), old_span)
+                            .with_error(
+                                format!("resolution of `{name}` is not in the same scope"),
+                                new_span,
+                            )
+                            .finish();
+                    } else {
+                        // This shouldn't ever fail, since if a symbol is moving from
+                        // forward to resolved, this is the declaration that should've
+                        // done it.
+                        assert_eq!(
+                            resolve_to,
+                            Some(def_id),
+                            "encountered a forward not resolved by this definition"
+                        );
+                    }
+                }
+                (_, SymbolKind::ItemExport(exported_from)) => {
+                    // From an unqualified export in a local module
+                    // Use the originating item as the top-level error span
+                    let from_item_span = self
+                        .library
+                        .local_def(exported_from)
+                        .def_at
+                        .lookup_in(&self.library);
+
+                    self.messages
+                        .error_detailed(
+                            format!("`{name}` is already declared in the parent scope"),
+                            from_item_span,
+                        )
+                        .with_note(format!("`{name}` previously declared here"), old_span)
+                        .with_error(format!("`{name}` exported from here"), new_span)
+                        .finish();
+                }
+                (_, SymbolKind::ItemImport(_)) => {
+                    // Should be only from declaring over pervasive, since we've crossed an import boundary
+                    //
+                    // Even though soft import boundaries allow implicitly imports all defs, subprogram scopes
+                    // (the only user of soft import boundaries) also allow def shadowing, so we don't have to
+                    // worry about that.
+                    assert!(
+                        is_pervasive,
+                        "not pervasive, but surrounding scope doesn't allow shadowing defs"
+                    );
+
+                    self.messages
+                        .error_detailed(
+                            format!("`{name}` is already imported in this scope"),
+                            new_span,
+                        )
+                        .with_note(format!("`{name}` declared pervasive here"), old_span)
+                        .with_error(format!("`{name}` re-imported here"), new_span)
+                        .with_info(format!(
+                            "`{name}` was declared pervasively, so it's already imported"
+                        ))
+                        .finish();
+                }
+                _ => {
+                    // From a new declaration
+                    self.messages
+                        .error_detailed(
+                            format!("`{name}` is already declared in this scope"),
+                            new_span,
+                        )
+                        .with_note(format!("`{name}` previously declared here"), old_span)
+                        .with_error(format!("`{name}` redeclared here"), new_span)
+                        .finish();
+                }
+            }
+        }
     }
 }
 

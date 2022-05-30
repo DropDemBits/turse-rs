@@ -454,11 +454,11 @@ fn test_import_def_between_boundaries() {
             scopes.def_sym("inner".into(), inner, SymbolKind::Declared, false);
 
             // outer_pv visible
-            assert_eq!(scopes.import_sym("outer_pv".into()), Some((outer_pv, true)));
+            assert_eq!(scopes.import_sym("outer_pv".into()), Some(outer_pv));
             // outer invisible
             assert_eq!(scopes.import_sym("outer".into()), None);
             // middle visible
-            assert_eq!(scopes.import_sym("middle".into()), Some((middle, false)));
+            assert_eq!(scopes.import_sym("middle".into()), Some(middle));
             // inner not importable
             assert_eq!(scopes.import_sym("inner".into()), None);
         }
@@ -494,11 +494,11 @@ fn test_import_def_implicit_boundary() {
             scopes.def_sym("inner".into(), inner, SymbolKind::Declared, false);
 
             // outer_pv visible
-            assert_eq!(scopes.import_sym("outer_pv".into()), Some((outer_pv, true)));
+            assert_eq!(scopes.import_sym("outer_pv".into()), Some(outer_pv));
             // outer invisible
             assert_eq!(scopes.import_sym("outer".into()), None);
             // middle visible
-            assert_eq!(scopes.import_sym("middle".into()), Some((middle, false)));
+            assert_eq!(scopes.import_sym("middle".into()), Some(middle));
             // inner not importable
             assert_eq!(scopes.import_sym("inner".into()), None);
 

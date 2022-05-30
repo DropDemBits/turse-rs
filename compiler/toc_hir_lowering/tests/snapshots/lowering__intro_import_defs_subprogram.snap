@@ -1,0 +1,18 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+expression: "\n    proc _\n        import nothing\n    end _"
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(1)
+    Module@(FileId(1), 0..44): "<root>"@(dummy)
+      StmtBody@(FileId(1), 5..44): []
+        StmtItem@(FileId(1), 5..44): ItemId(0)
+          Subprogram@(FileId(1), 5..44): "_"@(FileId(1), 10..11)
+          imports [
+            SameAsItem "nothing"@(FileId(1), 27..34),
+          ]
+            Void@(FileId(1), 5..11)
+            StmtBody@(FileId(1), 39..39): []
+error in file FileId(1) at 27..34: `nothing` could not be imported
+| error in file FileId(1) for 27..34: no definitions of `nothing` found in the surrounding scope
+

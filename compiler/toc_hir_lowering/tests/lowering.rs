@@ -1579,5 +1579,82 @@ fn lower_import_stmt() {
     end _",
     );
 
-    // TODO: Duplicate imports
+    // Duplicate imports (both)
+    assert_lower(
+        "
+    var a : int
+    proc _
+        import a, a
+    end _",
+    );
+
+    assert_lower(
+        "
+    var a : int
+    proc _
+        import a, a
+    end _",
+    );
+}
+
+#[test]
+fn intro_import_defs_module() {
+    // Introducing defs, from inside a module
+
+    // Undeclared
+    assert_lower(
+        "
+    module _
+        import nothing
+    end _",
+    );
+
+    // Declared, non-pervasive
+    assert_lower(
+        "
+    var a_def : int
+    module _
+        import a_def
+    end _",
+    );
+
+    // Declared, pervasive (errors)
+    assert_lower(
+        "
+    var *p_def : int
+    module _
+        import p_def
+    end _",
+    );
+}
+
+#[test]
+fn intro_import_defs_subprogram() {
+    // Introducing defs, from inside a subprogram
+
+    // Undeclared
+    assert_lower(
+        "
+    proc _
+        import nothing
+    end _",
+    );
+
+    // Declared, non-pervasive
+    assert_lower(
+        "
+    var a_def : int
+    proc _
+        import a_def
+    end _",
+    );
+
+    // Declared, pervasive (errors)
+    assert_lower(
+        "
+    var *p_def : int
+    proc _
+        import p_def
+    end _",
+    );
 }

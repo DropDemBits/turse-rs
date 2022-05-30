@@ -482,13 +482,12 @@ impl super::BodyLowering<'_, '_> {
             .as_ref()
             .map_or(vec![], |params| params.names.clone());
 
-        // TODO: Import defs from imports
-
         let (body, _) = self.ctx.lower_stmt_body(
             ScopeKind::Subprogram,
             decl.stmt_list().unwrap(),
             param_defs,
             result_name,
+            &imports,
         );
 
         item::SubprogramBody { body, imports }
@@ -511,17 +510,16 @@ impl super::BodyLowering<'_, '_> {
         let (body, declares) = {
             if !is_pervasive {
                 // Also make visible in the inner scope if it's not pervasive
-                self.introduce_def(def_id, false);
+                self.ctx.introduce_def(def_id, false);
             };
-
-            // TODO: Introduce imported defs into scope
 
             // Lower the rest of the body
             self.ctx.lower_stmt_body(
-                ScopeKind::Subprogram,
+                ScopeKind::Block, // We're already inside an import boundary
                 decl.stmt_list().unwrap(),
                 vec![],
                 None,
+                &imports,
             )
         };
         self.ctx.scopes.pop_scope();
@@ -537,7 +535,7 @@ impl super::BodyLowering<'_, '_> {
         }) {
             let is_pervasive = matches!(export.qualify_as, item::QualifyAs::PervasiveUnqualified);
 
-            self.introduce_def(export.def_id, is_pervasive);
+            self.ctx.introduce_def(export.def_id, is_pervasive);
         }
 
         let span = self.ctx.intern_range(decl.syntax().text_range());
@@ -558,10 +556,13 @@ impl super::BodyLowering<'_, '_> {
     }
 
     // Exposed to parent mod for handling external imports
+    /// This also links imported defs to the target def that it's imported to
     pub(super) fn lower_import_list(
         &mut self,
         imports: Option<ast::ImportStmt>,
     ) -> Vec<item::ImportItem> {
+        use std::collections::hash_map::Entry;
+
         let imports = if let Some(imports) = imports {
             imports
         } else {
@@ -569,6 +570,7 @@ impl super::BodyLowering<'_, '_> {
         };
 
         let mut import_list = vec![];
+        let mut already_imported = HashMap::new();
 
         for import in imports.imports().unwrap().import_item() {
             let ext_item = if let Some(item) = import.external_item() {
@@ -641,6 +643,26 @@ impl super::BodyLowering<'_, '_> {
                 continue;
             };
 
+            // Report duplicate imports
+            // ???: dealing with path imports and name in path imports
+            let name_tok = name.identifier_token().unwrap();
+            let name_text = name_tok.text();
+            match already_imported.entry(Symbol::new(name_text)) {
+                Entry::Occupied(entry) => {
+                    // Already imported
+                    let this_span = self.ctx.mk_span(import.syntax().text_range());
+                    self.ctx
+                        .messages
+                        .error_detailed("import item is ignored", this_span)
+                        .with_error(format!("`{name_text}` is already imported..."), this_span)
+                        .with_note("by this import", *entry.get())
+                        .finish();
+
+                    continue;
+                }
+                Entry::Vacant(entry) => entry.insert(self.ctx.mk_span(name_tok.text_range())),
+            };
+
             // ???: Handling forward imports :???
             // For now, we'll reject it, and properly deal with it when we deal with
             // `forward` declarations
@@ -652,7 +674,10 @@ impl super::BodyLowering<'_, '_> {
                 );
             }
 
-            let def_id = self.name_to_def(name, SymbolKind::ItemImport);
+            // Make an imported def
+            // For now, it will stay unresolved.
+
+            let def_id = self.name_to_def(name, SymbolKind::ItemImport(None));
 
             import_list.push(item::ImportItem {
                 def_id,
@@ -825,6 +850,7 @@ impl super::BodyLowering<'_, '_> {
                     match already_exported.entry(name_text) {
                         std::collections::hash_map::Entry::Occupied(entry) => {
                             // Already exported
+                            // FIXME: Raise level to an error
                             let this_span = self.ctx.mk_span(exports_item.syntax().text_range());
                             self.ctx
                                 .messages
@@ -1348,7 +1374,7 @@ impl super::BodyLowering<'_, '_> {
         let def_id = self.name_to_def(name, kind);
 
         // Bring into scope
-        self.introduce_def(def_id, is_pervasive);
+        self.ctx.introduce_def(def_id, is_pervasive);
 
         def_id
     }
@@ -1357,129 +1383,6 @@ impl super::BodyLowering<'_, '_> {
         let token = name.identifier_token().unwrap();
         let span = self.ctx.intern_range(token.text_range());
         self.ctx.library.add_def(token.text().into(), span, kind)
-    }
-
-    fn introduce_def(&mut self, def_id: symbol::LocalDefId, is_pervasive: bool) {
-        let def_info = self.ctx.library.local_def(def_id);
-        let name = def_info.name;
-        let span = def_info.def_at;
-        let kind = def_info.kind;
-
-        // Bring into scope
-        let old_def = self.ctx.scopes.def_sym(name, def_id, kind, is_pervasive);
-
-        // Resolve any associated forward decls
-        if let SymbolKind::Resolved(resolve_kind) = kind {
-            let forward_list = self.ctx.scopes.take_resolved_forwards(name, resolve_kind);
-
-            if let Some(forward_list) = forward_list {
-                // Point all of these local defs to this one
-                for forward_def in forward_list {
-                    let def_info = self.ctx.library.local_def_mut(forward_def);
-
-                    match &mut def_info.kind {
-                        SymbolKind::Forward(_, resolve_to) => *resolve_to = Some(def_id),
-                        _ => unreachable!("not a forward def"),
-                    }
-                }
-            }
-        }
-
-        if let Some(old_def) = old_def {
-            // Report redeclares, specializing based on what kind of declaration it is
-            let old_def_info = self.ctx.library.local_def(old_def);
-
-            let old_span = old_def_info.def_at.lookup_in(&self.ctx.library);
-            let new_span = span.lookup_in(&self.ctx.library);
-
-            // Just use the name from the old def for both, since by definition they are the same
-            let name = old_def_info.name;
-
-            match (old_def_info.kind, kind) {
-                (SymbolKind::Undeclared, _) | (_, SymbolKind::Undeclared) => {
-                    // Always ok to declare over undeclared symbols
-                }
-                (SymbolKind::Forward(other_kind, _), SymbolKind::Forward(this_kind, _))
-                    if other_kind == this_kind =>
-                {
-                    // Duplicate forward declare
-                    self.ctx
-                        .messages
-                        .error_detailed(
-                            format!("`{name}` is already a forward declaration"),
-                            new_span,
-                        )
-                        .with_note("previous forward declaration here", old_span)
-                        .with_error("new one here", new_span)
-                        .finish();
-                }
-                (SymbolKind::Forward(other_kind, resolve_to), SymbolKind::Resolved(this_kind))
-                    if other_kind == this_kind =>
-                {
-                    // resolve_to: none -> didn't change
-                    // resolve_to: some(== def_id) -> did change, this resolved it
-                    // resolve_to: some(!= def_id) -> didn't change, this didn't resolve it (ok to note as redeclare)
-
-                    if resolve_to.is_none() {
-                        // Forwards must be resolved to the same scope
-                        // This declaration didn't resolve it, which only happens if they're not in the same scope
-                        self.ctx
-                            .messages
-                            .error_detailed(
-                                format!("`{name}` must be resolved in the same scope"),
-                                new_span,
-                            )
-                            .with_note(format!("forward declaration of `{name}` here"), old_span)
-                            .with_error(
-                                format!("resolution of `{name}` is not in the same scope"),
-                                new_span,
-                            )
-                            .finish();
-                    } else {
-                        // This shouldn't ever fail, since if a symbol is moving from
-                        // forward to resolved, this is the declaration that should've
-                        // done it.
-                        assert_eq!(
-                            resolve_to,
-                            Some(def_id),
-                            "encountered a forward not resolved by this definition"
-                        );
-                    }
-                }
-                (_, SymbolKind::ItemExport(exported_from)) => {
-                    // From an unqualified export in a local module
-                    // Use the originating item as the top-level error span
-                    let from_item_span = self
-                        .ctx
-                        .library
-                        .local_def(exported_from)
-                        .def_at
-                        .lookup_in(&self.ctx.library);
-
-                    self.ctx
-                        .messages
-                        .error_detailed(
-                            format!("`{name}` is already declared in the parent scope"),
-                            from_item_span,
-                        )
-                        .with_note(format!("`{name}` previously declared here"), old_span)
-                        .with_error(format!("`{name}` exported from here"), new_span)
-                        .finish();
-                }
-                _ => {
-                    // From a new declaration
-                    self.ctx
-                        .messages
-                        .error_detailed(
-                            format!("`{name}` is already declared in this scope"),
-                            new_span,
-                        )
-                        .with_note(format!("`{name}` previously declared here"), old_span)
-                        .with_error(format!("`{name}` redeclared here"), new_span)
-                        .finish();
-                }
-            }
-        }
     }
 }
 

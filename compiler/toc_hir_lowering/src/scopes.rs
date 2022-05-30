@@ -144,6 +144,11 @@ impl ScopeTracker {
         self.scopes.pop();
     }
 
+    /// Checks if the given `def_id` is pervasive (i.e. always implicitly imported)
+    pub fn is_pervasive(&self, def_id: symbol::LocalDefId) -> bool {
+        self.pervasive_tracker.contains(&def_id)
+    }
+
     /// Bring the definition into scope with the name `name`
     ///
     /// # Returns
@@ -232,8 +237,8 @@ impl ScopeTracker {
         })
     }
 
-    /// Looks up the definition that would be imported by `name`, along with whether that definition was pervasive or not
-    pub fn import_sym(&mut self, name: Symbol) -> Option<(LocalDefId, bool)> {
+    /// Looks up the definition that would be imported by `name`
+    pub fn import_sym(&mut self, name: Symbol) -> Option<LocalDefId> {
         // Lookup is performed between two boundaries
         //
         // Get the first scope after the one that starts the lookup, since we want everything declared outside of it
@@ -249,13 +254,12 @@ impl ScopeTracker {
         for scope in scopes {
             if let Some(def_id) = scope.symbols.get(&name) {
                 let def_id = *def_id;
-                let is_pervasive = self.pervasive_tracker.contains(&def_id);
 
                 // Only allow an identifier to be fetched if we haven't
                 // restricted our search to pervasive identifiers, or any
                 // pervasive identifiers
-                if !restrict_to_pervasive || is_pervasive {
-                    return Some((def_id, is_pervasive));
+                if !restrict_to_pervasive || self.is_pervasive(def_id) {
+                    return Some(def_id);
                 }
             }
 
@@ -316,7 +320,7 @@ impl ScopeTracker {
                 // Only allow an identifier to be fetched if we haven't
                 // restricted our search to pervasive identifiers, or any
                 // pervasive identifiers
-                if !restrict_to_pervasive || self.pervasive_tracker.contains(&def_id) {
+                if !restrict_to_pervasive || self.is_pervasive(def_id) {
                     return Some(def_id);
                 }
             }
