@@ -97,16 +97,11 @@ impl Scope {
     }
 }
 
+#[derive(Debug)]
 pub(crate) struct ScopeTracker {
     scopes: Vec<Scope>,
     /// Keeps track of what symbols had pervasive attributes
     pervasive_tracker: HashSet<symbol::LocalDefId>,
-}
-
-impl std::fmt::Debug for ScopeTracker {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("ScopeTracker").finish_non_exhaustive()
-    }
 }
 
 impl ScopeTracker {

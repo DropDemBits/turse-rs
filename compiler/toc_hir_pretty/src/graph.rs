@@ -552,13 +552,6 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
             result_node,
         );
 
-        // imports
-        let import_table = self.mk_import_table(id, &item.body.imports);
-        self.emit_edge(
-            format!("{item_id}:imports", item_id = self.item_id(id)),
-            import_table,
-        );
-
         // body
         self.emit_edge(
             format!("{item_id}:body", item_id = self.item_id(id)),
@@ -577,12 +570,6 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
                 Layout::Port("exports".into()),
                 Layout::Port("body".into()),
             ]),
-        );
-
-        let import_table = self.mk_import_table(id, &item.imports);
-        self.emit_edge(
-            format!("{item_id}:imports", item_id = self.item_id(id)),
-            import_table,
         );
 
         // exports
@@ -1373,30 +1360,4 @@ fn escape_def_name(name: Symbol) -> String {
             .into_iter()
         })
         .collect::<String>()
-}
-
-impl<'out, 'hir> PrettyVisitor<'out, 'hir> {
-    fn mk_import_table(&self, id: item::ItemId, imports: &[item::ImportItem]) -> String {
-        let import_table = derived_id(self.item_id(id), "import_table");
-        let mut v_layout = vec![];
-        for (idx, import) in imports.iter().enumerate() {
-            let mut h_layout = vec![
-                Layout::Node(format!("{idx}")),
-                Layout::Node(format!("{muta:?}", muta = import.mutability)),
-            ];
-            h_layout.push(Layout::Vbox(vec![Layout::NamedPort(
-                format!("im_{idx}_def_id"),
-                self.display_def_id(import.def_id),
-            )]));
-
-            v_layout.push(Layout::Hbox(h_layout));
-        }
-        self.emit_node(
-            &import_table,
-            "ImportTable",
-            self.library.span_table().dummy_span(),
-            Layout::Vbox(v_layout),
-        );
-        import_table
-    }
 }

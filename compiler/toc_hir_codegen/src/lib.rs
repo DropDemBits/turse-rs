@@ -1629,6 +1629,9 @@ impl BodyCodeGenerator<'_> {
                 // We already generate code for module bodies as part of walking
                 // over all of the bodies in a library
             }
+            hir_item::ItemKind::Import(_) => {
+                // No code needs to be generated from this item
+            }
         }
     }
 

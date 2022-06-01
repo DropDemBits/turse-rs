@@ -190,7 +190,7 @@ impl<'ctx> FileLowering<'ctx> {
         stmt_list: ast::StmtList,
         param_defs: Vec<LocalDefId>,
         result_name: Option<LocalDefId>,
-        imports: &[item::ImportItem],
+        imports: &[LocalDefId],
     ) -> (body::BodyId, Vec<item::ItemId>) {
         // Lower stmts
         let span = stmt_list.syntax().text_range();
@@ -206,44 +206,18 @@ impl<'ctx> FileLowering<'ctx> {
                     .def_sym(def_info.name, def_id, def_info.kind, false);
             }
 
-            // Link imports to defs
-            for import in imports {
-                let def_info = self.library.local_def(import.def_id);
+            // Introduce imported defs
+            for &def_id in imports {
+                let def_info = self.library.local_def(def_id);
 
-                let imported_def = if let Some(def_id) = self.scopes.import_sym(def_info.name) {
-                    def_id
+                if let SymbolKind::ItemImport(imported_def) = def_info.kind {
+                    // Carry the pervasiveness through
+                    // We're essentially redeclaring over the pervasive definition, so we still want to
+                    // preserve the pervasive property
+                    self.introduce_def(def_id, self.scopes.is_pervasive(imported_def));
                 } else {
-                    // Make an undeclared
-                    let name = def_info.name;
-                    let def_at = def_info.def_at;
-
-                    self.messages.error(
-                        format!("`{name}` could not be imported"),
-                        format!("no definitions of `{name}` found in the surrounding scope"),
-                        def_at.lookup_in(&self.library),
-                    );
-
-                    let undecl_def =
-                        self.library
-                            .add_def(name, def_at, symbol::SymbolKind::Undeclared);
-
-                    undecl_def
+                    unreachable!("not an importing def")
                 };
-
-                // Reborrow as mut here, since we're going to be altering the sym kind
-                let def_info = self.library.local_def_mut(import.def_id);
-
-                // Resolve the def
-                if let SymbolKind::ItemImport(to_def @ None) = &mut def_info.kind {
-                    *to_def = Some(imported_def);
-                } else {
-                    unreachable!("not an unresolved def")
-                };
-
-                // Carry the pervasiveness through
-                // We're essentially redeclaring over the pervasive definition, so we still want to
-                // preserve the pervasive property
-                self.introduce_def(import.def_id, self.scopes.is_pervasive(imported_def));
             }
 
             let body_stmts = BodyLowering::new(self, &mut body).lower_stmt_list(stmt_list);

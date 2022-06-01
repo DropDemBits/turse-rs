@@ -10,7 +10,7 @@ use crate::{
     ty,
 };
 
-pub use crate::ids::{ExportId, ImportId, ItemId, ModuleId};
+pub use crate::ids::{ExportId, ItemId, ModuleId};
 
 /// An entity representing a declaration.
 ///
@@ -63,6 +63,9 @@ pub enum ItemKind {
     */
     // aliased with monitor (modules)
     Module(Module),
+    /// Import introducing defs from the outer scope
+    Import(Import),
+    // FIXME: Also make Export into a real item
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -196,7 +199,7 @@ impl SubprogramExtra {
 #[derive(Debug, PartialEq, Eq)]
 pub struct SubprogramBody {
     pub body: body::BodyId,
-    pub imports: Vec<ImportItem>,
+    pub imports: Vec<ItemId>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -204,14 +207,14 @@ pub struct Module {
     pub as_monitor: bool,
     pub def_id: symbol::LocalDefId,
     pub declares: Vec<ItemId>,
-    pub imports: Vec<ImportItem>,
+    pub imports: Vec<ItemId>,
     pub exports: Vec<ExportItem>,
     pub body: body::BodyId,
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct ImportItem {
-    /// [`LocalDefId`](symbol::LocalDefId) to uniquely identify this specific import
+pub struct Import {
+    /// [`LocalDefId`](symbol::LocalDefId) of this specific import
     pub def_id: symbol::LocalDefId,
     pub mutability: ImportMutability,
 }

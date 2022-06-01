@@ -425,8 +425,10 @@ fn test_import_def_no_boundary() {
     let mut scopes = ScopeTracker::new();
     let mut defs = LocalDefAlloc::default();
 
-    // shouldn't be peeked at
-    scopes.def_sym("a".into(), defs.next(), SymbolKind::Declared, true);
+    // shouldn't be peeked at from SurroundingScope
+    // should be peeked at from CurrentScope
+    let a_def = defs.next();
+    scopes.def_sym("a".into(), a_def, SymbolKind::Declared, true);
 
     assert_eq!(scopes.import_sym("a".into()), None);
 }

@@ -53,11 +53,6 @@ fn ty_of_def(db: &dyn db::TypeDatabase, def_id: DefId) -> TypeId {
 
                 db.type_of(def_id.into())
             }
-            DefOwner::Import(..) => {
-                // Get to the canonical def
-                let def_id = db.resolve_def(def_id);
-                db.type_of(def_id.into())
-            }
             DefOwner::Field(type_id, field_id) => {
                 lower::ty_from_ty_field(db, InLibrary(def_id.0, type_id), field_id)
             }
@@ -118,6 +113,8 @@ pub(crate) fn binding_to(
             item::ItemKind::Subprogram(item) => BindingTo::Subprogram(item.kind),
             item::ItemKind::Type(_) => BindingTo::Type,
             item::ItemKind::Module(_) => BindingTo::Module,
+            // Should have been canonicalized to the real def
+            item::ItemKind::Import(_) => unreachable!(),
         }),
         Some(DefOwner::ItemParam(item_id, param_def)) => {
             // Lookup the arg
@@ -150,7 +147,7 @@ pub(crate) fn binding_to(
                 }
             })
         }
-        Some(DefOwner::Export(..)) | Some(DefOwner::Import(..)) => {
+        Some(DefOwner::Export(..)) => {
             unreachable!("already resolved defs to canon form")
         }
         Some(DefOwner::Field(type_id, _field_id)) => match &library.lookup_type(type_id).kind {
@@ -304,39 +301,37 @@ pub(super) fn value_produced(
                                     }
                                 })
                             }
-                            Some(DefOwner::Import(item_id, import_id)) => {
-                                // Keep track of import mutability
-                                let mutability = match &library.item(item_id).kind {
-                                    item::ItemKind::Subprogram(item) => {
-                                        item.body.imports[import_id.0].mutability
-                                    }
-                                    item::ItemKind::Module(item) => {
-                                        item.imports[import_id.0].mutability
-                                    }
-                                    _ => unreachable!(),
-                                };
+                            Some(DefOwner::Item(item_id)) => {
+                                match &library.item(item_id).kind {
+                                    // Special case for imports
+                                    item::ItemKind::Import(item) => {
+                                        let mutability = item.mutability;
 
-                                // Take initially from the binding kind
-                                let kind = value_kind_from_binding(db, def_id)?;
+                                        // Take initially from the binding kind
+                                        let kind = value_kind_from_binding(db, def_id)?;
 
-                                // Apply appropriate mutability
-                                // We're trusting that the appropriate mutability is applicable
-                                // FIXME: Do the same thing for exports
-                                Ok(match kind {
-                                    ValueKind::Scalar => ValueKind::Scalar,
-                                    ValueKind::Reference(_) => match mutability {
-                                        ImportMutability::SameAsItem => kind,
-                                        ImportMutability::Explicit(muta) => {
-                                            ValueKind::Reference(muta)
-                                        }
-                                    },
-                                    ValueKind::Register(_) => match mutability {
-                                        ImportMutability::SameAsItem => kind,
-                                        ImportMutability::Explicit(muta) => {
-                                            ValueKind::Register(muta)
-                                        }
-                                    },
-                                })
+                                        // Apply appropriate mutability
+                                        // We're trusting that the appropriate mutability is applicable
+                                        // FIXME: Do the same thing for exports
+                                        Ok(match kind {
+                                            ValueKind::Scalar => ValueKind::Scalar,
+                                            ValueKind::Reference(_) => match mutability {
+                                                ImportMutability::SameAsItem => kind,
+                                                ImportMutability::Explicit(muta) => {
+                                                    ValueKind::Reference(muta)
+                                                }
+                                            },
+                                            ValueKind::Register(_) => match mutability {
+                                                ImportMutability::SameAsItem => kind,
+                                                ImportMutability::Explicit(muta) => {
+                                                    ValueKind::Register(muta)
+                                                }
+                                            },
+                                        })
+                                    }
+                                    // Take directly from the binding kind
+                                    _ => value_kind_from_binding(db, def_id),
+                                }
                             }
                             _ => {
                                 // Take directly from the binding kind

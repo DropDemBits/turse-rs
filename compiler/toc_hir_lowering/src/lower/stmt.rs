@@ -2,7 +2,7 @@
 use std::collections::HashMap;
 
 use indexmap::IndexMap;
-use toc_hir::symbol::syms;
+use toc_hir::symbol::{syms, LocalDefId};
 use toc_hir::{
     expr, item,
     stmt::{self, Assign},
@@ -469,10 +469,8 @@ impl super::BodyLowering<'_, '_> {
         param_list: &Option<item::ParamList>,
         result_name: Option<symbol::LocalDefId>,
     ) -> item::SubprogramBody {
-        // Only importation is lowered
-        let imports = self.lower_import_list(decl.import_stmt());
-
         // TODO: Figure out a way of embedding these into the stmt_list
+        // Probably by passing into `lower_stmt_body`
         self.unsupported_node(decl.pre_stmt());
         self.unsupported_node(decl.init_stmt());
         self.unsupported_node(decl.post_stmt());
@@ -482,13 +480,22 @@ impl super::BodyLowering<'_, '_> {
             .as_ref()
             .map_or(vec![], |params| params.names.clone());
 
-        let (body, _) = self.ctx.lower_stmt_body(
-            ScopeKind::Subprogram,
-            decl.stmt_list().unwrap(),
-            param_defs,
-            result_name,
-            &imports,
-        );
+        self.ctx.scopes.push_scope(ScopeKind::Subprogram);
+        let (body, imports) = {
+            // Lowering needs to be done inside of the target scope
+            let (imports, import_defs) = self.lower_import_list(decl.import_stmt());
+
+            let (body, _) = self.ctx.lower_stmt_body(
+                ScopeKind::Block,
+                decl.stmt_list().unwrap(),
+                param_defs,
+                result_name,
+                &import_defs,
+            );
+
+            (body, imports)
+        };
+        self.ctx.scopes.pop_scope();
 
         item::SubprogramBody { body, imports }
     }
@@ -503,24 +510,26 @@ impl super::BodyLowering<'_, '_> {
         self.unsupported_node(decl.pre_stmt());
         self.unsupported_node(decl.post_stmt());
 
-        // Build imports
-        let imports = self.lower_import_list(decl.import_stmt());
-
         self.ctx.scopes.push_scope(ScopeKind::Module);
-        let (body, declares) = {
+        let (body, declares, imports) = {
+            // Build imports
+            let (imports, import_defs) = self.lower_import_list(decl.import_stmt());
+
             if !is_pervasive {
                 // Also make visible in the inner scope if it's not pervasive
                 self.ctx.introduce_def(def_id, false);
             };
 
             // Lower the rest of the body
-            self.ctx.lower_stmt_body(
+            let (body, declares) = self.ctx.lower_stmt_body(
                 ScopeKind::Block, // We're already inside an import boundary
                 decl.stmt_list().unwrap(),
                 vec![],
                 None,
-                &imports,
-            )
+                &import_defs,
+            );
+
+            (body, declares, imports)
         };
         self.ctx.scopes.pop_scope();
 
@@ -556,20 +565,21 @@ impl super::BodyLowering<'_, '_> {
     }
 
     // Exposed to parent mod for handling external imports
-    /// This also links imported defs to the target def that it's imported to
+    /// This also links imported defs to the target def that it's imported to relative to the surrounding scope
     pub(super) fn lower_import_list(
         &mut self,
         imports: Option<ast::ImportStmt>,
-    ) -> Vec<item::ImportItem> {
+    ) -> (Vec<item::ItemId>, Vec<LocalDefId>) {
         use std::collections::hash_map::Entry;
 
         let imports = if let Some(imports) = imports {
             imports
         } else {
-            return vec![];
+            return Default::default();
         };
 
         let mut import_list = vec![];
+        let mut import_defs = vec![];
         let mut already_imported = HashMap::new();
 
         for import in imports.imports().unwrap().import_item() {
@@ -675,17 +685,46 @@ impl super::BodyLowering<'_, '_> {
             }
 
             // Make an imported def
-            // For now, it will stay unresolved.
+            // Resolve it right now
+            let imported_def = if let Some(def_id) = self.ctx.scopes.import_sym(name_text.into()) {
+                def_id
+            } else {
+                // Make an undeclared
+                let def_at = self.ctx.mk_span(name.syntax().text_range());
+                let name = name_text;
 
-            let def_id = self.name_to_def(name, SymbolKind::ItemImport(None));
+                self.ctx.messages.error(
+                    format!("`{name}` could not be imported"),
+                    format!("no definitions of `{name}` found in the surrounding scope"),
+                    def_at,
+                );
 
-            import_list.push(item::ImportItem {
+                let def_at = self.ctx.library.intern_span(def_at);
+                let undecl_def =
+                    self.ctx
+                        .library
+                        .add_def(name.into(), def_at, symbol::SymbolKind::Undeclared);
+
+                undecl_def
+            };
+
+            let span = self.ctx.intern_range(import.syntax().text_range());
+            let def_id = self.name_to_def(name, SymbolKind::ItemImport(imported_def));
+            import_defs.push(def_id);
+
+            let item_id = self.ctx.library.add_item(item::Item {
                 def_id,
-                mutability: import_mut,
+                kind: item::ItemKind::Import(item::Import {
+                    def_id,
+                    mutability: import_mut,
+                }),
+                span,
             });
+
+            import_list.push(item_id);
         }
 
-        import_list
+        (import_list, import_defs)
     }
 
     fn lower_export_list(

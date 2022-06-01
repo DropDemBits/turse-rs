@@ -8,7 +8,7 @@ use toc_span::SpanId;
 
 pub use crate::ids::{DefId, LocalDefId};
 use crate::{
-    ids::{ExportId, ImportId, ItemId, LocalDefIndex, ModuleId},
+    ids::{ExportId, ItemId, LocalDefIndex, ModuleId},
     stmt::BodyStmt,
     ty::{FieldId, TypeId},
 };
@@ -89,8 +89,8 @@ pub enum SymbolKind {
     /// pointing to the original item.
     ItemExport(LocalDefId),
     /// The symbol is of an imported item, optionally with a [`LocalDefId`]
-    /// pointing to the original item.
-    ItemImport(Option<LocalDefId>),
+    /// pointing to the original item (or an undeclared definition).
+    ItemImport(LocalDefId),
 }
 
 /// Disambiguates between different forward declaration kinds
@@ -119,8 +119,6 @@ pub enum DefOwner {
     ItemParam(ItemId, LocalDefId),
     /// Export from a given `Module`
     Export(ModuleId, ExportId),
-    /// Import on a given [`Item`](crate::item::Item)
-    Import(ItemId, ImportId),
     /// Field on a given `Type`
     Field(TypeId, FieldId),
     /// Owned by a `Stmt`

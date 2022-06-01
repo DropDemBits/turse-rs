@@ -185,34 +185,6 @@ impl<'out, 'hir> PrettyVisitor<'out, 'hir> {
         let level = self.indent_level.get();
         self.indent_level.set(level.saturating_sub(1));
     }
-
-    fn emit_import_list(
-        &self,
-        out: &mut dyn fmt::Write,
-        imports: &[item::ImportItem],
-    ) -> fmt::Result {
-        if !imports.is_empty() {
-            writeln!(out)?;
-            self.emit_indent(out)?;
-
-            writeln!(out, "imports [")?;
-            self.indent();
-            for item in imports {
-                self.emit_indent(out)?;
-                writeln!(
-                    out,
-                    "{:?} {},",
-                    item.mutability,
-                    self.display_def(item.def_id)
-                )?;
-            }
-            self.unindent();
-            self.emit_indent(out)?;
-            write!(out, "]")?;
-        }
-
-        Ok(())
-    }
 }
 
 impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
@@ -325,9 +297,6 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
             write!(extra, " -> {}", self.display_def(result)).unwrap();
         }
 
-        self.emit_import_list(&mut extra, &item.body.imports)
-            .unwrap();
-
         self.emit_node("Subprogram", span, Some(format_args!("{extra}")))
     }
     fn visit_module(&self, id: item::ItemId, item: &item::Module) {
@@ -371,11 +340,21 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
                 write!(extra, "]").unwrap();
             }
 
-            self.emit_import_list(&mut extra, &item.imports).unwrap();
-
             extra
         };
         self.emit_node("Module", span, Some(format_args!("{extra}")))
+    }
+    fn visit_import(&self, id: item::ItemId, item: &item::Import) {
+        let span = self.item_span(id);
+        self.emit_node(
+            "Import",
+            span,
+            Some(format_args!(
+                "{:?} {}",
+                item.mutability,
+                self.display_def(item.def_id)
+            )),
+        )
     }
     // Body
     fn visit_body(&self, id: body::BodyId, body: &body::Body) {

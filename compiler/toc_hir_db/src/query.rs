@@ -250,17 +250,13 @@ pub(crate) fn resolve_def(db: &dyn HirDatabase, def_id: DefId) -> DefId {
 
             DefId(def_id.0, exported_item.def_id)
         }
-        DefOwner::Import(..) => {
+        DefOwner::Item(_) => {
+            // Defer to the sym kind
             let library = db.library(def_id.0);
 
             match library.local_def(def_id.1).kind {
-                SymbolKind::ItemImport(Some(local_def)) => DefId(def_id.0, local_def),
-                SymbolKind::ItemImport(None) => {
-                    // Still unresolved
-                    // Give this back as the canonical def
-                    def_id
-                }
-                _ => unreachable!(),
+                SymbolKind::ItemImport(local_def) => DefId(def_id.0, local_def),
+                _ => def_id,
             }
         }
         // Already the canonical definition
@@ -293,10 +289,6 @@ impl HirVisitor for DefCollector<'_> {
                 DefOwner::Export(item::ModuleId::new(self.library, id), item::ExportId(idx)),
             );
         }
-
-        for (idx, import) in item.imports.iter().enumerate() {
-            self.add_owner(import.def_id, DefOwner::Import(id, item::ImportId(idx)))
-        }
     }
 
     fn visit_subprogram_decl(&self, id: item::ItemId, item: &item::Subprogram) {
@@ -314,10 +306,6 @@ impl HirVisitor for DefCollector<'_> {
 
         if let Some(name) = item.result.name {
             self.add_owner(name, DefOwner::ItemParam(id, name));
-        }
-
-        for (idx, import) in item.body.imports.iter().enumerate() {
-            self.add_owner(import.def_id, DefOwner::Import(id, item::ImportId(idx)))
         }
     }
 
