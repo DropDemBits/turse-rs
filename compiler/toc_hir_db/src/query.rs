@@ -237,9 +237,8 @@ pub(crate) fn resolve_def(db: &dyn HirDatabase, def_id: DefId) -> DefId {
         return def_id;
     };
 
-    // Poke through item exports & imports
-    // TODO: poke through multiple imports and exports
-    match def_owner {
+    // Get the (maybe indirect) definition
+    let maybe_canon = match def_owner {
         DefOwner::Export(mod_id, export_id) => {
             let library = db.library(def_id.0);
 
@@ -256,12 +255,16 @@ pub(crate) fn resolve_def(db: &dyn HirDatabase, def_id: DefId) -> DefId {
 
             match library.local_def(def_id.1).kind {
                 SymbolKind::ItemImport(local_def) => DefId(def_id.0, local_def),
-                _ => def_id,
+                // Already the canonical definition
+                _ => return def_id,
             }
         }
         // Already the canonical definition
-        _ => def_id,
-    }
+        _ => return def_id,
+    };
+
+    // Poke through import chains
+    db.resolve_def(maybe_canon)
 }
 
 /// Library-local definition collector
