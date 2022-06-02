@@ -19,7 +19,7 @@ Library@(dummy)
           Subprogram@(FileId(1), 27..76): "_"@(FileId(1), 32..33)
             Void@(FileId(1), 27..33)
             Import@(FileId(1), 49..50): SameAsItem "a"@(FileId(1), 49..50)
-            Import@(FileId(1), 52..57): Explicit(Var) "b"@(FileId(1), 56..57)
-            Import@(FileId(1), 59..66): Explicit(Const) "c"@(FileId(1), 65..66)
+            Import@(FileId(1), 52..57): Explicit(Var, SpanId(11)) "b"@(FileId(1), 56..57)
+            Import@(FileId(1), 59..66): Explicit(Const, SpanId(14)) "c"@(FileId(1), 65..66)
             StmtBody@(FileId(1), 71..71): []
 

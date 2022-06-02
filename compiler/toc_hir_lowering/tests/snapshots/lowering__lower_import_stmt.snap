@@ -18,7 +18,7 @@ Library@(dummy)
         StmtItem@(FileId(1), 27..78): ItemId(6)
           Module@(FileId(1), 27..78): "_"@(FileId(1), 34..35)
             Import@(FileId(1), 51..52): SameAsItem "a"@(FileId(1), 51..52)
-            Import@(FileId(1), 54..59): Explicit(Var) "b"@(FileId(1), 58..59)
-            Import@(FileId(1), 61..68): Explicit(Const) "c"@(FileId(1), 67..68)
+            Import@(FileId(1), 54..59): Explicit(Var, SpanId(10)) "b"@(FileId(1), 58..59)
+            Import@(FileId(1), 61..68): Explicit(Const, SpanId(13)) "c"@(FileId(1), 67..68)
             StmtBody@(FileId(1), 73..73): []
 
