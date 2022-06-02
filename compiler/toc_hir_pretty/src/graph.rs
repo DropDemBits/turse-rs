@@ -552,6 +552,14 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
             result_node,
         );
 
+        // Just attach imports to this item
+        for &import in &item.body.imports {
+            self.emit_edge(
+                format!("{item_id}:imports", item_id = self.item_id(id)),
+                self.item_id(import),
+            );
+        }
+
         // body
         self.emit_edge(
             format!("{item_id}:body", item_id = self.item_id(id)),
@@ -571,6 +579,14 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
                 Layout::Port("body".into()),
             ]),
         );
+
+        // Just attach imports to this item
+        for &import in &item.imports {
+            self.emit_edge(
+                format!("{item_id}:imports", item_id = self.item_id(id)),
+                self.item_id(import),
+            );
+        }
 
         // exports
         let export_table = {
@@ -619,6 +635,17 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
             format!("{item_id}:body", item_id = self.item_id(id)),
             self.body_id(item.body),
         );
+    }
+
+    fn visit_import(&self, id: item::ItemId, item: &item::Import) {
+        self.emit_item(
+            id,
+            "Import",
+            Layout::Vbox(vec![
+                Layout::Node(self.display_def_id(item.def_id)),
+                Layout::Node(format!("{:?}", item.mutability)),
+            ]),
+        )
     }
 
     // Body //
