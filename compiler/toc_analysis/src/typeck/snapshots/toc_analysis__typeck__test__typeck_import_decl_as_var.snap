@@ -1,0 +1,9 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+expression: "var outer : int\nmodule _\n    import var outer\n    outer := 6\nend _\n"
+---
+"outer"@(FileId(1), 4..9) [Declared]: int
+"_"@(FileId(1), 23..24) [Declared]: <error>
+"outer"@(FileId(1), 40..45) [ItemImport(LocalDefId(0))]: int
+"<root>"@(dummy) [Declared]: <error>
+

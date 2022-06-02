@@ -12,7 +12,9 @@ use toc_hir::{
     library::{self, LibraryId, WrapInLibrary},
     stmt,
     stmt::BodyStmt,
-    symbol::{BindingResultExt, BindingTo, DefId, Mutability, NotBinding, SubprogramKind},
+    symbol::{
+        BindingResultExt, BindingTo, DefId, DefOwner, Mutability, NotBinding, SubprogramKind,
+    },
 };
 use toc_reporting::CompileResult;
 use toc_span::Span;
@@ -135,6 +137,10 @@ impl toc_hir::visitor::HirVisitor for TypeCheck<'_> {
 
     fn visit_subprogram_decl(&self, id: item::ItemId, item: &item::Subprogram) {
         self.typeck_subprogram_decl(id, item);
+    }
+
+    fn visit_import(&self, id: item::ItemId, item: &item::Import) {
+        self.typeck_import_decl(id, item);
     }
 
     fn visit_assign(&self, id: BodyStmt, stmt: &stmt::Assign) {
@@ -490,6 +496,46 @@ impl TypeCheck<'_> {
             item::SubprogramExtra::DeviceSpec(body_id)
             | item::SubprogramExtra::StackSize(body_id) => {
                 self.expect_integer_value((self.library_id, body_id).into());
+            }
+        }
+    }
+
+    fn typeck_import_decl(&self, _id: item::ItemId, item: &item::Import) {
+        // ???: are we able to get away with checking before typeck
+        // defs would need to be resolved at some point before typeck.
+
+        // Mutability must be applicable to canonical def
+        let (expected_mut, attr_span) = match item.mutability {
+            item::ImportMutability::SameAsItem => return, // No need to do anything
+            item::ImportMutability::Explicit(muta, span) => (muta, span),
+        };
+
+        let canon_def = self.db.resolve_def(DefId(self.library_id, item.def_id));
+        let real_mut = self.db.value_produced(canon_def.into()).expect("from def");
+
+        match real_mut {
+            ValueKind::Scalar => {
+                // Nothing special for scalars
+            }
+            ValueKind::Register(real_mut) | ValueKind::Reference(real_mut) => {
+                if expected_mut == Mutability::Var && real_mut != Mutability::Var {
+                    let attr_span = attr_span.lookup_in(&self.library);
+
+                    let (name, def_at) = {
+                        let canon_lib = self.db.library(canon_def.0);
+                        let def_info = canon_lib.local_def(canon_def.1);
+                        let name = def_info.name;
+                        let def_at = def_info.def_at.lookup_in(&canon_lib);
+                        (name, def_at)
+                    };
+
+                    self.state()
+                        .reporter
+                        .error_detailed(format!("cannot use `var` here"), attr_span)
+                        .with_error("`var` can only be applied to variables", attr_span)
+                        .with_note(format!("`{name}` declared here"), def_at)
+                        .finish()
+                }
             }
         }
     }
@@ -2611,20 +2657,48 @@ impl TypeCheck<'_> {
                     BindingTo::Storage(Mutability::Var) | BindingTo::Register(Mutability::Var)
                 ) {
                     // Originally was mutable
-                    // Likely from an export
-                    let exporting_def = self
-                        .db
-                        .exporting_def(value_src.into())
-                        .expect("at mut storage but rejected it");
-                    let exported_library = self.db.library(exporting_def.0);
-                    let exported_span = exported_library
-                        .local_def(exporting_def.1)
-                        .def_at
-                        .lookup_in(&*exported_library);
+                    // Likely from an export or import
 
-                    builder
-                        .with_error(format!("{thing} is not exported as `var`"), value_span)
-                        .with_note(format!("{thing} exported from here"), exported_span)
+                    // FIXME: Fold into `else` branch once we make export a real item
+                    if let Some(exporting_def) = self.db.exporting_def(value_src.into()) {
+                        let exported_library = self.db.library(exporting_def.0);
+                        let exported_span = exported_library
+                            .local_def(exporting_def.1)
+                            .def_at
+                            .lookup_in(&*exported_library);
+
+                        builder
+                            .with_error(format!("{thing} is not exported as `var`"), value_span)
+                            .with_note(format!("{thing} exported from here"), exported_span)
+                    } else {
+                        match self.db.def_owner(def_id) {
+                            Some(DefOwner::Item(item_id)) => {
+                                let def_lib = self.db.library(def_id.0);
+
+                                match &def_lib.item(item_id).kind {
+                                    item::ItemKind::Import(import) => {
+                                        let imported_span = def_lib
+                                            .local_def(import.def_id)
+                                            .def_at
+                                            .lookup_in(&def_lib);
+
+                                        builder
+                                            .with_error(
+                                                format!("{thing} is not imported as `var`"),
+                                                value_span,
+                                            )
+                                            .with_note(
+                                                format!("{thing} imported from here"),
+                                                imported_span,
+                                            )
+                                    }
+                                    kind => unreachable!("not on an import or export: {kind:?}"),
+                                }
+                            }
+                            Some(owner) => unreachable!("not at item owner: {owner:?}"),
+                            None => unreachable!("def was undeclared but also mutable"),
+                        }
+                    }
                 } else {
                     builder
                         .with_error(

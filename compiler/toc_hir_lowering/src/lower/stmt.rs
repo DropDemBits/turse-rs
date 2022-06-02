@@ -605,8 +605,14 @@ impl super::BodyLowering<'_, '_> {
             // Mutabilty can only be one or the other, or not specified
             let import_mut = match (is_const, is_var) {
                 (None, None) => item::ImportMutability::SameAsItem,
-                (Some(_), None) => item::ImportMutability::Explicit(Mutability::Const),
-                (None, Some(_)) => item::ImportMutability::Explicit(Mutability::Var),
+                (Some(attr), None) => item::ImportMutability::Explicit(
+                    Mutability::Const,
+                    self.ctx.intern_range(attr.syntax().text_range()),
+                ),
+                (None, Some(attr)) => item::ImportMutability::Explicit(
+                    Mutability::Var,
+                    self.ctx.intern_range(attr.syntax().text_range()),
+                ),
                 (Some(is_const), Some(is_var)) => {
                     // Can't be both mutable and constant
                     let const_span = self.ctx.mk_span(is_const.syntax().text_range());

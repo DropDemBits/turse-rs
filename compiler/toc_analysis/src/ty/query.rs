@@ -253,6 +253,7 @@ pub(super) fn value_produced(
     }
 
     match value_src {
+        ValueSource::Def(def_id) => value_kind_from_binding(db, def_id),
         ValueSource::Body(lib_id, body_id) => {
             let library = db.library(lib_id);
             let body = library.body(body_id);
@@ -317,13 +318,13 @@ pub(super) fn value_produced(
                                             ValueKind::Scalar => ValueKind::Scalar,
                                             ValueKind::Reference(_) => match mutability {
                                                 ImportMutability::SameAsItem => kind,
-                                                ImportMutability::Explicit(muta) => {
+                                                ImportMutability::Explicit(muta, _) => {
                                                     ValueKind::Reference(muta)
                                                 }
                                             },
                                             ValueKind::Register(_) => match mutability {
                                                 ImportMutability::SameAsItem => kind,
-                                                ImportMutability::Explicit(muta) => {
+                                                ImportMutability::Explicit(muta, _) => {
                                                     ValueKind::Register(muta)
                                                 }
                                             },

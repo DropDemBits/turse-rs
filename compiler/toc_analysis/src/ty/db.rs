@@ -41,6 +41,7 @@ pub trait TypeDatabase: TypeIntern + TypeInternExt {
     fn binding_to(&self, bind_src: BindingSource) -> Result<symbol::BindingTo, symbol::NotBinding>;
 
     /// Gets the corresponding definition from the given [`BindingSource`], or `None` if there isn't one.
+    /// No definition resolution is performed.
     #[salsa::invoke(ty::query::binding_def)]
     fn binding_def(&self, bind_src: BindingSource) -> Option<DefId>;
 
@@ -185,6 +186,7 @@ impl From<(LibraryId, BodyId, expr::ExprId)> for BindingSource {
 impl From<ValueSource> for BindingSource {
     fn from(src: ValueSource) -> Self {
         match src {
+            ValueSource::Def(def_id) => Self::DefId(def_id),
             ValueSource::Body(lib_id, body_id) => Self::Body(lib_id, body_id),
             ValueSource::BodyExpr(lib_id, body_expr) => Self::BodyExpr(lib_id, body_expr),
         }
@@ -239,6 +241,7 @@ pub enum NotValue {
 /// Anything that can produce a value
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ValueSource {
+    Def(DefId),
     Body(LibraryId, BodyId),
     BodyExpr(LibraryId, BodyExpr),
 }
@@ -249,6 +252,9 @@ impl ValueSource {
         DB: ?Sized + toc_hir_db::db::HirDatabase,
     {
         match self {
+            ValueSource::Def(_def_id) => {
+                unimplemented!("not sure if we need this")
+            }
             ValueSource::Body(lib_id, body_id) => {
                 let library = db.library(lib_id);
                 library.body(body_id).span.lookup_in(&library)
@@ -258,6 +264,12 @@ impl ValueSource {
                 library.body(body_id).expr(expr_id).span.lookup_in(&library)
             }
         }
+    }
+}
+
+impl From<DefId> for ValueSource {
+    fn from(def_id: DefId) -> Self {
+        Self::Def(def_id)
     }
 }
 
@@ -284,6 +296,7 @@ impl From<ValueSource> for TypeSource {
         match src {
             ValueSource::Body(lib_id, body_id) => Self::Body(lib_id, body_id),
             ValueSource::BodyExpr(lib_id, body_id) => Self::BodyExpr(lib_id, body_id),
+            ValueSource::Def(def_id) => TypeSource::Def(def_id),
         }
     }
 }

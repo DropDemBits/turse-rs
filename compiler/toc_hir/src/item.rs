@@ -222,7 +222,8 @@ pub struct Import {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ImportMutability {
     SameAsItem,
-    Explicit(symbol::Mutability),
+    /// Also has a span pointing to the applicable attribute
+    Explicit(symbol::Mutability, SpanId),
 }
 
 #[derive(Debug, PartialEq, Eq)]
