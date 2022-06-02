@@ -306,6 +306,7 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
             let mut extra = String::new();
             write!(extra, "{}", self.display_def(def_id)).unwrap();
 
+            // FIXME: Change to be the same format as import list
             if !item.exports.is_empty() {
                 let mut exports = item.exports.iter();
                 write!(extra, ", exports [").unwrap();
@@ -342,6 +343,18 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
             extra
         };
         self.emit_node("Module", span, Some(format_args!("{extra}")))
+    }
+    fn visit_import(&self, id: item::ItemId, item: &item::Import) {
+        let span = self.item_span(id);
+        self.emit_node(
+            "Import",
+            span,
+            Some(format_args!(
+                "{:?} {}",
+                item.mutability,
+                self.display_def(item.def_id)
+            )),
+        )
     }
     // Body
     fn visit_body(&self, id: body::BodyId, body: &body::Body) {

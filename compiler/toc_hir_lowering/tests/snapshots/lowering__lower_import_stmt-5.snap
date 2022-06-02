@@ -1,0 +1,24 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+assertion_line: 61
+expression: "\n    var a : int\n    proc _\n        import const var a\n    end _"
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(3)
+    Module@(FileId(1), 0..64): "<root>"@(dummy)
+      StmtBody@(FileId(1), 5..64): []
+        StmtItem@(FileId(1), 5..16): ItemId(0)
+          ConstVar@(FileId(1), 5..16): var "a"@(FileId(1), 9..10)
+            Primitive@(FileId(1), 13..16): Int
+        StmtItem@(FileId(1), 21..64): ItemId(2)
+          Subprogram@(FileId(1), 21..64): "_"@(FileId(1), 26..27)
+            Void@(FileId(1), 21..27)
+            StmtBody@(FileId(1), 49..54): []
+              StmtItem@(FileId(1), 49..54): ItemId(1)
+                ConstVar@(FileId(1), 49..54): var "a"@(FileId(1), 53..54)
+error in file FileId(1) at 49..52: unexpected token
+| error in file FileId(1) for 49..52: expected string literal or identifier, but found `var`
+error in file FileId(1) at 59..62: unexpected token
+| error in file FileId(1) for 59..62: expected `,`, `:` or `:=`, but found `end`
+

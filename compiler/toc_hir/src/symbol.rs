@@ -88,6 +88,9 @@ pub enum SymbolKind {
     /// The symbol is from an export of an item, with a [`LocalDefId`]
     /// pointing to the original item.
     ItemExport(LocalDefId),
+    /// The symbol is of an imported item, optionally with a [`LocalDefId`]
+    /// pointing to the original item (or an undeclared definition).
+    ItemImport(LocalDefId),
 }
 
 /// Disambiguates between different forward declaration kinds
@@ -110,9 +113,9 @@ pub enum LimitedKind {
 /// Any HIR node that contains a definition
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DefOwner {
-    /// Owned directly by an `Item`
+    /// Owned directly by an [`Item`](crate::item::Item)
     Item(ItemId),
-    /// Parameter on a given `Item`
+    /// Parameter on a given [`Item`](crate::item::Item)
     ItemParam(ItemId, LocalDefId),
     /// Export from a given `Module`
     Export(ModuleId, ExportId),

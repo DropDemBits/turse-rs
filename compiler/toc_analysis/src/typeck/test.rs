@@ -2416,6 +2416,60 @@ test_named_group! { typeck_subprog_call,
     ]
 }
 
+test_named_group! { typeck_import_decl,
+    [
+        // Should infer type correctly
+        on_use => "
+        var blah : int
+        module _
+            import blah
+            var k := blah
+        end _
+        ",
+
+        // handling resolution chains
+        import_chain => "
+        var outer : int
+        module a
+            import outer
+
+            module b
+                import outer
+
+                module c
+                    import outer
+
+                    var k := outer
+                end c
+            end b
+
+        end a
+        ",
+
+        as_const => "
+        var outer : int
+        module _
+            import const outer
+            outer := 6
+        end _
+        ",
+        as_var => "
+        var outer : int
+        module _
+            import var outer
+            outer := 6
+        end _
+        ",
+        as_var_on_unapplicable => "
+        const outer : int
+        module _
+            import var outer
+            outer := 6 % this should still be fine, since we take the specified mut for its word
+        end _
+        ",
+    ]
+}
+
 test_named_group! { typeck_set_cons_call,
     [
         normal => "

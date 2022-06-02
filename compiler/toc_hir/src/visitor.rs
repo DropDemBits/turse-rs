@@ -24,6 +24,7 @@ pub trait HirVisitor {
     fn visit_bind_decl(&self, id: item::ItemId, item: &item::Binding) {}
     fn visit_subprogram_decl(&self, id: item::ItemId, item: &item::Subprogram) {}
     fn visit_module(&self, id: item::ItemId, item: &item::Module) {}
+    fn visit_import(&self, id: item::ItemId, item: &item::Import) {}
     // Body
     fn visit_body(&self, id: body::BodyId, body: &body::Body) {}
     // Stmts
@@ -76,6 +77,7 @@ pub trait HirVisitor {
             item::ItemKind::Binding(item) => self.visit_bind_decl(id, item),
             item::ItemKind::Subprogram(item) => self.visit_subprogram_decl(id, item),
             item::ItemKind::Module(item) => self.visit_module(id, item),
+            item::ItemKind::Import(item) => self.visit_import(id, item),
         }
     }
 
@@ -330,6 +332,7 @@ impl<'hir> Walker<'hir> {
             item::ItemKind::Binding(item) => self.walk_bind_decl(item),
             item::ItemKind::Subprogram(item) => self.walk_subprogram_decl(item),
             item::ItemKind::Module(item) => self.walk_module(item),
+            item::ItemKind::Import(_item) => {}
         }
     }
 
@@ -372,11 +375,21 @@ impl<'hir> Walker<'hir> {
         let result_ty = node.result.ty;
         self.enter_type(result_ty, self.lib.lookup_type(result_ty));
 
+        for &import in &node.body.imports {
+            self.enter_item(import, self.lib.item(import))
+        }
+
         self.enter_body(node.body.body, self.lib.body(node.body.body));
     }
 
     fn walk_module(&mut self, node: &item::Module) {
-        self.enter_body(node.body, self.lib.body(node.body))
+        // Walk imports first
+        for &import in &node.imports {
+            self.enter_item(import, self.lib.item(import))
+        }
+
+        // Then the rest of the body
+        self.enter_body(node.body, self.lib.body(node.body));
     }
 
     fn walk_stmt(&mut self, in_body: body::BodyId, stmt: &stmt::Stmt) {

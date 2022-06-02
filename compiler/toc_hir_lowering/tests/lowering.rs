@@ -1517,3 +1517,144 @@ fn lower_init_expr() {
     // Can't be used outside of a ConstVar decl (handled by AST validation)
     assert_lower("var a : int a := init(1, 2, 3, 4)");
 }
+
+#[test]
+fn unsupported_external_import() {
+    assert_lower("import()");
+}
+
+#[test]
+fn lower_import_stmt() {
+    // Only lowering import statements
+    assert_lower(
+        "
+    var a, b, c : int
+    module _
+        import a, var b, const c
+    end _",
+    );
+
+    // const with var
+    assert_lower(
+        "
+    var a : int
+    module _
+        import const var a
+    end _",
+    );
+
+    // forward (unsupported)
+    assert_lower(
+        "
+    var a : int
+    module _
+        import forward a
+    end _",
+    );
+
+    // In subprograms
+    assert_lower(
+        "
+    var a, b, c : int
+    proc _
+        import a, var b, const c
+    end _",
+    );
+
+    // const with var
+    assert_lower(
+        "
+    var a : int
+    proc _
+        import const var a
+    end _",
+    );
+
+    // forward (unsupported)
+    assert_lower(
+        "
+    var a : int
+    proc _
+        import forward a
+    end _",
+    );
+
+    // Duplicate imports (both)
+    assert_lower(
+        "
+    var a : int
+    proc _
+        import a, a
+    end _",
+    );
+
+    assert_lower(
+        "
+    var a : int
+    proc _
+        import a, a
+    end _",
+    );
+}
+
+#[test]
+fn intro_import_defs_module() {
+    // Introducing defs, from inside a module
+
+    // Undeclared
+    assert_lower(
+        "
+    module _
+        import nothing
+    end _",
+    );
+
+    // Declared, non-pervasive
+    assert_lower(
+        "
+    var a_def : int
+    module _
+        import a_def
+    end _",
+    );
+
+    // Declared, pervasive (errors)
+    assert_lower(
+        "
+    var *p_def : int
+    module _
+        import p_def
+    end _",
+    );
+}
+
+#[test]
+fn intro_import_defs_subprogram() {
+    // Introducing defs, from inside a subprogram
+
+    // Undeclared
+    assert_lower(
+        "
+    proc _
+        import nothing
+    end _",
+    );
+
+    // Declared, non-pervasive
+    assert_lower(
+        "
+    var a_def : int
+    proc _
+        import a_def
+    end _",
+    );
+
+    // Declared, pervasive (errors)
+    assert_lower(
+        "
+    var *p_def : int
+    proc _
+        import p_def
+    end _",
+    );
+}

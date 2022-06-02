@@ -1,0 +1,25 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+expression: "\n    var a, b, c : int\n    proc _\n        import a, var b, const c\n    end _"
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(7)
+    Module@(FileId(1), 0..76): "<root>"@(dummy)
+      StmtBody@(FileId(1), 5..76): []
+        StmtItem@(FileId(1), 5..22): ItemId(0)
+          ConstVar@(FileId(1), 5..22): var "a"@(FileId(1), 9..10)
+            Primitive@(FileId(1), 19..22): Int
+        StmtItem@(FileId(1), 5..22): ItemId(1)
+          ConstVar@(FileId(1), 5..22): var "b"@(FileId(1), 12..13)
+            Primitive@(FileId(1), 19..22): Int
+        StmtItem@(FileId(1), 5..22): ItemId(2)
+          ConstVar@(FileId(1), 5..22): var "c"@(FileId(1), 15..16)
+            Primitive@(FileId(1), 19..22): Int
+        StmtItem@(FileId(1), 27..76): ItemId(6)
+          Subprogram@(FileId(1), 27..76): "_"@(FileId(1), 32..33)
+            Void@(FileId(1), 27..33)
+            Import@(FileId(1), 49..50): SameAsItem "a"@(FileId(1), 49..50)
+            Import@(FileId(1), 52..57): Explicit(Var, SpanId(11)) "b"@(FileId(1), 56..57)
+            Import@(FileId(1), 59..66): Explicit(Const, SpanId(14)) "c"@(FileId(1), 65..66)
+            StmtBody@(FileId(1), 71..71): []
+

@@ -63,6 +63,9 @@ pub enum ItemKind {
     */
     // aliased with monitor (modules)
     Module(Module),
+    /// Import introducing defs from the outer scope
+    Import(Import),
+    // FIXME: Also make Export into a real item
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -196,6 +199,7 @@ impl SubprogramExtra {
 #[derive(Debug, PartialEq, Eq)]
 pub struct SubprogramBody {
     pub body: body::BodyId,
+    pub imports: Vec<ItemId>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -203,8 +207,23 @@ pub struct Module {
     pub as_monitor: bool,
     pub def_id: symbol::LocalDefId,
     pub declares: Vec<ItemId>,
+    pub imports: Vec<ItemId>,
     pub exports: Vec<ExportItem>,
     pub body: body::BodyId,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct Import {
+    /// [`LocalDefId`](symbol::LocalDefId) of this specific import
+    pub def_id: symbol::LocalDefId,
+    pub mutability: ImportMutability,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum ImportMutability {
+    SameAsItem,
+    /// Also has a span pointing to the applicable attribute
+    Explicit(symbol::Mutability, SpanId),
 }
 
 #[derive(Debug, PartialEq, Eq)]

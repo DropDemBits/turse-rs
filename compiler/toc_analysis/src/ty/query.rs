@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 
-use toc_hir::item::{self, ParameterInfo};
+use toc_hir::item::{self, ImportMutability, ParameterInfo};
 use toc_hir::symbol::{BindingTo, Mutability, NotBinding};
 use toc_hir::{body, expr, stmt};
 use toc_hir::{
@@ -113,6 +113,8 @@ pub(crate) fn binding_to(
             item::ItemKind::Subprogram(item) => BindingTo::Subprogram(item.kind),
             item::ItemKind::Type(_) => BindingTo::Type,
             item::ItemKind::Module(_) => BindingTo::Module,
+            // Should have been canonicalized to the real def
+            item::ItemKind::Import(_) => unreachable!(),
         }),
         Some(DefOwner::ItemParam(item_id, param_def)) => {
             // Lookup the arg
@@ -251,6 +253,7 @@ pub(super) fn value_produced(
     }
 
     match value_src {
+        ValueSource::Def(def_id) => value_kind_from_binding(db, def_id),
         ValueSource::Body(lib_id, body_id) => {
             let library = db.library(lib_id);
             let body = library.body(body_id);
@@ -272,34 +275,69 @@ pub(super) fn value_produced(
                     expr::Name::Name(def_id) => {
                         let def_id = DefId(lib_id, *def_id);
 
-                        if let Some(DefOwner::Export(mod_id, export_id)) = db.def_owner(def_id) {
-                            // Keep track of export mutability
-                            let mutability =
-                                library.module_item(mod_id).export(export_id).mutability;
+                        match db.def_owner(def_id) {
+                            Some(DefOwner::Export(mod_id, export_id)) => {
+                                // Keep track of export mutability
+                                let mutability =
+                                    library.module_item(mod_id).export(export_id).mutability;
 
-                            // Take initially from the binding kind
-                            let kind = value_kind_from_binding(db, def_id)?;
+                                // Take initially from the binding kind
+                                let kind = value_kind_from_binding(db, def_id)?;
 
-                            // Apply appropriate mutability
-                            // Both must be mutable to be applicable as mutable
-                            Ok(match (mutability, kind) {
-                                (_, ValueKind::Scalar) => ValueKind::Scalar,
-                                (Mutability::Var, ValueKind::Register(Mutability::Var)) => {
-                                    ValueKind::Register(Mutability::Var)
+                                // Apply appropriate mutability
+                                // Both must be mutable to be applicable as mutable
+                                Ok(match (mutability, kind) {
+                                    (_, ValueKind::Scalar) => ValueKind::Scalar,
+                                    (Mutability::Var, ValueKind::Register(Mutability::Var)) => {
+                                        ValueKind::Register(Mutability::Var)
+                                    }
+                                    (Mutability::Var, ValueKind::Reference(Mutability::Var)) => {
+                                        ValueKind::Reference(Mutability::Var)
+                                    }
+                                    (_, ValueKind::Register(_)) => {
+                                        ValueKind::Register(Mutability::Const)
+                                    }
+                                    (_, ValueKind::Reference(_)) => {
+                                        ValueKind::Reference(Mutability::Const)
+                                    }
+                                })
+                            }
+                            Some(DefOwner::Item(item_id)) => {
+                                match &library.item(item_id).kind {
+                                    // Special case for imports
+                                    item::ItemKind::Import(item) => {
+                                        let mutability = item.mutability;
+
+                                        // Take initially from the binding kind
+                                        let kind = value_kind_from_binding(db, def_id)?;
+
+                                        // Apply appropriate mutability
+                                        // We're trusting that the appropriate mutability is applicable
+                                        // FIXME: Do the same thing for exports
+                                        Ok(match kind {
+                                            ValueKind::Scalar => ValueKind::Scalar,
+                                            ValueKind::Reference(_) => match mutability {
+                                                ImportMutability::SameAsItem => kind,
+                                                ImportMutability::Explicit(muta, _) => {
+                                                    ValueKind::Reference(muta)
+                                                }
+                                            },
+                                            ValueKind::Register(_) => match mutability {
+                                                ImportMutability::SameAsItem => kind,
+                                                ImportMutability::Explicit(muta, _) => {
+                                                    ValueKind::Register(muta)
+                                                }
+                                            },
+                                        })
+                                    }
+                                    // Take directly from the binding kind
+                                    _ => value_kind_from_binding(db, def_id),
                                 }
-                                (Mutability::Var, ValueKind::Reference(Mutability::Var)) => {
-                                    ValueKind::Reference(Mutability::Var)
-                                }
-                                (_, ValueKind::Register(_)) => {
-                                    ValueKind::Register(Mutability::Const)
-                                }
-                                (_, ValueKind::Reference(_)) => {
-                                    ValueKind::Reference(Mutability::Const)
-                                }
-                            })
-                        } else {
-                            // Take directly from the binding kind
-                            value_kind_from_binding(db, def_id)
+                            }
+                            _ => {
+                                // Take directly from the binding kind
+                                value_kind_from_binding(db, def_id)
+                            }
                         }
                     }
                     expr::Name::Self_ => unimplemented!(),

@@ -1,0 +1,17 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+expression: "\n    var a_def : int\n    proc _\n        import a_def\n    end _"
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(3)
+    Module@(FileId(1), 0..62): "<root>"@(dummy)
+      StmtBody@(FileId(1), 5..62): []
+        StmtItem@(FileId(1), 5..20): ItemId(0)
+          ConstVar@(FileId(1), 5..20): var "a_def"@(FileId(1), 9..14)
+            Primitive@(FileId(1), 17..20): Int
+        StmtItem@(FileId(1), 25..62): ItemId(2)
+          Subprogram@(FileId(1), 25..62): "_"@(FileId(1), 30..31)
+            Void@(FileId(1), 25..31)
+            Import@(FileId(1), 47..52): SameAsItem "a_def"@(FileId(1), 47..52)
+            StmtBody@(FileId(1), 57..57): []
+

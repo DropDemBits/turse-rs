@@ -1749,6 +1749,7 @@ fn report_not_value<'db, DB>(
     // "`{name}` declared here"
 
     let binding_src = match value_src {
+        db::ValueSource::Def(def_id) => def_id.into(),
         db::ValueSource::Body(lib_id, body_id) => (lib_id, body_id).into(),
         db::ValueSource::BodyExpr(lib_id, body_expr) => (lib_id, body_expr).into(),
     };

@@ -2,7 +2,7 @@
 use std::collections::HashMap;
 
 use indexmap::IndexMap;
-use toc_hir::symbol::syms;
+use toc_hir::symbol::{syms, LocalDefId};
 use toc_hir::{
     expr, item,
     stmt::{self, Assign},
@@ -77,11 +77,15 @@ impl super::BodyLowering<'_, '_> {
             ast::Stmt::InitStmt(_) => self.unsupported_stmt(span),
             ast::Stmt::PostStmt(_) => self.unsupported_stmt(span),
             ast::Stmt::HandlerStmt(_) => self.unsupported_stmt(span),
+
+            // These are for versions of the statement that aren't in the correct position
+            // They're already handled by `toc_validator`, so they can just be `None`
             ast::Stmt::InheritStmt(_) => self.unsupported_stmt(span),
             ast::Stmt::ImplementStmt(_) => self.unsupported_stmt(span),
             ast::Stmt::ImplementByStmt(_) => self.unsupported_stmt(span),
-            ast::Stmt::ImportStmt(_) => self.unsupported_stmt(span),
-            ast::Stmt::ExportStmt(_) => self.unsupported_stmt(span),
+            ast::Stmt::ImportStmt(_) => None,
+            ast::Stmt::ExportStmt(_) => None,
+
             ast::Stmt::PreprocGlob(_) => self.unsupported_stmt(span),
         };
 
@@ -465,9 +469,8 @@ impl super::BodyLowering<'_, '_> {
         param_list: &Option<item::ParamList>,
         result_name: Option<symbol::LocalDefId>,
     ) -> item::SubprogramBody {
-        // None of the extra bits are supported yet
         // TODO: Figure out a way of embedding these into the stmt_list
-        self.unsupported_node(decl.import_stmt());
+        // Probably by passing into `lower_stmt_body`
         self.unsupported_node(decl.pre_stmt());
         self.unsupported_node(decl.init_stmt());
         self.unsupported_node(decl.post_stmt());
@@ -477,21 +480,30 @@ impl super::BodyLowering<'_, '_> {
             .as_ref()
             .map_or(vec![], |params| params.names.clone());
 
-        let (body, _) = self.ctx.lower_stmt_body(
-            ScopeKind::Subprogram,
-            decl.stmt_list().unwrap(),
-            param_defs,
-            result_name,
-        );
+        self.ctx.scopes.push_scope(ScopeKind::Subprogram);
+        let (body, imports) = {
+            // Lowering needs to be done inside of the target scope
+            let (imports, import_defs) = self.lower_import_list(decl.import_stmt());
 
-        item::SubprogramBody { body }
+            let (body, _) = self.ctx.lower_stmt_body(
+                ScopeKind::Block,
+                decl.stmt_list().unwrap(),
+                param_defs,
+                result_name,
+                &import_defs,
+            );
+
+            (body, imports)
+        };
+        self.ctx.scopes.pop_scope();
+
+        item::SubprogramBody { body, imports }
     }
 
     fn lower_module_decl(&mut self, decl: ast::ModuleDecl) -> Option<stmt::StmtKind> {
         let is_pervasive = decl.pervasive_attr().is_some();
         let def_id = self.lower_name_def(decl.name()?, SymbolKind::Declared, is_pervasive);
 
-        self.unsupported_node(decl.import_stmt());
         self.unsupported_node(decl.implement_stmt());
         self.unsupported_node(decl.implement_by_stmt());
 
@@ -499,18 +511,25 @@ impl super::BodyLowering<'_, '_> {
         self.unsupported_node(decl.post_stmt());
 
         self.ctx.scopes.push_scope(ScopeKind::Module);
-        let (body, declares) = {
+        let (body, declares, imports) = {
+            // Build imports
+            let (imports, import_defs) = self.lower_import_list(decl.import_stmt());
+
             if !is_pervasive {
                 // Also make visible in the inner scope if it's not pervasive
-                self.introduce_def(def_id, false);
-            }
+                self.ctx.introduce_def(def_id, false);
+            };
 
-            self.ctx.lower_stmt_body(
-                ScopeKind::Subprogram,
+            // Lower the rest of the body
+            let (body, declares) = self.ctx.lower_stmt_body(
+                ScopeKind::Block, // We're already inside an import boundary
                 decl.stmt_list().unwrap(),
                 vec![],
                 None,
-            )
+                &import_defs,
+            );
+
+            (body, declares, imports)
         };
         self.ctx.scopes.pop_scope();
 
@@ -525,7 +544,7 @@ impl super::BodyLowering<'_, '_> {
         }) {
             let is_pervasive = matches!(export.qualify_as, item::QualifyAs::PervasiveUnqualified);
 
-            self.introduce_def(export.def_id, is_pervasive);
+            self.ctx.introduce_def(export.def_id, is_pervasive);
         }
 
         let span = self.ctx.intern_range(decl.syntax().text_range());
@@ -535,13 +554,180 @@ impl super::BodyLowering<'_, '_> {
                 as_monitor: false,
                 def_id,
                 declares,
-                body,
+                imports,
                 exports,
+                body,
             }),
             span,
         });
 
         Some(stmt::StmtKind::Item(item_id))
+    }
+
+    // Exposed to parent mod for handling external imports
+    /// This also links imported defs to the target def that it's imported to relative to the surrounding scope
+    pub(super) fn lower_import_list(
+        &mut self,
+        imports: Option<ast::ImportStmt>,
+    ) -> (Vec<item::ItemId>, Vec<LocalDefId>) {
+        use std::collections::hash_map::Entry;
+
+        let imports = if let Some(imports) = imports {
+            imports
+        } else {
+            return Default::default();
+        };
+
+        let mut import_list = vec![];
+        let mut import_defs = vec![];
+        let mut already_imported = HashMap::new();
+
+        for import in imports.imports().unwrap().import_item() {
+            let ext_item = if let Some(item) = import.external_item() {
+                item
+            } else {
+                continue;
+            };
+
+            let is_const = import.attrs().and_then(|attrs| match attrs {
+                ast::ImportAttr::ConstAttr(node) => Some(node),
+                _ => None,
+            });
+            let is_var = import.attrs().and_then(|attrs| match attrs {
+                ast::ImportAttr::VarAttr(node) => Some(node),
+                _ => None,
+            });
+            let is_forward = import.attrs().and_then(|attrs| match attrs {
+                ast::ImportAttr::ForwardAttr(node) => Some(node),
+                _ => None,
+            });
+
+            // Mutabilty can only be one or the other, or not specified
+            let import_mut = match (is_const, is_var) {
+                (None, None) => item::ImportMutability::SameAsItem,
+                (Some(attr), None) => item::ImportMutability::Explicit(
+                    Mutability::Const,
+                    self.ctx.intern_range(attr.syntax().text_range()),
+                ),
+                (None, Some(attr)) => item::ImportMutability::Explicit(
+                    Mutability::Var,
+                    self.ctx.intern_range(attr.syntax().text_range()),
+                ),
+                (Some(is_const), Some(is_var)) => {
+                    // Can't be both mutable and constant
+                    let const_span = self.ctx.mk_span(is_const.syntax().text_range());
+                    let var_span = self.ctx.mk_span(is_var.syntax().text_range());
+
+                    // Pick reporting span to be the later one
+                    let report_at = const_span.max(var_span);
+                    self.ctx
+                        .messages
+                        .error_detailed(
+                            "cannot use `const` and `var` on the same import",
+                            report_at,
+                        )
+                        .with_error("first conflicting `const`", const_span)
+                        .with_error("first conflicting `var`", var_span)
+                        .finish();
+
+                    // Just use the same mutability as the item
+                    item::ImportMutability::SameAsItem
+                }
+            };
+
+            // Forms:
+            // Name
+            // Path
+            // Name in Path
+            // FIXME: If we're reusing this code, places for external imports need to be handled differently
+            if let Some(_path) = ext_item.path() {
+                // External imports aren't allowed here
+                let report_span = self.ctx.mk_span(ext_item.syntax().text_range());
+
+                self.ctx.messages.error(
+                    "cannot import external items here",
+                    "importing external items is not allowed inside inner module-likes",
+                    report_span,
+                );
+
+                continue;
+            }
+            // Skip items without names
+            let name = if let Some(name) = ext_item.name() {
+                name
+            } else {
+                continue;
+            };
+
+            // Report duplicate imports
+            // ???: dealing with path imports and name in path imports
+            let name_tok = name.identifier_token().unwrap();
+            let name_text = name_tok.text();
+            match already_imported.entry(Symbol::new(name_text)) {
+                Entry::Occupied(entry) => {
+                    // Already imported
+                    let this_span = self.ctx.mk_span(import.syntax().text_range());
+                    self.ctx
+                        .messages
+                        .error_detailed("import item is ignored", this_span)
+                        .with_error(format!("`{name_text}` is already imported..."), this_span)
+                        .with_note("by this import", *entry.get())
+                        .finish();
+
+                    continue;
+                }
+                Entry::Vacant(entry) => entry.insert(self.ctx.mk_span(name_tok.text_range())),
+            };
+
+            // ???: Handling forward imports :???
+            // For now, we'll reject it, and properly deal with it when we deal with
+            // `forward` declarations
+            if let Some(is_forward) = is_forward {
+                self.ctx.messages.error(
+                    "unsupported import attribute",
+                    "`forward` imports are not supported yet",
+                    self.ctx.mk_span(is_forward.syntax().text_range()),
+                );
+            }
+
+            // Make an imported def
+            // Resolve it right now
+            let imported_def = if let Some(def_id) = self.ctx.scopes.import_sym(name_text.into()) {
+                def_id
+            } else {
+                // Make an undeclared
+                let def_at = self.ctx.mk_span(name.syntax().text_range());
+                let name = name_text;
+
+                self.ctx.messages.error(
+                    format!("`{name}` could not be imported"),
+                    format!("no definitions of `{name}` found in the surrounding scope"),
+                    def_at,
+                );
+
+                let def_at = self.ctx.library.intern_span(def_at);
+                self.ctx
+                    .library
+                    .add_def(name.into(), def_at, symbol::SymbolKind::Undeclared)
+            };
+
+            let span = self.ctx.intern_range(import.syntax().text_range());
+            let def_id = self.name_to_def(name, SymbolKind::ItemImport(imported_def));
+            import_defs.push(def_id);
+
+            let item_id = self.ctx.library.add_item(item::Item {
+                def_id,
+                kind: item::ItemKind::Import(item::Import {
+                    def_id,
+                    mutability: import_mut,
+                }),
+                span,
+            });
+
+            import_list.push(item_id);
+        }
+
+        (import_list, import_defs)
     }
 
     fn lower_export_list(
@@ -706,6 +892,7 @@ impl super::BodyLowering<'_, '_> {
                     match already_exported.entry(name_text) {
                         std::collections::hash_map::Entry::Occupied(entry) => {
                             // Already exported
+                            // FIXME: Raise level to an error
                             let this_span = self.ctx.mk_span(exports_item.syntax().text_range());
                             self.ctx
                                 .messages
@@ -1229,7 +1416,7 @@ impl super::BodyLowering<'_, '_> {
         let def_id = self.name_to_def(name, kind);
 
         // Bring into scope
-        self.introduce_def(def_id, is_pervasive);
+        self.ctx.introduce_def(def_id, is_pervasive);
 
         def_id
     }
@@ -1238,129 +1425,6 @@ impl super::BodyLowering<'_, '_> {
         let token = name.identifier_token().unwrap();
         let span = self.ctx.intern_range(token.text_range());
         self.ctx.library.add_def(token.text().into(), span, kind)
-    }
-
-    fn introduce_def(&mut self, def_id: symbol::LocalDefId, is_pervasive: bool) {
-        let def_info = self.ctx.library.local_def(def_id);
-        let name = def_info.name;
-        let span = def_info.def_at;
-        let kind = def_info.kind;
-
-        // Bring into scope
-        let old_def = self.ctx.scopes.def_sym(name, def_id, kind, is_pervasive);
-
-        // Resolve any associated forward decls
-        if let SymbolKind::Resolved(resolve_kind) = kind {
-            let forward_list = self.ctx.scopes.take_resolved_forwards(name, resolve_kind);
-
-            if let Some(forward_list) = forward_list {
-                // Point all of these local defs to this one
-                for forward_def in forward_list {
-                    let def_info = self.ctx.library.local_def_mut(forward_def);
-
-                    match &mut def_info.kind {
-                        SymbolKind::Forward(_, resolve_to) => *resolve_to = Some(def_id),
-                        _ => unreachable!("not a forward def"),
-                    }
-                }
-            }
-        }
-
-        if let Some(old_def) = old_def {
-            // Report redeclares, specializing based on what kind of declaration it is
-            let old_def_info = self.ctx.library.local_def(old_def);
-
-            let old_span = old_def_info.def_at.lookup_in(&self.ctx.library);
-            let new_span = span.lookup_in(&self.ctx.library);
-
-            // Just use the name from the old def for both, since by definition they are the same
-            let name = old_def_info.name;
-
-            match (old_def_info.kind, kind) {
-                (SymbolKind::Undeclared, _) | (_, SymbolKind::Undeclared) => {
-                    // Always ok to declare over undeclared symbols
-                }
-                (SymbolKind::Forward(other_kind, _), SymbolKind::Forward(this_kind, _))
-                    if other_kind == this_kind =>
-                {
-                    // Duplicate forward declare
-                    self.ctx
-                        .messages
-                        .error_detailed(
-                            format!("`{name}` is already a forward declaration"),
-                            new_span,
-                        )
-                        .with_note("previous forward declaration here", old_span)
-                        .with_error("new one here", new_span)
-                        .finish();
-                }
-                (SymbolKind::Forward(other_kind, resolve_to), SymbolKind::Resolved(this_kind))
-                    if other_kind == this_kind =>
-                {
-                    // resolve_to: none -> didn't change
-                    // resolve_to: some(== def_id) -> did change, this resolved it
-                    // resolve_to: some(!= def_id) -> didn't change, this didn't resolve it (ok to note as redeclare)
-
-                    if resolve_to.is_none() {
-                        // Forwards must be resolved to the same scope
-                        // This declaration didn't resolve it, which only happens if they're not in the same scope
-                        self.ctx
-                            .messages
-                            .error_detailed(
-                                format!("`{name}` must be resolved in the same scope"),
-                                new_span,
-                            )
-                            .with_note(format!("forward declaration of `{name}` here"), old_span)
-                            .with_error(
-                                format!("resolution of `{name}` is not in the same scope"),
-                                new_span,
-                            )
-                            .finish();
-                    } else {
-                        // This shouldn't ever fail, since if a symbol is moving from
-                        // forward to resolved, this is the declaration that should've
-                        // done it.
-                        assert_eq!(
-                            resolve_to,
-                            Some(def_id),
-                            "encountered a forward not resolved by this definition"
-                        );
-                    }
-                }
-                (_, SymbolKind::ItemExport(exported_from)) => {
-                    // From an unqualified export in a local module
-                    // Use the originating item as the top-level error span
-                    let from_item_span = self
-                        .ctx
-                        .library
-                        .local_def(exported_from)
-                        .def_at
-                        .lookup_in(&self.ctx.library);
-
-                    self.ctx
-                        .messages
-                        .error_detailed(
-                            format!("`{name}` is already declared in the parent scope"),
-                            from_item_span,
-                        )
-                        .with_note(format!("`{name}` previously declared here"), old_span)
-                        .with_error(format!("`{name}` exported from here"), new_span)
-                        .finish();
-                }
-                _ => {
-                    // From a new declaration
-                    self.ctx
-                        .messages
-                        .error_detailed(
-                            format!("`{name}` is already declared in this scope"),
-                            new_span,
-                        )
-                        .with_note(format!("`{name}` previously declared here"), old_span)
-                        .with_error(format!("`{name}` redeclared here"), new_span)
-                        .finish();
-                }
-            }
-        }
     }
 }
 

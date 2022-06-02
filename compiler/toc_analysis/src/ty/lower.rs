@@ -293,6 +293,7 @@ pub(crate) fn ty_from_item(db: &dyn TypeDatabase, item_id: InLibrary<item::ItemI
         item::ItemKind::Binding(item) => bind_def_ty(db, item_id, item),
         item::ItemKind::Subprogram(item) => subprogram_item_ty(db, item_id, item),
         item::ItemKind::Module(_) => db.mk_error(), // Modules can't be used as types directly
+        item::ItemKind::Import(item) => import_item_ty(db, item_id, item),
     }
 }
 
@@ -410,6 +411,15 @@ fn subprogram_item_ty(
     let result_ty = require_resolved_hir_type(db, item.result.ty.in_library(library_id));
 
     db.mk_subprogram(item.kind, param_ty, result_ty)
+}
+
+fn import_item_ty(
+    db: &dyn TypeDatabase,
+    item_id: InLibrary<item::ItemId>,
+    item: &item::Import,
+) -> TypeId {
+    // Defer to the canonical def's ty
+    db.type_of(db.resolve_def(DefId(item_id.0, item.def_id)).into())
 }
 
 pub(crate) fn ty_from_item_param(
