@@ -706,12 +706,9 @@ impl super::BodyLowering<'_, '_> {
                 );
 
                 let def_at = self.ctx.library.intern_span(def_at);
-                let undecl_def =
-                    self.ctx
-                        .library
-                        .add_def(name.into(), def_at, symbol::SymbolKind::Undeclared);
-
-                undecl_def
+                self.ctx
+                    .library
+                    .add_def(name.into(), def_at, symbol::SymbolKind::Undeclared)
             };
 
             let span = self.ctx.intern_range(import.syntax().text_range());
