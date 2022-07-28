@@ -1,11 +1,15 @@
 use std::collections::HashMap;
 
+use indexmap::IndexSet;
 use petgraph::{
     graph::{DiGraph, EdgeIndex, NodeIndex},
     stable_graph::StableDiGraph,
     visit::{DfsPostOrder, Visitable},
 };
 use toc_span::FileId;
+
+#[cfg(test)]
+mod test;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SourceDepend {
@@ -27,7 +31,7 @@ type SourceDepGraph = DiGraph<(FileId, SourceKind), ()>;
 pub struct SourceGraph {
     /// Dependencies between library roots
     libraries: LibraryGraph,
-    library_roots: Vec<NodeIndex>,
+    library_roots: IndexSet<NodeIndex>,
     library_to_node: HashMap<FileId, NodeIndex>,
 }
 
@@ -36,10 +40,11 @@ impl SourceGraph {
         Self::default()
     }
 
-    /// Adds a library to the source graph, marking it as a library graph root
+    /// Adds a library to the source graph, marking it as a library graph root.
+    /// Does nothing if it's already a library graph root.
     pub fn add_root(&mut self, library: FileId) {
         let root = self.get_or_insert_library(library);
-        self.library_roots.push(root);
+        self.library_roots.insert(root);
     }
 
     /// Removes a library from the source graph
@@ -149,7 +154,7 @@ impl DependGraph {
 #[derive(Debug, Clone)]
 pub struct LibraryRoots<'g, 'r> {
     graph: &'g LibraryGraph,
-    roots: std::slice::Iter<'r, NodeIndex>,
+    roots: indexmap::set::Iter<'r, NodeIndex>,
     visitor: Option<DfsPostOrder<NodeIndex, <LibraryGraph as Visitable>::Map>>,
 }
 
