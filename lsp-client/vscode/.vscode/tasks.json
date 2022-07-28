@@ -11,6 +11,14 @@
             "label": "npm: watch",
             "detail": "grunt watch",
             "isBackground": true
+        },
+        {
+            "type": "npm",
+            "script": "compile",
+            "group": "build",
+            "problemMatcher": [],
+            "label": "npm: compile",
+            "detail": "grunt compile"
         }
     ]
 }

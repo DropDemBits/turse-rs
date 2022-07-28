@@ -2,6 +2,7 @@ import * as path from 'path';
 import { workspace, ExtensionContext } from 'vscode';
 
 import {
+    Executable,
     LanguageClient,
     LanguageClientOptions,
     ServerOptions,
@@ -10,15 +11,29 @@ import {
 let client: LanguageClient;
 
 export function activate(context: ExtensionContext) {
+    const logLevel = workspace.getConfiguration('turing.logging').get('level') ?? 'info';
+    console.log(logLevel);
+    
     // Server is an external binary
     let serverExe = context.asAbsolutePath(
         path.join('server', 'turing-lsp-server')
     );
 
     // Use the default launch options
+    let serverExec: Executable = {
+        command: serverExe ,
+        options: {
+            env: {
+                ... process.env,
+                // Literal name of the env var
+                // eslint-disable-next-line @typescript-eslint/naming-convention
+                'RUST_LOG': `${logLevel}`,
+            }
+        }
+    };
     let serverOptions: ServerOptions = {
-        run: { command: serverExe },
-        debug: { command: serverExe },
+        debug: serverExec,
+        run: serverExec
     };
 
     // Options to control the language client

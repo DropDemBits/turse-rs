@@ -14,6 +14,7 @@ use toc_ast_db::{
 use toc_salsa::salsa;
 use toc_vfs::{LoadError, LoadStatus};
 use toc_vfs_db::db::VfsDatabaseExt;
+use tracing::error;
 
 #[derive(Default)]
 pub(crate) struct ServerState {
@@ -28,7 +29,7 @@ impl ServerState {
         let path = if let Ok(path) = uri.to_file_path() {
             path
         } else {
-            eprintln!("BUG: Encountered bad path during file open: {uri:?}");
+            error!("BUG: Encountered bad path during file open: {uri:?}");
             return;
         };
 
@@ -44,7 +45,7 @@ impl ServerState {
         let path = if let Ok(path) = uri.to_file_path() {
             path
         } else {
-            eprintln!("BUG: Encountered bad path during file close: {uri:?}");
+            error!("BUG: Encountered bad path during file close: {uri:?}");
             return;
         };
 
@@ -64,7 +65,7 @@ impl ServerState {
         let path = if let Ok(path) = uri.to_file_path() {
             path
         } else {
-            eprintln!("BUG: Encountered bad path during file change: {uri:?}");
+            error!("BUG: Encountered bad path during file change: {uri:?}");
             return;
         };
 
@@ -130,7 +131,7 @@ impl ServerState {
             let range = if let Some(span) = self.map_span_to_location(msg.span()) {
                 span.range
             } else {
-                eprintln!("BUG: Encountered bad message span (Original message: {msg:#?})");
+                error!("BUG: Encountered bad message span (Original message: {msg:#?})");
                 continue;
             };
 
@@ -143,7 +144,7 @@ impl ServerState {
                         if let Some(location) = self.map_span_to_location(annotate.span()) {
                             location
                         } else {
-                            eprintln!(
+                            error!(
                                 "BUG: Encountered bad annotation span (Original annotation (from {range:?}): {annotate:#?})"
                             );
                             return None;
