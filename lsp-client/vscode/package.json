@@ -43,7 +43,18 @@
                 "scopeName": "source.turing",
                 "path": "./dist/turing.tmLanguage.json"
             }
-        ]
+        ],
+        "configuration": {
+            "title": "Turing Language Support",
+            "properties": {
+                "turing.logging.level": {
+                    "type": "string",
+                    "description": "Verbosity of the language server's logging output",
+                    "enum": ["error", "warn", "info", "debug", "trace"],
+                    "default": "info"
+                }
+            }
+        }
     },
     "scripts": {
         "vscode:prepublish": "npm run package",

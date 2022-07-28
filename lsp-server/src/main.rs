@@ -9,6 +9,8 @@ use lsp_types::{
     TextDocumentItem, TextDocumentSyncCapability, TextDocumentSyncKind,
     VersionedTextDocumentIdentifier,
 };
+use tracing::{debug, info, trace};
+use tracing_subscriber::EnvFilter;
 
 mod state;
 
@@ -16,7 +18,14 @@ type DynError = Box<dyn Error + Sync + Send>;
 
 fn main() -> Result<(), DynError> {
     // logging on stderr
-    eprintln!("Starting LSP server");
+    let subscriber = tracing_subscriber::FmtSubscriber::builder()
+        .with_env_filter(EnvFilter::from_default_env())
+        .with_writer(std::io::stderr)
+        .with_ansi(false)
+        .finish();
+    tracing::subscriber::set_global_default(subscriber)?;
+
+    info!("Starting LSP server");
 
     let (connection, io_threads) = Connection::stdio();
 
@@ -30,7 +39,7 @@ fn main() -> Result<(), DynError> {
     main_loop(&connection, init_params)?;
     io_threads.join()?;
 
-    eprintln!("Shutting down LSP server");
+    info!("Shutting down LSP server");
     Ok(())
 }
 
@@ -40,10 +49,10 @@ fn main_loop(
 ) -> Result<(), Box<dyn Error + Send + Sync>> {
     let mut state = state::ServerState::default();
     let _params: InitializeParams = serde_json::from_value(params).unwrap();
-    eprintln!("listening for messages");
+    debug!("listening for messages");
 
     for msg in &connection.receiver {
-        eprintln!("recv {msg:?}");
+        trace!("recv {msg:?}");
 
         match msg {
             Message::Request(req) => {
@@ -78,7 +87,7 @@ fn handle_request(
     }
     let req = Some(req);
 
-    eprintln!("recv req {req:?}");
+    debug!("recv req {req:?}");
 
     Ok(())
 }
@@ -101,7 +110,7 @@ fn handle_notify(
     }
     let mut notify = Some(notify);
 
-    eprintln!("recv notify {notify:?}");
+    trace!("recv notify {notify:?}");
 
     if let Some(params) = cast::<DidOpenTextDocument>(&mut notify) {
         let TextDocumentItem {
@@ -109,11 +118,11 @@ fn handle_notify(
         } = params.text_document;
 
         // update file store representation first
-        eprintln!("open, updating file store @ {:?}", uri.as_str());
+        debug!("open, updating file store @ {:?}", uri.as_str());
         state.open_file(&uri, version, text);
 
         // pub diagnostics
-        eprintln!("post-open, sending diagnostics @ {:?}", uri.as_str());
+        debug!("post-open, sending diagnostics @ {:?}", uri.as_str());
         check_document(state, connection, uri)?;
     } else if let Some(params) = cast::<DidChangeTextDocument>(&mut notify) {
         let VersionedTextDocumentIdentifier { uri, version } = params.text_document;
@@ -121,12 +130,12 @@ fn handle_notify(
         state.apply_changes(&uri, version, params.content_changes);
 
         // pub diagnostics
-        eprintln!("change, sending diagnostics @ {:?}", uri.as_str());
+        debug!("change, sending diagnostics @ {:?}", uri.as_str());
         check_document(state, connection, uri)?;
     } else if let Some(params) = cast::<DidCloseTextDocument>(&mut notify) {
         let TextDocumentIdentifier { uri } = params.text_document;
 
-        eprintln!("closing, updating file store");
+        debug!("closing, updating file store");
         state.close_file(&uri);
     }
 
@@ -141,7 +150,8 @@ fn check_document(
     use lsp_types::notification::Notification as NotificationTrait;
     // Collect diagnostics
     let diagnostics = state.collect_diagnostics();
-    eprintln!("finished analysis @ {:?}", uri.as_str());
+    debug!("finished analysis @ {:?}", uri.as_str());
+    debug!("gathered diagnostics: {diagnostics:#?}");
 
     for (path, bundle) in diagnostics {
         let uri =
