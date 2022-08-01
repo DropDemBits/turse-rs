@@ -6,7 +6,7 @@ use toc_hir::{
     body, expr, item,
     library::{InLibrary, LibraryId, WrapInLibrary},
     stmt,
-    symbol::{self, BindingResultExt, BindingTo, DefId, LocalDefId},
+    symbol::{self, BindingResultExt, DefId, LocalDefId, SymbolKind},
     ty as hir_ty,
 };
 
@@ -101,7 +101,7 @@ fn alias_ty(
 
     if db
         .binding_to(def_id.into())
-        .map(BindingTo::is_type)
+        .map(SymbolKind::is_type)
         .or_missing()
     {
         // Defer to the type's definition
@@ -512,7 +512,7 @@ fn for_counter_ty(
                 // Must be a type alias
                 if !db
                     .binding_to(binding_def.into())
-                    .map(BindingTo::is_type)
+                    .map(SymbolKind::is_type)
                     .or_missing()
                 {
                     return db.mk_error();

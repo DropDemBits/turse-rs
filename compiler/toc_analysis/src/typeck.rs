@@ -13,7 +13,8 @@ use toc_hir::{
     stmt,
     stmt::BodyStmt,
     symbol::{
-        BindingResultExt, BindingTo, DefId, DefOwner, Mutability, NotBinding, SubprogramKind,
+        BindingResultExt, DefId, DefOwner, IsRegister, Mutability, NotBinding, SubprogramKind,
+        SymbolKind,
     },
 };
 use toc_reporting::CompileResult;
@@ -874,17 +875,12 @@ impl TypeCheck<'_> {
                     unreachable!("see attached comment for more info")
                 };
 
-                // TODO: This is to be replaced with looking up the def info and its associated SymbolKind
-                let is_type = if let Some(DefOwner::Item(item_id)) = db.def_owner(binding_def) {
-                    let library = db.library(binding_def.0);
-                    matches!(&library.item(item_id).kind, item::ItemKind::Type(_))
-                } else {
-                    false
-                };
-
-                if !is_type {
+                if !db
+                    .symbol_kind(binding_def)
+                    .map_or(true, SymbolKind::is_type)
+                {
                     self.report_mismatched_binding(
-                        BindingTo::Type,
+                        SymbolKind::Type,
                         binding_def.into(),
                         bounds_span,
                         bounds_span,
@@ -1747,7 +1743,7 @@ impl TypeCheck<'_> {
 
             if !matches_pass_by {
                 self.report_mismatched_binding(
-                    BindingTo::Storage(mutability),
+                    SymbolKind::ConstVar(mutability, IsRegister::No),
                     arg_expr.into(),
                     arg_span,
                     arg_span,
@@ -1874,7 +1870,7 @@ impl TypeCheck<'_> {
 
             if !actual_value.map(ValueKind::is_value).or_missing() {
                 self.report_mismatched_binding(
-                    BindingTo::Storage(Mutability::Var),
+                    SymbolKind::ConstVar(Mutability::Var, IsRegister::No),
                     expr_id.into(),
                     actual_span,
                     actual_span,
@@ -2014,11 +2010,11 @@ impl TypeCheck<'_> {
 
         let binding_to = self.db.binding_to(def_id.into());
 
-        if !binding_to.map(BindingTo::is_type).or_missing() {
+        if !binding_to.map(SymbolKind::is_type).or_missing() {
             let span = span.lookup_in(library);
 
             self.report_mismatched_binding(
-                BindingTo::Type,
+                SymbolKind::Type,
                 def_id.into(),
                 span,
                 span,
@@ -2528,7 +2524,7 @@ impl TypeCheck<'_> {
 
     fn report_mismatched_binding(
         &self,
-        expected: BindingTo,
+        expected: SymbolKind,
         binding_source: crate::db::BindingSource,
         report_at: Span,
         binding_span: Span,
@@ -2663,10 +2659,7 @@ impl TypeCheck<'_> {
             let mut builder = state.reporter.error_detailed(from_thing(&thing), report_at);
 
             builder = if let Some((def_id, def_at, binding_to)) = def_info {
-                builder = if matches!(
-                    binding_to,
-                    BindingTo::Storage(Mutability::Var) | BindingTo::Register(Mutability::Var)
-                ) {
+                builder = if binding_to.is_ref_mut() {
                     // Originally was mutable
                     // Likely from an export or import
 
@@ -2724,9 +2717,7 @@ impl TypeCheck<'_> {
                         .with_note(format!("{thing} declared here"), def_at)
                 };
 
-                if matches!(binding_to, BindingTo::Type)
-                    && matches!(expected_kind, ExpectedValue::Value)
-                {
+                if binding_to.is_type() && matches!(expected_kind, ExpectedValue::Value) {
                     // Check if this is a set type
                     let ty_ref = self.db.type_of(def_id.into()).in_db(self.db).to_base_type();
 

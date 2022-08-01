@@ -1,5 +1,5 @@
 //! Scope testing
-use toc_hir::symbol::{ForwardKind, LocalDefId, SymbolKind};
+use toc_hir::symbol::{DeclareKind, ForwardKind, LocalDefId};
 
 use crate::scopes::ScopeKind;
 
@@ -33,7 +33,7 @@ fn test_ident_declare_use() {
     let mut defs = LocalDefAlloc::default();
 
     let def_id = defs.next();
-    scopes.def_sym("a".into(), def_id, SymbolKind::Declared, false);
+    scopes.def_sym("a".into(), def_id, DeclareKind::Declared, false);
     let lookup_id = scopes.use_sym("a".into(), assert_declared);
 
     assert_eq!(def_id, lookup_id);
@@ -46,12 +46,12 @@ fn test_ident_redeclare() {
 
     // First decl, pass
     let initial_id = defs.next();
-    let old_def = scopes.def_sym("a".into(), initial_id, SymbolKind::Declared, false);
+    let old_def = scopes.def_sym("a".into(), initial_id, DeclareKind::Declared, false);
     assert_eq!(old_def, None);
 
     // Redecl, have different ids
     let redeclare_id = defs.next();
-    let old_def = scopes.def_sym("a".into(), redeclare_id, SymbolKind::Declared, false);
+    let old_def = scopes.def_sym("a".into(), redeclare_id, DeclareKind::Declared, false);
 
     assert_ne!(initial_id, redeclare_id);
     // Should be the initial id
@@ -66,13 +66,13 @@ fn test_ident_declare_shadow() {
 
     // Outer declare
     let outer_def = defs.next();
-    let old_def = scopes.def_sym("a".into(), outer_def, SymbolKind::Declared, false);
+    let old_def = scopes.def_sym("a".into(), outer_def, DeclareKind::Declared, false);
     assert_eq!(old_def, None);
 
     // Inner declare
     scopes.with_scope(false, |scopes| {
         let shadow_def = defs.next();
-        let old_def = scopes.def_sym("a".into(), shadow_def, SymbolKind::Declared, false);
+        let old_def = scopes.def_sym("a".into(), shadow_def, DeclareKind::Declared, false);
 
         // Identifiers should be different
         assert_ne!(shadow_def, outer_def);
@@ -95,7 +95,7 @@ fn test_ident_declare_no_shadow() {
     // Inner declare
     let (shadow_def, shadow_use) = scopes.with_scope(false, |scopes| {
         let shadow_def = defs.next();
-        let old_def = scopes.def_sym("a".into(), shadow_def, SymbolKind::Declared, false);
+        let old_def = scopes.def_sym("a".into(), shadow_def, DeclareKind::Declared, false);
         let shadow_use = scopes.use_sym("a".into(), assert_declared);
 
         assert!(old_def.is_none());
@@ -105,7 +105,7 @@ fn test_ident_declare_no_shadow() {
 
     // Outer declare
     let outer_def = defs.next();
-    let old_def = scopes.def_sym("a".into(), outer_def, SymbolKind::Declared, false);
+    let old_def = scopes.def_sym("a".into(), outer_def, DeclareKind::Declared, false);
     let outer_use = scopes.use_sym("a".into(), assert_declared);
 
     // No shadowing should be done, outer_use should match outer_def,
@@ -167,7 +167,7 @@ fn test_use_import() {
 
     // Root declare
     let declare_id = defs.next();
-    scopes.def_sym("a".into(), declare_id, SymbolKind::Declared, false);
+    scopes.def_sym("a".into(), declare_id, DeclareKind::Declared, false);
 
     // Inner use
     scopes.with_scope(false, |scopes| {
@@ -188,11 +188,11 @@ fn test_import_boundaries() {
     scopes.def_sym(
         "non_pervasive".into(),
         non_pervasive,
-        SymbolKind::Declared,
+        DeclareKind::Declared,
         false,
     );
     let pervasive = defs.next();
-    scopes.def_sym("pervasive".into(), pervasive, SymbolKind::Declared, true);
+    scopes.def_sym("pervasive".into(), pervasive, DeclareKind::Declared, true);
     let undecl = scopes.use_sym("undecl".into(), make_undeclared(&mut defs));
 
     // Make an inner block
@@ -231,14 +231,14 @@ fn test_forward_declare() {
     scopes.def_sym(
         "fwd".into(),
         forward_def,
-        SymbolKind::Forward(ForwardKind::Type, None),
+        DeclareKind::Forward(ForwardKind::Type, None),
         false,
     );
     let resolve_def = defs.next();
     scopes.def_sym(
         "fwd".into(),
         resolve_def,
-        SymbolKind::Resolved(ForwardKind::Type),
+        DeclareKind::Resolved(ForwardKind::Type),
         false,
     );
 
@@ -260,14 +260,14 @@ fn test_forward_declare_double() {
     scopes.def_sym(
         "fwd".into(),
         forward_def0,
-        SymbolKind::Forward(ForwardKind::Type, None),
+        DeclareKind::Forward(ForwardKind::Type, None),
         false,
     );
     let forward_def1 = defs.next();
     scopes.def_sym(
         "fwd".into(),
         forward_def1,
-        SymbolKind::Forward(ForwardKind::Type, None),
+        DeclareKind::Forward(ForwardKind::Type, None),
         false,
     );
 
@@ -275,7 +275,7 @@ fn test_forward_declare_double() {
     scopes.def_sym(
         "fwd".into(),
         resolve_def,
-        SymbolKind::Resolved(ForwardKind::Type),
+        DeclareKind::Resolved(ForwardKind::Type),
         false,
     );
 
@@ -299,20 +299,20 @@ fn test_forward_declare_overwritten() {
     scopes.def_sym(
         "fwd".into(),
         forward_type,
-        SymbolKind::Forward(ForwardKind::Type, None),
+        DeclareKind::Forward(ForwardKind::Type, None),
         false,
     );
     scopes.def_sym(
         "fwd".into(),
         forward_proc,
-        SymbolKind::Forward(ForwardKind::_Procedure, None),
+        DeclareKind::Forward(ForwardKind::_Procedure, None),
         false,
     );
 
     scopes.def_sym(
         "fwd".into(),
         resolve_def,
-        SymbolKind::Resolved(ForwardKind::Type),
+        DeclareKind::Resolved(ForwardKind::Type),
         false,
     );
 
@@ -336,15 +336,15 @@ fn test_forward_declare_overwritten_normal() {
     scopes.def_sym(
         "fwd".into(),
         forward_type,
-        SymbolKind::Forward(ForwardKind::Type, None),
+        DeclareKind::Forward(ForwardKind::Type, None),
         false,
     );
-    scopes.def_sym("fwd".into(), normal_def, SymbolKind::Declared, false);
+    scopes.def_sym("fwd".into(), normal_def, DeclareKind::Declared, false);
 
     scopes.def_sym(
         "fwd".into(),
         resolve_def,
-        SymbolKind::Resolved(ForwardKind::Type),
+        DeclareKind::Resolved(ForwardKind::Type),
         false,
     );
 
@@ -371,7 +371,7 @@ fn test_forward_resolve_only_same_scope() {
     scopes.def_sym(
         "fwd".into(),
         forward_def,
-        SymbolKind::Forward(ForwardKind::Type, None),
+        DeclareKind::Forward(ForwardKind::Type, None),
         true,
     );
 
@@ -380,7 +380,7 @@ fn test_forward_resolve_only_same_scope() {
         scopes.def_sym(
             "fwd".into(),
             inner_def,
-            SymbolKind::Forward(ForwardKind::Type, None),
+            DeclareKind::Forward(ForwardKind::Type, None),
             false,
         );
 
@@ -395,7 +395,7 @@ fn test_forward_resolve_only_same_scope() {
         scopes.def_sym(
             "fwd".into(),
             inner_def,
-            SymbolKind::Forward(ForwardKind::Type, None),
+            DeclareKind::Forward(ForwardKind::Type, None),
             false,
         );
 
@@ -408,7 +408,7 @@ fn test_forward_resolve_only_same_scope() {
     scopes.def_sym(
         "fwd".into(),
         resolve_def,
-        SymbolKind::Resolved(ForwardKind::Type),
+        DeclareKind::Resolved(ForwardKind::Type),
         false,
     );
 
@@ -428,7 +428,7 @@ fn test_import_def_no_boundary() {
     // shouldn't be peeked at from SurroundingScope
     // should be peeked at from CurrentScope
     let a_def = defs.next();
-    scopes.def_sym("a".into(), a_def, SymbolKind::Declared, true);
+    scopes.def_sym("a".into(), a_def, DeclareKind::Declared, true);
 
     assert_eq!(scopes.import_sym("a".into()), None);
 }
@@ -444,16 +444,16 @@ fn test_import_def_between_boundaries() {
     let middle = defs.next();
     let inner = defs.next();
 
-    scopes.def_sym("outer_pv".into(), outer_pv, SymbolKind::Declared, true);
-    scopes.def_sym("outer".into(), outer, SymbolKind::Declared, false);
+    scopes.def_sym("outer_pv".into(), outer_pv, DeclareKind::Declared, true);
+    scopes.def_sym("outer".into(), outer, DeclareKind::Declared, false);
 
     scopes.push_scope(ScopeKind::Module);
     {
-        scopes.def_sym("middle".into(), middle, SymbolKind::Declared, false);
+        scopes.def_sym("middle".into(), middle, DeclareKind::Declared, false);
 
         scopes.push_scope(ScopeKind::Module);
         {
-            scopes.def_sym("inner".into(), inner, SymbolKind::Declared, false);
+            scopes.def_sym("inner".into(), inner, DeclareKind::Declared, false);
 
             // outer_pv visible
             assert_eq!(scopes.import_sym("outer_pv".into()), Some(outer_pv));
@@ -484,16 +484,16 @@ fn test_import_def_implicit_boundary() {
     let middle = defs.next();
     let inner = defs.next();
 
-    scopes.def_sym("outer_pv".into(), outer_pv, SymbolKind::Declared, true);
-    scopes.def_sym("outer".into(), outer, SymbolKind::Declared, false);
+    scopes.def_sym("outer_pv".into(), outer_pv, DeclareKind::Declared, true);
+    scopes.def_sym("outer".into(), outer, DeclareKind::Declared, false);
 
     scopes.push_scope(ScopeKind::Module);
     {
-        scopes.def_sym("middle".into(), middle, SymbolKind::Declared, false);
+        scopes.def_sym("middle".into(), middle, DeclareKind::Declared, false);
 
         scopes.push_scope(ScopeKind::Subprogram);
         {
-            scopes.def_sym("inner".into(), inner, SymbolKind::Declared, false);
+            scopes.def_sym("inner".into(), inner, DeclareKind::Declared, false);
 
             // outer_pv visible
             assert_eq!(scopes.import_sym("outer_pv".into()), Some(outer_pv));

@@ -38,7 +38,8 @@ pub trait TypeDatabase: TypeIntern + TypeInternExt {
 
     /// Gets what a [`BindingSource`] binds to, or a [`NotBinding`](symbol::NotBinding) if it isn't one.
     #[salsa::invoke(ty::query::binding_to)]
-    fn binding_to(&self, bind_src: BindingSource) -> Result<symbol::BindingTo, symbol::NotBinding>;
+    fn binding_to(&self, bind_src: BindingSource)
+        -> Result<symbol::SymbolKind, symbol::NotBinding>;
 
     /// Gets the corresponding definition from the given [`BindingSource`], or `None` if there isn't one.
     /// This also performs definition resolution, so resolving the resultant [`DefId`] is unnecessary.

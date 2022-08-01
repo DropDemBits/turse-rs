@@ -9,7 +9,7 @@ use toc_hir::{
     library::{InLibrary, Library, LibraryId, LoweredLibrary},
     library_graph::LibraryGraph,
     stmt,
-    symbol::{DefId, DefOwner, DefTable, LocalDefId, SymbolKind},
+    symbol::{DeclareKind, DefId, DefOwner, DefTable, LocalDefId, SymbolKind},
     ty::{self, TypeOwner, TypeOwners},
     visitor::HirVisitor,
 };
@@ -253,8 +253,8 @@ pub(crate) fn resolve_def(db: &dyn HirDatabase, def_id: DefId) -> DefId {
             // Defer to the sym kind
             let library = db.library(def_id.0);
 
-            match library.local_def(def_id.1).kind {
-                SymbolKind::ItemImport(local_def) => DefId(def_id.0, local_def),
+            match library.local_def(def_id.1).declare_kind {
+                DeclareKind::ItemImport(local_def) => DefId(def_id.0, local_def),
                 // Already the canonical definition
                 _ => return def_id,
             }
@@ -265,6 +265,18 @@ pub(crate) fn resolve_def(db: &dyn HirDatabase, def_id: DefId) -> DefId {
 
     // Poke through import chains
     db.resolve_def(maybe_canon)
+}
+
+pub(crate) fn symbol_kind(db: &dyn HirDatabase, def_id: DefId) -> Option<SymbolKind> {
+    // Take the binding kind from the def owner
+    let library = db.library(def_id.0);
+    let def_info = library.local_def(def_id.1);
+
+    let kind = def_info.kind?;
+    if matches!(kind, SymbolKind::Import | SymbolKind::Export) {
+        unreachable!("already resolved defs to their canon form")
+    }
+    Some(kind)
 }
 
 /// Library-local definition collector
@@ -299,7 +311,10 @@ impl HirVisitor for DefCollector<'_> {
             for name in &params.names {
                 // Skip the filler args
                 // They are placeholders, and can't be named anyways
-                if !matches!(self.library.local_def(*name).kind, SymbolKind::Declared) {
+                if !matches!(
+                    self.library.local_def(*name).declare_kind,
+                    DeclareKind::Declared
+                ) {
                     continue;
                 }
 

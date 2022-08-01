@@ -2,16 +2,16 @@
 
 use std::sync::Arc;
 
-use toc_hir::item::{self, ImportMutability, ParameterInfo};
-use toc_hir::symbol::{BindingTo, Mutability, NotBinding};
-use toc_hir::{body, expr, stmt};
+use toc_hir::item::{self, ImportMutability};
+use toc_hir::symbol::{IsRegister, Mutability, NotBinding, SymbolKind};
+use toc_hir::ty::PassBy;
+use toc_hir::{body, expr};
 use toc_hir::{
     body::BodyId,
     expr::BodyExpr,
     library::{InLibrary, WrapInLibrary},
     symbol,
     symbol::{DefId, DefOwner},
-    ty as hir_ty,
     ty::TypeId as HirTypeId,
 };
 
@@ -101,81 +101,19 @@ pub(crate) fn binding_def(db: &dyn TypeDatabase, bind_src: BindingSource) -> Opt
 pub(crate) fn binding_to(
     db: &dyn TypeDatabase,
     bind_src: BindingSource,
-) -> Result<BindingTo, NotBinding> {
+) -> Result<SymbolKind, NotBinding> {
     // Also find the canonical binding
     let def_id = db.resolve_def(lookup_binding_def(db, bind_src)?);
 
-    // Take the binding kind from the def owner
-    let def_owner = db.def_owner(def_id);
+    // Take kind from the def info
     let library = db.library(def_id.0);
+    let def_info = library.local_def(def_id.1);
 
-    match def_owner {
-        Some(DefOwner::Item(item_id)) => Ok(match &library.item(item_id).kind {
-            item::ItemKind::ConstVar(item) if item.is_register => {
-                BindingTo::Register(item.mutability)
-            }
-            item::ItemKind::Binding(item) if item.is_register => {
-                BindingTo::Register(item.mutability)
-            }
-            item::ItemKind::ConstVar(item) => BindingTo::Storage(item.mutability),
-            item::ItemKind::Binding(item) => BindingTo::Storage(item.mutability),
-            item::ItemKind::Subprogram(item) => BindingTo::Subprogram(item.kind),
-            item::ItemKind::Type(_) => BindingTo::Type,
-            item::ItemKind::Module(_) => BindingTo::Module,
-            // Should have been canonicalized to the real def
-            item::ItemKind::Import(_) => unreachable!(),
-        }),
-        Some(DefOwner::ItemParam(item_id, param_def)) => {
-            // Lookup the arg
-            let item = match &library.item(item_id).kind {
-                item::ItemKind::Subprogram(item) => item,
-                _ => unreachable!(),
-            };
-
-            Ok(match item.lookup_param_info(param_def) {
-                ParameterInfo::Param(param_info) => {
-                    // This is the real parameters
-
-                    // Pass-by value parameters are always const
-                    // Register parameters become register bindings
-                    match (param_info.pass_by, param_info.is_register) {
-                        (hir_ty::PassBy::Value, true) => BindingTo::Register(Mutability::Const),
-                        (hir_ty::PassBy::Value, false) => BindingTo::Storage(Mutability::Const),
-                        (hir_ty::PassBy::Reference(mutability), true) => {
-                            BindingTo::Register(mutability)
-                        }
-                        (hir_ty::PassBy::Reference(mutability), false) => {
-                            BindingTo::Storage(mutability)
-                        }
-                    }
-                }
-                ParameterInfo::Result => {
-                    // This is the result parameter
-                    // Always const storage, only modifiable by `result` stmts
-                    BindingTo::Storage(Mutability::Const)
-                }
-            })
-        }
-        Some(DefOwner::Export(..)) => {
-            unreachable!("already resolved defs to canon form")
-        }
-        Some(DefOwner::Field(type_id, _field_id)) => match &library.lookup_type(type_id).kind {
-            hir_ty::TypeKind::Enum(..) => Ok(BindingTo::EnumField),
-            _ => unreachable!("field def owner on a non-field type"),
-        },
-        Some(DefOwner::Stmt(stmt_id)) => {
-            match &library.body(stmt_id.0).stmt(stmt_id.1).kind {
-                stmt::StmtKind::Item(_) => {
-                    unreachable!("item def owners shouldn't be stmt def owners")
-                }
-                // for-loop counter var is an immutable ref
-                stmt::StmtKind::For(_) => Ok(BindingTo::Storage(Mutability::Const)),
-                _ => Err(NotBinding::NotBinding),
-            }
-        }
-        // From an undeclared identifier, not purely a binding
-        None => Err(NotBinding::Missing),
+    let kind = def_info.kind.ok_or(NotBinding::Missing)?;
+    if matches!(kind, SymbolKind::Import | SymbolKind::Export) {
+        unreachable!("already resolved defs to their canon form")
     }
+    Ok(kind)
 }
 
 fn lookup_binding_def(db: &dyn TypeDatabase, bind_src: BindingSource) -> Result<DefId, NotBinding> {
@@ -228,6 +166,13 @@ pub(super) fn value_produced(
 ) -> Result<db::ValueKind, db::NotValue> {
     use db::{NotValue, ValueKind, ValueSource};
 
+    fn value_with_mutability(muta: Mutability, reg: IsRegister) -> ValueKind {
+        match reg {
+            symbol::IsRegister::No => (ValueKind::Reference(muta)),
+            symbol::IsRegister::Yes => (ValueKind::Register(muta)),
+        }
+    }
+
     fn value_kind_from_binding(
         db: &dyn TypeDatabase,
         def_id: DefId,
@@ -235,12 +180,18 @@ pub(super) fn value_produced(
         let kind = db.binding_to(def_id.into());
 
         match kind {
-            Ok(BindingTo::Storage(muta)) => Ok(ValueKind::Reference(muta)),
-            Ok(BindingTo::Register(muta)) => Ok(ValueKind::Register(muta)),
+            Ok(
+                SymbolKind::ConstVar(muta, reg)
+                | SymbolKind::Binding(muta, reg)
+                | SymbolKind::Param(PassBy::Reference(muta), reg),
+            ) => Ok(value_with_mutability(muta, reg)),
+            Ok(SymbolKind::Param(PassBy::Value, reg)) => {
+                Ok(value_with_mutability(Mutability::Const, reg))
+            }
             // Subprogram names are aliases of address constants
-            Ok(BindingTo::Subprogram(..)) => Ok(ValueKind::Scalar),
-            // Enum fields (right now) are equivalent to associated consts
-            Ok(BindingTo::EnumField) => Ok(ValueKind::Reference(Mutability::Const)),
+            Ok(SymbolKind::Subprogram(..)) => Ok(ValueKind::Scalar),
+            // Enum variants (right now) are equivalent to associated consts
+            Ok(SymbolKind::EnumVariant) => Ok(ValueKind::Reference(Mutability::Const)),
             Err(symbol::NotBinding::Missing) => Err(NotValue::Missing),
             _ => Err(NotValue::NotValue),
         }
@@ -579,19 +530,19 @@ pub(crate) fn fields_of(
             let binding_to = db.binding_to(binding_def.into()).ok()?;
 
             match binding_to {
-                BindingTo::Module => {
+                SymbolKind::Module(_) => {
                     // Exports from a given module
                     // Defer to the corresponding def
                     db.fields_of((binding_def, in_module).into())
                 }
-                BindingTo::Type => {
+                SymbolKind::Type => {
                     // Fields associated with the type
                     let ty_id = db.type_of((lib_id, body_expr).into());
 
                     db.fields_of(db::FieldSource::TypeAssociated(ty_id, in_module))
                 }
-                BindingTo::Storage(_) | BindingTo::Register(_) => {
-                    // To some storage
+                kind if kind.is_ref() => {
+                    // To any reference
                     // Get fields based off of the type (instance fields)
                     let ty_id = db.type_of((lib_id, body_expr).into());
 

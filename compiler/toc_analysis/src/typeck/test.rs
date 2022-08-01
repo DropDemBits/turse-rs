@@ -64,7 +64,7 @@ fn stringify_typeck_results(
         let def_info = library.local_def(did);
         let name = def_info.name;
         let name_span = def_info.def_at.lookup_in(&library);
-        let def_kind = def_info.kind;
+        let def_kind = def_info.declare_kind;
         let ty = db.type_of(DefId(lib, did).into());
         let name_fmt = format!("{name:?}@{name_span:?} [{def_kind:?}]: ");
 

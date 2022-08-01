@@ -1,5 +1,5 @@
 //! Lowering into `Type` HIR nodes
-use toc_hir::symbol::syms;
+use toc_hir::symbol::{syms, DeclareKind, SymbolKind};
 use toc_hir::{symbol, ty};
 use toc_span::{HasSpanTable, Span, Spanned};
 use toc_syntax::ast::{self, AstNode};
@@ -279,18 +279,22 @@ impl super::BodyLowering<'_, '_> {
             .filter_map(|name| {
                 let span = self.ctx.intern_range(name.syntax().text_range());
                 let name = name.identifier_token()?.text().into();
-                let def_id = self
-                    .ctx
-                    .library
-                    .add_def(name, span, symbol::SymbolKind::Declared);
+                let def_id = self.ctx.library.add_def(
+                    name,
+                    span,
+                    Some(SymbolKind::EnumVariant),
+                    DeclareKind::Declared,
+                );
 
                 Some(def_id)
             })
             .collect();
-        let def_id =
-            self.ctx
-                .library
-                .add_def(type_decl_name(ty), span, symbol::SymbolKind::Declared);
+        let def_id = self.ctx.library.add_def(
+            type_decl_name(ty),
+            span,
+            Some(SymbolKind::Enum),
+            DeclareKind::Declared,
+        );
 
         Some(ty::TypeKind::Enum(ty::Enum { def_id, variants }))
     }
@@ -409,10 +413,12 @@ impl super::BodyLowering<'_, '_> {
     fn lower_set_type(&mut self, ty: ast::SetType) -> Option<ty::TypeKind> {
         let span = self.ctx.intern_range(ty.syntax().text_range());
         let elem = self.lower_required_type(ty.elem_ty());
-        let def_id =
-            self.ctx
-                .library
-                .add_def(type_decl_name(ty), span, symbol::SymbolKind::Declared);
+        let def_id = self.ctx.library.add_def(
+            type_decl_name(ty),
+            span,
+            Some(SymbolKind::Set),
+            DeclareKind::Declared,
+        );
 
         Some(ty::TypeKind::Set(ty::Set {
             def_id,

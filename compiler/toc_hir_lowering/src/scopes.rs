@@ -8,7 +8,7 @@ mod test;
 
 use std::collections::{HashMap, HashSet};
 
-use toc_hir::symbol::{self, ForwardKind, LocalDefId, Symbol, SymbolKind};
+use toc_hir::symbol::{self, DeclareKind, ForwardKind, LocalDefId, Symbol};
 
 #[derive(Debug)]
 pub(crate) struct Scope {
@@ -152,7 +152,7 @@ impl ScopeTracker {
         &mut self,
         name: Symbol,
         def_id: symbol::LocalDefId,
-        kind: SymbolKind,
+        kind: DeclareKind,
         is_pervasive: bool,
     ) -> Option<symbol::LocalDefId> {
         use std::collections::hash_map::Entry;
@@ -163,7 +163,7 @@ impl ScopeTracker {
 
         // Update the forward decl list
         match kind {
-            SymbolKind::Forward(forward_kind, _) => {
+            DeclareKind::Forward(forward_kind, _) => {
                 // Add to this scope's forward declaration list
                 let forward_group = def_scope.forward_symbols.entry(name);
 
@@ -185,7 +185,7 @@ impl ScopeTracker {
                     }
                 }
             }
-            SymbolKind::Declared => {
+            DeclareKind::Declared => {
                 // Remove it completely, leaving any forward decls unresolved
                 def_scope.forward_symbols.remove(&name);
             }

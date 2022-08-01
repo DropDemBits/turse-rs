@@ -1,7 +1,7 @@
 //! Lowering into `Expr` HIR nodes
 use toc_hir::{
     body, expr,
-    symbol::{LimitedKind, SymbolKind},
+    symbol::{DeclareKind, LimitedKind},
 };
 use toc_span::{HasSpanTable, Span, SpanId, Spanned, TextRange};
 use toc_syntax::{
@@ -170,7 +170,7 @@ impl super::BodyLowering<'_, '_> {
         let def_id = self.ctx.use_sym(name.text().into(), span);
 
         let def_info = self.ctx.library.local_def(def_id);
-        if let SymbolKind::LimitedDeclared(kind) = def_info.kind {
+        if let DeclareKind::LimitedDeclared(kind) = def_info.declare_kind {
             let name = name.text();
 
             match kind {
