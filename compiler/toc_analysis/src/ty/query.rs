@@ -574,16 +574,15 @@ pub(crate) fn find_exported_def(
             }
         }
         expr::ExprKind::Field(expr) => {
-            // We want the unresolved def here, since we want to match against the literal def itself
-            // (which may be a direct export)
-            let lhs_def = db.unresolved_binding_def((library_id, body_id, expr.lhs).into())?;
+            // Peek at the def referenced by lhs
+            let lhs_def = db.binding_def((library_id, body_id, expr.lhs).into())?;
 
             if let Some(DefOwner::Item(item_id)) = db.def_owner(lhs_def) {
-                if let item::ItemKind::Module(module) = &library.item(item_id).kind {
+                if let item::ItemKind::Module(module) = dbg!(&library.item(item_id).kind) {
                     // Find matching export
                     module.exports.iter().find_map(|export| {
-                        (library.local_def(export.def_id).name == *expr.field.item())
-                            .then(|| DefId(library_id, export.def_id))
+                        let found = library.local_def(export.def_id).name == *expr.field.item();
+                        found.then(|| DefId(library_id, export.def_id))
                     })
                 } else {
                     // Not from a module-like item

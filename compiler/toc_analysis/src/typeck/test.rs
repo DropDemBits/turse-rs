@@ -1009,6 +1009,19 @@ test_named_group! { typeck_module_field,
         end a
         b := 1
         ",
+        unqualified_export_lhs_not_mut => "
+        % crashed because we we weren't poking through resolution
+        module indirection
+            export ~. lhs
+            module lhs
+                export field
+                var field : int
+            end lhs
+        end indirection
+
+        % triggers `exporting_def` with an indirect lhs def
+        lhs.field := 6
+        "
     ]
 }
 
