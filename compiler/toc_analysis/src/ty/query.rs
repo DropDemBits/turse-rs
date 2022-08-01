@@ -5,7 +5,7 @@ use std::sync::Arc;
 use toc_hir::item::{self, ImportMutability};
 use toc_hir::symbol::{IsRegister, Mutability, NotBinding, SymbolKind};
 use toc_hir::ty::PassBy;
-use toc_hir::{body, expr};
+use toc_hir::{body, expr, OrMissingExt};
 use toc_hir::{
     body::BodyId,
     expr::BodyExpr,
@@ -98,28 +98,11 @@ pub(crate) fn binding_def(db: &dyn TypeDatabase, bind_src: BindingSource) -> Opt
         .map(|def_id| db.resolve_def(def_id))
 }
 
-pub(crate) fn binding_to(
-    db: &dyn TypeDatabase,
-    bind_src: BindingSource,
-) -> Result<SymbolKind, NotBinding> {
-    // Also find the canonical binding
-    let def_id = db.resolve_def(lookup_binding_def(db, bind_src)?);
-
-    // Take kind from the def info
-    let library = db.library(def_id.0);
-    let def_info = library.local_def(def_id.1);
-
-    let kind = def_info.kind.ok_or(NotBinding::Missing)?;
-    if matches!(kind, SymbolKind::Import | SymbolKind::Export) {
-        unreachable!("already resolved defs to their canon form")
-    }
-    Ok(kind)
-}
-
 fn lookup_binding_def(db: &dyn TypeDatabase, bind_src: BindingSource) -> Result<DefId, NotBinding> {
     match bind_src {
         // Trivial, def bindings are bindings to themselves
-        // ???: Do we want to perform canonicalization / symbol resolution here?
+        // We don't want to perform sym-res here, since that means we can't figure out
+        // if something refers to an import or not
         BindingSource::DefId(it) => Ok(it),
         BindingSource::Body(lib_id, body) => {
             let library = db.library(lib_id);
@@ -144,15 +127,11 @@ fn lookup_binding_def(db: &dyn TypeDatabase, bind_src: BindingSource) -> Result<
                 },
                 expr::ExprKind::Field(field) => {
                     // Look up field's corresponding def, or treat as missing if not there
-                    let def_id = db
-                        .fields_of((lib_id, body_id, field.lhs).into())
+                    db.fields_of((lib_id, body_id, field.lhs).into())
                         .and_then(|fields| {
                             fields.lookup(*field.field.item()).map(|info| info.def_id)
                         })
-                        .ok_or(NotBinding::Missing)?;
-
-                    // Defer to the item's def
-                    db.binding_def(def_id.into()).ok_or(NotBinding::Missing)
+                        .ok_or(NotBinding::Missing)
                 }
                 _ => Err(NotBinding::NotBinding),
             }
@@ -177,22 +156,22 @@ pub(super) fn value_produced(
         db: &dyn TypeDatabase,
         def_id: DefId,
     ) -> Result<ValueKind, NotValue> {
-        let kind = db.binding_to(def_id.into());
+        let kind = db.symbol_kind(db.resolve_def(def_id));
 
         match kind {
-            Ok(
+            Some(
                 SymbolKind::ConstVar(muta, reg)
                 | SymbolKind::Binding(muta, reg)
                 | SymbolKind::Param(PassBy::Reference(muta), reg),
             ) => Ok(value_with_mutability(muta, reg)),
-            Ok(SymbolKind::Param(PassBy::Value, reg)) => {
+            Some(SymbolKind::Param(PassBy::Value, reg)) => {
                 Ok(value_with_mutability(Mutability::Const, reg))
             }
             // Subprogram names are aliases of address constants
-            Ok(SymbolKind::Subprogram(..)) => Ok(ValueKind::Scalar),
+            Some(SymbolKind::Subprogram(..)) => Ok(ValueKind::Scalar),
             // Enum variants (right now) are equivalent to associated consts
-            Ok(SymbolKind::EnumVariant) => Ok(ValueKind::Reference(Mutability::Const)),
-            Err(symbol::NotBinding::Missing) => Err(NotValue::Missing),
+            Some(SymbolKind::EnumVariant) => Ok(ValueKind::Reference(Mutability::Const)),
+            None => Err(NotValue::Missing),
             _ => Err(NotValue::NotValue),
         }
     }
@@ -314,8 +293,6 @@ pub(super) fn value_produced(
                         .ok_or(NotValue::Missing)?;
 
                     // FIXME: For composite types, take into account the mutability of the reference
-                    // Defer to the field's def
-                    let def_id = db.binding_def(def_id.into()).ok_or(NotValue::Missing)?;
                     let kind = value_kind_from_binding(db, def_id)?;
 
                     // Apply appropriate mutability
@@ -344,7 +321,6 @@ pub(super) fn value_produced(
                     _ => Ok(ValueKind::Scalar),
                 },
                 expr::ExprKind::Call(expr) => {
-                    use toc_hir::symbol::BindingResultExt;
                     // The following does always produces a const reference:
                     // - set cons
                     //
@@ -371,11 +347,10 @@ pub(super) fn value_produced(
                     let (lhs_ty, from_ty_binding) =
                         if let Some(def_id) = db.binding_def(lhs_expr.into()) {
                             // From an item
-                            let is_ty_binding = db
-                                .binding_to(def_id.into())
-                                .map(|a| a.is_type())
-                                .or_missing();
-                            (db.type_of(def_id.into()), is_ty_binding)
+                            (
+                                db.type_of(def_id.into()),
+                                db.symbol_kind(def_id).or_is_missing(SymbolKind::is_type),
+                            )
                         } else {
                             // From an actual expression
                             (db.type_of(lhs_expr.into()), false)
@@ -527,7 +502,7 @@ pub(crate) fn fields_of(
         db::FieldSource::BodyExpr(lib_id, body_expr) => {
             let in_module = db.inside_module((lib_id, body_expr).into());
             let binding_def = db.binding_def((lib_id, body_expr).into())?;
-            let binding_to = db.binding_to(binding_def.into()).ok()?;
+            let binding_to = db.symbol_kind(binding_def)?;
 
             match binding_to {
                 SymbolKind::Module(_) => {

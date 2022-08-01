@@ -271,11 +271,16 @@ pub(crate) fn symbol_kind(db: &dyn HirDatabase, def_id: DefId) -> Option<SymbolK
     // Take the binding kind from the def owner
     let library = db.library(def_id.0);
     let def_info = library.local_def(def_id.1);
-
     let kind = def_info.kind?;
+
+    // Note: This was left here during the migration of `binding_to`
+    // If, at some point, we want to know that we're looking at an export/import via symbol kind,
+    // then this can be removed. However, this will come at the cost of knowing when to resolve a def
+    // through import indirection.
     if matches!(kind, SymbolKind::Import | SymbolKind::Export) {
         unreachable!("already resolved defs to their canon form")
     }
+
     Some(kind)
 }
 

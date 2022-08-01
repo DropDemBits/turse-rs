@@ -307,24 +307,6 @@ pub enum NotBinding {
     NotBinding,
 }
 
-/// Helper trait to deal with [`NotBinding`] kind narrowing
-pub trait BindingResultExt: seal_me::Sealed {
-    /// Allows a missing definition to match the previous predicate
-    fn or_missing(self) -> bool;
-}
-
-impl BindingResultExt for Result<bool, NotBinding> {
-    // Treat error exprs as the same as error
-    // It can be any kind of expression
-
-    fn or_missing(self) -> bool {
-        self.unwrap_or_else(|err| match err {
-            NotBinding::Missing => true,
-            NotBinding::NotBinding => false,
-        })
-    }
-}
-
 mod seal_me {
     pub trait Sealed {}
     impl Sealed for Result<bool, super::NotBinding> {}

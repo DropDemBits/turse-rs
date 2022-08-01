@@ -114,3 +114,14 @@ pub mod stmt;
 pub mod symbol;
 pub mod ty;
 pub mod visitor;
+
+/// Helper trait equivalent to `Option::map_or(predicate)`
+pub trait OrMissingExt<T> {
+    fn or_is_missing(self, is_predicate: impl FnOnce(T) -> bool) -> bool;
+}
+
+impl<T> OrMissingExt<T> for Option<T> {
+    fn or_is_missing(self, is_predicate: impl FnOnce(T) -> bool) -> bool {
+        self.map_or(true, is_predicate)
+    }
+}

@@ -6,8 +6,8 @@ use toc_hir::{
     body, expr, item,
     library::{InLibrary, LibraryId, WrapInLibrary},
     stmt,
-    symbol::{self, BindingResultExt, DefId, LocalDefId, SymbolKind},
-    ty as hir_ty,
+    symbol::{self, DefId, LocalDefId, SymbolKind},
+    ty as hir_ty, OrMissingExt,
 };
 
 use crate::{
@@ -96,14 +96,11 @@ fn alias_ty(
             }
         }
 
-        def_id
+        // Poke through any remaining indirection
+        db.resolve_def(def_id)
     };
 
-    if db
-        .binding_to(def_id.into())
-        .map(SymbolKind::is_type)
-        .or_missing()
-    {
+    if db.symbol_kind(def_id).map_or(true, SymbolKind::is_type) {
         // Defer to the type's definition
         db.type_of(def_id.into())
     } else {
@@ -511,9 +508,8 @@ fn for_counter_ty(
 
                 // Must be a type alias
                 if !db
-                    .binding_to(binding_def.into())
-                    .map(SymbolKind::is_type)
-                    .or_missing()
+                    .symbol_kind(binding_def)
+                    .or_is_missing(SymbolKind::is_type)
                 {
                     return db.mk_error();
                 }

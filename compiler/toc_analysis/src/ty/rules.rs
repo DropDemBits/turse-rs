@@ -1,6 +1,5 @@
 //! Rules for type interactions
 use toc_hir::library::LibraryId;
-use toc_hir::symbol::NotBinding;
 use toc_hir::{body, expr};
 use toc_reporting::MessageSink;
 use toc_span::Span;
@@ -1755,10 +1754,9 @@ fn report_not_value<'db, DB>(
     };
 
     let (binding_def, binding_to) = if let Some(def_id) = db.binding_def(binding_src) {
-        let binding_to = match db.binding_to(def_id.into()) {
-            Ok(binding_to) => binding_to,
-            Err(NotBinding::Missing) => return, // all values are accepted
-            Err(NotBinding::NotBinding) => unreachable!("from DefId"),
+        let binding_to = match db.symbol_kind(def_id) {
+            Some(binding_to) => binding_to,
+            None => return, // all values are accepted
         };
 
         (def_id, binding_to)

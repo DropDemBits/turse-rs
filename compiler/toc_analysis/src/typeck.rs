@@ -12,10 +12,8 @@ use toc_hir::{
     library::{self, LibraryId, WrapInLibrary},
     stmt,
     stmt::BodyStmt,
-    symbol::{
-        BindingResultExt, DefId, DefOwner, IsRegister, Mutability, NotBinding, SubprogramKind,
-        SymbolKind,
-    },
+    symbol::{DefId, DefOwner, IsRegister, Mutability, SubprogramKind, SymbolKind},
+    OrMissingExt,
 };
 use toc_reporting::CompileResult;
 use toc_span::Span;
@@ -867,7 +865,8 @@ impl TypeCheck<'_> {
                     // To reach here:
                     // - Must be an implicit for bound (implied satisfaction)
                     // - Must not produce a value (i.e be an item that doesn't produce a value)
-                    //   - Can't be missing, since missing is different from 'not-value'dness
+                    //   - Can't be missing or undeclared, since they're different from 'not-value'dness
+                    //     (considered indeterminate)
                     // - Must not produce a def
                     //   - Non-ref exprs are the only ones that are both user-accessible & not defs
                     //
@@ -875,10 +874,8 @@ impl TypeCheck<'_> {
                     unreachable!("see attached comment for more info")
                 };
 
-                if !db
-                    .symbol_kind(binding_def)
-                    .map_or(true, SymbolKind::is_type)
-                {
+                // Same reasoning as unreachable block on why we can unwrap here
+                if !db.symbol_kind(binding_def).unwrap().is_type() {
                     self.report_mismatched_binding(
                         SymbolKind::Type,
                         binding_def.into(),
@@ -1367,11 +1364,10 @@ impl TypeCheck<'_> {
         // references to subprograms.
         let (lhs_ty, from_ty_binding) = if let Some(def_id) = db.binding_def(lhs_expr.into()) {
             // From an item
-            let is_ty_binding = db
-                .binding_to(def_id.into())
-                .map(|a| a.is_type())
-                .or_missing();
-            (db.type_of(def_id.into()), is_ty_binding)
+            (
+                db.type_of(def_id.into()),
+                db.symbol_kind(def_id).or_is_missing(SymbolKind::is_type),
+            )
         } else {
             // From an actual expression
             (db.type_of(lhs_expr.into()), false)
@@ -1976,41 +1972,45 @@ impl TypeCheck<'_> {
             ..
         } = self;
 
-        let in_module = db.inside_module(id.in_library(*library_id).into());
         let mut span = ty.base_def.span();
-        let mut def_id = DefId(*library_id, *ty.base_def.item());
+        let def_id = {
+            let in_module = db.inside_module(id.in_library(*library_id).into());
+            // Walk the segment path while we still can
+            let mut def_id = DefId(*library_id, *ty.base_def.item());
 
-        for segment in &ty.segments {
-            let fields = db.fields_of((def_id, in_module).into());
-            let next_def =
-                fields.and_then(|fields| fields.lookup(*segment.item()).map(|field| field.def_id));
+            for segment in &ty.segments {
+                let fields = db.fields_of((def_id, in_module).into());
+                let next_def = fields
+                    .and_then(|fields| fields.lookup(*segment.item()).map(|field| field.def_id));
 
-            if let Some(next_def) = next_def {
-                def_id = next_def;
-                span = segment.span();
-            } else {
-                let library = db.library(def_id.0);
-                let def_info = library.local_def(def_id.1);
+                if let Some(next_def) = next_def {
+                    def_id = next_def;
+                    span = segment.span();
+                } else {
+                    let library = db.library(def_id.0);
+                    let def_info = library.local_def(def_id.1);
 
-                let thing = def_info.name;
-                let field_name = segment.item();
+                    let thing = def_info.name;
+                    let field_name = segment.item();
 
-                // ???: Include decl here?
+                    // ???: Include decl here?
 
-                // No field
-                self.state().reporter.error(
-                    format!("no field named `{field_name}` in `{thing}`"),
-                    format!("no field named `{field_name}` in here"),
-                    segment.span().lookup_in(&self.library),
-                );
+                    // No field
+                    self.state().reporter.error(
+                        format!("no field named `{field_name}` in `{thing}`"),
+                        format!("no field named `{field_name}` in here"),
+                        segment.span().lookup_in(&self.library),
+                    );
 
-                return;
+                    return;
+                }
             }
-        }
 
-        let binding_to = self.db.binding_to(def_id.into());
+            // Poke through any remaining indirection
+            db.resolve_def(def_id)
+        };
 
-        if !binding_to.map(SymbolKind::is_type).or_missing() {
+        if !db.symbol_kind(def_id).or_is_missing(SymbolKind::is_type) {
             let span = span.lookup_in(library);
 
             self.report_mismatched_binding(
@@ -2561,10 +2561,9 @@ impl TypeCheck<'_> {
                 let name = def_info.name;
                 let def_at = def_info.def_at.lookup_in(&library);
 
-                let binding_to = match self.db.binding_to(def_id.into()) {
-                    Ok(kind) => kind,
-                    Err(NotBinding::Missing) => return, // already covered by an undeclared def or missing expr error
-                    Err(NotBinding::NotBinding) => unreachable!("taken from a def_id"),
+                let binding_to = match self.db.symbol_kind(def_id) {
+                    Some(kind) => kind,
+                    None => return, // already covered by an undeclared def or missing expr error
                 };
 
                 state
@@ -2637,10 +2636,9 @@ impl TypeCheck<'_> {
                 Some(unresolved_def) => {
                     // From some def
                     let def_id = self.db.resolve_def(unresolved_def);
-                    let binding_to = match self.db.binding_to(def_id.into()) {
-                        Ok(binding_to) => binding_to,
-                        Err(NotBinding::Missing) => return true,
-                        Err(NotBinding::NotBinding) => unreachable!("from a DefId"),
+                    let binding_to = match self.db.symbol_kind(def_id.into()) {
+                        Some(binding_to) => binding_to,
+                        None => return true,
                     };
                     let def_library = self.db.library(def_id.0);
                     let def_info = def_library.local_def(def_id.1);
