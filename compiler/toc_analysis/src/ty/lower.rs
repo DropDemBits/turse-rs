@@ -13,11 +13,7 @@ use toc_hir::{
 use crate::{
     const_eval::{Const, ConstInt},
     db::TypeDatabase,
-    ty::{
-        self,
-        db::{NotValueErrExt, ValueKind},
-        Checked, Param, TypeId, TypeKind,
-    },
+    ty::{self, db::NotValueErrExt, Checked, Param, TypeId, TypeKind},
 };
 
 use super::{AllowDyn, IntSize, NatSize, RealSize, SeqSize};
@@ -489,11 +485,7 @@ fn for_counter_ty(
             // - expr with an iterable ty (notably, arrays)
             let bounds_expr = (library_id, stmt_id.0, expr);
 
-            if db
-                .value_produced(bounds_expr.into())
-                .map(ValueKind::is_value)
-                .or_missing()
-            {
+            if db.value_produced(bounds_expr.into()).is_any_value() {
                 // - expr that may or may not be iterable
                 // We don't support for-each loops yet
                 // FIXME(new-features): Support for-each loop
@@ -509,7 +501,7 @@ fn for_counter_ty(
                 // Must be a type alias
                 if !db
                     .symbol_kind(binding_def)
-                    .or_is_missing(SymbolKind::is_type)
+                    .is_missing_or(SymbolKind::is_type)
                 {
                     return db.mk_error();
                 }

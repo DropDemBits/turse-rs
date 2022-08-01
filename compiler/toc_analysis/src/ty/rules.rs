@@ -832,25 +832,22 @@ pub fn check_binary_op_values<T: ?Sized + db::TypeDatabase>(
     body_id: body::BodyId,
     expr: &expr::Binary,
 ) -> Result<(), InvalidBinaryValues> {
-    use crate::db::{NotValueErrExt, ValueKind};
+    use crate::db::NotValueErrExt;
 
     let left_src = (library_id, body_id, expr.lhs).into();
     let right_src = (library_id, body_id, expr.rhs).into();
 
     // Only comparison ops support referring to types, but only on classes
-    let left_value = db.value_produced(left_src);
-    let right_value = db.value_produced(right_src);
+    let lhs = db.value_produced(left_src);
+    let rhs = db.value_produced(right_src);
 
-    let is_left_value = left_value.map(ValueKind::is_value).or_missing();
-    let is_right_value = right_value.map(ValueKind::is_value).or_missing();
-
-    if is_left_value && is_right_value {
+    if lhs.is_any_value() && rhs.is_any_value() {
         Ok(())
     } else {
         let library = db.library(library_id);
 
         Err(InvalidBinaryValues {
-            left_info: (!is_left_value).then(|| {
+            left_info: (!lhs.is_any_value()).then(|| {
                 (
                     left_src,
                     library
@@ -860,7 +857,7 @@ pub fn check_binary_op_values<T: ?Sized + db::TypeDatabase>(
                         .lookup_in(&library),
                 )
             }),
-            right_info: (!is_right_value).then(|| {
+            right_info: (!rhs.is_any_value()).then(|| {
                 (
                     right_src,
                     library
@@ -881,14 +878,13 @@ pub fn check_unary_op_values<T: ?Sized + db::TypeDatabase>(
     body_id: body::BodyId,
     expr: &expr::Unary,
 ) -> Result<(), InvalidUnaryValue> {
-    use crate::db::{NotValueErrExt, ValueKind};
+    use crate::db::NotValueErrExt;
 
     // All unary ops only support value operands
     let right_src = (library_id, body_id, expr.rhs).into();
-    let right_value = db.value_produced(right_src);
-    let is_right_value = right_value.map(ValueKind::is_value).or_missing();
+    let rhs = db.value_produced(right_src);
 
-    if is_right_value {
+    if rhs.is_any_value() {
         Ok(())
     } else {
         let library = db.library(library_id);

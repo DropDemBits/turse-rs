@@ -231,6 +231,13 @@ impl ValueKind {
     pub fn is_register(self) -> bool {
         matches!(self, Self::Register(_))
     }
+
+    pub fn mutability(self) -> Option<symbol::Mutability> {
+        match self {
+            ValueKind::Scalar => None,
+            ValueKind::Register(m) | ValueKind::Reference(m) => Some(m),
+        }
+    }
 }
 
 /// Not values
@@ -304,12 +311,19 @@ impl From<ValueSource> for TypeSource {
 }
 
 pub trait NotValueErrExt {
-    fn or_missing(self) -> bool;
+    /// If it satisfies `is_predicate`, or is a [`NotValue::Missing`]
+    fn is_missing_or(&self, is_predicate: impl FnOnce(ValueKind) -> bool) -> bool;
+    /// If it isn't a [`NotValue::Missing`]
+    fn is_any_value(&self) -> bool;
 }
 
-impl NotValueErrExt for Result<bool, NotValue> {
-    fn or_missing(self) -> bool {
-        self.unwrap_or_else(|err| matches!(err, NotValue::Missing))
+impl NotValueErrExt for Result<ValueKind, NotValue> {
+    fn is_missing_or(&self, is_predicate: impl FnOnce(ValueKind) -> bool) -> bool {
+        self.map_or_else(|err| matches!(err, NotValue::Missing), is_predicate)
+    }
+
+    fn is_any_value(&self) -> bool {
+        matches!(self, Err(NotValue::NotValue))
     }
 }
 

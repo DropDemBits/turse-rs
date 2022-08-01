@@ -326,16 +326,14 @@ pub(super) fn value_produced(
                     // - subprog call
                     // - array indexing
                     // - pointer ascription
-
-                    // Note: yoinked from typeck
-                    // FIXME: really extract this into a `ty::rules` fn
                     let lhs_expr = (lib_id, body_id, expr.lhs);
-                    let lhs_mut = match db.value_produced(lhs_expr.into()) {
-                        Ok(ValueKind::Reference(muta)) | Ok(ValueKind::Register(muta)) => {
-                            Some(muta)
-                        }
-                        _ => None,
-                    };
+                    let lhs_mut = db
+                        .value_produced(lhs_expr.into())
+                        .ok()
+                        .and_then(ValueKind::mutability);
+
+                    // Note: the following yoinked from typeck_call
+                    // FIXME: really extract this into a `ty::rules` fn
 
                     // Fetch type of lhs
                     // Always try to do it by `DefId` first, so that we can properly support paren-less functions
@@ -346,7 +344,7 @@ pub(super) fn value_produced(
                             // From an item
                             (
                                 db.type_of(def_id.into()),
-                                db.symbol_kind(def_id).or_is_missing(SymbolKind::is_type),
+                                db.symbol_kind(def_id).is_missing_or(SymbolKind::is_type),
                             )
                         } else {
                             // From an actual expression
