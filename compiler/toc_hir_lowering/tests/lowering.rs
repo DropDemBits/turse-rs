@@ -57,7 +57,7 @@ fn assert_lower(src: &str) -> LowerResult {
 
     let mut s = toc_hir_pretty::tree::pretty_print_tree(lowered.result());
     for err in lowered.messages().iter() {
-        write!(&mut s, "\n{err}").unwrap();
+        writeln!(&mut s, "{err}").unwrap();
     }
 
     insta::assert_snapshot!(insta::internals::AutoName, s, src);

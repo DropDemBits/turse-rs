@@ -109,7 +109,7 @@ fn stringify_const_eval_results(results: &str, messages: MessageBundle) -> Strin
 
     // Pretty print the messages
     for err in messages.iter() {
-        write!(&mut s, "\n{err}").unwrap();
+        writeln!(&mut s, "{err}").unwrap();
     }
 
     s

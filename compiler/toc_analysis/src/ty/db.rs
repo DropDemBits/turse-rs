@@ -323,7 +323,7 @@ impl NotValueErrExt for Result<ValueKind, NotValue> {
     }
 
     fn is_any_value(&self) -> bool {
-        matches!(self, Err(NotValue::NotValue))
+        !matches!(self, Err(NotValue::NotValue))
     }
 }
 
