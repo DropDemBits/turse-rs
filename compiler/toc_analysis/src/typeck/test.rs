@@ -55,6 +55,8 @@ fn stringify_typeck_results(
     lib: toc_hir::library::LibraryId,
     messages: &MessageBundle,
 ) -> String {
+    use std::fmt::Write;
+
     let mut s = String::new();
     // Pretty print typectx
     // Want: `type_of` all reachable DefIds
@@ -65,17 +67,14 @@ fn stringify_typeck_results(
         let name = def_info.name;
         let name_span = def_info.def_at.lookup_in(&library);
         let def_kind = def_info.declare_kind;
-        let ty = db.type_of(DefId(lib, did).into());
-        let name_fmt = format!("{name:?}@{name_span:?} [{def_kind:?}]: ");
+        let ty = db.type_of(DefId(lib, did).into()).in_db(db);
 
-        s.push_str(&name_fmt);
-        s.push_str(&format!("{:?}", ty.in_db(db)));
-        s.push('\n');
+        writeln!(&mut s, "{name:?}@{name_span:?} [{def_kind:?}]: {ty:?}").unwrap();
     }
 
     // Pretty print the messages
     for err in messages.iter() {
-        s.push_str(&format!("\n{err}"));
+        write!(&mut s, "\n{err}").unwrap();
     }
 
     s

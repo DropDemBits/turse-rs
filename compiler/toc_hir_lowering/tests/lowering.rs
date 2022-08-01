@@ -41,6 +41,8 @@ struct LowerResult {
 }
 
 fn assert_lower(src: &str) -> LowerResult {
+    use std::fmt::Write;
+
     let mut db = TestHirDb::default();
     let fixture = toc_vfs::generate_vfs(&mut db, src);
     db.insert_fixture(fixture);
@@ -55,7 +57,7 @@ fn assert_lower(src: &str) -> LowerResult {
 
     let mut s = toc_hir_pretty::tree::pretty_print_tree(lowered.result());
     for err in lowered.messages().iter() {
-        s.push_str(&format!("{err}\n"));
+        write!(&mut s, "\n{err}").unwrap();
     }
 
     insta::assert_snapshot!(insta::internals::AutoName, s, src);

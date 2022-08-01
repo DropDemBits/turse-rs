@@ -60,6 +60,8 @@ impl ParseTree {
 #[cfg(test)]
 #[track_caller]
 pub(crate) fn check(source: &str, expected: expect_test::Expect) {
+    use std::fmt::Write;
+
     let dummy_file = FileId::new_testing(1).unwrap();
     let res = parse(dummy_file, source);
 
@@ -69,7 +71,7 @@ pub(crate) fn check(source: &str, expected: expect_test::Expect) {
     debug_tree.pop();
 
     for err in res.messages().iter() {
-        debug_tree.push_str(&format!("\n{err}"));
+        write!(&mut debug_tree, "\n{err}").unwrap();
     }
 
     expected.assert_eq(&debug_tree);
