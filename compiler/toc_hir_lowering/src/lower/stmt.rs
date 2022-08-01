@@ -383,7 +383,7 @@ impl super::BodyLowering<'_, '_> {
                 *syms::Unnamed,
                 self.ctx.library.span_table().dummy_span(),
                 None,
-                DeclareKind::Declared, // TODO: Change to undeclared once verified that this is the only change
+                DeclareKind::Undeclared,
             );
 
             for param_def in formals.param_decl() {

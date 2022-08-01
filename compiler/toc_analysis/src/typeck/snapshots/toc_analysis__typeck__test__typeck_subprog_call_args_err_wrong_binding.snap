@@ -1,11 +1,9 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 41
 expression: "procedure boop(a, b : int, var c : int) end boop\nboop(1, 2, 3)\n"
-
 ---
 "boop"@(FileId(1), 10..14) [Declared]: procedure ( pass(value) int, pass(value) int, pass(var ref) int, ) -> void
-"<unnamed>"@(dummy) [Declared]: <error>
+"<unnamed>"@(dummy) [Undeclared]: <error>
 "a"@(FileId(1), 15..16) [Declared]: int
 "b"@(FileId(1), 18..19) [Declared]: int
 "c"@(FileId(1), 31..32) [Declared]: int

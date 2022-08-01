@@ -1,11 +1,9 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 42
-expression: "procedure boop(a : int) end boop\nboop(())\n"
-
+expression: "procedure boop(a : int) end boop\n% shouldn't die, not reporting an error is fine\nboop(())\n"
 ---
 "boop"@(FileId(1), 10..14) [Declared]: procedure ( pass(value) int, ) -> void
-"<unnamed>"@(dummy) [Declared]: <error>
+"<unnamed>"@(dummy) [Undeclared]: <error>
 "a"@(FileId(1), 15..16) [Declared]: int
 "<root>"@(dummy) [Declared]: <error>
 

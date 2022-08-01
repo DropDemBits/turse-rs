@@ -1,11 +1,9 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 41
 expression: "procedure lime() end lime\nvar res := lime()\n"
-
 ---
 "lime"@(FileId(1), 10..14) [Declared]: procedure ( ) -> void
-"<unnamed>"@(dummy) [Declared]: <error>
+"<unnamed>"@(dummy) [Undeclared]: <error>
 "res"@(FileId(1), 30..33) [Declared]: <error>
 "<root>"@(dummy) [Declared]: <error>
 

@@ -1,12 +1,10 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 41
 expression: "var tree : string\nprocedure boop(a, b : int, var c : int) end boop\nboop(1, 2, tree)\n"
-
 ---
 "tree"@(FileId(1), 4..8) [Declared]: string
 "boop"@(FileId(1), 28..32) [Declared]: procedure ( pass(value) int, pass(value) int, pass(var ref) int, ) -> void
-"<unnamed>"@(dummy) [Declared]: <error>
+"<unnamed>"@(dummy) [Undeclared]: <error>
 "a"@(FileId(1), 33..34) [Declared]: int
 "b"@(FileId(1), 36..37) [Declared]: int
 "c"@(FileId(1), 49..50) [Declared]: int

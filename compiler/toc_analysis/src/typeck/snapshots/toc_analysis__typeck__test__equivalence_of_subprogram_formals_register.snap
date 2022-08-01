@@ -1,15 +1,13 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 41
 expression: "type t_f : function(a, b : int, var c : string) : int\ntype t_fr : function(register a, b : int, var register c : string) : int\nvar f : t_f\nvar fc : t_fr\n\n% transitive\nf := fc\nfc := f\n"
-
 ---
-"<unnamed>"@(dummy) [Declared]: <error>
+"<unnamed>"@(dummy) [Undeclared]: <error>
 "a"@(FileId(1), 20..21) [Declared]: <error>
 "b"@(FileId(1), 23..24) [Declared]: <error>
 "c"@(FileId(1), 36..37) [Declared]: <error>
 "t_f"@(FileId(1), 5..8) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(4))] of function ( pass(value) int, pass(value) int, pass(var ref) string, ) -> int
-"<unnamed>"@(dummy) [Declared]: <error>
+"<unnamed>"@(dummy) [Undeclared]: <error>
 "a"@(FileId(1), 84..85) [Declared]: <error>
 "b"@(FileId(1), 87..88) [Declared]: <error>
 "c"@(FileId(1), 109..110) [Declared]: <error>

@@ -1,12 +1,10 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 42
 expression: "type a : int\nprocedure boop(a, b : int, var c : int) end boop\nboop(1, a, a)\n"
-
 ---
 "a"@(FileId(1), 5..6) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(0))] of int
 "boop"@(FileId(1), 23..27) [Declared]: procedure ( pass(value) int, pass(value) int, pass(var ref) int, ) -> void
-"<unnamed>"@(dummy) [Declared]: <error>
+"<unnamed>"@(dummy) [Undeclared]: <error>
 "a"@(FileId(1), 28..29) [Declared]: int
 "b"@(FileId(1), 31..32) [Declared]: int
 "c"@(FileId(1), 44..45) [Declared]: int
