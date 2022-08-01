@@ -12,9 +12,8 @@ use toc_hir::{
     library::{self, LibraryId, WrapInLibrary},
     stmt,
     stmt::BodyStmt,
-    symbol::{
-        BindingResultExt, BindingTo, DefId, DefOwner, Mutability, NotBinding, SubprogramKind,
-    },
+    symbol::{DefId, DefOwner, IsRegister, Mutability, SubprogramKind, SymbolKind},
+    OrMissingExt,
 };
 use toc_reporting::CompileResult;
 use toc_span::Span;
@@ -511,32 +510,49 @@ impl TypeCheck<'_> {
         };
 
         let canon_def = self.db.resolve_def(DefId(self.library_id, item.def_id));
-        let real_mut = self.db.value_produced(canon_def.into()).expect("from def");
+        let real_mut = self.db.value_produced(canon_def.into());
 
-        match real_mut {
-            ValueKind::Scalar => {
-                // Nothing special for scalars
+        let is_applicable = match real_mut {
+            // Never applicable if it doesn't produce a value, no mutability to match against
+            Err(_) => false,
+            // `var` is only applicable if `real_mut` is also `var`
+            // `const` is always applicable to any `real_mut`
+            Ok(ValueKind::Register(real_mut) | ValueKind::Reference(real_mut)) => {
+                // expect  |  real
+                // --------|------
+                //  Const  |  Const  |
+                //  Const  |  Var    => const is always applicable
+                //  Var    |  Const  => mismatched, not applicable
+                //  Var    |  Var    => matching, so it's applicable
+                expected_mut == Mutability::Const || real_mut == Mutability::Var
             }
-            ValueKind::Register(real_mut) | ValueKind::Reference(real_mut) => {
-                if expected_mut == Mutability::Var && real_mut != Mutability::Var {
-                    let attr_span = attr_span.lookup_in(&self.library);
+            Ok(ValueKind::Scalar) => unreachable!("can't refer to scalars via a def"),
+        };
 
-                    let (name, def_at) = {
-                        let canon_lib = self.db.library(canon_def.0);
-                        let def_info = canon_lib.local_def(canon_def.1);
-                        let name = def_info.name;
-                        let def_at = def_info.def_at.lookup_in(&canon_lib);
-                        (name, def_at)
-                    };
+        if !is_applicable {
+            let attr_span = attr_span.lookup_in(&self.library);
 
-                    self.state()
-                        .reporter
-                        .error_detailed(format!("cannot use `var` here"), attr_span)
-                        .with_error("`var` can only be applied to variables", attr_span)
-                        .with_note(format!("`{name}` declared here"), def_at)
-                        .finish()
-                }
-            }
+            let (name, def_at) = {
+                let canon_lib = self.db.library(canon_def.0);
+                let def_info = canon_lib.local_def(canon_def.1);
+                let name = def_info.name;
+                let def_at = def_info.def_at.lookup_in(&canon_lib);
+                (name, def_at)
+            };
+            let used = match expected_mut {
+                Mutability::Const => "const",
+                Mutability::Var => "var",
+            };
+
+            self.state()
+                .reporter
+                .error_detailed(format!("cannot use `{used}` here"), attr_span)
+                .with_error(
+                    format!("`{used}` can only be applied to variables"),
+                    attr_span,
+                )
+                .with_note(format!("`{name}` declared here"), def_at)
+                .finish()
         }
     }
 
@@ -828,11 +844,7 @@ impl TypeCheck<'_> {
                     .lookup_in(&self.library);
                 let in_module = db.inside_module(bounds_expr.into());
 
-                if db
-                    .value_produced(bounds_expr.into())
-                    .map(ValueKind::is_value)
-                    .or_missing()
-                {
+                if db.value_produced(bounds_expr.into()).is_any_value() {
                     // for-each loop
                     // These are not supported yet, until after 0.1 tagging
                     let bounds_ty = db.type_of(bounds_expr.into());
@@ -863,16 +875,22 @@ impl TypeCheck<'_> {
                 let binding_def = if let Some(def_id) = db.binding_def(bounds_expr.into()) {
                     def_id
                 } else {
-                    return;
+                    // To reach here:
+                    // - Must be an implicit for bound (implied satisfaction)
+                    // - Must not produce a value (i.e be an item that doesn't produce a value)
+                    //   - Can't be missing or undeclared, since they're different from 'not-value'dness
+                    //     (considered indeterminate)
+                    // - Must not produce a def
+                    //   - Non-ref exprs are the only ones that are both user-accessible & not defs
+                    //
+                    // These conditions are mutually exclusive, so therefore here is unreachable.
+                    unreachable!("see attached comment for more info")
                 };
 
-                if !db
-                    .binding_to(binding_def.into())
-                    .map(BindingTo::is_type)
-                    .or_missing()
-                {
+                // Same reasoning as unreachable block on why we can unwrap here
+                if !db.symbol_kind(binding_def).unwrap().is_type() {
                     self.report_mismatched_binding(
-                        BindingTo::Type,
+                        SymbolKind::Type,
                         binding_def.into(),
                         bounds_span,
                         bounds_span,
@@ -1359,11 +1377,10 @@ impl TypeCheck<'_> {
         // references to subprograms.
         let (lhs_ty, from_ty_binding) = if let Some(def_id) = db.binding_def(lhs_expr.into()) {
             // From an item
-            let is_ty_binding = db
-                .binding_to(def_id.into())
-                .map(|a| a.is_type())
-                .or_missing();
-            (db.type_of(def_id.into()), is_ty_binding)
+            (
+                db.type_of(def_id.into()),
+                db.symbol_kind(def_id).is_missing_or(SymbolKind::is_type),
+            )
         } else {
             // From an actual expression
             (db.type_of(lhs_expr.into()), false)
@@ -1718,10 +1735,7 @@ impl TypeCheck<'_> {
             let (matches_pass_by, mutability) = match param.pass_by {
                 ty::PassBy::Value => {
                     // Accept any expressions
-                    (
-                        arg_value.map(ValueKind::is_value).or_missing(),
-                        Mutability::Var,
-                    )
+                    (arg_value.is_any_value(), Mutability::Var)
                 }
                 ty::PassBy::Reference(mutability) => {
                     // Only accept storage locations
@@ -1729,13 +1743,14 @@ impl TypeCheck<'_> {
                         Mutability::Const => ValueKind::is_storage_backed,
                         Mutability::Var => ValueKind::is_storage_backed_mut,
                     };
-                    (arg_value.map(predicate).or_missing(), mutability)
+
+                    (arg_value.is_missing_or(predicate), mutability)
                 }
             };
 
             if !matches_pass_by {
                 self.report_mismatched_binding(
-                    BindingTo::Storage(mutability),
+                    SymbolKind::ConstVar(mutability, IsRegister::No),
                     arg_expr.into(),
                     arg_span,
                     arg_span,
@@ -1836,7 +1851,6 @@ impl TypeCheck<'_> {
             let actual_expr = library.body(body_id).expr(expr_id.2);
 
             let actual_ty = db.type_of(expr_id.into());
-            let actual_value = db.value_produced(expr_id.into());
             let actual_span = actual_expr.span.lookup_in(library);
 
             // Check that it isn't `all` or a range expr
@@ -1860,9 +1874,9 @@ impl TypeCheck<'_> {
                 _ => {}
             }
 
-            if !actual_value.map(ValueKind::is_value).or_missing() {
+            if !db.value_produced(expr_id.into()).is_any_value() {
                 self.report_mismatched_binding(
-                    BindingTo::Storage(Mutability::Var),
+                    SymbolKind::ConstVar(Mutability::Var, IsRegister::No),
                     expr_id.into(),
                     actual_span,
                     actual_span,
@@ -1968,45 +1982,49 @@ impl TypeCheck<'_> {
             ..
         } = self;
 
-        let in_module = db.inside_module(id.in_library(*library_id).into());
         let mut span = ty.base_def.span();
-        let mut def_id = DefId(*library_id, *ty.base_def.item());
+        let def_id = {
+            let in_module = db.inside_module(id.in_library(*library_id).into());
+            // Walk the segment path while we still can
+            let mut def_id = DefId(*library_id, *ty.base_def.item());
 
-        for segment in &ty.segments {
-            let fields = db.fields_of((def_id, in_module).into());
-            let next_def =
-                fields.and_then(|fields| fields.lookup(*segment.item()).map(|field| field.def_id));
+            for segment in &ty.segments {
+                let fields = db.fields_of((def_id, in_module).into());
+                let next_def = fields
+                    .and_then(|fields| fields.lookup(*segment.item()).map(|field| field.def_id));
 
-            if let Some(next_def) = next_def {
-                def_id = next_def;
-                span = segment.span();
-            } else {
-                let library = db.library(def_id.0);
-                let def_info = library.local_def(def_id.1);
+                if let Some(next_def) = next_def {
+                    def_id = next_def;
+                    span = segment.span();
+                } else {
+                    let library = db.library(def_id.0);
+                    let def_info = library.local_def(def_id.1);
 
-                let thing = def_info.name;
-                let field_name = segment.item();
+                    let thing = def_info.name;
+                    let field_name = segment.item();
 
-                // ???: Include decl here?
+                    // ???: Include decl here?
 
-                // No field
-                self.state().reporter.error(
-                    format!("no field named `{field_name}` in `{thing}`"),
-                    format!("no field named `{field_name}` in here"),
-                    segment.span().lookup_in(&self.library),
-                );
+                    // No field
+                    self.state().reporter.error(
+                        format!("no field named `{field_name}` in `{thing}`"),
+                        format!("no field named `{field_name}` in here"),
+                        segment.span().lookup_in(&self.library),
+                    );
 
-                return;
+                    return;
+                }
             }
-        }
 
-        let binding_to = self.db.binding_to(def_id.into());
+            // Poke through any remaining indirection
+            db.resolve_def(def_id)
+        };
 
-        if !binding_to.map(BindingTo::is_type).or_missing() {
+        if !db.symbol_kind(def_id).is_missing_or(SymbolKind::is_type) {
             let span = span.lookup_in(library);
 
             self.report_mismatched_binding(
-                BindingTo::Type,
+                SymbolKind::Type,
                 def_id.into(),
                 span,
                 span,
@@ -2516,7 +2534,7 @@ impl TypeCheck<'_> {
 
     fn report_mismatched_binding(
         &self,
-        expected: BindingTo,
+        expected: SymbolKind,
         binding_source: crate::db::BindingSource,
         report_at: Span,
         binding_span: Span,
@@ -2546,17 +2564,16 @@ impl TypeCheck<'_> {
 
         let mut state = self.state();
         let mut builder = match binding_source {
-            BindingSource::DefId(DefId(lib_id, local_def)) => {
+            BindingSource::DefId(def_id @ DefId(lib_id, local_def)) => {
                 let library = self.db.library(lib_id);
                 let def_info = library.local_def(local_def);
 
                 let name = def_info.name;
                 let def_at = def_info.def_at.lookup_in(&library);
 
-                let binding_to = match self.db.binding_to(binding_source) {
-                    Ok(kind) => kind,
-                    Err(NotBinding::Missing) => return, // already covered by an undeclared def or missing expr error
-                    Err(NotBinding::NotBinding) => unreachable!("taken from a def_id"),
+                let binding_to = match self.db.symbol_kind(def_id) {
+                    Some(kind) => kind,
+                    None => return, // already covered by an undeclared def or missing expr error
                 };
 
                 state
@@ -2613,7 +2630,7 @@ impl TypeCheck<'_> {
         // "`{name}` is a reference to {binding_to}, not a variable" or "not a reference to a variable"
         // "`{name}` declared here"
 
-        let value_kind = self.db.value_produced(value_src);
+        let db = self.db;
         let predicate = match expected_kind {
             ExpectedValue::Value => ValueKind::is_value,
             ExpectedValue::Ref(Mutability::Const) => ValueKind::is_ref,
@@ -2621,123 +2638,118 @@ impl TypeCheck<'_> {
             ExpectedValue::NonRegisterRef(Mutability::Const) => ValueKind::is_storage_backed,
             ExpectedValue::NonRegisterRef(Mutability::Var) => ValueKind::is_storage_backed_mut,
         };
-        let is_valid = value_kind.map(predicate).or_missing();
-        let checking_for_value = matches!(expected_kind, ExpectedValue::Value);
 
-        if !is_valid {
-            let binding_to = self.db.binding_def(value_src.into());
-
-            let (thing, def_info) = match binding_to {
-                Some(def_id) => {
-                    // From some def
-                    let binding_to = match self.db.binding_to(def_id.into()) {
-                        Ok(binding_to) => binding_to,
-                        Err(NotBinding::Missing) => return true,
-                        Err(NotBinding::NotBinding) => unreachable!("from a DefId"),
-                    };
-                    let def_library = self.db.library(def_id.0);
-                    let def_info = def_library.local_def(def_id.1);
-                    let name = def_info.name;
-                    let def_at = def_info.def_at.lookup_in(&def_library);
-
-                    (format!("`{name}`"), Some((def_id, def_at, binding_to)))
-                }
-                None => {
-                    // From expr
-                    ("expression".to_string(), None)
-                }
-            };
-
-            let mut state = self.state();
-            let mut builder = state.reporter.error_detailed(from_thing(&thing), report_at);
-
-            builder = if let Some((def_id, def_at, binding_to)) = def_info {
-                builder = if matches!(
-                    binding_to,
-                    BindingTo::Storage(Mutability::Var) | BindingTo::Register(Mutability::Var)
-                ) {
-                    // Originally was mutable
-                    // Likely from an export or import
-
-                    // FIXME: Fold into `else` branch once we make export a real item
-                    if let Some(exporting_def) = self.db.exporting_def(value_src.into()) {
-                        let exported_library = self.db.library(exporting_def.0);
-                        let exported_span = exported_library
-                            .local_def(exporting_def.1)
-                            .def_at
-                            .lookup_in(&*exported_library);
-
-                        builder
-                            .with_error(format!("{thing} is not exported as `var`"), value_span)
-                            .with_note(format!("{thing} exported from here"), exported_span)
-                    } else {
-                        match self.db.def_owner(def_id) {
-                            Some(DefOwner::Item(item_id)) => {
-                                let def_lib = self.db.library(def_id.0);
-
-                                match &def_lib.item(item_id).kind {
-                                    item::ItemKind::Import(import) => {
-                                        let imported_span = def_lib
-                                            .local_def(import.def_id)
-                                            .def_at
-                                            .lookup_in(&def_lib);
-
-                                        builder
-                                            .with_error(
-                                                format!("{thing} is not imported as `var`"),
-                                                value_span,
-                                            )
-                                            .with_note(
-                                                format!("{thing} imported from here"),
-                                                imported_span,
-                                            )
-                                    }
-                                    kind => unreachable!("not on an import or export: {kind:?}"),
-                                }
-                            }
-                            Some(owner) => unreachable!("not at item owner: {owner:?}"),
-                            None => unreachable!("def was undeclared but also mutable"),
-                        }
-                    }
-                } else {
-                    builder
-                        .with_error(
-                            format!("{thing} is a reference to {binding_to}, not a variable"),
-                            value_span,
-                        )
-                        .with_note(format!("{thing} declared here"), def_at)
-                };
-
-                if matches!(binding_to, BindingTo::Type)
-                    && matches!(expected_kind, ExpectedValue::Value)
-                {
-                    // Check if this is a set type
-                    let ty_ref = self.db.type_of(def_id.into()).in_db(self.db).to_base_type();
-
-                    if ty_ref.kind().is_set() {
-                        // Possibly trying to construct an empty set
-                        builder = builder.with_note(
-                            "to construct an empty set, add `()` after here",
-                            value_span,
-                        );
-                    }
-                }
-
-                builder
-            } else {
-                // Only in here when checking for references
-                debug_assert!(!checking_for_value);
-                builder.with_error("not a reference to a variable", value_span)
-            };
-
-            if let Some(extra) = additional_info {
-                builder = builder.with_info(extra);
-            }
-
-            builder.finish();
+        // Nothing extra needs to be done if the predicate is satisfied
+        if db.value_produced(value_src).is_missing_or(predicate) {
+            return true;
         }
 
-        is_valid
+        let (thing, def_info) = match db.binding_def(value_src.into()) {
+            Some(unresolved_def) => {
+                // From some def
+                let def_id = db.resolve_def(unresolved_def);
+                let binding_to = match db.symbol_kind(def_id) {
+                    Some(binding_to) => binding_to,
+                    None => return true,
+                };
+                let def_library = db.library(def_id.0);
+                let def_info = def_library.local_def(def_id.1);
+                let name = def_info.name;
+                let def_at = def_info.def_at.lookup_in(&def_library);
+
+                (format!("`{name}`"), Some((def_id, def_at, binding_to)))
+            }
+            None => {
+                // From expr
+                ("expression".to_string(), None)
+            }
+        };
+
+        let mut state = self.state();
+        let mut builder = state.reporter.error_detailed(from_thing(&thing), report_at);
+
+        builder = if let Some((def_id, def_at, binding_to)) = def_info {
+            builder = if binding_to.is_ref_mut() {
+                // Originally was mutable
+                // Likely from an export or import
+
+                // We want the unresolved version, since that's used for looking up the associated import
+                // (already know that this produces a def, so it's fine to unwrap)
+                let unresolved_def = db.unresolved_binding_def(value_src.into()).unwrap();
+
+                // FIXME: Fold into `else` branch once we make export a real item
+                if let Some(exporting_def) = db.exporting_def(value_src.into()) {
+                    let exported_library = db.library(exporting_def.0);
+                    let exported_span = exported_library
+                        .local_def(exporting_def.1)
+                        .def_at
+                        .lookup_in(&*exported_library);
+
+                    builder
+                        .with_error(format!("{thing} is not exported as `var`"), value_span)
+                        .with_note(format!("{thing} exported from here"), exported_span)
+                } else {
+                    // Use unresolved def
+                    match self.db.def_owner(unresolved_def) {
+                        Some(DefOwner::Item(item_id)) => {
+                            let def_lib = db.library(def_id.0);
+
+                            match &def_lib.item(item_id).kind {
+                                item::ItemKind::Import(import) => {
+                                    let imported_span =
+                                        def_lib.local_def(import.def_id).def_at.lookup_in(&def_lib);
+
+                                    builder
+                                        .with_error(
+                                            format!("{thing} is not imported as `var`"),
+                                            value_span,
+                                        )
+                                        .with_note(
+                                            format!("{thing} imported from here"),
+                                            imported_span,
+                                        )
+                                }
+                                kind => unreachable!("not on an import or export: {kind:?}"),
+                            }
+                        }
+                        Some(owner) => unreachable!("not at item owner: {owner:?}"),
+                        None => unreachable!("def was undeclared but also mutable"),
+                    }
+                }
+            } else {
+                builder
+                    .with_error(
+                        format!("{thing} is a reference to {binding_to}, not a variable"),
+                        value_span,
+                    )
+                    .with_note(format!("{thing} declared here"), def_at)
+            };
+
+            if binding_to.is_type() && matches!(expected_kind, ExpectedValue::Value) {
+                // Check if this is a set type
+                let ty_ref = db.type_of(def_id.into()).in_db(db).to_base_type();
+
+                if ty_ref.kind().is_set() {
+                    // Possibly trying to construct an empty set
+                    builder = builder
+                        .with_note("to construct an empty set, add `()` after here", value_span);
+                }
+            }
+
+            builder
+        } else {
+            // Only in here when checking for references
+            debug_assert!(!matches!(expected_kind, ExpectedValue::Value));
+            builder.with_error("not a reference to a variable", value_span)
+        };
+
+        if let Some(extra) = additional_info {
+            builder = builder.with_info(extra);
+        }
+
+        builder.finish();
+
+        false
     }
 
     fn expect_integer_value(&self, value_src: crate::db::ValueSource) -> bool {

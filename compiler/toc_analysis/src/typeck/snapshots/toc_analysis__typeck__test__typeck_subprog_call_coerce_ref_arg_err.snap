@@ -1,11 +1,9 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 41
 expression: "procedure p(var a : real) end p\nvar i : int\np(i)\n"
-
 ---
 "p"@(FileId(1), 10..11) [Declared]: procedure ( pass(var ref) real, ) -> void
-"<unnamed>"@(dummy) [Declared]: <error>
+"<unnamed>"@(dummy) [Undeclared]: <error>
 "a"@(FileId(1), 16..17) [Declared]: real
 "i"@(FileId(1), 36..37) [Declared]: int
 "<root>"@(dummy) [Declared]: <error>

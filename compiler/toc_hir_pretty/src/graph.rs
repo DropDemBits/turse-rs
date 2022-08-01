@@ -331,7 +331,7 @@ impl<'out, 'hir> PrettyVisitor<'out, 'hir> {
                     "at: '{span}'",
                     span = self.display_span(def_info.def_at)
                 )),
-                Layout::Node(format!("kind: {kind:?}", kind = def_info.kind)),
+                Layout::Node(format!("kind: {kind:?}", kind = def_info.declare_kind)),
             ]),
         )
     }

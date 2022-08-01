@@ -1,5 +1,5 @@
 //! Errors during constant evaluation
-use toc_hir::symbol::{DefId, NotBinding, Symbol};
+use toc_hir::symbol::{DefId, Symbol};
 use toc_span::Span;
 
 use crate::const_eval::db;
@@ -86,10 +86,9 @@ impl ConstError {
         let mut builder = match &self.kind {
             ErrorKind::NotConstExpr(Some(def_id)) => {
                 // Report at the reference's definition spot
-                let bind_to = match db.binding_to((*def_id).into()) {
-                    Ok(kind) => kind,
-                    Err(NotBinding::Missing) => return, // taken from an undeclared ident or missing expr
-                    Err(NotBinding::NotBinding) => unreachable!("taken from a def"),
+                let bind_to = match db.symbol_kind(*def_id) {
+                    Some(kind) => kind,
+                    None => return, // taken from an undeclared ident or missing expr
                 };
                 let library = db.library(def_id.0);
                 let def_info = library.local_def(def_id.1);

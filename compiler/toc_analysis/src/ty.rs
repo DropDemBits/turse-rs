@@ -528,7 +528,7 @@ where
             TypeKind::Integer => unreachable!("integer should be concrete"),
             TypeKind::Enum(_, variants) => {
                 // Always the ordinal of the last variant
-                if variants.len() == 0 {
+                if variants.is_empty() {
                     return Err(ConstError::without_span(ErrorKind::NotConstExpr(None)));
                 }
 

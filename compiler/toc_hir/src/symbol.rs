@@ -10,7 +10,7 @@ pub use crate::ids::{DefId, LocalDefId};
 use crate::{
     ids::{ExportId, ItemId, LocalDefIndex, ModuleId},
     stmt::BodyStmt,
-    ty::{FieldId, TypeId},
+    ty::{FieldId, PassBy, TypeId},
 };
 
 pub mod syms;
@@ -55,6 +55,8 @@ impl From<&str> for Symbol {
     }
 }
 
+// TODO(was doing): Migrating over to the new SymbolKind, replacing BindingTo
+
 /// Information associated with a `LocalDefId` or `DefId`.
 #[derive(Debug, PartialEq, Eq)]
 pub struct DefInfo {
@@ -62,18 +64,170 @@ pub struct DefInfo {
     pub name: Symbol,
     /// Where the def was defined at
     pub def_at: SpanId,
-    /// The kind of symbol.
-    pub kind: SymbolKind,
-    // ...
-    // probably include additional definition information such as
-    // - bound to a register (unsure?)
-    // - pervasive (maybe left over from construction)
-    // - mutability/access (const, var, type/none)?
-    // - is part of a forward resolution chain?
+    /// What kind of declaration this definition refers to,
+    /// or `None` if it's from an undeclared definition.
+    pub kind: Option<SymbolKind>,
+    /// How this definition was declared
+    // ???: Can we punt this to only be during construction?
+    pub declare_kind: DeclareKind,
 }
 
+/// What kind of item this symbol references.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[allow(dead_code)] // Exhaustive listing of variants
 pub enum SymbolKind {
+    /// From `const`, `var`, or the `for`-loop counter var, which might be bound to a register
+    ConstVar(Mutability, IsRegister),
+    /// From a `bind`, which might be bound to a register
+    Binding(Mutability, IsRegister),
+    /// From a `type`, or `collection of forward {name}`
+    Type,
+    /// From a `function`, `procedure`, or `process`
+    Subprogram(SubprogramKind),
+    /// Parameter on a subprogram (either in or out/result params)
+    Param(PassBy, IsRegister),
+    // ???: Could probably make this a prop of the sym
+    /// From `external const` or `external var`
+    ExternalConstVar(Mutability),
+    // ???: Could probably make this a prop of the sym
+    /// From an `external function` or `external procedure`
+    ExternalSubprog(SubprogramKind),
+    // ???: Could probably make this a prop of the sym
+    /// Deferred subprogram, which has no body
+    Deferred(SubprogramKind),
+    /// From a `body`, which may know what it's a body of.
+    /// Not resolved to what it's a body of, since that requires name resolution.
+    Body(Option<SubprogramKind>),
+    /// From a `module`, which may or may not be a monitor
+    Module(IsMonitor),
+    /// From a `class`, which may or may not be a monitor
+    Class(IsMonitor),
+
+    /// From an `import` item
+    Import,
+    /// From an `export` item
+    Export,
+
+    /// From an `enum`
+    Enum,
+    /// From a `set`
+    Set,
+    /// From a `record`
+    Record,
+    /// From a `union`
+    Union,
+    /// From a variant on an `enum`
+    EnumVariant,
+    /// From a field on a `record` or `union`
+    RecordField,
+}
+
+impl SymbolKind {
+    /// If this is can be used as a value reference
+    pub fn is_ref(self) -> bool {
+        matches!(
+            self,
+            Self::ConstVar(..)
+                | Self::Binding(..)
+                | Self::Subprogram(_)
+                | Self::Param(..)
+                | Self::RecordField
+                | Self::EnumVariant
+        )
+    }
+
+    /// If this is a binding to a mutable value reference (storage or register)
+    pub fn is_ref_mut(self) -> bool {
+        matches!(
+            self,
+            Self::ConstVar(muta, _)
+            | Self::Binding(muta, _)
+            | Self::Param(PassBy::Reference(muta), _) if muta == Mutability::Var
+        )
+    }
+
+    /// If this is a binding to a storage location (mut or immutable)
+    pub fn is_storage(self) -> bool {
+        matches!(self, Self::ConstVar(..) | Self::Binding(..))
+    }
+
+    /// If this is a binding to a mutable storage location
+    pub fn is_storage_mut(self) -> bool {
+        matches!(
+            self,
+            Self::ConstVar(muta, reg)
+            | Self::Binding(muta, reg)
+            | Self::Param(PassBy::Reference(muta), reg) if muta == Mutability::Var && reg == IsRegister::No
+        )
+    }
+
+    /// If this is a binding to a type
+    pub fn is_type(self) -> bool {
+        matches!(self, Self::Type)
+    }
+}
+
+impl std::fmt::Display for SymbolKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let name = match self {
+            Self::ConstVar(muta, reg) | Self::Binding(muta, reg) => match (reg, muta) {
+                (IsRegister::No, Mutability::Const) => "a constant",
+                (IsRegister::No, Mutability::Var) => "a variable",
+                (IsRegister::Yes, Mutability::Const) => "a constant register",
+                (IsRegister::Yes, Mutability::Var) => "a register",
+            },
+            Self::Type => "a type",
+            Self::Subprogram(SubprogramKind::Procedure) => "a procedure",
+            Self::Subprogram(SubprogramKind::Function) => "a function",
+            Self::Subprogram(SubprogramKind::Process) => "a process",
+            Self::Param(pass_by, reg) => match (reg, pass_by) {
+                (IsRegister::No, PassBy::Value | PassBy::Reference(Mutability::Const)) => {
+                    "a constant"
+                }
+                (IsRegister::Yes, PassBy::Value | PassBy::Reference(Mutability::Const)) => {
+                    "a constant register"
+                }
+                (IsRegister::No, PassBy::Reference(Mutability::Var)) => "a variable",
+                (IsRegister::Yes, PassBy::Reference(Mutability::Var)) => "a register",
+            },
+            Self::ExternalConstVar(Mutability::Const) => "an external constant",
+            Self::ExternalConstVar(Mutability::Var) => "an external variable",
+            Self::ExternalSubprog(SubprogramKind::Procedure) => "an external procedure",
+            Self::ExternalSubprog(SubprogramKind::Function) => "an external function",
+            Self::ExternalSubprog(SubprogramKind::Process) => "an external process",
+            Self::Deferred(SubprogramKind::Procedure) => "a deferred procedure",
+            Self::Deferred(SubprogramKind::Function) => "a deferred function",
+            Self::Deferred(SubprogramKind::Process) => "a deferred process",
+            Self::Body(_) => "a subprogram body",
+            Self::Module(IsMonitor::No) => "a module",
+            Self::Module(IsMonitor::Yes) => "a monitor",
+            Self::Class(IsMonitor::No) => "a class",
+            Self::Class(IsMonitor::Yes) => "a monitor class",
+            Self::Import => "an import",
+            Self::Export => "an export",
+            Self::Enum => "an enum",
+            Self::Set => "a set",
+            Self::Record => "a record",
+            Self::Union => "a union",
+            Self::EnumVariant => "an enum variant",
+            Self::RecordField => "a record field",
+        };
+
+        f.write_str(name)
+    }
+}
+
+crate::make_named_bool! {
+    pub enum IsRegister;
+}
+
+crate::make_named_bool! {
+    pub enum IsMonitor;
+}
+
+/// How a symbol is brought into scope
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DeclareKind {
     /// The symbol is undeclared at the point of definition.
     Undeclared,
     /// The symbol is a normal declaration at the point of definition.
@@ -85,9 +239,13 @@ pub enum SymbolKind {
     Forward(ForwardKind, Option<LocalDefId>),
     /// The symbol is a resolution of a forward declaration.
     Resolved(ForwardKind),
+
+    // TODO: We only care about where it's exported from, attrs can come later (library local export table?)
     /// The symbol is from an export of an item, with a [`LocalDefId`]
     /// pointing to the original item.
     ItemExport(LocalDefId),
+
+    // TODO: Shunt this info into a libray local import table/resolution map?
     /// The symbol is of an imported item, optionally with a [`LocalDefId`]
     /// pointing to the original item (or an undeclared definition).
     ItemImport(LocalDefId),
@@ -138,113 +296,6 @@ impl Mutability {
             false => Mutability::Const,
         }
     }
-}
-
-/// What a definition binds to
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum BindingTo {
-    /// A binding to a storage location (e.g. from [`ConstVar`](crate::item::ConstVar))
-    Storage(Mutability),
-    /// A binding to a register
-    Register(Mutability),
-    /// Binding to a type
-    Type,
-    /// Binding to a module
-    Module,
-    /// Binding to a subprogram
-    Subprogram(SubprogramKind),
-    /// Binding to an enum field
-    EnumField,
-}
-
-impl BindingTo {
-    // Undeclared bindings are treated as equivalent to all of the
-    // other binding types, for error reporting purposes.
-    //
-    // While it's still an invalid state, it can theoretically be
-    // any valid binding kind.
-
-    /// If this is a binding to a value reference (mut or immutable, storage, register, subprogram)
-    pub fn is_ref(self) -> bool {
-        matches!(
-            self,
-            Self::Storage(_) | Self::Register(_) | Self::Subprogram(_) | Self::EnumField
-        )
-    }
-
-    /// If this is a binding to a mutable value reference (storage or register)
-    pub fn is_ref_mut(self) -> bool {
-        matches!(
-            self,
-            Self::Storage(Mutability::Var) | Self::Register(Mutability::Var)
-        )
-    }
-
-    /// If this is a binding to a storage location (mut or immutable)
-    pub fn is_storage(self) -> bool {
-        matches!(self, Self::Storage(_))
-    }
-
-    /// If this is a binding to a mutable storage location
-    pub fn is_storage_mut(self) -> bool {
-        matches!(self, Self::Storage(Mutability::Var))
-    }
-
-    /// If this is a binding to a type
-    pub fn is_type(self) -> bool {
-        matches!(self, Self::Type)
-    }
-}
-
-impl std::fmt::Display for BindingTo {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let name = match self {
-            BindingTo::Storage(Mutability::Var) => "a variable",
-            BindingTo::Storage(Mutability::Const) => "a constant",
-            BindingTo::Register(Mutability::Var) => "a register",
-            BindingTo::Register(Mutability::Const) => "a constant register",
-            BindingTo::Type => "a type",
-            BindingTo::Module => "a module",
-            BindingTo::Subprogram(SubprogramKind::Procedure) => "a procedure",
-            BindingTo::Subprogram(SubprogramKind::Function) => "a function",
-            BindingTo::Subprogram(SubprogramKind::Process) => "a process",
-            BindingTo::EnumField => "an enum variant",
-        };
-
-        f.write_str(name)
-    }
-}
-
-/// From a failed binding lookup
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum NotBinding {
-    /// From an undeclared definition or an error expression
-    Missing,
-    /// Not a binding at all (e.g. a plain value)
-    NotBinding,
-}
-
-/// Helper trait to deal with [`NotBinding`] kind narrowing
-pub trait BindingResultExt: seal_me::Sealed {
-    /// Allows a missing definition to match the previous predicate
-    fn or_missing(self) -> bool;
-}
-
-impl BindingResultExt for Result<bool, NotBinding> {
-    // Treat error exprs as the same as error
-    // It can be any kind of expression
-
-    fn or_missing(self) -> bool {
-        self.unwrap_or_else(|err| match err {
-            NotBinding::Missing => true,
-            NotBinding::NotBinding => false,
-        })
-    }
-}
-
-mod seal_me {
-    pub trait Sealed {}
-    impl Sealed for Result<bool, super::NotBinding> {}
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

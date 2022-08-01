@@ -1,16 +1,14 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 41
 expression: "type t_p : procedure(a, b : int, var c : string)\nprocedure p(a, b : int, c : string) end p\n\nvar _ : t_p := p\n"
-
 ---
-"<unnamed>"@(dummy) [Declared]: <error>
+"<unnamed>"@(dummy) [Undeclared]: <error>
 "a"@(FileId(1), 21..22) [Declared]: <error>
 "b"@(FileId(1), 24..25) [Declared]: <error>
 "c"@(FileId(1), 37..38) [Declared]: <error>
 "t_p"@(FileId(1), 5..8) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(4))] of procedure ( pass(value) int, pass(value) int, pass(var ref) string, ) -> void
 "p"@(FileId(1), 59..60) [Declared]: procedure ( pass(value) int, pass(value) int, pass(value) string, ) -> void
-"<unnamed>"@(dummy) [Declared]: <error>
+"<unnamed>"@(dummy) [Undeclared]: <error>
 "a"@(FileId(1), 61..62) [Declared]: int
 "b"@(FileId(1), 64..65) [Declared]: int
 "c"@(FileId(1), 73..74) [Declared]: string

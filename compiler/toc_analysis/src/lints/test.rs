@@ -19,11 +19,13 @@ fn do_lint(source: &str) -> String {
 }
 
 fn stringify_lint_results(messages: &MessageBundle) -> String {
+    use std::fmt::Write;
+
     let mut s = String::new();
 
     // Pretty print the messages
     for err in messages.iter() {
-        s.push_str(&format!("\n{err}"));
+        write!(&mut s, "\n{err}").unwrap();
     }
 
     s

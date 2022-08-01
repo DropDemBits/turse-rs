@@ -41,12 +41,14 @@ impl LibraryBuilder {
         &mut self,
         name: Symbol,
         span: SpanId,
-        kind: symbol::SymbolKind,
+        kind: Option<symbol::SymbolKind>,
+        declare_kind: symbol::DeclareKind,
     ) -> symbol::LocalDefId {
         let def = symbol::DefInfo {
             name,
             def_at: span,
             kind,
+            declare_kind,
         };
         let index = self.defs.alloc(def);
         symbol::LocalDefId(index)

@@ -1,16 +1,14 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 42
 expression: "module m\n    export opaque ~.* t\n    type t : int\n\n    % should be equivalent\n    fcn f() : t result 2 end f\nend m\n\n% should fail\nfcn k() : t result 2 end k\n"
-
 ---
 "m"@(FileId(1), 7..8) [Declared]: <error>
 "t"@(FileId(1), 42..43) [Resolved(Type)]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
 "f"@(FileId(1), 86..87) [Declared]: function ( ) -> opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
-"<unnamed>"@(dummy) [Declared]: <error>
+"<unnamed>"@(dummy) [Undeclared]: <error>
 "t"@(FileId(1), 31..32) [ItemExport(LocalDefId(1))]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
 "k"@(FileId(1), 134..135) [Declared]: function ( ) -> opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
-"<unnamed>"@(dummy) [Declared]: <error>
+"<unnamed>"@(dummy) [Undeclared]: <error>
 "<root>"@(dummy) [Declared]: <error>
 
 error in file FileId(1) at 149..150: mismatched types

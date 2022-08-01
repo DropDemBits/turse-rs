@@ -108,14 +108,14 @@ impl<'out, 'hir> PrettyVisitor<'out, 'hir> {
     fn display_extra_def(&self, def_id: LocalDefId) -> String {
         let def_info = self.library.local_def(def_id);
         let def_display = self.display_def(def_id);
-        match def_info.kind {
-            toc_hir::symbol::SymbolKind::Undeclared => {
+        match def_info.declare_kind {
+            toc_hir::symbol::DeclareKind::Undeclared => {
                 format!("{def_display}, undeclared")
             }
-            toc_hir::symbol::SymbolKind::Forward(kind, None) => {
+            toc_hir::symbol::DeclareKind::Forward(kind, None) => {
                 format!("{def_display}, unresolved forward({kind:?})")
             }
-            toc_hir::symbol::SymbolKind::Forward(kind, Some(resolve_to)) => {
+            toc_hir::symbol::DeclareKind::Forward(kind, Some(resolve_to)) => {
                 format!(
                     "{}, forward({:?}) -> {}",
                     def_display,
@@ -123,7 +123,7 @@ impl<'out, 'hir> PrettyVisitor<'out, 'hir> {
                     self.display_def(resolve_to)
                 )
             }
-            toc_hir::symbol::SymbolKind::Resolved(kind) => {
+            toc_hir::symbol::DeclareKind::Resolved(kind) => {
                 format!("{def_display}, resolved({kind:?})")
             }
             _ => def_display,

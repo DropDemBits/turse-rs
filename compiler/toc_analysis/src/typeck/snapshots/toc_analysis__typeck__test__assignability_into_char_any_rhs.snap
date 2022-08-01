@@ -1,11 +1,9 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 42
 expression: "% all runtime checked\nproc __(var s_any, _v09 : string(*), var c_any, _v05 : char(*))\n\nvar _v00 : char := c_any\nvar _v01 : char(1) := c_any\nvar _v02 : char(5) := c_any\nvar _v03 : char(255) := c_any\nvar _v04 : char(256) := c_any\n_v05 := c_any\nvar _v06 : string := c_any\nvar _v07 : string(1) := c_any\nvar _v08 : string(5) := c_any\n_v09 := c_any\nend __\n"
-
 ---
 "__"@(FileId(1), 27..29) [Declared]: procedure ( pass(var ref) string_n Any, pass(var ref) string_n Any, pass(var ref) char_n Any, pass(var ref) char_n Any, ) -> void
-"<unnamed>"@(dummy) [Declared]: <error>
+"<unnamed>"@(dummy) [Undeclared]: <error>
 "s_any"@(FileId(1), 34..39) [Declared]: string_n Any
 "_v09"@(FileId(1), 41..45) [Declared]: string_n Any
 "c_any"@(FileId(1), 63..68) [Declared]: char_n Any

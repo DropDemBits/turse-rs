@@ -36,14 +36,16 @@ pub trait TypeDatabase: TypeIntern + TypeInternExt {
     #[salsa::invoke(ty::query::value_produced)]
     fn value_produced(&self, source: ValueSource) -> Result<ValueKind, NotValue>;
 
-    /// Gets what a [`BindingSource`] binds to, or a [`NotBinding`](symbol::NotBinding) if it isn't one.
-    #[salsa::invoke(ty::query::binding_to)]
-    fn binding_to(&self, bind_src: BindingSource) -> Result<symbol::BindingTo, symbol::NotBinding>;
-
     /// Gets the corresponding definition from the given [`BindingSource`], or `None` if there isn't one.
-    /// No definition resolution is performed.
+    /// This also performs definition resolution, so resolving the resultant [`DefId`] is unnecessary.
     #[salsa::invoke(ty::query::binding_def)]
     fn binding_def(&self, bind_src: BindingSource) -> Option<DefId>;
+
+    /// Like [`Self::binding_def`], but does not perform definition resolution.
+    /// Unless looking at the immediate def is necessary (e.g. determining if it's an import),
+    /// then [`Self::binding_def`] should always be prefered.
+    #[salsa::invoke(ty::query::unresolved_binding_def)]
+    fn unresolved_binding_def(&self, bind_src: BindingSource) -> Option<DefId>;
 
     /// Gets the fields from the given [`FieldSource`]
     #[salsa::invoke(ty::query::fields_of)]
@@ -229,6 +231,13 @@ impl ValueKind {
     pub fn is_register(self) -> bool {
         matches!(self, Self::Register(_))
     }
+
+    pub fn mutability(self) -> Option<symbol::Mutability> {
+        match self {
+            ValueKind::Scalar => None,
+            ValueKind::Register(m) | ValueKind::Reference(m) => Some(m),
+        }
+    }
 }
 
 /// Not values
@@ -302,12 +311,19 @@ impl From<ValueSource> for TypeSource {
 }
 
 pub trait NotValueErrExt {
-    fn or_missing(self) -> bool;
+    /// If it satisfies `is_predicate`, or is a [`NotValue::Missing`]
+    fn is_missing_or(&self, is_predicate: impl FnOnce(ValueKind) -> bool) -> bool;
+    /// If it isn't a [`NotValue::Missing`]
+    fn is_any_value(&self) -> bool;
 }
 
-impl NotValueErrExt for Result<bool, NotValue> {
-    fn or_missing(self) -> bool {
-        self.unwrap_or_else(|err| matches!(err, NotValue::Missing))
+impl NotValueErrExt for Result<ValueKind, NotValue> {
+    fn is_missing_or(&self, is_predicate: impl FnOnce(ValueKind) -> bool) -> bool {
+        self.map_or_else(|err| matches!(err, NotValue::Missing), is_predicate)
+    }
+
+    fn is_any_value(&self) -> bool {
+        !matches!(self, Err(NotValue::NotValue))
     }
 }
 

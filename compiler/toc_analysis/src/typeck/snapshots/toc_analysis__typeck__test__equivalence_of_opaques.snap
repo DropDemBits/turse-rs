@@ -1,16 +1,14 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 42
 expression: "module z\n    export unqualified opaque ty, unwrap, make\n\n    type ty : int\n\n    fcn unwrap(t : ty) : int\n        result t\n    end unwrap\n\n    fcn make(i : int) : ty\n        result i\n    end make\nend z\n\n% can't use path syntax since it isn't lowered yet\nvar a, b : ty\nvar c := z.make(1)\n\n% is equivalent to self\na := b\na := c\n\n% to the original alias def\nvar i : int := z.unwrap(a)\n\n% but not the alias type\ni := a\n"
-
 ---
 "z"@(FileId(1), 7..8) [Declared]: <error>
 "ty"@(FileId(1), 66..68) [Resolved(Type)]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
 "unwrap"@(FileId(1), 84..90) [Declared]: function ( pass(value) opaque[DefId(LibraryId(0), LocalDefId(1))] type to int, ) -> int
-"<unnamed>"@(dummy) [Declared]: <error>
+"<unnamed>"@(dummy) [Undeclared]: <error>
 "t"@(FileId(1), 91..92) [Declared]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
 "make"@(FileId(1), 146..150) [Declared]: function ( pass(value) int, ) -> opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
-"<unnamed>"@(dummy) [Declared]: <error>
+"<unnamed>"@(dummy) [Undeclared]: <error>
 "i"@(FileId(1), 151..152) [Declared]: int
 "ty"@(FileId(1), 39..41) [ItemExport(LocalDefId(1))]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
 "unwrap"@(FileId(1), 43..49) [ItemExport(LocalDefId(2))]: function ( pass(value) opaque[DefId(LibraryId(0), LocalDefId(1))] type to int, ) -> int

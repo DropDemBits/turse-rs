@@ -1,11 +1,9 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 41
 expression: "function ka(register a : int, b : int, var c : int) r : int\n    bind\n        ra to a, % should fail\n        rb to b,\n        rc to c\n    r := 0 % should fail\nend ka"
-
 ---
 "ka"@(FileId(1), 9..11) [Declared]: function ( pass(value) register int, pass(value) int, pass(var ref) int, ) -> int
-"<unnamed>"@(dummy) [Declared]: <error>
+"<unnamed>"@(dummy) [Undeclared]: <error>
 "a"@(FileId(1), 21..22) [Declared]: int
 "b"@(FileId(1), 30..31) [Declared]: int
 "c"@(FileId(1), 43..44) [Declared]: int

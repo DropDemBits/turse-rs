@@ -174,13 +174,15 @@ fn validate_source(src: ast::Source, ctx: &mut ValidateCtx) {
 #[cfg(test)]
 #[track_caller]
 pub(crate) fn check(source: &str, expected: expect_test::Expect) {
+    use std::fmt::Write;
+
     let dummy_id = FileId::new_testing(1).unwrap();
     let res = toc_parser::parse(dummy_id, source);
     let validate_res = validate_ast(dummy_id, res.result().syntax());
 
     let mut buf = String::new();
     for msg in res.messages().iter().chain(validate_res.messages().iter()) {
-        buf.push_str(&format!("{msg}\n"));
+        writeln!(&mut buf, "{msg}").unwrap();
     }
     let trimmed = buf.trim_end();
 

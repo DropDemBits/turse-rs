@@ -7,7 +7,7 @@ use toc_hir::{
     library::{InLibrary, LibraryId, LoweredLibrary},
     library_graph::LibraryGraph,
     stmt,
-    symbol::{DefId, DefOwner, DefTable},
+    symbol::{DefId, DefOwner, DefTable, SymbolKind},
     ty::{self, TypeOwners},
 };
 use toc_salsa::salsa;
@@ -92,6 +92,12 @@ pub trait HirDatabase: toc_hir_lowering::LoweringDb {
     /// or itself if it is one.
     #[salsa::invoke(query::resolve_def)]
     fn resolve_def(&self, def_id: DefId) -> DefId;
+
+    /// Gets the [`SymbolKind`] of the given `def_id`, or [`None`] if it's an undeclared definition.
+    ///
+    /// This does not perform any form of definition resolution.
+    #[salsa::invoke(query::symbol_kind)]
+    fn symbol_kind(&self, def_id: DefId) -> Option<SymbolKind>;
 }
 
 /// Any HIR node that can uniquely be inside of a module

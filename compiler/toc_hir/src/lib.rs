@@ -69,6 +69,37 @@ pub(crate) mod internals {
             }
         };
     }
+
+    /// Simple named boolean
+    #[macro_export]
+    macro_rules! make_named_bool {
+        (
+            $(#[$attrs:meta])*
+            $vis:vis enum $ident:ident $(;)?
+        ) => {
+            $(#[$attrs])*
+            #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+            $vis enum $ident {
+                No,
+                Yes
+            }
+
+            impl ::std::convert::From<bool> for $ident {
+                fn from(v: bool) -> Self {
+                    match v {
+                        false => Self::No,
+                        true => Self::Yes,
+                    }
+                }
+            }
+
+            impl ::std::convert::From<$ident> for bool {
+                fn from(v: $ident) -> bool {
+                    matches!(v, $ident::Yes)
+                }
+            }
+        };
+    }
 }
 
 pub(crate) mod ids;
@@ -83,3 +114,17 @@ pub mod stmt;
 pub mod symbol;
 pub mod ty;
 pub mod visitor;
+
+/// Helper trait equivalent to `Option::map_or(predicate)`
+pub trait OrMissingExt<T> {
+    fn is_missing_or(&self, is_predicate: impl FnOnce(T) -> bool) -> bool;
+}
+
+impl<T> OrMissingExt<T> for Option<T>
+where
+    T: Copy,
+{
+    fn is_missing_or(&self, is_predicate: impl FnOnce(T) -> bool) -> bool {
+        self.map_or(true, is_predicate)
+    }
+}

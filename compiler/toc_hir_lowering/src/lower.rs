@@ -26,7 +26,7 @@ mod ty;
 use std::sync::Arc;
 
 use toc_ast_db::db::SourceParser;
-use toc_hir::symbol::{syms, Symbol, SymbolKind};
+use toc_hir::symbol::{syms, DeclareKind, IsMonitor, Symbol, SymbolKind};
 use toc_hir::{
     body,
     builder::{self, BodyBuilder},
@@ -165,7 +165,8 @@ impl<'ctx> FileLowering<'ctx> {
         let module_def = self.library.add_def(
             *syms::Root,
             self.library.span_table().dummy_span(),
-            symbol::SymbolKind::Declared,
+            Some(SymbolKind::Module(IsMonitor::No)),
+            DeclareKind::Declared,
         );
         let module_span = self.intern_range(root.syntax().text_range());
         let module = item::Module {
@@ -203,14 +204,14 @@ impl<'ctx> FileLowering<'ctx> {
                 let def_info = self.library.local_def(def_id);
 
                 self.scopes
-                    .def_sym(def_info.name, def_id, def_info.kind, false);
+                    .def_sym(def_info.name, def_id, def_info.declare_kind, false);
             }
 
             // Introduce imported defs
             for &def_id in imports {
                 let def_info = self.library.local_def(def_id);
 
-                if let SymbolKind::ItemImport(imported_def) = def_info.kind {
+                if let DeclareKind::ItemImport(imported_def) = def_info.declare_kind {
                     // Carry the pervasiveness through
                     // We're essentially redeclaring over the pervasive definition, so we still want to
                     // preserve the pervasive property
@@ -295,7 +296,7 @@ impl<'ctx> FileLowering<'ctx> {
 
             let span = self.library.intern_span(span);
             self.library
-                .add_def(name, span, symbol::SymbolKind::Undeclared)
+                .add_def(name, span, None, DeclareKind::Undeclared)
         })
     }
 
@@ -304,13 +305,13 @@ impl<'ctx> FileLowering<'ctx> {
         let def_info = self.library.local_def(def_id);
         let name = def_info.name;
         let span = def_info.def_at;
-        let kind = def_info.kind;
+        let kind = def_info.declare_kind;
 
         // Bring into scope
         let old_def = self.scopes.def_sym(name, def_id, kind, is_pervasive);
 
         // Resolve any associated forward decls
-        if let SymbolKind::Resolved(resolve_kind) = kind {
+        if let DeclareKind::Resolved(resolve_kind) = kind {
             let forward_list = self.scopes.take_resolved_forwards(name, resolve_kind);
 
             if let Some(forward_list) = forward_list {
@@ -318,8 +319,8 @@ impl<'ctx> FileLowering<'ctx> {
                 for forward_def in forward_list {
                     let def_info = self.library.local_def_mut(forward_def);
 
-                    match &mut def_info.kind {
-                        SymbolKind::Forward(_, resolve_to) => *resolve_to = Some(def_id),
+                    match &mut def_info.declare_kind {
+                        DeclareKind::Forward(_, resolve_to) => *resolve_to = Some(def_id),
                         _ => unreachable!("not a forward def"),
                     }
                 }
@@ -336,11 +337,11 @@ impl<'ctx> FileLowering<'ctx> {
             // Just use the name from the old def for both, since by definition they are the same
             let name = old_def_info.name;
 
-            match (old_def_info.kind, kind) {
-                (SymbolKind::Undeclared, _) | (_, SymbolKind::Undeclared) => {
+            match (old_def_info.declare_kind, kind) {
+                (DeclareKind::Undeclared, _) | (_, DeclareKind::Undeclared) => {
                     // Always ok to declare over undeclared symbols
                 }
-                (SymbolKind::Forward(other_kind, _), SymbolKind::Forward(this_kind, _))
+                (DeclareKind::Forward(other_kind, _), DeclareKind::Forward(this_kind, _))
                     if other_kind == this_kind =>
                 {
                     // Duplicate forward declare
@@ -353,9 +354,10 @@ impl<'ctx> FileLowering<'ctx> {
                         .with_error("new one here", new_span)
                         .finish();
                 }
-                (SymbolKind::Forward(other_kind, resolve_to), SymbolKind::Resolved(this_kind))
-                    if other_kind == this_kind =>
-                {
+                (
+                    DeclareKind::Forward(other_kind, resolve_to),
+                    DeclareKind::Resolved(this_kind),
+                ) if other_kind == this_kind => {
                     // resolve_to: none -> didn't change
                     // resolve_to: some(== def_id) -> did change, this resolved it
                     // resolve_to: some(!= def_id) -> didn't change, this didn't resolve it (ok to note as redeclare)
@@ -385,7 +387,7 @@ impl<'ctx> FileLowering<'ctx> {
                         );
                     }
                 }
-                (_, SymbolKind::ItemExport(exported_from)) => {
+                (_, DeclareKind::ItemExport(exported_from)) => {
                     // From an unqualified export in a local module
                     // Use the originating item as the top-level error span
                     let from_item_span = self
@@ -403,7 +405,7 @@ impl<'ctx> FileLowering<'ctx> {
                         .with_error(format!("`{name}` exported from here"), new_span)
                         .finish();
                 }
-                (_, SymbolKind::ItemImport(_)) => {
+                (_, DeclareKind::ItemImport(_)) => {
                     // Should be only from declaring over pervasive, since we've crossed an import boundary
                     //
                     // Even though soft import boundaries allow implicitly imports all defs, subprogram scopes

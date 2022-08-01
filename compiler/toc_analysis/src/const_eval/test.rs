@@ -100,6 +100,8 @@ fn do_const_eval(source: &str) -> String {
 }
 
 fn stringify_const_eval_results(results: &str, messages: MessageBundle) -> String {
+    use std::fmt::Write;
+
     // Pretty print const eval ctx
     // Want:
     // - Evaluation state of all accessible DefIds
@@ -107,7 +109,7 @@ fn stringify_const_eval_results(results: &str, messages: MessageBundle) -> Strin
 
     // Pretty print the messages
     for err in messages.iter() {
-        s.push_str(&format!("{err}\n"));
+        writeln!(&mut s, "{err}").unwrap();
     }
 
     s
