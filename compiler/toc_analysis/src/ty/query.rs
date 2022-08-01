@@ -3,7 +3,7 @@
 use std::sync::Arc;
 
 use toc_hir::item::{self, ImportMutability};
-use toc_hir::symbol::{IsRegister, Mutability, NotBinding, SymbolKind};
+use toc_hir::symbol::{IsRegister, Mutability, SymbolKind};
 use toc_hir::ty::PassBy;
 use toc_hir::{body, expr, OrMissingExt};
 use toc_hir::{
@@ -89,27 +89,25 @@ pub(crate) fn unresolved_binding_def(
     db: &dyn TypeDatabase,
     bind_src: BindingSource,
 ) -> Option<DefId> {
-    lookup_binding_def(db, bind_src).ok()
+    lookup_binding_def(db, bind_src)
 }
 
 pub(crate) fn binding_def(db: &dyn TypeDatabase, bind_src: BindingSource) -> Option<DefId> {
-    lookup_binding_def(db, bind_src)
-        .ok()
-        .map(|def_id| db.resolve_def(def_id))
+    unresolved_binding_def(db, bind_src).map(|def_id| db.resolve_def(def_id))
 }
 
-fn lookup_binding_def(db: &dyn TypeDatabase, bind_src: BindingSource) -> Result<DefId, NotBinding> {
+fn lookup_binding_def(db: &dyn TypeDatabase, bind_src: BindingSource) -> Option<DefId> {
     match bind_src {
         // Trivial, def bindings are bindings to themselves
-        // We don't want to perform sym-res here, since that means we can't figure out
-        // if something refers to an import or not
-        BindingSource::DefId(it) => Ok(it),
+        // We don't want to perform sym-res here, since that means
+        // we can't figure out if something refers to an import or not
+        BindingSource::DefId(it) => Some(it),
         BindingSource::Body(lib_id, body) => {
             let library = db.library(lib_id);
 
             match &library.body(body).kind {
                 // Stmt bodies never produce bindings
-                body::BodyKind::Stmts(..) => Err(NotBinding::NotBinding),
+                body::BodyKind::Stmts(..) => None,
                 // Defer to expr form
                 body::BodyKind::Exprs(expr) => lookup_binding_def(db, (lib_id, body, *expr).into()),
             }
@@ -120,9 +118,9 @@ fn lookup_binding_def(db: &dyn TypeDatabase, bind_src: BindingSource) -> Result<
 
             // Only name exprs and fields can produce a binding
             match &library.body(body_id).expr(expr_id).kind {
-                expr::ExprKind::Missing => Err(NotBinding::Missing),
+                expr::ExprKind::Missing => (None),
                 expr::ExprKind::Name(name) => match name {
-                    expr::Name::Name(def_id) => Ok(DefId(lib_id, *def_id)),
+                    expr::Name::Name(def_id) => (Some(DefId(lib_id, *def_id))),
                     expr::Name::Self_ => todo!(),
                 },
                 expr::ExprKind::Field(field) => {
@@ -131,9 +129,8 @@ fn lookup_binding_def(db: &dyn TypeDatabase, bind_src: BindingSource) -> Result<
                         .and_then(|fields| {
                             fields.lookup(*field.field.item()).map(|info| info.def_id)
                         })
-                        .ok_or(NotBinding::Missing)
                 }
-                _ => Err(NotBinding::NotBinding),
+                _ => None,
             }
         }
     }

@@ -298,20 +298,6 @@ impl Mutability {
     }
 }
 
-/// From a failed binding lookup
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum NotBinding {
-    /// From an undeclared definition or an error expression
-    Missing,
-    /// Not a binding at all (e.g. a plain value)
-    NotBinding,
-}
-
-mod seal_me {
-    pub trait Sealed {}
-    impl Sealed for Result<bool, super::NotBinding> {}
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum SubprogramKind {
     Procedure,
