@@ -2479,6 +2479,28 @@ test_named_group! { typeck_import_decl,
             outer := 6 % this should still be fine, since we take the specified mut for its word
         end _
         ",
+
+        mutable_on_never_applicable => "
+        type ty : int
+        module _
+            import var ty
+            type tou : ty
+        end _
+        ",
+        const_on_never_applicable => "
+        type ty : int
+        module _
+            import const ty
+            type tou : ty
+        end _
+        ",
+        implied_on_never_applicable => "
+        type ty : int
+        module _
+            import ty
+            type tou : ty
+        end _
+        ",
     ]
 }
 

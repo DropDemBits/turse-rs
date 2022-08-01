@@ -510,35 +510,49 @@ impl TypeCheck<'_> {
         };
 
         let canon_def = self.db.resolve_def(DefId(self.library_id, item.def_id));
-        let real_mut = self
-            .db
-            .value_produced(canon_def.into())
-            .expect("from import def");
+        let real_mut = self.db.value_produced(canon_def.into());
 
-        match real_mut {
-            ValueKind::Scalar => {
-                // Nothing special for scalars
+        let is_applicable = match real_mut {
+            // Never applicable if it doesn't produce a value, no mutability to match against
+            Err(_) => false,
+            // `var` is only applicable if `real_mut` is also `var`
+            // `const` is always applicable to any `real_mut`
+            Ok(ValueKind::Register(real_mut) | ValueKind::Reference(real_mut)) => {
+                // expect  |  real
+                // --------|------
+                //  Const  |  Const  |
+                //  Const  |  Var    => const is always applicable
+                //  Var    |  Const  => mismatched, not applicable
+                //  Var    |  Var    => matching, so it's applicable
+                expected_mut == Mutability::Const || real_mut == Mutability::Var
             }
-            ValueKind::Register(real_mut) | ValueKind::Reference(real_mut) => {
-                if expected_mut == Mutability::Var && real_mut != Mutability::Var {
-                    let attr_span = attr_span.lookup_in(&self.library);
+            Ok(ValueKind::Scalar) => unreachable!("can't refer to scalars via a def"),
+        };
 
-                    let (name, def_at) = {
-                        let canon_lib = self.db.library(canon_def.0);
-                        let def_info = canon_lib.local_def(canon_def.1);
-                        let name = def_info.name;
-                        let def_at = def_info.def_at.lookup_in(&canon_lib);
-                        (name, def_at)
-                    };
+        if !is_applicable {
+            let attr_span = attr_span.lookup_in(&self.library);
 
-                    self.state()
-                        .reporter
-                        .error_detailed("cannot use `var` here", attr_span)
-                        .with_error("`var` can only be applied to variables", attr_span)
-                        .with_note(format!("`{name}` declared here"), def_at)
-                        .finish()
-                }
-            }
+            let (name, def_at) = {
+                let canon_lib = self.db.library(canon_def.0);
+                let def_info = canon_lib.local_def(canon_def.1);
+                let name = def_info.name;
+                let def_at = def_info.def_at.lookup_in(&canon_lib);
+                (name, def_at)
+            };
+            let used = match expected_mut {
+                Mutability::Const => "const",
+                Mutability::Var => "var",
+            };
+
+            self.state()
+                .reporter
+                .error_detailed(format!("cannot use `{used}` here"), attr_span)
+                .with_error(
+                    format!("`{used}` can only be applied to variables"),
+                    attr_span,
+                )
+                .with_note(format!("`{name}` declared here"), def_at)
+                .finish()
         }
     }
 
