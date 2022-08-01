@@ -41,9 +41,15 @@ pub trait TypeDatabase: TypeIntern + TypeInternExt {
     fn binding_to(&self, bind_src: BindingSource) -> Result<symbol::BindingTo, symbol::NotBinding>;
 
     /// Gets the corresponding definition from the given [`BindingSource`], or `None` if there isn't one.
-    /// No definition resolution is performed.
+    /// This also performs definition resolution, so resolving the resultant [`DefId`] is unnecessary.
     #[salsa::invoke(ty::query::binding_def)]
     fn binding_def(&self, bind_src: BindingSource) -> Option<DefId>;
+
+    /// Like [`Self::binding_def`], but does not perform definition resolution.
+    /// Unless looking at the immediate def is necessary (e.g. determining if it's an import),
+    /// then [`Self::binding_def`] should always be prefered.
+    #[salsa::invoke(ty::query::unresolved_binding_def)]
+    fn unresolved_binding_def(&self, bind_src: BindingSource) -> Option<DefId>;
 
     /// Gets the fields from the given [`FieldSource`]
     #[salsa::invoke(ty::query::fields_of)]

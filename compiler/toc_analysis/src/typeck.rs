@@ -863,14 +863,26 @@ impl TypeCheck<'_> {
                 let binding_def = if let Some(def_id) = db.binding_def(bounds_expr.into()) {
                     def_id
                 } else {
-                    return;
+                    // To reach here:
+                    // - Must be an implicit for bound (implied satisfaction)
+                    // - Must not produce a value (i.e be an item that doesn't produce a value)
+                    //   - Can't be missing, since missing is different from 'not-value'dness
+                    // - Must not produce a def
+                    //   - Non-ref exprs are the only ones that are both user-accessible & not defs
+                    //
+                    // These conditions are mutually exclusive, so therefore here is unreachable.
+                    unreachable!("see attached comment for more info")
                 };
 
-                if !db
-                    .binding_to(binding_def.into())
-                    .map(BindingTo::is_type)
-                    .or_missing()
-                {
+                // TODO: This is to be replaced with looking up the def info and its associated SymbolKind
+                let is_type = if let Some(DefOwner::Item(item_id)) = db.def_owner(binding_def) {
+                    let library = db.library(binding_def.0);
+                    matches!(&library.item(item_id).kind, item::ItemKind::Type(_))
+                } else {
+                    false
+                };
+
+                if !is_type {
                     self.report_mismatched_binding(
                         BindingTo::Type,
                         binding_def.into(),
@@ -2546,14 +2558,14 @@ impl TypeCheck<'_> {
 
         let mut state = self.state();
         let mut builder = match binding_source {
-            BindingSource::DefId(DefId(lib_id, local_def)) => {
+            BindingSource::DefId(def_id @ DefId(lib_id, local_def)) => {
                 let library = self.db.library(lib_id);
                 let def_info = library.local_def(local_def);
 
                 let name = def_info.name;
                 let def_at = def_info.def_at.lookup_in(&library);
 
-                let binding_to = match self.db.binding_to(binding_source) {
+                let binding_to = match self.db.binding_to(def_id.into()) {
                     Ok(kind) => kind,
                     Err(NotBinding::Missing) => return, // already covered by an undeclared def or missing expr error
                     Err(NotBinding::NotBinding) => unreachable!("taken from a def_id"),
@@ -2625,11 +2637,10 @@ impl TypeCheck<'_> {
         let checking_for_value = matches!(expected_kind, ExpectedValue::Value);
 
         if !is_valid {
-            let binding_to = self.db.binding_def(value_src.into());
-
-            let (thing, def_info) = match binding_to {
-                Some(def_id) => {
+            let (thing, def_info) = match self.db.binding_def(value_src.into()) {
+                Some(unresolved_def) => {
                     // From some def
+                    let def_id = self.db.resolve_def(unresolved_def);
                     let binding_to = match self.db.binding_to(def_id.into()) {
                         Ok(binding_to) => binding_to,
                         Err(NotBinding::Missing) => return true,
@@ -2659,6 +2670,10 @@ impl TypeCheck<'_> {
                     // Originally was mutable
                     // Likely from an export or import
 
+                    // We want the unresolved version, since that's used for looking up the associated import
+                    // (already know that this produces a def, so it's fine to unwrap)
+                    let unresolved_def = self.db.unresolved_binding_def(value_src.into()).unwrap();
+
                     // FIXME: Fold into `else` branch once we make export a real item
                     if let Some(exporting_def) = self.db.exporting_def(value_src.into()) {
                         let exported_library = self.db.library(exporting_def.0);
@@ -2671,7 +2686,8 @@ impl TypeCheck<'_> {
                             .with_error(format!("{thing} is not exported as `var`"), value_span)
                             .with_note(format!("{thing} exported from here"), exported_span)
                     } else {
-                        match self.db.def_owner(def_id) {
+                        // Use unresolved def
+                        match self.db.def_owner(unresolved_def) {
                             Some(DefOwner::Item(item_id)) => {
                                 let def_lib = self.db.library(def_id.0);
 

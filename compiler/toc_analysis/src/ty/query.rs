@@ -85,8 +85,17 @@ fn ty_of_body(db: &dyn db::TypeDatabase, body_id: InLibrary<BodyId>) -> TypeId {
     }
 }
 
-pub(crate) fn binding_def(db: &dyn TypeDatabase, bind_src: BindingSource) -> Option<DefId> {
+pub(crate) fn unresolved_binding_def(
+    db: &dyn TypeDatabase,
+    bind_src: BindingSource,
+) -> Option<DefId> {
     lookup_binding_def(db, bind_src).ok()
+}
+
+pub(crate) fn binding_def(db: &dyn TypeDatabase, bind_src: BindingSource) -> Option<DefId> {
+    lookup_binding_def(db, bind_src)
+        .ok()
+        .map(|def_id| db.resolve_def(def_id))
 }
 
 pub(crate) fn binding_to(
@@ -566,14 +575,14 @@ pub(crate) fn fields_of(
         }
         db::FieldSource::BodyExpr(lib_id, body_expr) => {
             let in_module = db.inside_module((lib_id, body_expr).into());
-            let binding_to = db.binding_to((lib_id, body_expr).into()).ok()?;
+            let binding_def = db.binding_def((lib_id, body_expr).into())?;
+            let binding_to = db.binding_to(binding_def.into()).ok()?;
 
             match binding_to {
                 BindingTo::Module => {
                     // Exports from a given module
                     // Defer to the corresponding def
-                    let def_id = db.binding_def((lib_id, body_expr).into())?;
-                    db.fields_of((def_id, in_module).into())
+                    db.fields_of((binding_def, in_module).into())
                 }
                 BindingTo::Type => {
                     // Fields associated with the type
@@ -644,7 +653,9 @@ pub(crate) fn find_exported_def(
             }
         }
         expr::ExprKind::Field(expr) => {
-            let lhs_def = db.binding_def((library_id, body_id, expr.lhs).into())?;
+            // We want the unresolved def here, since we want to match against the literal def itself
+            // (which may be a direct export)
+            let lhs_def = db.unresolved_binding_def((library_id, body_id, expr.lhs).into())?;
 
             if let Some(DefOwner::Item(item_id)) = db.def_owner(lhs_def) {
                 if let item::ItemKind::Module(module) = &library.item(item_id).kind {
