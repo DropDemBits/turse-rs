@@ -625,6 +625,162 @@ fn parse_range_type() {
 }
 
 #[test]
+fn parse_range_type_packed_attr() {
+    check(
+        "type _ : packed 1 .. 2",
+        expect![[r#"
+        Source@0..22
+          StmtList@0..22
+            TypeDecl@0..22
+              KwType@0..4 "type"
+              Whitespace@4..5 " "
+              Name@5..6
+                Identifier@5..6 "_"
+              Whitespace@6..7 " "
+              Colon@7..8 ":"
+              Whitespace@8..9 " "
+              RangeType@9..22
+                KwPacked@9..15 "packed"
+                Whitespace@15..16 " "
+                LiteralExpr@16..17
+                  IntLiteral@16..17 "1"
+                Whitespace@17..18 " "
+                Range@18..20 ".."
+                Whitespace@20..21 " "
+                LiteralExpr@21..22
+                  IntLiteral@21..22 "2""#]],
+    );
+}
+
+#[test]
+fn recover_range_type_packed_only_head() {
+    check(
+        "type _ : packed 1",
+        expect![[r#"
+        Source@0..17
+          StmtList@0..17
+            TypeDecl@0..17
+              KwType@0..4 "type"
+              Whitespace@4..5 " "
+              Name@5..6
+                Identifier@5..6 "_"
+              Whitespace@6..7 " "
+              Colon@7..8 ":"
+              Whitespace@8..9 " "
+              Error@9..17
+                KwPacked@9..15 "packed"
+                Whitespace@15..16 " "
+                LiteralExpr@16..17
+                  IntLiteral@16..17 "1"
+        error in file FileId(1) at 16..17: unexpected end of file
+        | error in file FileId(1) for 16..17: expected type specifier after here"#]],
+    )
+}
+
+#[test]
+fn recover_range_type_packed_indirection_head() {
+    // will conflict with just `packed int`, but gives an okay error for now
+    check(
+        "type _ : packed int @ (2) .. 3",
+        expect![[r#"
+        Source@0..30
+          StmtList@0..30
+            TypeDecl@0..30
+              KwType@0..4 "type"
+              Whitespace@4..5 " "
+              Name@5..6
+                Identifier@5..6 "_"
+              Whitespace@6..7 " "
+              Colon@7..8 ":"
+              Whitespace@8..9 " "
+              RangeType@9..30
+                KwPacked@9..15 "packed"
+                Whitespace@15..16 " "
+                IndirectExpr@16..25
+                  PrimType@16..19
+                    KwInt@16..19 "int"
+                  Whitespace@19..20 " "
+                  At@20..21 "@"
+                  Whitespace@21..22 " "
+                  LeftParen@22..23 "("
+                  LiteralExpr@23..24
+                    IntLiteral@23..24 "2"
+                  RightParen@24..25 ")"
+                Whitespace@25..26 " "
+                Range@26..28 ".."
+                Whitespace@28..29 " "
+                LiteralExpr@29..30
+                  IntLiteral@29..30 "3"
+        error in file FileId(1) at 16..19: unexpected token
+        | error in file FileId(1) for 16..19: expected `array`, `enum`, `set`, `record`, `union`, or a range type, but found `int`"#]],
+    )
+}
+
+#[test]
+fn parse_range_type_size_spec() {
+    check(
+        "type _ : 1 .. 2 : 2",
+        expect![[r#"
+        Source@0..19
+          StmtList@0..19
+            TypeDecl@0..19
+              KwType@0..4 "type"
+              Whitespace@4..5 " "
+              Name@5..6
+                Identifier@5..6 "_"
+              Whitespace@6..7 " "
+              Colon@7..8 ":"
+              Whitespace@8..9 " "
+              RangeType@9..19
+                LiteralExpr@9..10
+                  IntLiteral@9..10 "1"
+                Whitespace@10..11 " "
+                Range@11..13 ".."
+                Whitespace@13..14 " "
+                LiteralExpr@14..15
+                  IntLiteral@14..15 "2"
+                Whitespace@15..16 " "
+                SizeSpec@16..19
+                  Colon@16..17 ":"
+                  Whitespace@17..18 " "
+                  LiteralExpr@18..19
+                    IntLiteral@18..19 "2""#]],
+    )
+}
+
+#[test]
+fn recover_range_type_size_spec_missing_expr() {
+    check(
+        "type _ : 1 .. 2 : ",
+        expect![[r#"
+        Source@0..18
+          StmtList@0..17
+            TypeDecl@0..17
+              KwType@0..4 "type"
+              Whitespace@4..5 " "
+              Name@5..6
+                Identifier@5..6 "_"
+              Whitespace@6..7 " "
+              Colon@7..8 ":"
+              Whitespace@8..9 " "
+              RangeType@9..17
+                LiteralExpr@9..10
+                  IntLiteral@9..10 "1"
+                Whitespace@10..11 " "
+                Range@11..13 ".."
+                Whitespace@13..14 " "
+                LiteralExpr@14..15
+                  IntLiteral@14..15 "2"
+                Whitespace@15..16 " "
+                SizeSpec@16..17
+                  Colon@16..17 ":"
+          Whitespace@17..18 " "
+        error in file FileId(1) at 16..17: unexpected end of file
+        | error in file FileId(1) for 16..17: expected expression after here"#]],
+    );
+}
+
+#[test]
 fn parse_unbounded_range_type() {
     check(
         "type _ : 1 .. *",
@@ -939,6 +1095,101 @@ fn parse_enum_type() {
 }
 
 #[test]
+fn parse_enum_type_packed_attr() {
+    check(
+        "type _ : packed enum(a)",
+        expect![[r#"
+        Source@0..23
+          StmtList@0..23
+            TypeDecl@0..23
+              KwType@0..4 "type"
+              Whitespace@4..5 " "
+              Name@5..6
+                Identifier@5..6 "_"
+              Whitespace@6..7 " "
+              Colon@7..8 ":"
+              Whitespace@8..9 " "
+              EnumType@9..23
+                KwPacked@9..15 "packed"
+                Whitespace@15..16 " "
+                KwEnum@16..20 "enum"
+                LeftParen@20..21 "("
+                NameList@21..22
+                  Name@21..22
+                    Identifier@21..22 "a"
+                RightParen@22..23 ")""#]],
+    );
+}
+
+#[test]
+fn parse_enum_type_size_spec() {
+    check(
+        "type _ : enum(a) : 1 + 2",
+        expect![[r#"
+        Source@0..24
+          StmtList@0..24
+            TypeDecl@0..24
+              KwType@0..4 "type"
+              Whitespace@4..5 " "
+              Name@5..6
+                Identifier@5..6 "_"
+              Whitespace@6..7 " "
+              Colon@7..8 ":"
+              Whitespace@8..9 " "
+              EnumType@9..24
+                KwEnum@9..13 "enum"
+                LeftParen@13..14 "("
+                NameList@14..15
+                  Name@14..15
+                    Identifier@14..15 "a"
+                RightParen@15..16 ")"
+                Whitespace@16..17 " "
+                SizeSpec@17..24
+                  Colon@17..18 ":"
+                  Whitespace@18..19 " "
+                  BinaryExpr@19..24
+                    LiteralExpr@19..20
+                      IntLiteral@19..20 "1"
+                    Whitespace@20..21 " "
+                    Plus@21..22 "+"
+                    Whitespace@22..23 " "
+                    LiteralExpr@23..24
+                      IntLiteral@23..24 "2""#]],
+    );
+}
+
+#[test]
+fn recover_enum_type_size_spec_missing_expr() {
+    check(
+        "type _ : enum(a) : ",
+        expect![[r#"
+        Source@0..19
+          StmtList@0..18
+            TypeDecl@0..18
+              KwType@0..4 "type"
+              Whitespace@4..5 " "
+              Name@5..6
+                Identifier@5..6 "_"
+              Whitespace@6..7 " "
+              Colon@7..8 ":"
+              Whitespace@8..9 " "
+              EnumType@9..18
+                KwEnum@9..13 "enum"
+                LeftParen@13..14 "("
+                NameList@14..15
+                  Name@14..15
+                    Identifier@14..15 "a"
+                RightParen@15..16 ")"
+                Whitespace@16..17 " "
+                SizeSpec@17..18
+                  Colon@17..18 ":"
+          Whitespace@18..19 " "
+        error in file FileId(1) at 17..18: unexpected end of file
+        | error in file FileId(1) for 17..18: expected expression after here"#]],
+    );
+}
+
+#[test]
 fn parse_enum_type_multiple_names() {
     check(
         "type _ : enum (a, b, c)",
@@ -1188,6 +1439,101 @@ fn parse_set_type() {
                     Whitespace@15..16 " "
                     PrimType@16..23
                       KwBoolean@16..23 "boolean""#]],
+    );
+}
+
+#[test]
+fn parse_set_type_packed_attr() {
+    check(
+        "type _ : packed set of boolean",
+        expect![[r#"
+        Source@0..30
+          StmtList@0..30
+            TypeDecl@0..30
+              KwType@0..4 "type"
+              Whitespace@4..5 " "
+              Name@5..6
+                Identifier@5..6 "_"
+              Whitespace@6..7 " "
+              Colon@7..8 ":"
+              Whitespace@8..9 " "
+              SetType@9..30
+                KwPacked@9..15 "packed"
+                Whitespace@15..16 " "
+                KwSet@16..19 "set"
+                Whitespace@19..20 " "
+                KwOf@20..22 "of"
+                Whitespace@22..23 " "
+                PrimType@23..30
+                  KwBoolean@23..30 "boolean""#]],
+    );
+}
+
+#[test]
+fn parse_set_type_size_spec() {
+    check(
+        "type _ : set of boolean : 1 + 2",
+        expect![[r#"
+        Source@0..31
+          StmtList@0..31
+            TypeDecl@0..31
+              KwType@0..4 "type"
+              Whitespace@4..5 " "
+              Name@5..6
+                Identifier@5..6 "_"
+              Whitespace@6..7 " "
+              Colon@7..8 ":"
+              Whitespace@8..9 " "
+              SetType@9..31
+                KwSet@9..12 "set"
+                Whitespace@12..13 " "
+                KwOf@13..15 "of"
+                Whitespace@15..16 " "
+                PrimType@16..23
+                  KwBoolean@16..23 "boolean"
+                Whitespace@23..24 " "
+                SizeSpec@24..31
+                  Colon@24..25 ":"
+                  Whitespace@25..26 " "
+                  BinaryExpr@26..31
+                    LiteralExpr@26..27
+                      IntLiteral@26..27 "1"
+                    Whitespace@27..28 " "
+                    Plus@28..29 "+"
+                    Whitespace@29..30 " "
+                    LiteralExpr@30..31
+                      IntLiteral@30..31 "2""#]],
+    );
+}
+
+#[test]
+fn recover_set_type_size_spec_missing_expr() {
+    check(
+        "type _ : set of boolean : ",
+        expect![[r#"
+        Source@0..26
+          StmtList@0..25
+            TypeDecl@0..25
+              KwType@0..4 "type"
+              Whitespace@4..5 " "
+              Name@5..6
+                Identifier@5..6 "_"
+              Whitespace@6..7 " "
+              Colon@7..8 ":"
+              Whitespace@8..9 " "
+              SetType@9..25
+                KwSet@9..12 "set"
+                Whitespace@12..13 " "
+                KwOf@13..15 "of"
+                Whitespace@15..16 " "
+                PrimType@16..23
+                  KwBoolean@16..23 "boolean"
+                Whitespace@23..24 " "
+                SizeSpec@24..25
+                  Colon@24..25 ":"
+          Whitespace@25..26 " "
+        error in file FileId(1) at 24..25: unexpected end of file
+        | error in file FileId(1) for 24..25: expected expression after here"#]],
     );
 }
 
@@ -1646,6 +1992,43 @@ fn parse_array_type() {
 }
 
 #[test]
+fn parse_array_type_packed_attr() {
+    check(
+        "type _ : packed array 1 .. 3 of int",
+        expect![[r#"
+        Source@0..35
+          StmtList@0..35
+            TypeDecl@0..35
+              KwType@0..4 "type"
+              Whitespace@4..5 " "
+              Name@5..6
+                Identifier@5..6 "_"
+              Whitespace@6..7 " "
+              Colon@7..8 ":"
+              Whitespace@8..9 " "
+              ArrayType@9..35
+                KwPacked@9..15 "packed"
+                Whitespace@15..16 " "
+                KwArray@16..21 "array"
+                Whitespace@21..22 " "
+                RangeList@22..28
+                  RangeType@22..28
+                    LiteralExpr@22..23
+                      IntLiteral@22..23 "1"
+                    Whitespace@23..24 " "
+                    Range@24..26 ".."
+                    Whitespace@26..27 " "
+                    LiteralExpr@27..28
+                      IntLiteral@27..28 "3"
+                Whitespace@28..29 " "
+                KwOf@29..31 "of"
+                Whitespace@31..32 " "
+                PrimType@32..35
+                  KwInt@32..35 "int""#]],
+    );
+}
+
+#[test]
 fn parse_array_type_with_many_ranges() {
     check(
         "type _ : array 1 .. 3, boolean, char of string",
@@ -1727,6 +2110,87 @@ fn parse_flexible_array_type() {
                         SeqLength@39..40
                           Star@39..40 "*"
                         RightParen@40..41 ")""#]],
+    );
+}
+
+#[test]
+fn parse_flexible_array_type_packed_attr() {
+    check(
+        "type _ : packed flexible array 1 .. 2 of int",
+        expect![[r#"
+        Source@0..44
+          StmtList@0..44
+            TypeDecl@0..44
+              KwType@0..4 "type"
+              Whitespace@4..5 " "
+              Name@5..6
+                Identifier@5..6 "_"
+              Whitespace@6..7 " "
+              Colon@7..8 ":"
+              Whitespace@8..9 " "
+              ArrayType@9..44
+                KwPacked@9..15 "packed"
+                Whitespace@15..16 " "
+                KwFlexible@16..24 "flexible"
+                Whitespace@24..25 " "
+                KwArray@25..30 "array"
+                Whitespace@30..31 " "
+                RangeList@31..37
+                  RangeType@31..37
+                    LiteralExpr@31..32
+                      IntLiteral@31..32 "1"
+                    Whitespace@32..33 " "
+                    Range@33..35 ".."
+                    Whitespace@35..36 " "
+                    LiteralExpr@36..37
+                      IntLiteral@36..37 "2"
+                Whitespace@37..38 " "
+                KwOf@38..40 "of"
+                Whitespace@40..41 " "
+                PrimType@41..44
+                  KwInt@41..44 "int""#]],
+    );
+}
+
+#[test]
+fn recover_flexible_packed_array() {
+    check(
+        "type _ : flexible packed array 1 .. 2 of int",
+        expect![[r#"
+        Source@0..44
+          StmtList@0..44
+            TypeDecl@0..44
+              KwType@0..4 "type"
+              Whitespace@4..5 " "
+              Name@5..6
+                Identifier@5..6 "_"
+              Whitespace@6..7 " "
+              Colon@7..8 ":"
+              Whitespace@8..9 " "
+              ArrayType@9..44
+                KwFlexible@9..17 "flexible"
+                Whitespace@17..18 " "
+                Error@18..24
+                  KwPacked@18..24 "packed"
+                Whitespace@24..25 " "
+                KwArray@25..30 "array"
+                Whitespace@30..31 " "
+                RangeList@31..37
+                  RangeType@31..37
+                    LiteralExpr@31..32
+                      IntLiteral@31..32 "1"
+                    Whitespace@32..33 " "
+                    Range@33..35 ".."
+                    Whitespace@35..36 " "
+                    LiteralExpr@36..37
+                      IntLiteral@36..37 "2"
+                Whitespace@37..38 " "
+                KwOf@38..40 "of"
+                Whitespace@40..41 " "
+                PrimType@41..44
+                  KwInt@41..44 "int"
+        error in file FileId(1) at 18..24: unexpected token
+        | error in file FileId(1) for 18..24: expected `array`, but found `packed`"#]],
     );
 }
 
@@ -3185,11 +3649,12 @@ fn recover_union_variant_type_on_var() {
 
 #[test]
 fn recover_packed_not_packable_type() {
+    // `begin end` to show not so great error reporting
     check(
-        "type _ : packed int",
+        "type _ : packed int begin end",
         expect![[r#"
-            Source@0..19
-              StmtList@0..19
+            Source@0..29
+              StmtList@0..29
                 TypeDecl@0..19
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
@@ -3201,9 +3666,49 @@ fn recover_packed_not_packable_type() {
                   Error@9..19
                     KwPacked@9..15 "packed"
                     Whitespace@15..16 " "
-                    KwInt@16..19 "int"
+                    Error@16..19
+                      PrimType@16..19
+                        KwInt@16..19 "int"
+                Whitespace@19..20 " "
+                BlockStmt@20..29
+                  KwBegin@20..25 "begin"
+                  Whitespace@25..26 " "
+                  StmtList@26..26
+                  EndGroup@26..29
+                    KwEnd@26..29 "end"
             error in file FileId(1) at 16..19: unexpected token
-            | error in file FileId(1) for 16..19: expected `record` or `union`, but found `int`"#]],
+            | error in file FileId(1) for 16..19: expected `array`, `enum`, `set`, `record`, `union`, or a range type, but found `int`
+            error in file FileId(1) at 20..25: unexpected token
+            | error in file FileId(1) for 20..25: expected `@`, but found `begin`"#]],
+    );
+}
+
+#[test]
+fn recover_packed_packed_packed() {
+    check(
+        "type _ : packed packed packed",
+        expect![[r#"
+        Source@0..29
+          StmtList@0..29
+            TypeDecl@0..22
+              KwType@0..4 "type"
+              Whitespace@4..5 " "
+              Name@5..6
+                Identifier@5..6 "_"
+              Whitespace@6..7 " "
+              Colon@7..8 ":"
+              Whitespace@8..9 " "
+              Error@9..22
+                KwPacked@9..15 "packed"
+                Whitespace@15..16 " "
+                KwPacked@16..22 "packed"
+            Whitespace@22..23 " "
+            Error@23..29
+              KwPacked@23..29 "packed"
+        error in file FileId(1) at 16..22: unexpected token
+        | error in file FileId(1) for 16..22: expected `array`, `enum`, `set`, `record`, `union`, or a range type, but found `packed`
+        error in file FileId(1) at 23..29: unexpected token
+        | error in file FileId(1) for 23..29: expected statement, but found `packed`"#]],
     );
 }
 
@@ -3226,7 +3731,7 @@ fn recover_just_packed() {
                     KwPacked@9..15 "packed"
               Whitespace@15..16 " "
             error in file FileId(1) at 9..15: unexpected end of file
-            | error in file FileId(1) for 9..15: expected `record` or `union` after here"#]],
+            | error in file FileId(1) for 9..15: expected `array`, `enum`, `set`, `record`, `union`, or a range type after here"#]],
     );
 }
 

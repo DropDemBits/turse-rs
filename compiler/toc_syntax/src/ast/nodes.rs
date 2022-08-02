@@ -3247,7 +3247,7 @@ impl AstNode for SizeSpec {
 }
 impl SizeSpec {
     pub fn colon_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Colon) }
-    pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
+    pub fn size(&self) -> Option<Expr> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -3395,7 +3395,9 @@ impl AstNode for RangeType {
     fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl RangeType {
+    pub fn packed_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwPacked) }
     pub fn range_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Range) }
+    pub fn size_spec(&self) -> Option<SizeSpec> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -3416,10 +3418,12 @@ impl AstNode for EnumType {
     fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl EnumType {
+    pub fn packed_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwPacked) }
     pub fn enum_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwEnum) }
     pub fn l_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::LeftParen) }
     pub fn fields(&self) -> Option<NameList> { helper::node(&self.0) }
     pub fn r_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::RightParen) }
+    pub fn size_spec(&self) -> Option<SizeSpec> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -3440,6 +3444,7 @@ impl AstNode for ArrayType {
     fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl ArrayType {
+    pub fn packed_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwPacked) }
     pub fn flexible_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwFlexible) }
     pub fn array_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwArray) }
     pub fn range_list(&self) -> Option<RangeList> { helper::node(&self.0) }
@@ -3465,9 +3470,11 @@ impl AstNode for SetType {
     fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl SetType {
+    pub fn packed_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwPacked) }
     pub fn set_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwSet) }
     pub fn of_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwOf) }
     pub fn elem_ty(&self) -> Option<Type> { helper::node(&self.0) }
+    pub fn size_spec(&self) -> Option<SizeSpec> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]

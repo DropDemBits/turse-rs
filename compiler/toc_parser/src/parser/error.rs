@@ -62,6 +62,7 @@ pub(crate) enum Expected {
     PreprocCondition,
     Statement,
     Type,
+    PackedType,
     InfixOp,
 }
 
@@ -72,6 +73,8 @@ impl fmt::Display for Expected {
             Self::PreprocCondition => "preprocessor condition",
             Self::Statement => "statement",
             Self::Type => "type specifier",
+            // HACK: Brute-forced way of getting a better error message
+            Self::PackedType => "`array`, `enum`, `set`, `record`, `union`, or a range type",
             Self::InfixOp => "infix operator",
         })
     }

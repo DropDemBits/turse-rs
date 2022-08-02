@@ -384,15 +384,7 @@ fn cheat_expr(p: &mut Parser) -> Option<CompletedMarker> {
             self::expect_expr(p);
         });
 
-        if p.at(TokenKind::Colon) {
-            // Eat cheat size spec
-            let m = p.start();
-            p.bump();
-
-            self::expect_expr(p);
-
-            m.complete(p, SyntaxKind::SizeSpec);
-        }
+        ty::size_spec(p);
     });
     p.expect_punct(TokenKind::RightParen);
 
