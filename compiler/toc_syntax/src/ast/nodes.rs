@@ -2746,7 +2746,7 @@ impl AstNode for ImportItem {
     fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl ImportItem {
-    pub fn attrs(&self) -> Option<ImportAttr> { helper::node(&self.0) }
+    pub fn attrs(&self) -> impl Iterator<Item = ImportAttr> + '_ { helper::nodes(&self.0) }
     pub fn external_item(&self) -> Option<ExternalItem> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]

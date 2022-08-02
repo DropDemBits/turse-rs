@@ -622,18 +622,20 @@ impl super::BodyLowering<'_, '_> {
                 continue;
             };
 
-            let is_const = import.attrs().and_then(|attrs| match attrs {
+            let is_const = import.attrs().find_map(|attrs| match attrs {
                 ast::ImportAttr::ConstAttr(node) => Some(node),
                 _ => None,
             });
-            let is_var = import.attrs().and_then(|attrs| match attrs {
+            let is_var = import.attrs().find_map(|attrs| match attrs {
                 ast::ImportAttr::VarAttr(node) => Some(node),
                 _ => None,
             });
-            let is_forward = import.attrs().and_then(|attrs| match attrs {
+            let is_forward = import.attrs().find_map(|attrs| match attrs {
                 ast::ImportAttr::ForwardAttr(node) => Some(node),
                 _ => None,
             });
+
+            dbg!((&is_const, &is_var, &is_forward));
 
             // Mutabilty can only be one or the other, or not specified
             let import_mut = match (is_const, is_var) {

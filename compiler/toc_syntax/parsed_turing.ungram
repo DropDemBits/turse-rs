@@ -540,7 +540,7 @@ ImportList =
   ( ImportItem ( ',' ImportItem )* )
 
 ImportItem =
-  attrs:ImportAttr? ExternalItem
+  attrs:ImportAttr* ExternalItem
 
 ImportAttr =
   VarAttr
