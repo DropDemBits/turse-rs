@@ -9021,6 +9021,57 @@ fn parse_import_stmt_attrs() {
 }
 
 #[test]
+fn parse_import_stmt_attrs_multiple() {
+    check(
+        r#"import var const forward forward const var it, var var var "barbar""#,
+        expect![[r#"
+            Source@0..67
+              ImportStmt@0..67
+                KwImport@0..6 "import"
+                Whitespace@6..7 " "
+                ImportList@7..67
+                  ImportItem@7..45
+                    VarAttr@7..10
+                      KwVar@7..10 "var"
+                    Whitespace@10..11 " "
+                    ConstAttr@11..16
+                      KwConst@11..16 "const"
+                    Whitespace@16..17 " "
+                    ForwardAttr@17..24
+                      KwForward@17..24 "forward"
+                    Whitespace@24..25 " "
+                    ForwardAttr@25..32
+                      KwForward@25..32 "forward"
+                    Whitespace@32..33 " "
+                    ConstAttr@33..38
+                      KwConst@33..38 "const"
+                    Whitespace@38..39 " "
+                    VarAttr@39..42
+                      KwVar@39..42 "var"
+                    Whitespace@42..43 " "
+                    ExternalItem@43..45
+                      Name@43..45
+                        Identifier@43..45 "it"
+                  Comma@45..46 ","
+                  Whitespace@46..47 " "
+                  ImportItem@47..67
+                    VarAttr@47..50
+                      KwVar@47..50 "var"
+                    Whitespace@50..51 " "
+                    VarAttr@51..54
+                      KwVar@51..54 "var"
+                    Whitespace@54..55 " "
+                    VarAttr@55..58
+                      KwVar@55..58 "var"
+                    Whitespace@58..59 " "
+                    ExternalItem@59..67
+                      LiteralExpr@59..67
+                        StringLiteral@59..67 "\"barbar\""
+              StmtList@67..67"#]],
+    )
+}
+
+#[test]
 fn parse_import_stmt_empty() {
     check(
         "import ()",

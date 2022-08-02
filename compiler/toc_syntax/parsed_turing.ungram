@@ -540,7 +540,7 @@ ImportList =
   ( ImportItem ( ',' ImportItem )* )
 
 ImportItem =
-  attrs:ImportAttr? ExternalItem
+  attrs:ImportAttr* ExternalItem
 
 ImportAttr =
   VarAttr
@@ -685,9 +685,6 @@ DerefExpr =
 CheatExpr =
   'cheat' '(' Type ',' Expr SizeSpec? ')'
 
-SizeSpec =
-  ':' Expr
-
 NatCheatExpr =
   '#' Expr
 
@@ -776,7 +773,7 @@ NameType =
   Expr
 
 RangeType =
-  start:Expr '..' end:EndBound
+  'packed'? start:Expr '..' end:EndBound SizeSpec?
 
 EndBound =
   UnsizedBound
@@ -785,17 +782,22 @@ EndBound =
 UnsizedBound =
   '*'
 
+// Storage size overrides being in a 'packed' context
+SizeSpec =
+  ':' size:Expr
+  
+
 EnumType =
-  'enum' '(' fields:NameList ')'
+  'packed'? 'enum' '(' fields:NameList ')' SizeSpec?
 
 ArrayType =
-  'flexible'? 'array' RangeList 'of' elem_ty:Type
+  'packed'? 'flexible'? 'array' RangeList 'of' elem_ty:Type
 
 RangeList =
   ranges:( Type ( ',' Type )* )
 
 SetType =
-  'set' 'of' elem_ty:Type
+  'packed'? 'set' 'of' elem_ty:Type SizeSpec?
 
 RecordType =
   'packed'? 'record'

@@ -1550,9 +1550,15 @@ fn import_list(p: &mut Parser) -> Option<CompletedMarker> {
 fn import_item(p: &mut Parser) -> Option<CompletedMarker> {
     let m = p.start();
 
-    attr_var(p)
-        .or_else(|| attr_const(p))
-        .or_else(|| attr_forward(p));
+    p.with_extra_recovery(&[TokenKind::Identifier, TokenKind::StringLiteral], |p| {
+        while attr_var(p)
+            .or_else(|| attr_const(p))
+            .or_else(|| attr_forward(p))
+            .is_some()
+        {
+            // continue parsing attrs
+        }
+    });
 
     external_item(p);
 

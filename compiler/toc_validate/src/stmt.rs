@@ -487,7 +487,7 @@ pub(super) fn validate_import_stmt(stmt: ast::ImportStmt, ctx: &mut ValidateCtx)
 }
 
 pub(super) fn validate_import_item(item: ast::ImportItem, ctx: &mut ValidateCtx) {
-    let forward_attr = item.attrs().and_then(|attr| match attr {
+    let forward_attr = item.attrs().find_map(|attr| match attr {
         ast::ImportAttr::ForwardAttr(attr) => Some(attr),
         _ => None,
     });

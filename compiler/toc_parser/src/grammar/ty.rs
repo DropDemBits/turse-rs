@@ -40,20 +40,45 @@ pub(super) fn ty_primitive(p: &mut Parser) -> Option<CompletedMarker> {
     })
 }
 
+fn at_primitive_start(p: &mut Parser) -> bool {
+    // TODO: Add 64 bit types (int8, nat8, long int, long nat)
+    match_token!(|p| match {
+        [hidden] TokenKind::Addressint,
+        [hidden] TokenKind::Boolean,
+        // Ints
+        [hidden] TokenKind::Int,
+        [hidden] TokenKind::Int1,
+        [hidden] TokenKind::Int2,
+        [hidden] TokenKind::Int4,
+        // Nats
+        [hidden] TokenKind::Nat,
+        [hidden] TokenKind::Nat1,
+        [hidden] TokenKind::Nat2,
+        [hidden] TokenKind::Nat4,
+        // Reals
+        [hidden] TokenKind::Real,
+        [hidden] TokenKind::Real4,
+        [hidden] TokenKind::Real8,
+        [hidden] TokenKind::Char,
+        [hidden] TokenKind::String_ => true,
+        _ => false // Not a primitive type
+    })
+}
+
 fn ty_or_ty_expr(p: &mut Parser, allow_ty_expr: bool) -> Option<CompletedMarker> {
     ty_primitive(p).or_else(|| {
         match_token!(|p| match {
             TokenKind::Flexible,
-            TokenKind::Array => array_type(p), // array_type
-            TokenKind::Enum => enum_type(p), // enum_type
+            TokenKind::Array => array_type(p, None), // array_type
+            TokenKind::Enum => enum_type(p, None), // enum_type
             TokenKind::Unchecked,
             TokenKind::Pointer => pointer_type(p), // pointer_type
             TokenKind::Caret => short_pointer_type(p), // pointer_type (short form)
-            TokenKind::Set => set_type(p), // set_type
+            TokenKind::Set => set_type(p, None), // set_type
             TokenKind::Procedure,
             TokenKind::Function => subprog_type(p), // subprog_type
-            TokenKind::Record => record_type(p), // record_type
-            TokenKind::Union => union_type(p), // union_type
+            TokenKind::Record => record_type(p, None), // record_type
+            TokenKind::Union => union_type(p, None), // union_type
             TokenKind::Packed => packed_type(p),
             TokenKind::Collection => collection_type(p), // collection_type
             TokenKind::Priority,
@@ -71,8 +96,8 @@ fn ty_or_ty_expr(p: &mut Parser, allow_ty_expr: bool) -> Option<CompletedMarker>
                         }
 
                         if p.at(TokenKind::Range) {
-                            // at a range type
-                            range_type_tail(p, start)
+                            // at a range type, not continuing a marker
+                            range_type_tail(p, start, None)
                         } else if let Some(expr) = start {
                             // maybe at a name type
                             // further checks are pushed down to typeck
@@ -95,21 +120,8 @@ fn ty_or_ty_expr(p: &mut Parser, allow_ty_expr: bool) -> Option<CompletedMarker>
 }
 
 fn prim_type(p: &mut Parser) -> Option<CompletedMarker> {
-    debug_assert!(
-        p.at(TokenKind::Addressint)
-            || p.at(TokenKind::Boolean)
-            || p.at(TokenKind::Int)
-            || p.at(TokenKind::Int1)
-            || p.at(TokenKind::Int2)
-            || p.at(TokenKind::Int4)
-            || p.at(TokenKind::Nat)
-            || p.at(TokenKind::Nat1)
-            || p.at(TokenKind::Nat2)
-            || p.at(TokenKind::Nat4)
-            || p.at(TokenKind::Real)
-            || p.at(TokenKind::Real4)
-            || p.at(TokenKind::Real8)
-    );
+    // Ensure that the primitive start types are matching
+    debug_assert!(at_primitive_start(p));
 
     let m = p.start();
     p.bump();
@@ -154,15 +166,25 @@ fn prim_charseq_type(p: &mut Parser, prim_kind: TokenKind) -> Option<CompletedMa
     }
 }
 
-fn array_type(p: &mut Parser) -> Option<CompletedMarker> {
-    debug_assert!(p.at(TokenKind::Flexible) || p.at(TokenKind::Array));
+fn array_type(p: &mut Parser, m: Option<Marker>) -> Option<CompletedMarker> {
+    debug_assert!(p.at_hidden(TokenKind::Flexible) || p.at(TokenKind::Array));
 
-    let m = p.start();
+    let m = m.unwrap_or_else(|| p.start());
 
-    if p.eat(TokenKind::Flexible) && !p.at(TokenKind::Array) {
-        // stop, not an array type
-        p.error_unexpected().with_marker(m).report();
-        return None;
+    if p.hidden_eat(TokenKind::Flexible) {
+        if p.at_hidden(TokenKind::Packed) {
+            // Get `array` into the expected set
+            p.at(TokenKind::Array);
+
+            // At packed, eat it
+            p.error_unexpected().force_eat().report();
+        }
+
+        if !p.at(TokenKind::Array) {
+            // stop, not an array type
+            p.error_unexpected().with_marker(m).report();
+            return None;
+        }
     }
 
     // on 'array'
@@ -196,10 +218,24 @@ fn range_list(p: &mut Parser) -> Option<CompletedMarker> {
     Some(m.complete(p, SyntaxKind::RangeList))
 }
 
-fn enum_type(p: &mut Parser) -> Option<CompletedMarker> {
-    debug_assert!(p.at(TokenKind::Enum));
+pub(super) fn size_spec(p: &mut Parser) -> Option<CompletedMarker> {
+    if !p.at_hidden(TokenKind::Colon) {
+        return None;
+    }
 
     let m = p.start();
+    p.bump();
+
+    // Eat the rest
+    expr::expect_expr(p);
+
+    Some(m.complete(p, SyntaxKind::SizeSpec))
+}
+
+fn enum_type(p: &mut Parser, m: Option<Marker>) -> Option<CompletedMarker> {
+    debug_assert!(p.at(TokenKind::Enum));
+
+    let m = m.unwrap_or_else(|| p.start());
     p.bump();
 
     p.expect_punct(TokenKind::LeftParen);
@@ -208,19 +244,25 @@ fn enum_type(p: &mut Parser) -> Option<CompletedMarker> {
     });
     p.expect_punct(TokenKind::RightParen);
 
+    // parse optional size spec
+    self::size_spec(p);
+
     Some(m.complete(p, SyntaxKind::EnumType))
 }
 
-fn set_type(p: &mut Parser) -> Option<CompletedMarker> {
+fn set_type(p: &mut Parser, m: Option<Marker>) -> Option<CompletedMarker> {
     debug_assert!(p.at(TokenKind::Set));
 
-    let m = p.start();
+    let m = m.unwrap_or_else(|| p.start());
     p.bump();
 
     p.expect_punct(TokenKind::Of);
 
     // parse index type
     self::ty(p);
+
+    // parse optional size spec
+    self::size_spec(p);
 
     Some(m.complete(p, SyntaxKind::SetType))
 }
@@ -318,16 +360,10 @@ pub(super) fn constvar_param(p: &mut Parser) -> Option<CompletedMarker> {
     Some(m.complete(p, SyntaxKind::ConstVarParam))
 }
 
-fn record_type(p: &mut Parser) -> Option<CompletedMarker> {
+fn record_type(p: &mut Parser, m: Option<Marker>) -> Option<CompletedMarker> {
     debug_assert!(p.at(TokenKind::Record));
 
-    let m = p.start();
-    record_type_tail(p, m)
-}
-
-fn record_type_tail(p: &mut Parser, m: Marker) -> Option<CompletedMarker> {
-    debug_assert!(p.at(TokenKind::Record));
-
+    let m = m.unwrap_or_else(|| p.start());
     p.bump();
 
     while !p.at_end() && !p.at(TokenKind::End) {
@@ -368,16 +404,10 @@ fn record_field(p: &mut Parser) -> Option<CompletedMarker> {
     Some(m.complete(p, SyntaxKind::RecordField)).filter(|_| parsed_any)
 }
 
-fn union_type(p: &mut Parser) -> Option<CompletedMarker> {
+fn union_type(p: &mut Parser, m: Option<Marker>) -> Option<CompletedMarker> {
     debug_assert!(p.at(TokenKind::Union));
 
-    let m = p.start();
-    union_type_tail(p, m)
-}
-
-fn union_type_tail(p: &mut Parser, m: Marker) -> Option<CompletedMarker> {
-    debug_assert!(p.at(TokenKind::Union));
-
+    let m = m.unwrap_or_else(|| p.start());
     p.bump();
 
     // optional: tag name
@@ -436,19 +466,50 @@ fn union_variant(p: &mut Parser) -> Option<CompletedMarker> {
 }
 
 fn packed_type(p: &mut Parser) -> Option<CompletedMarker> {
-    // 'packed' ( 'record' | 'union' )
+    // 'packed' ( ArrayType | EnumType | SetType | RecordType | UnionType | RangeType )
     debug_assert!(p.at(TokenKind::Packed));
 
     let m = p.start();
     p.bump();
 
     match_token!(|p| match {
-        TokenKind::Record => record_type_tail(p, m),
-        TokenKind::Union => union_type_tail(p, m),
+        TokenKind::Flexible,
+        TokenKind::Array => array_type(p, Some(m)),
+        TokenKind::Enum => enum_type(p, Some(m)),
+        TokenKind::Set => set_type(p, Some(m)),
+        TokenKind::Record => record_type(p, Some(m)),
+        TokenKind::Union => union_type(p, Some(m)),
         _ => {
-            // Unexpected type
-            p.error_unexpected().with_marker(m).report();
-            None
+            // FIXME: special case primitive types so that we get better recovery
+            // (would be better with speculative parsing, but ehhhhhhhhhhhhhhhh)
+            if at_primitive_start(p) {
+                p.error_unexpected().dont_eat().with_category(Expected::PackedType).report();
+            }
+
+            // maybe a range type
+            p.with_extra_recovery(&[TokenKind::Range], |p| {
+                let start = expr::expr(p);
+
+                // Report missing head expr
+                if p.at_hidden(TokenKind::Range) && start.is_none() {
+                    p.error_unexpected().with_category(Expected::Expression).report();
+                }
+
+                if p.at(TokenKind::Range) {
+                    // at a range type
+                    range_type_tail(p, start, Some(m))
+                } else if start.is_some() {
+                    // not a ty
+                    // FIXME: does an 'after here' instead of 'expected / found'
+                    p.error_unexpected().with_marker(m).with_category(Expected::Type).report();
+                    None
+                } else {
+                    // Unexpected type
+                    p.error_unexpected().with_marker(m).with_category(Expected::PackedType).report();
+                    None
+                }
+            })
+
         }
     })
 }
@@ -493,13 +554,16 @@ fn condition_type(p: &mut Parser) -> Option<CompletedMarker> {
     Some(m.complete(p, SyntaxKind::ConditionType))
 }
 
-fn range_type_tail(p: &mut Parser, lhs: Option<CompletedMarker>) -> Option<CompletedMarker> {
+fn range_type_tail(
+    p: &mut Parser,
+    lhs: Option<CompletedMarker>,
+    m: Option<Marker>,
+) -> Option<CompletedMarker> {
     debug_assert!(p.at(TokenKind::Range));
 
-    let m = match lhs {
-        Some(lhs) => lhs.precede(p),
-        None => p.start(),
-    };
+    let m = m
+        .or_else(|| lhs.map(|lhs| lhs.precede(p)))
+        .unwrap_or_else(|| p.start());
     p.bump();
 
     if p.at(TokenKind::Star) {
@@ -510,6 +574,9 @@ fn range_type_tail(p: &mut Parser, lhs: Option<CompletedMarker>) -> Option<Compl
         // Just a regular range bound
         expr::expect_expr(p);
     }
+
+    // parse optional size spec
+    self::size_spec(p);
 
     Some(m.complete(p, SyntaxKind::RangeType))
 }
