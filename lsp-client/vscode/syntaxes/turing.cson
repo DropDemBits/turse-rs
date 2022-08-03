@@ -34,13 +34,14 @@ repository:
 			{ include: "#if"            }
 			{ include: "#case"          }
 			{ include: "#block"         }
+			{ include: "#forward"       }
+			{ include: "#body"          }
 			{ include: "#function"      }
+			{ include: "#procedure"     }
+			{ include: "#process"       }
 			{ include: "#modifiers"     }
 			{ include: "#variables"     }
 			{ include: "#punctuation"   }
-			{ include: "#forward"       }
-			{ include: "#procedure"     }
-			{ include: "#process"       }
 			{ include: "#handler"       }
 			{ include: "#class"         }
 			{ include: "#type"          }
@@ -59,16 +60,16 @@ repository:
 			
 			# End-of-line comment
 			name: "comment.line.percentage.turing"
-			begin: "%"
-			end:   "$"
+			begin: /%/
+			end:   /$/
 			beginCaptures:
 				0: name: "punctuation.definition.comment.turing"
 		},{
 			
 			# Bracketed
 			name: "comment.block.bracketed.turing"
-			begin: "/\\*"
-			end: "\\*/"
+			begin: /\/\*/
+			end: /\*\//
 			beginCaptures: 0: name: "punctuation.definition.comment.turing"
 			endCaptures:   0: name: "punctuation.definition.comment.turing"
 		}]
@@ -76,108 +77,43 @@ repository:
 	# String literals
 	strings:
 		patterns: [
-			{name: "string.quoted.double.turing", begin: '"', end: '"', patterns: [include: "#escapes"]}
-			{name: "string.quoted.single.turing", begin: "'", end: "'", patterns: [include: "#escapes"]}
+			{name: "string.quoted.double.turing", begin: /"/, end: /"/, patterns: [include: "#escapes"]}
+			{name: "string.quoted.single.turing", begin: /'/, end: /'/, patterns: [include: "#escapes"]}
 		]
 	
 	
 	# Numbers
 	numbers:
 		patterns: [
-			{name: "constant.numeric.base-16.hex.turing", match: "16#[A-Fa-f0-9]+"}
-			{name: "constant.numeric.base-$1.turing",     match: "(\\d+)#\\d+"}
-			{name: "constant.numeric.float.turing",       match: "\\b\\d+\\.\\d+(?:[Ee][\\+\\-]?\\d+)?\\b"}
-			{name: "constant.numeric.int.turing",         match: "\\b\\d+\\b"}
+			{name: "constant.numeric.base-16.hex.turing", match: /16#[A-Fa-f0-9]+/}
+			{name: "constant.numeric.base-$1.turing",     match: /(\d+)#[A-Za-z\d]+/}
+			{name: "constant.numeric.float.turing",       match: /\b\d+\.\d+(?:[Ee][\+\-]?\d+)?\b/}
+			{name: "constant.numeric.int.turing",         match: /\b\d+\b/}
 		]
 	
 	
 	# List of named values
 	list:
 		patterns: [
-			{match: "\\w+", name: "variable.name.turing"}
-			{match: ",",    name: "meta.delimiter.object.comma.turing"}
+			{match: /\w+/, name: "variable.name.turing"}
+			{match: /,/,    name: "meta.delimiter.object.comma.turing"}
 		]
 	
 	
 	# Escaped characters
 	escapes:
 		patterns: [
-			{match: '\\\\"',    name: "constant.character.escape.double-quote.turing"}
-			{match: "\\\\'",    name: "constant.character.escape.single-quote.turing"}
-			{match: "\\\\[nN]", name: "constant.character.escape.newline.turing"}
-			{match: "\\\\[tT]", name: "constant.character.escape.tab.turing"}
-			{match: "\\\\[fF]", name: "constant.character.escape.form-feed.turing"}
-			{match: "\\\\[rR]", name: "constant.character.escape.return.turing"}
-			{match: "\\\\[bB]", name: "constant.character.escape.backspace.turing"}
-			{match: "\\\\[eE]", name: "constant.character.escape.esc.turing"}
-			{match: "\\\\\\\\", name: "constant.character.escape.backslash.turing"}
+			{match: /\\"/,    name: "constant.character.escape.double-quote.turing"}
+			{match: /\\'/,    name: "constant.character.escape.single-quote.turing"}
+			{match: /\\[nN]/, name: "constant.character.escape.newline.turing"}
+			{match: /\\[tT]/, name: "constant.character.escape.tab.turing"}
+			{match: /\\[fF]/, name: "constant.character.escape.form-feed.turing"}
+			{match: /\\[rR]/, name: "constant.character.escape.return.turing"}
+			{match: /\\[bB]/, name: "constant.character.escape.backspace.turing"}
+			{match: /\\[eE]/, name: "constant.character.escape.esc.turing"}
+			{match: /\\\\/,   name: "constant.character.escape.backslash.turing"}
 		]
 	
-	
-	# Function declaration
-	function:
-		name: "meta.function.turing"
-		begin: """(?x)
-			\\b
-			(?:
-				(body)          # 1: storage.modifier.body.turing
-				\\s+
-			)?
-			(function|fcn)      # 2: storage.type.function.turing
-			(?:
-				\\s+
-				(pervasive|\\*) # 3: storage.modifier.pervasive.turing
-			)?
-			\\s+
-			(\\w+)              # 4: entity.name.function.turing
-			\\s*
-			(                   # 5: meta.function.parameters.turing
-				(\\()           # 6: punctuation.definition.parameters.begin.turing
-				(.*)            # 7: include: “#param-declarations”
-				(\\))           # 8: punctuation.definition.parameters.end.turing
-			)
-			\\s*
-			(:)                 # 9: punctuation.separator.key-value.turing
-			\\s*
-			(\\w+)              # 10: storage.type.type-spec.turing
-		"""
-		end: "\\b(end)\\s+(\\4)"
-		patterns: [{
-			
-			# pre|init|post clause
-			name: "meta.$1-function.turing"
-			begin: "^\\s*(pre|init|post)(?=\\s|$)"
-			end: "$"
-			patterns: [include: "$self"]
-			beginCaptures:
-				1: name: "keyword.function.$1.turing"
-		
-			},{ include: "$self" }
-		]
-		beginCaptures:
-			1: name: "storage.modifier.body.turing"
-			2: name: "storage.type.function.turing"
-			3: name: "storage.modifier.pervasive.turing"
-			4: name: "entity.name.function.turing"
-			5: name: "meta.function.parameters.turing"
-			6: name: "punctuation.definition.parameters.begin.turing"
-			7: patterns: [include: "#param-declarations"]
-			8: name: "punctuation.definition.parameters.end.turing"
-			9: name: "punctuation.separator.key-value.turing"
-			10: name: "storage.type.type-spec.turing"
-		endCaptures:
-			1: name: "storage.type.function.end.turing"
-			2: name: "entity.name.function.turing"
-
-
-	# Function parameters
-	"param-declarations":
-		match: "\\b(\\w+)\\s+(:)\\s+((\\w+))"
-		captures:
-			1: name: "variable.parameter.function.turing"
-			2: name: "storage.type.turing"
-			3: patterns: [include: "#types"]
-
 
 	# Function call
 	"function-call":
@@ -211,7 +147,7 @@ repository:
 	"function-name":
 		patterns: [
 			{include: "#stdlib"}
-			{match: "\\.", name: "punctuation.separator.method.turing"}
+			{match: /\./, name: "punctuation.separator.method.turing"}
 		]
 	
 	
@@ -223,9 +159,18 @@ repository:
 			# Control flow
 			match: ///
 				\b(
-					(?:end\s+)?if|(?:end\s+)?loop|(?:end\s+)?for|(?:end\s+)?case|
-					endif|endloop|endfor|endcase|label|
-					then|elsif|elseif|elif|else|exit|when|include|in|begin|end|by
+					(?:end\s+)?if
+					|(?:end\s+)?loop
+					|(?:end\s+)?for
+					|(?:end\s+)?case
+					|endif|endloop|endfor|endcase
+					|label|then|elsif|elseif|elif|else
+					|exit|when
+					|include
+					|in
+					|begin
+					|end
+					|by
 				)\b
 			///
 			name: "keyword.control.$1.turing"
@@ -321,20 +266,22 @@ repository:
 
 	# Types
 	types:
-		match: ///
-		\b(
-			addressint|array|boolean|char|string|collection|enum|
-			int[124]?|nat[124]?|real[48]?|pointer(\s+to)?|set(\s+of)?|
-			record|union|condition
-		)\b
-		///
-		name: "storage.type.$1-type.turing"
+		patterns: [{
+			name: "storage.type.$1-type.turing"
+			match: ///
+			\b(
+				addressint|array|boolean|char|string|collection|enum|
+				int[124]?|nat[124]?|real[48]?|pointer(\s+to)?|set(\s+of)?|
+				record|union|condition
+			)\b
+			///
+		}]
 
 
 	# Conditional compilation
 	cc:
 		name: "meta.preprocessor.$3.turing"
-		match: "^\\s*((#)((?:end\\s+)?if|elsif|else))"
+		match: /^\s*((#)((?:end\s+)?if|elsif|else))/
 		captures:
 			1: name: "keyword.control.directive.conditional.turing"		
 			2: name: "punctuation.definition.directive.turing"
@@ -343,10 +290,10 @@ repository:
 	# For loops
 	for:
 		name: "meta.scope.for-loop.turing"
-		begin: "^\\s*(for)\\b(?:\\s+(decreasing)\\b)?"
-		end:   "^\\s*(end)\\s+(for)"
+		begin: /^\s*(for)\b(?:\s+(decreasing)\b)?/
+		end:   /^\s*(end)\s*(for)?/
 		patterns: [{
-			match: "\\G(.*?)\\b(by)\\b"
+			match: /\G(.*?)\b(by)\b/
 			captures:
 				1: patterns: [include: "$self"]
 				2: name: "keyword.control.by.turing"
@@ -364,7 +311,7 @@ repository:
 	loop:
 		name: "meta.scope.loop.turing"
 		begin: /\b(loop)\b/
-		end: /\b(end)\s*(loop)\b/
+		end: /\b(end)\s*(loop)?\b/
 		patterns: [{
 			include: "$self"
 		}]
@@ -380,20 +327,21 @@ repository:
 	if:
 		name:  "meta.scope.if-block.turing"
 		begin: /\b(if)\b/
-		end:   /\b(end\s+if)\b/
+		end:   /\b(end)\s*(if)?\b/
 		beginCaptures:
 			0: name: "meta.scope.begin.turing"
 			1: name: "keyword.control.conditional.turing"
 		endCaptures:
 			0: name: "meta.scope.end.turing"
 			1: name: "keyword.control.conditional.turing"
+			2: name: "keyword.control.conditional.turing"
 		patterns: [include: "$self"]
 	
 	# Case blocks
 	case:
 		name: "meta.scope.case-block.turing"
-		begin: "^\\s*(case)\\s+(\\w+)\\s+(of)\\b"
-		end:   "^\\s*(end\\s+case)\\b"
+		begin: /^\s*(case)\s+(\w+)\s+(of)\b/
+		end:   /^\s*(end)\s*(case)?\b/
 		patterns: [
 			{include: "#label"}
 			{include: "$self"}
@@ -406,13 +354,14 @@ repository:
 		endCaptures:
 			0: name: "meta.scope.end.turing"
 			1: name: "keyword.control.case.end.turing"
+			2: name: "keyword.control.case.turing"
 
 
 	# Label statements
 	label:
 		name: "meta.label.turing"
-		begin: "\\b(label)\\b"
-		end:   ":"
+		begin: /\b(label)\b/
+		end:   /:/
 		beginCaptures: 1: name: "keyword.other.statement.label.turing"
 		endCaptures:   0: name: "punctuation.separator.key-value.turing"
 		patterns: [
@@ -440,11 +389,17 @@ repository:
 	# Forward/deferred procedure
 	forward:
 		patterns: [{
-			
 			# Procedure
 			name: "meta.$1.procedure.turing"
-			begin: "^\\s*\\b(deferred|forward)\\s+(procedure|proc)\\s+(\\w+)"
-			end:   "(?=$|%|/\\*)"
+			begin: ///
+				\b
+				\s* \b(deferred|forward)
+				\s+ (procedure|proc)
+				\s* (?:\b(\w+))?
+			///
+			end: ///
+				(?=$|%|\/\*)
+			///
 			beginCaptures:
 				1: name: "storage.modifier.$1.turing"
 				2: name: "storage.type.function.turing"
@@ -454,11 +409,17 @@ repository:
 				{include: "$self"}
 			]
 		},{
-			
 			# Function
 			name: "meta.$1.function.turing"
-			begin: "^\\s*\\b(deferred|forward)\\s+(function|fcn)\\s+(\\w+)"
-			end:   "(?=$|%|/\\*)"
+			begin: ///
+				\b
+				\s* \b(deferred|forward)
+				\s+ (function|fcn)
+				\s* (?:\b(\w+))?
+			///
+			end: ///
+				(?=$|%|\/\*)
+			///
 			beginCaptures:
 				1: name: "storage.modifier.$1.turing"
 				2: name: "storage.type.function.turing"
@@ -470,31 +431,161 @@ repository:
 		}]
 
 
-	# Procedure declaration
-	procedure:
-		name: "meta.scope.procedure.turing"
-		begin: "^\\s*(?:(body)\\s+)?(procedure|proc)\\s+(\\w+)"
-		end:   "^\\s*(end)\\s+(\\3)"
-		patterns: [
-			{include: "#parameters"}
-			{include: "$self"}
+	# Body declaration
+	body:
+		patterns: [{
+			# Procedure
+			name: "meta.$1.procedure.turing"
+			begin: ///
+				\b
+				\s* (?:\b(body)\b)
+				\s* (?:\b(procedure|proc)\b)
+				\s* (\b(?:pervasive)\b|\*)?
+				\s* (?:\b(\w+))?
+			///
+			end: ///
+				\b
+				\s* (?:\b(end)\b)
+				\s* (?:\b(\w+))?
+			///
+			patterns: [
+				{include: "#parameters"}
+				{include: "$self"}
+			]
+			beginCaptures:
+				0: name: "meta.scope.begin.turing"
+				1: name: "storage.modifier.body.turing"
+				2: name: "storage.type.function.turing"
+				3: name: "storage.modifier.pervasive.turing"
+				4: name: "entity.name.function.turing"
+			endCaptures:
+				0: name: "meta.scope.end.turing"
+				1: name: "storage.type.function.end.turing"
+				2: name: "entity.name.function.turing"
+		},{
+			# Function
+			name: "meta.$1.function.turing"
+			begin: ///
+				\b
+				\s* (?:\b(body)\b)
+				\s* (?:\b(function|fcn)\b)
+				\s* (\b(?:pervasive)\b|\*)?
+				\s* (?:\b(\w+))?
+			///
+			end: ///
+				\b
+				\s* (?:\b(end)\b)
+				\s* (?:\b(\w+))?
+			///
+			patterns: [
+				{include: "#parameters"}
+				{include: "$self"}
+			]
+			beginCaptures:
+				0: name: "meta.scope.begin.turing"
+				1: name: "storage.modifier.body.turing"
+				2: name: "storage.type.function.turing"
+				3: name: "storage.modifier.pervasive.turing"
+				4: name: "entity.name.function.turing"
+			endCaptures:
+				0: name: "meta.scope.end.turing"
+				1: name: "storage.type.function.end.turing"
+				2: name: "entity.name.function.turing"
+		},{
+			# Unknown
+			name: "meta.$1.unknown.turing"
+			begin: ///
+				\b
+				\s* (?:\b(body)\b)
+				\s* (\b(?:pervasive)\b|\*)?
+				\s* (?:\b(\w+))?
+			///
+			end: ///
+				\b
+				\s* (?:\b(end)\b)
+				\s* (?:\b(\w+))?
+			///
+			patterns: [
+				{include: "#parameters"}
+				{include: "$self"}
+			]
+			beginCaptures:
+				0: name: "meta.scope.begin.turing"
+				1: name: "storage.modifier.body.turing"
+				2: name: "storage.modifier.pervasive.turing"
+				3: name: "entity.name.function.turing"
+			endCaptures:
+				0: name: "meta.scope.end.turing"
+				1: name: "storage.type.function.end.turing"
+				2: name: "entity.name.function.turing"
+		}]
+
+
+	# Function declaration
+	function:
+		name: "meta.scope.function.turing"
+		begin: ///
+			\b
+			(function|fcn)      # 1: storage.type.function.turing
+			(?:
+				\s+
+				(pervasive|\*)  # 2: storage.modifier.pervasive.turing
+			)?
+			\s* (?:\b(\w+))?    # 3: entity.name.function.turing
+			\s* (               # 4: meta.function.parameters.turing
+				(\()            # 5: punctuation.definition.parameters.begin.turing
+				(.*)            # 6: include: “#param-declarations”
+				(\))            # 7: punctuation.definition.parameters.end.turing
+			)?
+			\s* (?:\b(\w+))?    # 8: variable.parameter.result.turing
+			\s* (:)             # 9: punctuation.separator.key-value.turing
+			\s* (\w+)?          # 10: storage.type.type-spec.turing
+		///
+		end: /\b(end)\s*(?:\b(\w+))?/
+		patterns: [{
+			
+			# pre|init|post clause
+			name: "meta.$1-function.turing"
+			begin: /^\s*(pre|init|post)(?=\s|$)/
+			end: "$"
+			patterns: [include: "$self"]
+			beginCaptures:
+				1: name: "keyword.function.$1.turing"
+		
+			},{ include: "$self" }
 		]
 		beginCaptures:
 			0: name: "meta.scope.begin.turing"
-			1: name: "storage.modifier.$1.turing"
-			2: name: "storage.type.function.turing"
+			1: name: "storage.type.function.turing"
+			2: name: "storage.modifier.pervasive.turing"
 			3: name: "entity.name.function.turing"
+			4: name: "meta.function.parameters.turing"
+			5: name: "punctuation.definition.parameters.begin.turing"
+			6: patterns: [include: "#param-declarations"]
+			7: name: "punctuation.definition.parameters.end.turing"
+			8: name: "variable.parameter.result.turing"
+			9: name: "punctuation.separator.key-value.turing"
+			10: name: "storage.type.type-spec.turing"
 		endCaptures:
 			0: name: "meta.scope.end.turing"
 			1: name: "storage.type.function.end.turing"
 			2: name: "entity.name.function.turing"
-	
-	
-	# Process statement
-	process:
-		name: "meta.scope.process.turing"
-		begin: "^\\s*(process)(?:\\s+(pervasive|\\*)(?=\\s))?\\s+(\\w+)"
-		end:   "^\\s*(end)\\s+(\\3)"
+
+
+	# Procedure declaration
+	procedure:
+		name: "meta.scope.procedure.turing"
+		begin: ///
+			\b
+			\s* (?:\b(proc|procedure)\b)
+			\s* (\b(?:pervasive)\b|\*)?
+			\s* (?:\b(\w+))?
+		///
+		end: ///
+			\b
+			\s* (?:\b(end)\b)
+			\s* (?:\b(\w+))?
+		///
 		patterns: [
 			{include: "#parameters"}
 			{include: "$self"}
@@ -510,24 +601,77 @@ repository:
 			2: name: "entity.name.function.turing"
 	
 	
+	# Process declaration
+	process:
+		name: "meta.scope.process.turing"
+		begin: ///
+			\b
+			\s* (process)
+			\s* (\b(?:pervasive)\b|\*)?
+			\s* (?:\b(\w+))?
+		///
+		end: ///
+			\b
+			\s* (end)
+			\s* (?:\b(\w+))?
+		///
+		patterns: [
+			{include: "#parameters"}
+			{include: "$self"}
+		]
+		beginCaptures:
+			0: name: "meta.scope.begin.turing"
+			1: name: "storage.type.function.turing"
+			2: name: "storage.modifier.pervasive.turing"
+			3: name: "entity.name.function.turing"
+		endCaptures:
+			0: name: "meta.scope.end.turing"
+			1: name: "storage.type.function.end.turing"
+			2: name: "entity.name.function.turing"
+	
+
+	# Function parameters
+	"param-declarations":
+		match: ///
+			\b(
+				(?:(?!:).)* # don't accidentally eat the type separator
+			)\b
+			\s* (:)?
+			\s* ((\w+))?
+			\s* (,)?
+		///
+		captures:
+			1: patterns: [include: "#param-names"]
+			2: name: "punctuation.separator.key-value.turing"
+			3: patterns: [include: "#types"]
+			4: name: "punctuation.separator.parameter.turing"
+	
+	"param-names":
+		match: ///
+			\b(\w+)\s*(,)?
+		///
+		captures:
+			1: name: "variable.parameter.function.turing"
+			2: name: "punctuation.separator.parameter.turing"
+	
 	# Bracketed parameter declarations used in procedure/process headers
 	parameters:
 		name: "meta.function.parameters.turing"
-		begin: "\\G\\s*(\\()"
-		end: "\\)"
-		beginCaptures: 1: name: "punctuation.definition.arguments.begin.turing"
-		endCaptures:   0: name: "punctuation.definition.arguments.end.turing"
+		begin: /\G\s*(\()/
+		end: /\)/
+		beginCaptures: 1: name: "punctuation.definition.parameters.begin.turing"
+		endCaptures:   0: name: "punctuation.definition.parameters.end.turing"
 		patterns: [
-			{include: "$self"}
-			{match: "\\w+", name: "variable.parameter.function.turing"}
+			{include: "#param-declarations"}
+			{match: /\w+/, name: "variable.parameter.function.turing"}
 		]
 	
 	
 	# Exception handler
 	handler:
 		name: "meta.scope.handler.turing"
-		begin: "^\\s*(handler)\\s*(\\()\\s*(\\w+)\\s*(\\))"
-		end:   "^\\s*(end)\\s+(handler)\\b"
+		begin: /^\s*(handler)\s*(\()\s*(\w+)\s*(\))/
+		end:   /^\s*(end)\s*(?:\b(handler))?\b/
 		patterns: [include: "$self"]
 		beginCaptures:
 			0: name: "meta.scope.begin.turing"
@@ -544,8 +688,8 @@ repository:
 	# Class, module and monitor declarations
 	class:
 		name: "meta.scope.$1-block.turing"
-		begin: /^\s*(class|module|monitor)\s+(\w+)/
-		end:   /\b(end)\s+(\2)/
+		begin: /^\s*(class|module|monitor)\s*(?:\b(\w+))?/
+		end:   /\b(end)\s*(?:\b(\w+))?/
 		patterns: [
 			{include: "#class-innards"}
 			{include: "$self"}
@@ -553,11 +697,11 @@ repository:
 		beginCaptures:
 			0: name: "meta.scope.begin.turing"
 			1: name: "storage.type.$1.turing"
-			2: name: "entity.name.type.class.turing"
+			2: name: "entity.name.type.$1.turing"
 		endCaptures:
 			0: name: "meta.scope.end.turing"
 			1: name: "storage.type.$1.end.turing"
-			2: name: "entity.name.type.class.turing"
+			2: name: "entity.name.type.$1.turing"
 	
 	
 	# Various clauses for inheritance, importing/exporting, etc
@@ -565,8 +709,8 @@ repository:
 		patterns: [{
 			
 			# Import/export
-			begin: "\\b(import|export)\\b"
-			end:   "(?=$|%|/\\*)"
+			begin: /\b(import|export)\b/
+			end:   /(?=$|%|\/\*)/
 			beginCaptures:
 				1: name: "keyword.other.$1.turing"
 			patterns: [
@@ -577,8 +721,8 @@ repository:
 			
 			# Inherited class
 			name: "meta.other.inherited-class.turing"
-			begin: "\\b(inherit)\\b"
-			end:   "\\w+"
+			begin: /\b(inherit)\b/
+			end:   /\w+/
 			beginCaptures: 1: name: "storage.modifier.inherit.turing"
 			endCaptures:   0: name: "entity.other.inherited-class.turing"
 			patterns: [include: "$self"]
@@ -586,8 +730,8 @@ repository:
 			
 			# Implement/Implement by
 			name: "meta.other.$1.turing"
-			begin: "\\b(implement(?:\\s+by)?)\\b"
-			end:   "\\w+"
+			begin: /\b(implement(?:\s+by)?)\b/
+			end:   /\w+/
 			beginCaptures: 1: name: "storage.modifier.implements.turing"
 			endCaptures:   0: name: "entity.other.inherited-class.turing"
 			patterns: [include: "$self"]
@@ -600,8 +744,8 @@ repository:
 			
 			# Declaration
 			name: "meta.variable-declaration.turing"
-			begin: "\\b(var|const)\\s+"
-			end:   "(:=?)\\s*((?!\\d)((?:\\w+(?:\\s+to)?)(?:\\s*\\(\\s*\\d+\\s*\\))?))?\\s*(:=)?"
+			begin: /\b(var|const)\s+/
+			end:   /(:=?)\s*((?!\d)((?:\w+(?:\s+to)?)(?:\s*\(\s*\d+\s*\))?))?\s*(:=)?/
 			beginCaptures:
 				1: name: "storage.type.$1.turing"
 			endCaptures:
@@ -613,7 +757,7 @@ repository:
 				
 				# Object-oriented Turing: Additional keywords
 				{
-					match: "\\G(?:\\s*(pervasive|\\*)(?=\\s))?\\s*(register)(?=\\s)"
+					match: /\G(?:\s*(pervasive|\*)(?=\s))?\s*(register)(?=\s)/
 					captures:
 						1: name: "storage.modifier.pervasive.oot.turing"
 						2: name: "storage.modifier.register.oot.turing"
@@ -626,8 +770,8 @@ repository:
 			
 			# Assignment
 			name: "meta.variable-assignment.turing"
-			begin: "(\\w+)\\s*(:=)"
-			end: "(?=\\S)"
+			begin: /(\w+)\s*(:=)/
+			end: /(?=\S)/
 			beginCaptures:
 				1: name: "variable.name.turing"
 				2: name: "punctuation.separator.key-value.turing"
@@ -635,15 +779,15 @@ repository:
 			
 			# Bindings
 			name: "meta.binding.turing"
-			begin: "\\b(bind)\\b"
-			end: "(?=$|%|/\\*)"
+			begin: /\b(bind)\b/
+			end: /(?=$|%|\/\*)/
 			beginCaptures:
 				1: name: "keyword.operator.bind.turing"
 			patterns: [{
 				
 				# Individual variable bindings
-				begin: "\\b(var)\\b"
-				end:   "\\b(to)\\b"
+				begin: /\b(var)\b/
+				end:   /\b(to)\b/
 				patterns: [include: "#list"]
 				beginCaptures: 1: name: "storage.type.$1.turing"
 				endCaptures:   1: name: "keyword.operator.to.turing"
@@ -658,37 +802,37 @@ repository:
 	# Boolean values
 	boolean:
 		name: "constant.language.boolean.$1.turing"
-		match: "\\b(true|false)\\b"
+		match: /\b(true|false)\b/
 	
 	
 	# Arithmetic/Punctuation
 	punctuation:
 		patterns: [
-			{match: "\\.\\.",  name: "punctuation.definition.range.turing"}
-			{match: ":=",      name: "punctuation.separator.key-value.assignment.turing"}
-			{match: "->",      name: "punctuation.separator.class.accessor.turing"}
-			{match: "\\+",     name: "keyword.operator.arithmetic.add.turing"}
-			{match: "-",       name: "keyword.operator.arithmetic.subtract.turing"}
-			{match: "\\*",     name: "keyword.operator.arithmetic.multiply.turing"}
-			{match: "\\/",     name: "keyword.operator.arithmetic.divide.turing"}
-			{match: "<=",      name: "keyword.operator.logical.equal-or-less.subset.turing"}
-			{match: ">=",      name: "keyword.operator.logical.equal-or-greater.superset.turing"}
-			{match: "<",       name: "keyword.operator.logical.less.turing"}
-			{match: ">",       name: "keyword.operator.logical.greater.turing"}
-			{match: "=",       name: "keyword.operator.logical.equal.turing"}
-			{match: "not=|~=", name: "keyword.operator.logical.not.turing"}
-			{match: "\\^",     name: "keyword.operator.pointer-following.turing"}
-			{match: "#",       name: "keyword.operator.type-cheat.turing"}
-			{match: "@",       name: "keyword.operator.indirection.turing"}
-			{match: ":",       name: "punctuation.separator.key-value.turing"}
-			{match: "\\(",     name: "punctuation.definition.arguments.begin.turing"}
-			{match: "\\)",     name: "punctuation.definition.arguments.end.turing"}
+			{match: /\.\./,    name: "punctuation.definition.range.turing"}
+			{match: /:=/,      name: "punctuation.separator.key-value.assignment.turing"}
+			{match: /->/,      name: "punctuation.separator.class.accessor.turing"}
+			{match: /\+/,      name: "keyword.operator.arithmetic.add.turing"}
+			{match: /-/,       name: "keyword.operator.arithmetic.subtract.turing"}
+			{match: /\*/,      name: "keyword.operator.arithmetic.multiply.turing"}
+			{match: /\//,      name: "keyword.operator.arithmetic.divide.turing"}
+			{match: /<=/,      name: "keyword.operator.logical.equal-or-less.subset.turing"}
+			{match: />=/,      name: "keyword.operator.logical.equal-or-greater.superset.turing"}
+			{match: /</,       name: "keyword.operator.logical.less.turing"}
+			{match: />/,       name: "keyword.operator.logical.greater.turing"}
+			{match: /=/,       name: "keyword.operator.logical.equal.turing"}
+			{match: /not=|~=/, name: "keyword.operator.logical.not.turing"}
+			{match: /\^/,      name: "keyword.operator.pointer-following.turing"}
+			{match: /#/,       name: "keyword.operator.type-cheat.turing"}
+			{match: /@/,       name: "keyword.operator.indirection.turing"}
+			{match: /:/,       name: "punctuation.separator.key-value.turing"}
+			{match: /\(/,      name: "punctuation.definition.arguments.begin.turing"}
+			{match: /\)/,      name: "punctuation.definition.arguments.end.turing"}
 		]
 	
 	
 	# Type declaration
 	type:
-		match: "\\b(type)(?:\\s+(pervasive|\\*)(?=\\s))?\\s+(\\w+)"
+		match: /\b(type)(?:\s+(pervasive|\*)(?=\s))?\s+(\w+)/
 		captures:
 			1: name: "storage.type.turing"
 			2: name: "storage.modifier.pervasive.turing"
@@ -698,12 +842,12 @@ repository:
 	# Record declaration
 	record:
 		name: "meta.scope.record-block.turing"
-		begin: "^\\s*(record)\\b"
-		end:   "^\\s*(end)\\s+(record)\\b"
+		begin: /^\s*(record)\b/
+		end:   /^\s*(end)(?:\s+(record))?\b/
 		patterns: [{
 			
 			# Field names
-			match: "((\\s*\\w+\\s*,?)+)(:)"
+			match: /((\s*\w+\s*,?)+)(:)/
 			captures:
 				1: patterns: [include: "#list"]
 				3: name: "punctuation.separator.record.key-value.turing"
@@ -721,8 +865,8 @@ repository:
 	# Union/variant record
 	union:
 		name: "meta.scope.union.turing"
-		begin: "^\\s*(union)\\s+(\\w+)\\s*(:)(.*)\\b(of)\\b"
-		end:   "^\\s*(end)\\s+(union)\\b"
+		begin: /^\s*(union)\s+(\w+)\s*(:)(.*)\b(of)\b/
+		end:   /^\s*(end)(?:\s+(union))?\b/
 		patterns: [
 			{include: "#label"}
 			{include: "$self"}
@@ -745,7 +889,7 @@ repository:
 		patterns: [
 			{include: "#modules"}
 			{include: "#stdproc"}
-			{match: "\\b(anyclass)\\b", name: "support.class.anyclass.turing"}
+			{match: /\b(anyclass)\b/, name: "support.class.anyclass.turing"}
 			
 			# Routines/constants exported unqualified
 			{include: "#keyboard-constants"}

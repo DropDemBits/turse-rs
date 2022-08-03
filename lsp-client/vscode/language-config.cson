@@ -27,7 +27,9 @@ surroundingPairs: [
 ]
 
 ###
-Derived from https://github.com/Alhadis/language-turing/blob/v1.0.2/settings/editor.cson#L4-L12
+Adapted from:
+- https://github.com/Alhadis/language-turing/blob/v1.0.2/settings/editor.cson#L4-L12
+- https://github.com/microsoft/vscode/blob/169/extensions/lua/language-configuration.json#L26-L27
 
 Changes:
 - Add short-hand aliases for function declarations (fcn & proc)
@@ -35,21 +37,78 @@ Changes:
 ### 
 indentationRules:
     increaseIndentPattern: ///
-        ( ^ \s*
-            (?:
-            # Item declarations
-            class|module|monitor|process|function|fcn|procedure|proc|body|
-            # Statements
-            case|if|elsif|elseif|elif|for|loop|begin|
-            # `then` but it's on a different line
-            then
+        # General case
+        (^
+        ( # any amount of
+            (?!%) # negative lookahead: inline comment start
+            . # anything
+        )*
+        ( # followed by
+            \b(
+                # Item declarations
+                class|module|monitor|body|
+                # Block statements
+                elsif|elseif|elif|else|begin|
+                # Block statements with structured ends
+                (
+                    (?<!(end\s+)) # no leading `end`
+                    (case|if|for|loop)
+                )|
+                # End of (if/elsif/elif)
+                then
             )\b
-        |   \s+ (?:then|:) \s*$
+            ( # followed by
+                ( # any amount of
+                    (?!\b( # negative lookahead:
+                        # Structured end
+                        end|
+                        # Compound end
+                        endcase|endif|endfor|endloop
+                    )\b)
+                    . # anything
+                )*
+            )
         )
+        $)
+        # Special case: Subprograms (since they can be in inline type position)
+        |(^
+        ( # any amount of
+            (?!%) # negative lookahead: inline comment start
+            \s # whitespace
+        )*
+        ( # followed by
+            \b(
+                # Subprograms with inline variations
+                (
+                    (?<!(forward|deferred)\s+)
+                    (process|function|fcn|procedure|proc)
+                )
+            )\b
+            ( # followed by
+                ( # any amount of
+                    (?!\b( # negative lookahead:
+                        # Structured end
+                        end|
+                        # Compound end
+                        endcase|endif|endfor|endloop
+                    )\b)
+                    . # anything
+                )*
+            )
+        )
+        $)
     ///
     decreaseIndentPattern: ///
-        ( ^ \s* end (?: \s+ case|if|for|loop|union|record)?\b # Tail end
-        | ^ \s* (endcase|endif|endfor|endloop)\b
-        | ^ \s* (else|elseif|elsif|elif)
+        ^
+        \s* # leading ws
+        (
+            (\b(
+                # Structured end
+                end|
+                # Compound end
+                endcase|endif|endfor|endloop|
+                # Chained if
+                elsif|elseif|elif|else
+            )\b)
         )
     ///
