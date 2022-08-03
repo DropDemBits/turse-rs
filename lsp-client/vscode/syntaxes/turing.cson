@@ -631,23 +631,32 @@ repository:
 	# Function parameters
 	"param-declarations":
 		match: ///
-			\b (\w+)
-			\s+ (:)
-			\s+ ((\w+))
+			\b(
+				(?:(?!:).)* # don't accidentally eat the type separator
+			)\b
+			\s* (:)?
+			\s* ((\w+))?
+		///
+		captures:
+			1: patterns: [include: "#param-names"]
+			2: name: "punctuation.separator.key-value.turing"
+			3: patterns: [include: "#types"]
+	
+	"param-names":
+		match: ///
+			\b(\w+)\s*(,)?
 		///
 		captures:
 			1: name: "variable.parameter.function.turing"
-			2: name: "storage.type.turing"
-			3: patterns: [include: "#types"]
-
+			2: name: "punctuation.separator.parameter.turing"
 	
 	# Bracketed parameter declarations used in procedure/process headers
 	parameters:
 		name: "meta.function.parameters.turing"
 		begin: /\G\s*(\()/
 		end: /\)/
-		beginCaptures: 1: name: "punctuation.definition.arguments.begin.turing"
-		endCaptures:   0: name: "punctuation.definition.arguments.end.turing"
+		beginCaptures: 1: name: "punctuation.definition.parameters.begin.turing"
+		endCaptures:   0: name: "punctuation.definition.parameters.end.turing"
 		patterns: [
 			{include: "$self"}
 			{match: /\w+/, name: "variable.parameter.function.turing"}
