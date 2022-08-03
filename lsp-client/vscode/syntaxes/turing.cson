@@ -266,14 +266,16 @@ repository:
 
 	# Types
 	types:
-		match: ///
-		\b(
-			addressint|array|boolean|char|string|collection|enum|
-			int[124]?|nat[124]?|real[48]?|pointer(\s+to)?|set(\s+of)?|
-			record|union|condition
-		)\b
-		///
-		name: "storage.type.$1-type.turing"
+		patterns: [{
+			name: "storage.type.$1-type.turing"
+			match: ///
+			\b(
+				addressint|array|boolean|char|string|collection|enum|
+				int[124]?|nat[124]?|real[48]?|pointer(\s+to)?|set(\s+of)?|
+				record|union|condition
+			)\b
+			///
+		}]
 
 
 	# Conditional compilation
@@ -636,11 +638,13 @@ repository:
 			)\b
 			\s* (:)?
 			\s* ((\w+))?
+			\s* (,)?
 		///
 		captures:
 			1: patterns: [include: "#param-names"]
 			2: name: "punctuation.separator.key-value.turing"
 			3: patterns: [include: "#types"]
+			4: name: "punctuation.separator.parameter.turing"
 	
 	"param-names":
 		match: ///
@@ -658,7 +662,7 @@ repository:
 		beginCaptures: 1: name: "punctuation.definition.parameters.begin.turing"
 		endCaptures:   0: name: "punctuation.definition.parameters.end.turing"
 		patterns: [
-			{include: "$self"}
+			{include: "#param-declarations"}
 			{match: /\w+/, name: "variable.parameter.function.turing"}
 		]
 	
