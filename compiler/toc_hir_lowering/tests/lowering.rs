@@ -44,7 +44,7 @@ fn assert_lower(src: &str) -> LowerResult {
     use std::fmt::Write;
 
     let mut db = TestHirDb::default();
-    let fixture = toc_vfs::generate_vfs(&mut db, src);
+    let fixture = toc_vfs::generate_vfs(&mut db, src).unwrap();
     db.insert_fixture(fixture);
 
     let root_file = db.vfs.intern_path("src/main.t".into());
