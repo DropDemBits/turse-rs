@@ -37,7 +37,8 @@ Changes:
 ### 
 indentationRules:
     increaseIndentPattern: ///
-        ^
+        # General case
+        (^
         ( # any amount of
             (?!%) # negative lookahead: inline comment start
             . # anything
@@ -46,11 +47,6 @@ indentationRules:
             \b(
                 # Item declarations
                 class|module|monitor|body|
-                # Item declarations with inline variations
-                (
-                    (?<!(forward|deferred)\s+)
-                    (process|function|fcn|procedure|proc)
-                )|
                 # Block statements
                 elsif|elseif|elif|else|begin|
                 # Block statements with structured ends
@@ -73,7 +69,34 @@ indentationRules:
                 )*
             )
         )
-        $
+        $)
+        # Special case: Subprograms (since they can be in inline type position)
+        |(^
+        ( # any amount of
+            (?!%) # negative lookahead: inline comment start
+            \s # whitespace
+        )*
+        ( # followed by
+            \b(
+                # Subprograms with inline variations
+                (
+                    (?<!(forward|deferred)\s+)
+                    (process|function|fcn|procedure|proc)
+                )
+            )\b
+            ( # followed by
+                ( # any amount of
+                    (?!\b( # negative lookahead:
+                        # Structured end
+                        end|
+                        # Compound end
+                        endcase|endif|endfor|endloop
+                    )\b)
+                    . # anything
+                )*
+            )
+        )
+        $)
     ///
     decreaseIndentPattern: ///
         ^
