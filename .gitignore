@@ -9,3 +9,6 @@ compile_output.txt
 *.swp
 # Other
 notes/*
+
+# Fuzz data
+fuzz-data/
