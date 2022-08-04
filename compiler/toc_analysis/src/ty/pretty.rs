@@ -204,6 +204,9 @@ where
                 Err(NotFixedLen::ConstError(err)) if err.is_not_compile_time() => {
                     out.write_str("{dynamic}")?
                 }
+                Err(NotFixedLen::ConstError(err)) if err.is_missing() => {
+                    out.write_str("{unknown}")?
+                }
                 Err(NotFixedLen::ConstError(err)) => {
                     unreachable!("should not show errors! {err:?}")
                 }
@@ -228,7 +231,8 @@ where
 
             match db.evaluate_const(start.clone(), eval_params) {
                 Ok(v) => write!(out, "{v}", v = v.display(db))?,
-                Err(err) if err.is_not_compile_time() => write!(out, "{{dynamic}}")?,
+                Err(err) if err.is_not_compile_time() => out.write_str("{dynamic}")?,
+                Err(err) if err.is_missing() => out.write_str("{unknown}")?,
                 Err(err) => {
                     unreachable!("should not show errors! ({err:?})")
                 }
@@ -241,7 +245,8 @@ where
             match end {
                 EndBound::Expr(end, _) => match db.evaluate_const(end.clone(), eval_params) {
                     Ok(v) => write!(out, "{v}", v = v.display(db))?,
-                    Err(err) if err.is_not_compile_time() => write!(out, "{{dynamic}}")?,
+                    Err(err) if err.is_not_compile_time() => out.write_str("{dynamic}")?,
+                    Err(err) if err.is_missing() => out.write_str("{unknown}")?,
                     Err(err) => {
                         unreachable!("should not show errors! ({err:?})")
                     }

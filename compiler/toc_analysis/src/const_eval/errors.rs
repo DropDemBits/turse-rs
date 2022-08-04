@@ -131,6 +131,10 @@ impl ConstError {
     pub fn is_not_compile_time(&self) -> bool {
         matches!(self.kind, ErrorKind::NotConstExpr(_))
     }
+
+    pub fn is_missing(&self) -> bool {
+        matches!(self.kind, ErrorKind::MissingExpr)
+    }
 }
 
 #[derive(Debug, Clone, thiserror::Error, PartialEq, Eq, Hash)]

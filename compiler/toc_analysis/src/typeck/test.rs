@@ -943,6 +943,8 @@ test_named_group! { sized_char,
         dyn_sized => "var N : int var _ : char(N)",
         // shouldn't die when reporting a dynamic char(N)
         err_dyn_sized => "var N : int var _ : char(N) := 1",
+        // or when reporting a missing `N`
+        err_missing => "var _ : char() := 1",
     ]
 }
 
@@ -2942,6 +2944,9 @@ test_named_group! { typeck_constrained_ty,
         in_err_msg => "var _ : 1 .. 2 := 'c'",
         in_err_msg_dyn_start => "var v : int const _ : v .. 2 := 'c'",
         in_err_msg_dyn_end => "var v : int const _ : 1 .. v := 'c'",
+        in_err_msg_missing_start => "const _ : .. 2 := 'c'",
+        in_err_msg_missing_end => "const _ : 1 ..  := 'c'",
+        in_err_msg_missing_both => "const _ :   ..  := 'c'",
 
         // Unsized variation
         // FIXME: add tests for unsized range once arrays are being lowered

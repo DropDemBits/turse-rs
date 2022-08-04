@@ -1,8 +1,6 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 42
 expression: "% categories\n% - Static\n% - MaybeDyn-Static\n% - MaybeDyn-Dynamic\n% - Flexible\n% init-sized are implied Static\n\n% guarantee that these are static arrays\ntype tsta : array 0+1..1 of int\ntype tstb : array 0+1..1 of int\nvar c : int\n\nvar fxa : flexible array 0+1..1 of int\nvar fxb : flexible array 0+1..1 of int\nvar fxc : flexible array 0+1..2 of int\nvar fxd : flexible array 0+1..1 of int1\n\nvar dyna : array 0+1..c of int\nvar dynb : array 0+1..c of int\n\nvar msta : array 0+1..1 of int\nvar mstb : array 0+1..1 of int\n\nvar sta : tsta\nvar stb : tstb\n\n% identity\nsta := stb\nmsta := mstb\n\n% Static & MaybeDyn-Static are equivalent\nsta := msta\nmsta := sta\n\n% MaybeDyn-Dynamic is never equivalent to anything (except itself)\ndyna := dyna % succeed\ndyna := dynb % fail\n\n% usual equivalence rules apply for flexible arrays...\nfxa := fxb % same ranges\nfxa := fxc % different ranges\nfxa := fxd % different elem tys\n\n% except that arrays must be of the same flexibility\nsta := fxa\n"
-
 ---
 "tsta"@(FileId(1), 157..161) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(0))] of array ( range of `int` (Unevaluated(LibraryId(0), BodyId(0)) .. Expr(Unevaluated(LibraryId(0), BodyId(1)), No)), ) of int
 "tstb"@(FileId(1), 189..193) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(1))] of array ( range of `int` (Unevaluated(LibraryId(0), BodyId(2)) .. Expr(Unevaluated(LibraryId(0), BodyId(3)), No)), ) of int

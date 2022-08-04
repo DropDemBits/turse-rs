@@ -1,0 +1,11 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+expression: "const _ : 1 ..  := 'c'"
+---
+"_"@(FileId(1), 6..7) [Declared]: range of `int` (Unevaluated(LibraryId(0), BodyId(0)) .. Expr(Unevaluated(LibraryId(0), BodyId(1)), No))
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 19..22: mismatched types
+| note in file FileId(1) for 19..22: this is of type `char`
+| note in file FileId(1) for 10..14: this is of type `1 .. {unknown}`
+| info: `char` is not assignable into `1 .. {unknown}`
