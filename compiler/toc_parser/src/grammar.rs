@@ -319,6 +319,7 @@ pub(self) fn param_decl(p: &mut Parser) -> Option<CompletedMarker> {
         TokenKind::Procedure => ty::subprog_type(p),
         TokenKind::Var,
         TokenKind::Register,
+        [hidden] TokenKind::Colon, // For recovery when there's no leading names
         TokenKind::Identifier => ty::constvar_param(p),
         _ => {
             // not a thing

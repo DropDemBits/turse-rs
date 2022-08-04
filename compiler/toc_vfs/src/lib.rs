@@ -31,7 +31,7 @@ use std::{
     sync::Arc,
 };
 
-pub use fixture::{generate_vfs, FixtureFiles};
+pub use fixture::{generate_vfs, FixtureFiles, ParseError};
 pub use intern::PathResolution;
 pub use vfs::{HasVfs, Vfs};
 

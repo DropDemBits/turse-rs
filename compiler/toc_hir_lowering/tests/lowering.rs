@@ -44,7 +44,7 @@ fn assert_lower(src: &str) -> LowerResult {
     use std::fmt::Write;
 
     let mut db = TestHirDb::default();
-    let fixture = toc_vfs::generate_vfs(&mut db, src);
+    let fixture = toc_vfs::generate_vfs(&mut db, src).unwrap();
     db.insert_fixture(fixture);
 
     let root_file = db.vfs.intern_path("src/main.t".into());
@@ -148,6 +148,10 @@ fn lower_simple_assignment() {
     assert_lower("1 := 2");
     // no rhs
     assert_lower("1 := ");
+    // no lhs
+    assert_lower(":= 2");
+    // neither
+    assert_lower(":=");
 }
 
 #[test]
@@ -911,6 +915,12 @@ fn lower_procedure_def() {
         var a : int2
     end pars",
     );
+
+    // Missing name (tail doesn't matter right now)
+    assert_lower("proc end bloop");
+
+    // Missing both names
+    assert_lower("proc end");
 }
 
 #[test]
@@ -985,6 +995,12 @@ fn lower_function_def() {
         var use := res
     end pars",
     );
+
+    // Missing name (tail doesn't matter right now)
+    assert_lower("fcn end bloop");
+
+    // Missing both names
+    assert_lower("fcn end");
 }
 
 #[test]
@@ -1043,6 +1059,12 @@ fn lower_process_def() {
         var a : int2
     end pars",
     );
+
+    // Missing name (tail doesn't matter right now)
+    assert_lower("process end bloop");
+
+    // Missing both names
+    assert_lower("process end");
 }
 
 #[test]
@@ -1087,6 +1109,10 @@ fn lower_formals_intersperse_missing() {
     assert_lower("procedure args(a, , , , : int) end args");
     // 5 args, with 3 interspersed
     assert_lower("procedure args(a, , , , b, : int) end args");
+    // No names
+    assert_lower("procedure args(var : int) end args");
+    // No names, no attrs
+    assert_lower("procedure args( : int) end args");
 
     // Only commas (doesn't work right now due to poor recovery)
     // FIXME: Uncomment when name list recovery gets better
@@ -1596,6 +1622,23 @@ fn lower_import_stmt() {
     proc _
         import a, a
     end _",
+    );
+
+    // Importing over something already visible
+    assert_lower(
+        "
+    module _
+        import _
+    end _
+    ",
+    );
+
+    assert_lower(
+        "
+    module *_
+        import _
+    end _
+    ",
     );
 }
 

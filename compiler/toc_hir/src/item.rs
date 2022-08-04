@@ -127,16 +127,13 @@ pub struct Subprogram {
 impl Subprogram {
     /// Looks up the associated parameter info
     pub fn lookup_param_info(&self, param_def: symbol::LocalDefId) -> ParameterInfo {
-        let param_list = self
-            .param_list
+        // Try first in param list, then against result name
+        self.param_list
             .as_ref()
-            .expect("accessing named arg from no params list");
-        param_list
-            .names
-            .iter()
-            .enumerate()
-            .find_map(|(idx, name)| {
-                (*name == param_def).then(|| ParameterInfo::Param(&param_list.tys[idx]))
+            .and_then(|param_list| {
+                param_list.names.iter().enumerate().find_map(|(idx, name)| {
+                    (*name == param_def).then(|| ParameterInfo::Param(&param_list.tys[idx]))
+                })
             })
             .unwrap_or_else(|| {
                 assert_eq!(

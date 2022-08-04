@@ -21,24 +21,24 @@ impl super::BodyLowering<'_, '_> {
 
         let kind = match stmt {
             // `ConstVarDecl` and `BindDecl` are the only decls that can produce multiple stmts
-            ast::Stmt::ConstVarDecl(decl) => return self.lower_constvar_decl(decl),
-            ast::Stmt::BindDecl(decl) => return self.lower_bind_decl(decl),
-            ast::Stmt::TypeDecl(decl) => self.lower_type_decl(decl),
-            ast::Stmt::ProcDecl(decl) => self.lower_procedure_decl(decl),
-            ast::Stmt::FcnDecl(decl) => self.lower_function_decl(decl),
-            ast::Stmt::ProcessDecl(decl) => self.lower_process_decl(decl),
+            ast::Stmt::ConstVarDecl(decl) => return Some(self.lower_constvar_decl(decl)),
+            ast::Stmt::BindDecl(decl) => return Some(self.lower_bind_decl(decl)),
+            ast::Stmt::TypeDecl(decl) => Some(self.lower_type_decl(decl)),
+            ast::Stmt::ProcDecl(decl) => Some(self.lower_procedure_decl(decl)),
+            ast::Stmt::FcnDecl(decl) => Some(self.lower_function_decl(decl)),
+            ast::Stmt::ProcessDecl(decl) => Some(self.lower_process_decl(decl)),
 
             ast::Stmt::ExternalDecl(_) => self.unsupported_stmt(span),
             ast::Stmt::ForwardDecl(_) => self.unsupported_stmt(span),
             ast::Stmt::DeferredDecl(_) => self.unsupported_stmt(span),
             ast::Stmt::BodyDecl(_) => self.unsupported_stmt(span),
 
-            ast::Stmt::ModuleDecl(decl) => self.lower_module_decl(decl),
+            ast::Stmt::ModuleDecl(decl) => Some(self.lower_module_decl(decl)),
 
             ast::Stmt::ClassDecl(_) => self.unsupported_stmt(span),
             ast::Stmt::MonitorDecl(_) => self.unsupported_stmt(span),
 
-            ast::Stmt::AssignStmt(stmt) => self.lower_assign_stmt(stmt),
+            ast::Stmt::AssignStmt(stmt) => Some(self.lower_assign_stmt(stmt)),
 
             ast::Stmt::OpenStmt(_) => self.unsupported_stmt(span),
             ast::Stmt::CloseStmt(_) => self.unsupported_stmt(span),
@@ -51,19 +51,19 @@ impl super::BodyLowering<'_, '_> {
             ast::Stmt::SeekStmt(_) => self.unsupported_stmt(span),
             ast::Stmt::TellStmt(_) => self.unsupported_stmt(span),
 
-            ast::Stmt::ForStmt(stmt) => self.lower_for_stmt(stmt),
-            ast::Stmt::LoopStmt(stmt) => self.lower_loop_stmt(stmt),
-            ast::Stmt::ExitStmt(stmt) => self.lower_exit_stmt(stmt),
-            ast::Stmt::IfStmt(stmt) => self.lower_if_stmt(stmt),
-            ast::Stmt::CaseStmt(stmt) => self.lower_case_stmt(stmt),
-            ast::Stmt::BlockStmt(stmt) => self.lower_block_stmt(stmt),
+            ast::Stmt::ForStmt(stmt) => Some(self.lower_for_stmt(stmt)),
+            ast::Stmt::LoopStmt(stmt) => Some(self.lower_loop_stmt(stmt)),
+            ast::Stmt::ExitStmt(stmt) => Some(self.lower_exit_stmt(stmt)),
+            ast::Stmt::IfStmt(stmt) => Some(self.lower_if_stmt(stmt)),
+            ast::Stmt::CaseStmt(stmt) => Some(self.lower_case_stmt(stmt)),
+            ast::Stmt::BlockStmt(stmt) => Some(self.lower_block_stmt(stmt)),
 
             ast::Stmt::InvariantStmt(_) => self.unsupported_stmt(span),
             ast::Stmt::AssertStmt(_) => self.unsupported_stmt(span),
 
-            ast::Stmt::CallStmt(stmt) => self.lower_call_stmt(stmt),
-            ast::Stmt::ReturnStmt(stmt) => self.lower_return_stmt(stmt),
-            ast::Stmt::ResultStmt(stmt) => self.lower_result_stmt(stmt),
+            ast::Stmt::CallStmt(stmt) => Some(self.lower_call_stmt(stmt)),
+            ast::Stmt::ReturnStmt(stmt) => Some(self.lower_return_stmt(stmt)),
+            ast::Stmt::ResultStmt(stmt) => Some(self.lower_result_stmt(stmt)),
 
             ast::Stmt::NewStmt(_) => self.unsupported_stmt(span),
             ast::Stmt::FreeStmt(_) => self.unsupported_stmt(span),
@@ -115,7 +115,7 @@ impl super::BodyLowering<'_, '_> {
         }
     }
 
-    fn lower_constvar_decl(&mut self, decl: ast::ConstVarDecl) -> Option<LoweredStmt> {
+    fn lower_constvar_decl(&mut self, decl: ast::ConstVarDecl) -> LoweredStmt {
         // is actually an item
         let span = self.ctx.intern_range(decl.syntax().text_range());
 
@@ -132,7 +132,8 @@ impl super::BodyLowering<'_, '_> {
             decl.decl_list(),
             SymbolKind::ConstVar(mutability, is_register.into()),
             is_pervasive,
-        )?;
+            span,
+        );
 
         let stmts: Vec<_> = names
             .into_iter()
@@ -155,7 +156,7 @@ impl super::BodyLowering<'_, '_> {
             })
             .collect();
 
-        let lowered = if stmts.len() == 1 {
+        if stmts.len() == 1 {
             // Single declaration
             // Just a little mutable reborrow, as a treat
             let mut stmts = stmts;
@@ -163,12 +164,10 @@ impl super::BodyLowering<'_, '_> {
         } else {
             // Multiple declarations, pack it into a multiple
             LoweredStmt::Multiple(stmts)
-        };
-
-        Some(lowered)
+        }
     }
 
-    fn lower_type_decl(&mut self, decl: ast::TypeDecl) -> Option<stmt::StmtKind> {
+    fn lower_type_decl(&mut self, decl: ast::TypeDecl) -> stmt::StmtKind {
         // Procedure for resolving forward declarations (general)
         // - declare them as a forward
         //   - ScopeTracker records that there's an unresolved forward decl here
@@ -178,6 +177,7 @@ impl super::BodyLowering<'_, '_> {
         //   - If there's already a resolution, change error report based on what the old decl was
         //     - Resolved / Declared -> Duplicate def
         //     - Forward -> Must resolve in the same scope
+        let span = self.ctx.intern_range(decl.syntax().text_range());
 
         let is_pervasive = decl.pervasive_attr().is_some();
 
@@ -196,8 +196,13 @@ impl super::BodyLowering<'_, '_> {
         };
 
         // Declare name after type to prevent def-use cycles
-        let def_id =
-            self.lower_name_def(decl.decl_name()?, SymbolKind::Type, decl_kind, is_pervasive);
+        let def_id = self.lower_maybe_name_def(
+            decl.decl_name(),
+            SymbolKind::Type,
+            decl_kind,
+            is_pervasive,
+            span,
+        );
 
         let span = self.ctx.intern_range(decl.syntax().text_range());
 
@@ -207,13 +212,15 @@ impl super::BodyLowering<'_, '_> {
             span,
         });
 
-        Some(stmt::StmtKind::Item(item_id))
+        stmt::StmtKind::Item(item_id)
     }
 
-    fn lower_bind_decl(&mut self, decl: ast::BindDecl) -> Option<LoweredStmt> {
+    fn lower_bind_decl(&mut self, decl: ast::BindDecl) -> LoweredStmt {
         let stmts: Vec<_> = decl
             .bindings()
-            .filter_map(|binding| {
+            .map(|binding| {
+                let span = self.ctx.intern_range(binding.syntax().text_range());
+
                 let mutability = if binding.as_var().is_some() {
                     Mutability::Var
                 } else {
@@ -222,11 +229,12 @@ impl super::BodyLowering<'_, '_> {
                 let is_register = binding.to_register().is_some();
 
                 let bind_to = self.lower_required_expr_body(binding.expr());
-                let def_id = self.lower_name_def(
-                    binding.bind_as()?,
+                let def_id = self.lower_maybe_name_def(
+                    binding.bind_as(),
                     SymbolKind::Binding(mutability, is_register.into()),
                     DeclareKind::Declared,
                     false,
+                    span,
                 );
                 let span = self.ctx.intern_range(binding.syntax().text_range());
 
@@ -243,11 +251,11 @@ impl super::BodyLowering<'_, '_> {
                     span,
                 });
 
-                Some(stmt::StmtKind::Item(item_id))
+                stmt::StmtKind::Item(item_id)
             })
             .collect();
 
-        let lowered = if stmts.len() == 1 {
+        if stmts.len() == 1 {
             // Single declaration
             // Just a little mutable reborrow, as a treat
             let mut stmts = stmts;
@@ -255,20 +263,20 @@ impl super::BodyLowering<'_, '_> {
         } else {
             // Multiple declarations, pack it into a multiple
             LoweredStmt::Multiple(stmts)
-        };
-
-        Some(lowered)
+        }
     }
 
-    fn lower_procedure_decl(&mut self, decl: ast::ProcDecl) -> Option<stmt::StmtKind> {
+    fn lower_procedure_decl(&mut self, decl: ast::ProcDecl) -> stmt::StmtKind {
+        let span = self.ctx.intern_range(decl.syntax().text_range());
         let subprog_header = decl.proc_header().unwrap();
 
         let is_pervasive = subprog_header.pervasive_attr().is_some();
-        let def_id = self.lower_name_def(
-            subprog_header.name()?,
+        let def_id = self.lower_maybe_name_def(
+            subprog_header.name(),
             SymbolKind::Subprogram(SubprogramKind::Procedure),
             DeclareKind::Declared,
             is_pervasive,
+            span,
         );
         let param_list = self.lower_formals_spec(subprog_header.params());
         let result = self.none_subprog_result(subprog_header.syntax().text_range());
@@ -293,18 +301,20 @@ impl super::BodyLowering<'_, '_> {
             span,
         });
 
-        Some(stmt::StmtKind::Item(item_id))
+        stmt::StmtKind::Item(item_id)
     }
 
-    fn lower_function_decl(&mut self, decl: ast::FcnDecl) -> Option<stmt::StmtKind> {
+    fn lower_function_decl(&mut self, decl: ast::FcnDecl) -> stmt::StmtKind {
+        let span = self.ctx.intern_range(decl.syntax().text_range());
         let subprog_header = decl.fcn_header().unwrap();
 
         let is_pervasive = subprog_header.pervasive_attr().is_some();
-        let def_id = self.lower_name_def(
-            subprog_header.name()?,
+        let def_id = self.lower_maybe_name_def(
+            subprog_header.name(),
             SymbolKind::Subprogram(SubprogramKind::Function),
             DeclareKind::Declared,
             is_pervasive,
+            span,
         );
         let param_list = self.lower_formals_spec(subprog_header.params());
         let result = self.lower_subprog_result(subprog_header.fcn_result());
@@ -326,18 +336,20 @@ impl super::BodyLowering<'_, '_> {
             span,
         });
 
-        Some(stmt::StmtKind::Item(item_id))
+        stmt::StmtKind::Item(item_id)
     }
 
-    fn lower_process_decl(&mut self, decl: ast::ProcessDecl) -> Option<stmt::StmtKind> {
+    fn lower_process_decl(&mut self, decl: ast::ProcessDecl) -> stmt::StmtKind {
+        let span = self.ctx.intern_range(decl.syntax().text_range());
         let subprog_header = decl.process_header().unwrap();
 
         let is_pervasive = subprog_header.pervasive_attr().is_some();
-        let def_id = self.lower_name_def(
-            subprog_header.name()?,
+        let def_id = self.lower_maybe_name_def(
+            subprog_header.name(),
             SymbolKind::Subprogram(SubprogramKind::Process),
             DeclareKind::Declared,
             is_pervasive,
+            span,
         );
         let param_list = self.lower_formals_spec(subprog_header.params());
         let result = self.none_subprog_result(subprog_header.syntax().text_range());
@@ -362,7 +374,7 @@ impl super::BodyLowering<'_, '_> {
             span,
         });
 
-        Some(stmt::StmtKind::Item(item_id))
+        stmt::StmtKind::Item(item_id)
     }
 
     pub(super) fn lower_formals_spec(
@@ -528,13 +540,15 @@ impl super::BodyLowering<'_, '_> {
         item::SubprogramBody { body, imports }
     }
 
-    fn lower_module_decl(&mut self, decl: ast::ModuleDecl) -> Option<stmt::StmtKind> {
+    fn lower_module_decl(&mut self, decl: ast::ModuleDecl) -> stmt::StmtKind {
+        let span = self.ctx.intern_range(decl.syntax().text_range());
         let is_pervasive = decl.pervasive_attr().is_some();
-        let def_id = self.lower_name_def(
-            decl.name()?,
+        let def_id = self.lower_maybe_name_def(
+            decl.name(),
             SymbolKind::Module(IsMonitor::No),
             DeclareKind::Declared,
             is_pervasive,
+            span,
         );
 
         self.unsupported_node(decl.implement_stmt());
@@ -594,7 +608,7 @@ impl super::BodyLowering<'_, '_> {
             span,
         });
 
-        Some(stmt::StmtKind::Item(item_id))
+        stmt::StmtKind::Item(item_id)
     }
 
     // Exposed to parent mod for handling external imports
@@ -634,8 +648,6 @@ impl super::BodyLowering<'_, '_> {
                 ast::ImportAttr::ForwardAttr(node) => Some(node),
                 _ => None,
             });
-
-            dbg!((&is_const, &is_var, &is_forward));
 
             // Mutabilty can only be one or the other, or not specified
             let import_mut = match (is_const, is_var) {
@@ -1070,16 +1082,15 @@ impl super::BodyLowering<'_, '_> {
         }
     }
 
-    fn lower_assign_stmt(&mut self, stmt: ast::AssignStmt) -> Option<stmt::StmtKind> {
+    fn lower_assign_stmt(&mut self, stmt: ast::AssignStmt) -> stmt::StmtKind {
         let (op, asn_span) = {
-            let asn_op = stmt.asn_op()?;
+            let asn_op = stmt.asn_op().unwrap();
             let span = self.ctx.intern_range(asn_op.syntax().text_range());
 
             (asn_op.asn_kind().and_then(asn_to_bin_op), span)
         };
 
-        // Only lhs is required to generate a node
-        let lhs = self.lower_expr(stmt.lhs()?);
+        let lhs = self.lower_required_expr(stmt.lhs());
         let rhs = self.lower_required_expr(stmt.rhs());
 
         let rhs = if let Some(op) = op {
@@ -1094,11 +1105,11 @@ impl super::BodyLowering<'_, '_> {
             rhs
         };
 
-        Some(stmt::StmtKind::Assign(Assign {
+        stmt::StmtKind::Assign(Assign {
             lhs,
             asn: asn_span,
             rhs,
-        }))
+        })
     }
 
     fn lower_put_stmt(&mut self, stmt: ast::PutStmt) -> Option<stmt::StmtKind> {
@@ -1192,7 +1203,7 @@ impl super::BodyLowering<'_, '_> {
         }
     }
 
-    fn lower_for_stmt(&mut self, stmt: ast::ForStmt) -> Option<stmt::StmtKind> {
+    fn lower_for_stmt(&mut self, stmt: ast::ForStmt) -> stmt::StmtKind {
         let is_decreasing = stmt.decreasing_token().is_some();
         let name = stmt.name();
 
@@ -1241,31 +1252,31 @@ impl super::BodyLowering<'_, '_> {
         }
         self.ctx.scopes.pop_scope();
 
-        Some(stmt::StmtKind::For(stmt::For {
+        stmt::StmtKind::For(stmt::For {
             is_decreasing,
             counter_def,
             bounds: for_bounds,
             step_by,
             stmts: body_stmts,
-        }))
+        })
     }
 
-    fn lower_loop_stmt(&mut self, stmt: ast::LoopStmt) -> Option<stmt::StmtKind> {
+    fn lower_loop_stmt(&mut self, stmt: ast::LoopStmt) -> stmt::StmtKind {
         self.ctx.scopes.push_scope(ScopeKind::Loop);
         let stmts = self.lower_stmt_list(stmt.stmt_list().unwrap());
         self.ctx.scopes.pop_scope();
 
-        Some(stmt::StmtKind::Loop(stmt::Loop { stmts }))
+        stmt::StmtKind::Loop(stmt::Loop { stmts })
     }
 
-    fn lower_exit_stmt(&mut self, stmt: ast::ExitStmt) -> Option<stmt::StmtKind> {
-        Some(stmt::StmtKind::Exit(stmt::Exit {
+    fn lower_exit_stmt(&mut self, stmt: ast::ExitStmt) -> stmt::StmtKind {
+        stmt::StmtKind::Exit(stmt::Exit {
             when_condition: self.try_lower_expr(stmt.condition()),
-        }))
+        })
     }
 
-    fn lower_if_stmt(&mut self, stmt: ast::IfStmt) -> Option<stmt::StmtKind> {
-        Some(self.lower_if_stmt_body(stmt.if_body().unwrap()))
+    fn lower_if_stmt(&mut self, stmt: ast::IfStmt) -> stmt::StmtKind {
+        self.lower_if_stmt_body(stmt.if_body().unwrap())
     }
 
     fn lower_if_stmt_body(&mut self, if_body: ast::IfBody) -> stmt::StmtKind {
@@ -1305,7 +1316,7 @@ impl super::BodyLowering<'_, '_> {
         })
     }
 
-    fn lower_case_stmt(&mut self, stmt: ast::CaseStmt) -> Option<stmt::StmtKind> {
+    fn lower_case_stmt(&mut self, stmt: ast::CaseStmt) -> stmt::StmtKind {
         let discriminant = self.lower_required_expr(stmt.expr());
         let case_arms = stmt
             .case_arm()
@@ -1334,26 +1345,26 @@ impl super::BodyLowering<'_, '_> {
             })
             .collect();
 
-        Some(stmt::StmtKind::Case(stmt::Case {
+        stmt::StmtKind::Case(stmt::Case {
             discriminant,
             arms: case_arms,
-        }))
+        })
     }
 
-    fn lower_block_stmt(&mut self, stmt: ast::BlockStmt) -> Option<stmt::StmtKind> {
-        let stmt_list = stmt.stmt_list()?;
+    fn lower_block_stmt(&mut self, stmt: ast::BlockStmt) -> stmt::StmtKind {
+        let stmt_list = stmt.stmt_list().unwrap();
 
         self.ctx.scopes.push_scope(ScopeKind::Block);
         let stmts = self.lower_stmt_list(stmt_list);
         self.ctx.scopes.pop_scope();
 
-        Some(stmt::StmtKind::Block(stmt::Block {
+        stmt::StmtKind::Block(stmt::Block {
             kind: stmt::BlockKind::Normal,
             stmts,
-        }))
+        })
     }
 
-    fn lower_call_stmt(&mut self, stmt: ast::CallStmt) -> Option<stmt::StmtKind> {
+    fn lower_call_stmt(&mut self, stmt: ast::CallStmt) -> stmt::StmtKind {
         let call = match stmt.expr() {
             Some(ast::Expr::CallExpr(call)) => {
                 let lhs = self.lower_required_expr(call.expr());
@@ -1371,17 +1382,17 @@ impl super::BodyLowering<'_, '_> {
             }
         };
 
-        Some(stmt::StmtKind::Call(call))
+        stmt::StmtKind::Call(call)
     }
 
-    fn lower_return_stmt(&mut self, _stmt: ast::ReturnStmt) -> Option<stmt::StmtKind> {
-        Some(stmt::StmtKind::Return(stmt::Return))
+    fn lower_return_stmt(&mut self, _stmt: ast::ReturnStmt) -> stmt::StmtKind {
+        stmt::StmtKind::Return(stmt::Return)
     }
 
-    fn lower_result_stmt(&mut self, stmt: ast::ResultStmt) -> Option<stmt::StmtKind> {
-        Some(stmt::StmtKind::Result(stmt::Result {
+    fn lower_result_stmt(&mut self, stmt: ast::ResultStmt) -> stmt::StmtKind {
+        stmt::StmtKind::Result(stmt::Result {
             expr: self.lower_required_expr(stmt.expr()),
-        }))
+        })
     }
 }
 
@@ -1409,22 +1420,38 @@ impl super::BodyLowering<'_, '_> {
     }
 
     /// Lowers a name list, holding up the invariant that it always contains
-    /// at least one identifier
+    /// at least one identifier.
+    ///
+    /// `default_span` is used if there isn't one identifier.
     fn lower_name_list(
         &mut self,
         name_list: Option<ast::NameList>,
         kind: SymbolKind,
         is_pervasive: bool,
-    ) -> Option<Vec<symbol::LocalDefId>> {
-        let names = name_list?
-            .names()
-            .map(|name| {
-                self.lower_name_def(name, kind, symbol::DeclareKind::Declared, is_pervasive)
-            })
-            .collect::<Vec<_>>();
+        default_span: SpanId,
+    ) -> Vec<symbol::LocalDefId> {
+        let mut names = if let Some(name_list) = name_list {
+            name_list
+                .names()
+                .map(|name| {
+                    self.lower_name_def(name, kind, symbol::DeclareKind::Declared, is_pervasive)
+                })
+                .collect()
+        } else {
+            vec![]
+        };
 
-        // Invariant: Names list must contain at least one name
-        Some(names).filter(|names| !names.is_empty())
+        // Names list must contain at least one name
+        if names.is_empty() {
+            names.push(self.ctx.library.add_def(
+                *syms::Unnamed,
+                default_span,
+                None,
+                DeclareKind::Undeclared,
+            ))
+        }
+
+        names
     }
 
     /// Lowers a name list, filling empty name places with `fill_with`
@@ -1435,7 +1462,7 @@ impl super::BodyLowering<'_, '_> {
         is_pervasive: bool,
         fill_with: symbol::LocalDefId,
     ) -> Vec<symbol::LocalDefId> {
-        let names = name_list.map_or_else(
+        let mut names = name_list.map_or_else(
             || vec![fill_with],
             |name_list| {
                 name_list
@@ -1454,7 +1481,10 @@ impl super::BodyLowering<'_, '_> {
         );
 
         // Invariant: Names list must contain at least one name
-        debug_assert!(!names.is_empty());
+        if names.is_empty() {
+            names.push(fill_with);
+        }
+
         names
     }
 
@@ -1474,6 +1504,27 @@ impl super::BodyLowering<'_, '_> {
         self.ctx.introduce_def(def_id, is_pervasive);
 
         def_id
+    }
+
+    fn lower_maybe_name_def(
+        &mut self,
+        name: Option<ast::Name>,
+        kind: SymbolKind,
+        declare_kind: DeclareKind,
+        is_pervasive: bool,
+        default_span: SpanId,
+    ) -> symbol::LocalDefId {
+        // Can't declare an undefined symbol from a name def
+        assert_ne!(declare_kind, DeclareKind::Undeclared);
+
+        if let Some(name) = name {
+            self.lower_name_def(name, kind, declare_kind, is_pervasive)
+        } else {
+            // Undeclared version
+            self.ctx
+                .library
+                .add_def(*syms::Unnamed, default_span, None, DeclareKind::Undeclared)
+        }
     }
 
     fn name_to_def(

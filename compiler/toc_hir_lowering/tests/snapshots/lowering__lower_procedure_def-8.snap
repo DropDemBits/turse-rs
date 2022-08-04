@@ -1,0 +1,15 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+expression: proc end
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(1)
+    Module@(FileId(1), 0..8): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..8): []
+        StmtItem@(FileId(1), 0..8): ItemId(0)
+          Subprogram@(FileId(1), 0..8): "<unnamed>"@(FileId(1), 0..8)
+            Void@(FileId(1), 0..4)
+            StmtBody@(FileId(1), 5..5): []
+error in file FileId(1) at 5..8: unexpected token
+| error in file FileId(1) for 5..8: expected identifier, but found `end`
+

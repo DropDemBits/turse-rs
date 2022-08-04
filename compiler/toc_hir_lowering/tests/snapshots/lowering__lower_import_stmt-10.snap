@@ -1,0 +1,17 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+expression: "\n    module *_\n        import _\n    end _\n    "
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(2)
+    Module@(FileId(1), 0..46): "<root>"@(dummy)
+      StmtBody@(FileId(1), 5..41): []
+        StmtItem@(FileId(1), 5..41): ItemId(1)
+          Module@(FileId(1), 5..41): "_"@(FileId(1), 13..14)
+            Import@(FileId(1), 30..31): SameAsItem "_"@(FileId(1), 30..31)
+            StmtBody@(FileId(1), 36..36): []
+error in file FileId(1) at 30..31: `_` is already imported in this scope
+| note in file FileId(1) for 13..14: `_` declared pervasive here
+| error in file FileId(1) for 30..31: `_` re-imported here
+| info: `_` was declared pervasively, so it's already imported
+

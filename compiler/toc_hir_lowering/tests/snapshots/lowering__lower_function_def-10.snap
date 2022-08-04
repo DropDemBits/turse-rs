@@ -1,0 +1,14 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+expression: fcn end
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(1)
+    Module@(FileId(1), 0..7): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..7): []
+        StmtItem@(FileId(1), 0..7): ItemId(0)
+          Subprogram@(FileId(1), 0..7): "<unnamed>"@(FileId(1), 0..7)
+            StmtBody@(FileId(1), 4..4): []
+error in file FileId(1) at 4..7: unexpected token
+| error in file FileId(1) for 4..7: expected identifier, but found `end`
+

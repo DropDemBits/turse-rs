@@ -1,0 +1,7 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+expression: "const _ :   ..  := 'c'"
+---
+"_"@(FileId(1), 6..7) [Declared]: range of `<error>` (Unevaluated(LibraryId(0), BodyId(0)) .. Expr(Unevaluated(LibraryId(0), BodyId(1)), No))
+"<root>"@(dummy) [Declared]: <error>
+

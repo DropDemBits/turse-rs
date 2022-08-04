@@ -1,0 +1,11 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+expression: "var _ : char() := 1"
+---
+"_"@(FileId(1), 4..5) [Declared]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 18..19: mismatched types
+| note in file FileId(1) for 18..19: this is of type `{integer}`
+| note in file FileId(1) for 8..14: this is of type `char({unknown})`
+| info: `{integer}` is not assignable into `char({unknown})`

@@ -1,18 +1,12 @@
 [workspace]
 resolver = "2"
 
-members = [
-    "xtask/",
-    "lsp-server/",
-    "compiler/*",
-    "fuzzers/parser_fuzz",
-]
+members = ["xtask/", "lsp-server/", "compiler/*", "fuzzers/*"]
 
-default-members = [
-    "xtask/",
-    "compiler/*",
-    "lsp-server/",
-]
+default-members = ["xtask/", "compiler/*", "lsp-server/"]
 
 [profile.release]
 debug = true
+
+[patch.crates-io]
+lazy_static = { git = "https://github.com/rust-fuzz/resettable-lazy-static.rs" }

@@ -128,7 +128,7 @@ mod test {
     impl TestDb {
         fn from_source(source: &str) -> Self {
             let mut db = TestDb::default();
-            let fixture = toc_vfs::generate_vfs(&mut db, source);
+            let fixture = toc_vfs::generate_vfs(&mut db, source).unwrap();
             db.insert_fixture(fixture);
 
             let root_file = db.vfs.intern_path("src/main.t".into());

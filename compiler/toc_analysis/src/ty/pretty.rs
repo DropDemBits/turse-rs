@@ -11,7 +11,7 @@ use crate::{
     ty::{IntSize, NatSize, RealSize, TyRef, TypeKind},
 };
 
-use super::{AllowDyn, ArraySizing, EndBound, NotFixedLen, PassBy, TypeId, WithDef};
+use super::{ArraySizing, EndBound, NotFixedLen, PassBy, TypeId, WithDef};
 
 impl<'db, DB> fmt::Debug for TyRef<'db, DB>
 where
@@ -195,13 +195,18 @@ where
     // Extra bits
     // FIXME: Change set display into `{Alias}` (`set of int`)
     // FIXME: Move `'s into here so that we can format like this: "`{Alias}` (alias of {type})"
+    // FIXME: Consider how to deal with printing const errors
+    // -> Consider not printing the mismatched error at all?
     match ty.kind() {
         TypeKind::StringN(seq) | TypeKind::CharN(seq) => {
             out.write_char('(')?;
             match seq.fixed_len(db, Span::default()) {
                 Ok(v) => out.write_fmt(format_args!("{v}"))?,
                 Err(NotFixedLen::AnySize) => out.write_char('*')?,
-                Err(NotFixedLen::ConstError(_)) => unreachable!("should not show errors!"),
+                Err(NotFixedLen::ConstError(err)) if err.is_not_compile_time() => {
+                    out.write_str("{dynamic}")?
+                }
+                Err(NotFixedLen::ConstError(_)) => out.write_str("{unknown}")?,
             }
             out.write_char(')')?;
         }
@@ -222,23 +227,20 @@ where
             let eval_params = crate::const_eval::EvalParams::default();
 
             match db.evaluate_const(start.clone(), eval_params) {
-                Ok(v) => write!(out, "{v} .. ", v = v.display(db))?,
-                Err(err) => {
-                    unreachable!("should not show errors! ({err:?})")
-                }
+                Ok(v) => write!(out, "{v}", v = v.display(db))?,
+                Err(err) if err.is_not_compile_time() => out.write_str("{dynamic}")?,
+                Err(_) => out.write_str("{unknown}")?,
             };
 
-            // Only the end bound is allowed to be not compile-time
+            write!(out, " .. ")?;
+
+            // don't need to worry about checking `AllowDyn` since that's more for type
+            // checking than pretty printing
             match end {
-                EndBound::Expr(end, allow_dyn) => match db.evaluate_const(end.clone(), eval_params)
-                {
+                EndBound::Expr(end, _) => match db.evaluate_const(end.clone(), eval_params) {
                     Ok(v) => write!(out, "{v}", v = v.display(db))?,
-                    Err(err) if err.is_not_compile_time() && matches!(allow_dyn, AllowDyn::Yes) => {
-                        write!(out, "{{dynamic}}")?
-                    }
-                    Err(err) => {
-                        unreachable!("should not show errors! ({err:?})")
-                    }
+                    Err(err) if err.is_not_compile_time() => out.write_str("{dynamic}")?,
+                    Err(_) => out.write_str("{unknown}")?,
                 },
                 EndBound::Unsized(_) | EndBound::Any => write!(out, "*")?,
             }

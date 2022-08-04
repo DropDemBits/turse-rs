@@ -10,6 +10,7 @@ checksum = "6c0f4180b6d7095a1c3130f1aadead4ece7fb3094dc724c701adb30a92a95228"
 dependencies = [
  "cc",
  "clap 2.34.0",
+ "lazy_static",
  "libc",
  "rustc_version",
  "xdg",
@@ -317,6 +318,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "hir-fuzzer"
+version = "0.1.0"
+dependencies = [
+ "afl",
+ "toc_analysis",
+ "toc_ast_db",
+ "toc_hir",
+ "toc_hir_db",
+ "toc_reporting",
+ "toc_salsa",
+ "toc_span",
+ "toc_vfs",
+ "toc_vfs_db",
+]
+
+[[package]]
 name = "idna"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -400,8 +417,7 @@ checksum = "d43db9f547ba2787bdeac81ef97ccc80784f385b3b39b4d50344270629a2bee3"
 [[package]]
 name = "lazy_static"
 version = "1.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
+source = "git+https://github.com/rust-fuzz/resettable-lazy-static.rs#c5eb91f2bde4c2f70092d1574f7145cb33ff0922"
 
 [[package]]
 name = "lexical"
