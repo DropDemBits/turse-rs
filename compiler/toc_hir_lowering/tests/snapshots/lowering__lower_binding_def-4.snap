@@ -1,15 +1,17 @@
 ---
 source: compiler/toc_hir_lowering/tests/lowering.rs
-assertion_line: 59
 expression: "\n    begin\n    bind to 1, k to\n    end"
-
 ---
 Library@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(1)
+  Root@(dummy): FileId(1) -> ItemId(2)
     Module@(FileId(1), 0..38): "<root>"@(dummy)
       StmtBody@(FileId(1), 5..38): []
         Block@(FileId(1), 5..38): Normal
           StmtItem@(FileId(1), 15..30): ItemId(0)
+            Bind@(FileId(1), 20..24): const "<unnamed>"@(FileId(1), 20..24)
+              ExprBody@(FileId(1), 23..24)
+                Literal@(FileId(1), 23..24): Integer(1)
+          StmtItem@(FileId(1), 15..30): ItemId(1)
             Bind@(FileId(1), 26..30): const "k"@(FileId(1), 26..27)
               ExprBody@(dummy)
 error in file FileId(1) at 20..22: unexpected token

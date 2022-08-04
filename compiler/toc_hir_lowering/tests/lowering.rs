@@ -148,6 +148,10 @@ fn lower_simple_assignment() {
     assert_lower("1 := 2");
     // no rhs
     assert_lower("1 := ");
+    // no lhs
+    assert_lower(":= 2");
+    // neither
+    assert_lower(":=");
 }
 
 #[test]
@@ -911,6 +915,12 @@ fn lower_procedure_def() {
         var a : int2
     end pars",
     );
+
+    // Missing name (tail doesn't matter right now)
+    assert_lower("proc end bloop");
+
+    // Missing both names
+    assert_lower("proc end");
 }
 
 #[test]
@@ -985,6 +995,12 @@ fn lower_function_def() {
         var use := res
     end pars",
     );
+
+    // Missing name (tail doesn't matter right now)
+    assert_lower("fcn end bloop");
+
+    // Missing both names
+    assert_lower("fcn end");
 }
 
 #[test]
@@ -1043,6 +1059,12 @@ fn lower_process_def() {
         var a : int2
     end pars",
     );
+
+    // Missing name (tail doesn't matter right now)
+    assert_lower("process end bloop");
+
+    // Missing both names
+    assert_lower("process end");
 }
 
 #[test]
