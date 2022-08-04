@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{collections::HashSet, path::PathBuf, sync::Arc};
 
 use toc_analysis::db::HirAnalysis;
 use toc_ast_db::{
@@ -40,7 +40,16 @@ fn run(source: &str) {
         Ok(v) => v,
         Err(_) => return, // Don't care about invalid fixture files
     };
+    let valid_files = fixture
+        .files
+        .iter()
+        .map(|(id, _)| db.vfs.lookup_path(*id).to_owned())
+        .collect::<HashSet<_>>();
+    let file_loader = ValidFileLoader(valid_files);
+
+    // Error out any escaped files so that we don't get false-positive crashes
     db.insert_fixture(fixture);
+    db.invalidate_source_graph(&file_loader);
 
     let root_file = db.vfs.intern_path("src/main.t".into());
     let mut source_graph = SourceGraph::default();
@@ -70,3 +79,20 @@ struct FuzzDb {
 impl salsa::Database for FuzzDb {}
 
 toc_vfs::impl_has_vfs!(FuzzDb, vfs);
+
+#[derive(Default)]
+struct ValidFileLoader(HashSet<PathBuf>);
+
+impl toc_vfs::FileLoader for ValidFileLoader {
+    fn load_file(&self, path: &std::path::Path) -> toc_vfs::LoadResult {
+        if self.0.contains(path) {
+            Ok(toc_vfs::LoadStatus::Unchanged)
+        } else {
+            Err(toc_vfs::LoadError::new(path, toc_vfs::ErrorKind::NotFound))
+        }
+    }
+
+    fn normalize_path(&self, _path: &std::path::Path) -> Option<PathBuf> {
+        None
+    }
+}
