@@ -195,6 +195,8 @@ where
     // Extra bits
     // FIXME: Change set display into `{Alias}` (`set of int`)
     // FIXME: Move `'s into here so that we can format like this: "`{Alias}` (alias of {type})"
+    // FIXME: Consider how to deal with printing const errors
+    // -> Consider not printing the mismatched error at all?
     match ty.kind() {
         TypeKind::StringN(seq) | TypeKind::CharN(seq) => {
             out.write_char('(')?;
@@ -204,12 +206,7 @@ where
                 Err(NotFixedLen::ConstError(err)) if err.is_not_compile_time() => {
                     out.write_str("{dynamic}")?
                 }
-                Err(NotFixedLen::ConstError(err)) if err.is_missing() => {
-                    out.write_str("{unknown}")?
-                }
-                Err(NotFixedLen::ConstError(err)) => {
-                    unreachable!("should not show errors! {err:?}")
-                }
+                Err(NotFixedLen::ConstError(_)) => out.write_str("{unknown}")?,
             }
             out.write_char(')')?;
         }
@@ -232,10 +229,7 @@ where
             match db.evaluate_const(start.clone(), eval_params) {
                 Ok(v) => write!(out, "{v}", v = v.display(db))?,
                 Err(err) if err.is_not_compile_time() => out.write_str("{dynamic}")?,
-                Err(err) if err.is_missing() => out.write_str("{unknown}")?,
-                Err(err) => {
-                    unreachable!("should not show errors! ({err:?})")
-                }
+                Err(_) => out.write_str("{unknown}")?,
             };
 
             write!(out, " .. ")?;
@@ -246,10 +240,7 @@ where
                 EndBound::Expr(end, _) => match db.evaluate_const(end.clone(), eval_params) {
                     Ok(v) => write!(out, "{v}", v = v.display(db))?,
                     Err(err) if err.is_not_compile_time() => out.write_str("{dynamic}")?,
-                    Err(err) if err.is_missing() => out.write_str("{unknown}")?,
-                    Err(err) => {
-                        unreachable!("should not show errors! ({err:?})")
-                    }
+                    Err(_) => out.write_str("{unknown}")?,
                 },
                 EndBound::Unsized(_) | EndBound::Any => write!(out, "*")?,
             }
