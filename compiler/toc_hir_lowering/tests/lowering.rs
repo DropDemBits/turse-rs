@@ -1109,6 +1109,9 @@ fn lower_formals_intersperse_missing() {
     assert_lower("procedure args(a, , , , : int) end args");
     // 5 args, with 3 interspersed
     assert_lower("procedure args(a, , , , b, : int) end args");
+    // No names
+    // FIXME: Add `:` to recovery list so that `: int` does the same thing
+    assert_lower("procedure args(var : int) end args");
 
     // Only commas (doesn't work right now due to poor recovery)
     // FIXME: Uncomment when name list recovery gets better

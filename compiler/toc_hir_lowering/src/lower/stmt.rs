@@ -1464,7 +1464,7 @@ impl super::BodyLowering<'_, '_> {
         is_pervasive: bool,
         fill_with: symbol::LocalDefId,
     ) -> Vec<symbol::LocalDefId> {
-        let names = name_list.map_or_else(
+        let mut names = name_list.map_or_else(
             || vec![fill_with],
             |name_list| {
                 name_list
@@ -1483,7 +1483,10 @@ impl super::BodyLowering<'_, '_> {
         );
 
         // Invariant: Names list must contain at least one name
-        debug_assert!(!names.is_empty());
+        if names.is_empty() {
+            names.push(fill_with);
+        }
+
         names
     }
 
