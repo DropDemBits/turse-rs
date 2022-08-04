@@ -406,27 +406,36 @@ impl<'ctx> FileLowering<'ctx> {
                         .finish();
                 }
                 (_, DeclareKind::ItemImport(_)) => {
-                    // Should be only from declaring over pervasive, since we've crossed an import boundary
+                    // Import is declaring over something that's already visible.
                     //
-                    // Even though soft import boundaries allow implicitly imports all defs, subprogram scopes
-                    // (the only user of soft import boundaries) also allow def shadowing, so we don't have to
-                    // worry about that.
-                    assert!(
-                        is_pervasive,
-                        "not pervasive, but surrounding scope doesn't allow shadowing defs"
-                    );
+                    // This isn't limited to pervasive defs, and can be because defs were introduced
+                    // before the import (e.g. module's name, param decls)
+                    let is_old_pervasive = self.scopes.is_pervasive(old_def);
 
-                    self.messages
-                        .error_detailed(
-                            format!("`{name}` is already imported in this scope"),
-                            new_span,
-                        )
-                        .with_note(format!("`{name}` declared pervasive here"), old_span)
-                        .with_error(format!("`{name}` re-imported here"), new_span)
-                        .with_info(format!(
-                            "`{name}` was declared pervasively, so it's already imported"
-                        ))
-                        .finish();
+                    if is_old_pervasive {
+                        // Visible because old def was pervasive
+                        self.messages
+                            .error_detailed(
+                                format!("`{name}` is already imported in this scope"),
+                                new_span,
+                            )
+                            .with_note(format!("`{name}` declared pervasive here"), old_span)
+                            .with_error(format!("`{name}` re-imported here"), new_span)
+                            .with_info(format!(
+                                "`{name}` was declared pervasively, so it's already imported"
+                            ))
+                            .finish();
+                    } else {
+                        // Declared for another reason
+                        self.messages
+                            .error_detailed(
+                                format!("`{name}` is already declared in this scope"),
+                                new_span,
+                            )
+                            .with_note(format!("`{name}` previously declared here"), old_span)
+                            .with_error(format!("`{name}` imported here"), new_span)
+                            .finish();
+                    }
                 }
                 _ => {
                     // From a new declaration

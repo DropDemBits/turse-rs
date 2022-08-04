@@ -649,8 +649,6 @@ impl super::BodyLowering<'_, '_> {
                 _ => None,
             });
 
-            dbg!((&is_const, &is_var, &is_forward));
-
             // Mutabilty can only be one or the other, or not specified
             let import_mut = match (is_const, is_var) {
                 (None, None) => item::ImportMutability::SameAsItem,

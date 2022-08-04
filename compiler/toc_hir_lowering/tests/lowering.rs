@@ -1623,6 +1623,23 @@ fn lower_import_stmt() {
         import a, a
     end _",
     );
+
+    // Importing over something already visible
+    assert_lower(
+        "
+    module _
+        import _
+    end _
+    ",
+    );
+
+    assert_lower(
+        "
+    module *_
+        import _
+    end _
+    ",
+    );
 }
 
 #[test]
