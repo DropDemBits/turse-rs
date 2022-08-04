@@ -2771,7 +2771,9 @@ fn recover_proc_type_constvar_attrs_missing_name() {
 
 #[test]
 fn recover_proc_type_no_attrs_missing_name() {
-    check("type _ : procedure( : int)", expect![[r#"
+    check(
+        "type _ : procedure( : int)",
+        expect![[r#"
         Source@0..26
           StmtList@0..26
             TypeDecl@0..26
@@ -2795,7 +2797,8 @@ fn recover_proc_type_no_attrs_missing_name() {
                       KwInt@22..25 "int"
                   RightParen@25..26 ")"
         error in file FileId(1) at 20..21: unexpected token
-        | error in file FileId(1) for 20..21: expected `)`, `function`, `procedure`, `var`, `register` or identifier, but found `:`"#]])
+        | error in file FileId(1) for 20..21: expected `)`, `function`, `procedure`, `var`, `register` or identifier, but found `:`"#]],
+    )
 }
 
 #[test]

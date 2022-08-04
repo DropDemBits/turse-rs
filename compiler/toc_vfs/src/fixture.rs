@@ -185,7 +185,7 @@ impl FixtureFiles {
 
 #[derive(Clone)]
 pub enum ParseError {
-    MultifileLeadingText
+    MultifileLeadingText,
 }
 
 impl fmt::Debug for ParseError {
@@ -291,7 +291,8 @@ mod test {
     fn multifile_removed_as_path() {
         const FILE_SOURCES: &[&str] = &["not actually empty"];
         let mut db = VfsTestDB::default();
-        let srcs = generate_vfs(&mut db, &format!("%%- removed/ya.t\n{0}", FILE_SOURCES[0])).unwrap();
+        let srcs =
+            generate_vfs(&mut db, &format!("%%- removed/ya.t\n{0}", FILE_SOURCES[0])).unwrap();
 
         let file = db.vfs.resolve_path(None, "removed/ya.t").into_file_id();
         let res = srcs.file_source(file);
@@ -305,7 +306,8 @@ mod test {
         let srcs = generate_vfs(
             &mut db,
             "%%- empty/file0.t\n%%- empty/file1.t\n%%- empty/file2.t",
-        ).unwrap();
+        )
+        .unwrap();
 
         let file = db.vfs.resolve_path(None, "empty/file0.t").into_file_id();
         assert_eq!(srcs.file_source(file).0.as_str(), "");

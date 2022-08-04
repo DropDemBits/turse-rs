@@ -417,8 +417,7 @@ checksum = "d43db9f547ba2787bdeac81ef97ccc80784f385b3b39b4d50344270629a2bee3"
 [[package]]
 name = "lazy_static"
 version = "1.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
+source = "git+https://github.com/rust-fuzz/resettable-lazy-static.rs#c5eb91f2bde4c2f70092d1574f7145cb33ff0922"
 
 [[package]]
 name = "lexical"
