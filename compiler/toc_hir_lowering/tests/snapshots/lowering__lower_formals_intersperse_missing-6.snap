@@ -1,0 +1,16 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+expression: "procedure args( : int) end args"
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(1)
+    Module@(FileId(1), 0..31): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..31): []
+        StmtItem@(FileId(1), 0..31): ItemId(0)
+          Subprogram@(FileId(1), 0..31): "args"@(FileId(1), 10..14) ["<unnamed>"@(dummy)]
+            Primitive@(FileId(1), 18..21): Int
+            Void@(FileId(1), 0..22)
+            StmtBody@(FileId(1), 23..23): ["<unnamed>"@(dummy)]
+error in file FileId(1) at 16..17: unexpected token
+| error in file FileId(1) for 16..17: expected `)`, `function`, `procedure`, `var`, `register` or identifier, but found `:`
+

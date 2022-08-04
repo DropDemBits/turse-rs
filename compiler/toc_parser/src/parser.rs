@@ -103,6 +103,7 @@ pub(crate) struct Parser<'t, 'src> {
     source: Source<'t, 'src>,
     events: Vec<Event>,
     msg_sink: MessageSink,
+    // FIXME: Dedup kinds using `IndexSet`
     expected_kinds: Vec<TokenKind>,
     extra_recovery: Vec<TokenKind>,
 }

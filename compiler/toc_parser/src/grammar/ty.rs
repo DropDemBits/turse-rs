@@ -341,7 +341,12 @@ pub(super) fn subprog_type(p: &mut Parser) -> Option<CompletedMarker> {
 
 // expose because it's used by param_decl
 pub(super) fn constvar_param(p: &mut Parser) -> Option<CompletedMarker> {
-    debug_assert!(p.at(TokenKind::Var) || p.at(TokenKind::Register) || p.at(TokenKind::Identifier));
+    debug_assert!(
+        p.at_hidden(TokenKind::Var)
+            || p.at_hidden(TokenKind::Register)
+            || p.at_hidden(TokenKind::Identifier)
+            || p.at_hidden(TokenKind::Colon)
+    );
 
     let m = p.start();
     attr_var(p);
