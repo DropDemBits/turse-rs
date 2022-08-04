@@ -1,0 +1,10 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+expression: "function sha wa : int wa end sha"
+---
+"sha"@(FileId(1), 9..12) [Declared]: function -> int
+"wa"@(FileId(1), 13..15) [LimitedDeclared(PostCondition)]: int
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 22..24: cannot use `wa` as a statement
+| error in file FileId(1) for 22..24: `wa` is not a statement

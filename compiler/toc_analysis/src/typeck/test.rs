@@ -2238,6 +2238,8 @@ test_named_group! { typeck_subprog_decl,
     [
         sized_return => "function sha : int end sha",
         unsized_return_err => "function sha : char(*) end sha",
+        named_res_use => "function sha() wa : int wa end sha",
+        bare_named_res_use => "function sha wa : int wa end sha",
 
         wrong_type_dev_spec => "proc a : 1.0 end a",
         wrong_type_stack_size => "process a : 1.0 end a",
