@@ -8,5 +8,6 @@ default-members = ["xtask/", "compiler/*", "lsp-server/"]
 [profile.release]
 debug = true
 
-[patch.crates-io]
-lazy_static = { git = "https://github.com/rust-fuzz/resettable-lazy-static.rs" }
+# Uncomment when doing a fuzz campaign
+#[patch.crates-io]
+#lazy_static = { git = "https://github.com/rust-fuzz/resettable-lazy-static.rs" }
