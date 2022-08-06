@@ -1,10 +1,8 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 41
 expression: "for : \"no\" .. \"yes\" end for"
-
 ---
-"<root>"@(dummy) [Declared]: <error>
+"<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 6..19: mismatched types
 | note in file FileId(1) for 14..19: this is of type `string`

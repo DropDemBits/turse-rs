@@ -1,12 +1,10 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 41
 expression: "begin\nconst me : int := 0\nbind var us to me\nend"
-
 ---
-"me"@(FileId(1), 12..14) [Declared]: int
-"us"@(FileId(1), 35..37) [Declared]: int
-"<root>"@(dummy) [Declared]: <error>
+"me"@(FileId(1), 12..14) [ConstVar(Const, No)]: int
+"us"@(FileId(1), 35..37) [Binding(Var, No)]: int
+"<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 31..43: cannot bind `us` to `me`
 | error in file FileId(1) for 41..43: `me` is a reference to a constant, not a variable

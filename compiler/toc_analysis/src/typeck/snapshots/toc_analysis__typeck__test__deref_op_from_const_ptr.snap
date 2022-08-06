@@ -1,9 +1,7 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 42
 expression: "const ptr : ^int\n^ptr := 2\n"
-
 ---
-"ptr"@(FileId(1), 6..9) [Declared]: pointer to int
-"<root>"@(dummy) [Declared]: <error>
+"ptr"@(FileId(1), 6..9) [ConstVar(Const, No)]: pointer to int
+"<root>"@(dummy) [Module(No)]: <error>
 

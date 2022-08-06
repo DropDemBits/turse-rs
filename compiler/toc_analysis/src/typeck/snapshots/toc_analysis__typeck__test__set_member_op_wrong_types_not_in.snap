@@ -1,14 +1,12 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 42
 expression: "\n    type ts : set of boolean\n    var s : ts\n\n    % should all produce booleans\n    var _v_res : boolean\n\n    % not a set\n    _v_res := true ~in true\n    % incompatible element types\n    _v_res := 1 ~in s\n    "
-
 ---
-"ts"@(FileId(1), 15..29) [Declared]: <error>
-"ts"@(FileId(1), 10..12) [Resolved(Type)]: set[DefId(LibraryId(0), LocalDefId(0))] of boolean
-"s"@(FileId(1), 38..39) [Declared]: set[DefId(LibraryId(0), LocalDefId(0))] of boolean
-"_v_res"@(FileId(1), 88..94) [Declared]: boolean
-"<root>"@(dummy) [Declared]: <error>
+"ts"@(FileId(1), 15..29) [Set]: <error>
+"ts"@(FileId(1), 10..12) [Type]: set[DefId(LibraryId(0), LocalDefId(0))] of boolean
+"s"@(FileId(1), 38..39) [ConstVar(Var, No)]: set[DefId(LibraryId(0), LocalDefId(0))] of boolean
+"_v_res"@(FileId(1), 88..94) [ConstVar(Var, No)]: boolean
+"<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 141..144: mismatched types for `not in`
 | note in file FileId(1) for 145..149: this is of type `boolean`

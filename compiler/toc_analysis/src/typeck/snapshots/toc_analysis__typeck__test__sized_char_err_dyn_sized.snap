@@ -2,9 +2,9 @@
 source: compiler/toc_analysis/src/typeck/test.rs
 expression: "var N : int var _ : char(N) := 1"
 ---
-"N"@(FileId(1), 4..5) [Declared]: int
-"_"@(FileId(1), 16..17) [Declared]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
-"<root>"@(dummy) [Declared]: <error>
+"N"@(FileId(1), 4..5) [ConstVar(Var, No)]: int
+"_"@(FileId(1), 16..17) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
+"<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 20..27: unsupported type
 | error in file FileId(1) for 20..27: dynamically sized `char(N)` isn't supported yet

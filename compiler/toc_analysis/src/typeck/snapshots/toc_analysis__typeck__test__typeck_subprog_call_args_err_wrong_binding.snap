@@ -2,12 +2,12 @@
 source: compiler/toc_analysis/src/typeck/test.rs
 expression: "procedure boop(a, b : int, var c : int) end boop\nboop(1, 2, 3)\n"
 ---
-"boop"@(FileId(1), 10..14) [Declared]: procedure ( pass(value) int, pass(value) int, pass(var ref) int, ) -> void
+"boop"@(FileId(1), 10..14) [Subprogram(Procedure)]: procedure ( pass(value) int, pass(value) int, pass(var ref) int, ) -> void
 "<unnamed>"@(dummy) [Undeclared]: <error>
-"a"@(FileId(1), 15..16) [Declared]: int
-"b"@(FileId(1), 18..19) [Declared]: int
-"c"@(FileId(1), 31..32) [Declared]: int
-"<root>"@(dummy) [Declared]: <error>
+"a"@(FileId(1), 15..16) [Param(Value, No)]: int
+"b"@(FileId(1), 18..19) [Param(Value, No)]: int
+"c"@(FileId(1), 31..32) [Param(Reference(Var), No)]: int
+"<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 60..61: cannot pass expression to this parameter
 | error in file FileId(1) for 60..61: not a reference to a variable

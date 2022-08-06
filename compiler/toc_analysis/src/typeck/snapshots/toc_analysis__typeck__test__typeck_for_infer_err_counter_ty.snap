@@ -1,14 +1,12 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 42
 expression: "% Both should fail\nfor c : 1.0 .. () var k : int := c end for\nfor c : () .. 1.0 var k : int := c end for\n"
-
 ---
-"c"@(FileId(1), 23..24) [Declared]: real
-"k"@(FileId(1), 41..42) [Declared]: int
-"c"@(FileId(1), 66..67) [Declared]: real
-"k"@(FileId(1), 84..85) [Declared]: int
-"<root>"@(dummy) [Declared]: <error>
+"c"@(FileId(1), 23..24) [ConstVar(Const, No)]: real
+"k"@(FileId(1), 41..42) [ConstVar(Var, No)]: int
+"c"@(FileId(1), 66..67) [ConstVar(Const, No)]: real
+"k"@(FileId(1), 84..85) [ConstVar(Var, No)]: int
+"<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 52..53: mismatched types
 | note in file FileId(1) for 52..53: this is of type `real`

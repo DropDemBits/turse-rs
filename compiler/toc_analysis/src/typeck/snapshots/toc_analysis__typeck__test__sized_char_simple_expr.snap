@@ -1,9 +1,7 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 41
 expression: "var _ : char(1 - 1 * 1 + 2)"
-
 ---
-"_"@(FileId(1), 4..5) [Declared]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
-"<root>"@(dummy) [Declared]: <error>
+"_"@(FileId(1), 4..5) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
+"<root>"@(dummy) [Module(No)]: <error>
 

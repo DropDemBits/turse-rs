@@ -1,8 +1,6 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 41
 expression: return
-
 ---
-"<root>"@(dummy) [Declared]: <error>
+"<root>"@(dummy) [Module(No)]: <error>
 

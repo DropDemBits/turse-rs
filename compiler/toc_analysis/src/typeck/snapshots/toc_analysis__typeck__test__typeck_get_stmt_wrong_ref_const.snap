@@ -1,11 +1,9 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 41
 expression: "const i : int := 1\nget i\n"
-
 ---
-"i"@(FileId(1), 6..7) [Declared]: int
-"<root>"@(dummy) [Declared]: <error>
+"i"@(FileId(1), 6..7) [ConstVar(Const, No)]: int
+"<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 23..24: cannot assign into `i`
 | error in file FileId(1) for 23..24: `i` is a reference to a constant, not a variable

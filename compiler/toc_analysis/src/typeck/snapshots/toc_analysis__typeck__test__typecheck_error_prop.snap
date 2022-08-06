@@ -1,14 +1,12 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 41
 expression: "var a : int\nvar b : string\nvar c := a + b\nvar j := c + a\n"
-
 ---
-"a"@(FileId(1), 4..5) [Declared]: int
-"b"@(FileId(1), 16..17) [Declared]: string
-"c"@(FileId(1), 31..32) [Declared]: <error>
-"j"@(FileId(1), 46..47) [Declared]: <error>
-"<root>"@(dummy) [Declared]: <error>
+"a"@(FileId(1), 4..5) [ConstVar(Var, No)]: int
+"b"@(FileId(1), 16..17) [ConstVar(Var, No)]: string
+"c"@(FileId(1), 31..32) [ConstVar(Var, No)]: <error>
+"j"@(FileId(1), 46..47) [ConstVar(Var, No)]: <error>
+"<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 38..39: mismatched types for string concatenation
 | note in file FileId(1) for 40..41: this is of type `string`

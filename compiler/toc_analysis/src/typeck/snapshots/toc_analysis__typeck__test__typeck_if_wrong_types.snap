@@ -1,9 +1,8 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
 expression: "if 1 then\nelsif 1.0 then\nelsif 'yee' then\nelsif \"wahhh\" then\nend if\n"
-
 ---
-"<root>"@(dummy) [Declared]: <error>
+"<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 3..4: mismatched types
 | note in file FileId(1) for 3..4: this is of type `{integer}`

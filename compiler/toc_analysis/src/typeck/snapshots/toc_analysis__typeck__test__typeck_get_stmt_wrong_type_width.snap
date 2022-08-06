@@ -1,12 +1,10 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 41
 expression: "var w : real\nvar s : string\nget s : w\n"
-
 ---
-"w"@(FileId(1), 4..5) [Declared]: real
-"s"@(FileId(1), 17..18) [Declared]: string
-"<root>"@(dummy) [Declared]: <error>
+"w"@(FileId(1), 4..5) [ConstVar(Var, No)]: real
+"s"@(FileId(1), 17..18) [ConstVar(Var, No)]: string
+"<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 36..37: mismatched types
 | note in file FileId(1) for 36..37: this is of type `real`

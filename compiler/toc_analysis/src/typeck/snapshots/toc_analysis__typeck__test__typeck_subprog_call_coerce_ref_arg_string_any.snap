@@ -2,9 +2,9 @@
 source: compiler/toc_analysis/src/typeck/test.rs
 expression: "procedure p(var a : string(*)) end p\nvar c : string\np(c)\n"
 ---
-"p"@(FileId(1), 10..11) [Declared]: procedure ( pass(var ref) string_n Any, ) -> void
+"p"@(FileId(1), 10..11) [Subprogram(Procedure)]: procedure ( pass(var ref) string_n Any, ) -> void
 "<unnamed>"@(dummy) [Undeclared]: <error>
-"a"@(FileId(1), 16..17) [Declared]: string_n Any
-"c"@(FileId(1), 41..42) [Declared]: string
-"<root>"@(dummy) [Declared]: <error>
+"a"@(FileId(1), 16..17) [Param(Reference(Var), No)]: string_n Any
+"c"@(FileId(1), 41..42) [ConstVar(Var, No)]: string
+"<root>"@(dummy) [Module(No)]: <error>
 

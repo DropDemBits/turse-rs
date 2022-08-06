@@ -2,11 +2,11 @@
 source: compiler/toc_analysis/src/typeck/test.rs
 expression: "var tree : string\nprocedure boop(a, b : cheat int, var c : cheat int) end boop\nboop(\"tree\", tree, tree)\n"
 ---
-"tree"@(FileId(1), 4..8) [Declared]: string
-"boop"@(FileId(1), 28..32) [Declared]: procedure ( pass(value) cheat int, pass(value) cheat int, pass(var ref) cheat int, ) -> void
+"tree"@(FileId(1), 4..8) [ConstVar(Var, No)]: string
+"boop"@(FileId(1), 28..32) [Subprogram(Procedure)]: procedure ( pass(value) cheat int, pass(value) cheat int, pass(var ref) cheat int, ) -> void
 "<unnamed>"@(dummy) [Undeclared]: <error>
-"a"@(FileId(1), 33..34) [Declared]: int
-"b"@(FileId(1), 36..37) [Declared]: int
-"c"@(FileId(1), 55..56) [Declared]: int
-"<root>"@(dummy) [Declared]: <error>
+"a"@(FileId(1), 33..34) [Param(Value, No)]: int
+"b"@(FileId(1), 36..37) [Param(Value, No)]: int
+"c"@(FileId(1), 55..56) [Param(Reference(Var), No)]: int
+"<root>"@(dummy) [Module(No)]: <error>
 

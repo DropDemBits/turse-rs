@@ -1,17 +1,15 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 41
 expression: "var r : real\nvar i : int\nvar n : nat\n\nvar _e00 : boolean := 1\nvar _e01 : boolean := i\nvar _e02 : boolean := n\nvar _e03 : boolean := r\n"
-
 ---
-"r"@(FileId(1), 4..5) [Declared]: real
-"i"@(FileId(1), 17..18) [Declared]: int
-"n"@(FileId(1), 29..30) [Declared]: nat
-"_e00"@(FileId(1), 42..46) [Declared]: boolean
-"_e01"@(FileId(1), 66..70) [Declared]: boolean
-"_e02"@(FileId(1), 90..94) [Declared]: boolean
-"_e03"@(FileId(1), 114..118) [Declared]: boolean
-"<root>"@(dummy) [Declared]: <error>
+"r"@(FileId(1), 4..5) [ConstVar(Var, No)]: real
+"i"@(FileId(1), 17..18) [ConstVar(Var, No)]: int
+"n"@(FileId(1), 29..30) [ConstVar(Var, No)]: nat
+"_e00"@(FileId(1), 42..46) [ConstVar(Var, No)]: boolean
+"_e01"@(FileId(1), 66..70) [ConstVar(Var, No)]: boolean
+"_e02"@(FileId(1), 90..94) [ConstVar(Var, No)]: boolean
+"_e03"@(FileId(1), 114..118) [ConstVar(Var, No)]: boolean
+"<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 60..61: mismatched types
 | note in file FileId(1) for 60..61: this is of type `{integer}`

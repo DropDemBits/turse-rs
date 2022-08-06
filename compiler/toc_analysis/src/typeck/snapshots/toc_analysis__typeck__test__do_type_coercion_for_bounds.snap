@@ -1,11 +1,9 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 41
 expression: "var i1 : int1\nvar i : int\nvar _res : boolean\nfor : i .. i1 end for\n"
-
 ---
-"i1"@(FileId(1), 4..6) [Declared]: int1
-"i"@(FileId(1), 18..19) [Declared]: int
-"_res"@(FileId(1), 30..34) [Declared]: boolean
-"<root>"@(dummy) [Declared]: <error>
+"i1"@(FileId(1), 4..6) [ConstVar(Var, No)]: int1
+"i"@(FileId(1), 18..19) [ConstVar(Var, No)]: int
+"_res"@(FileId(1), 30..34) [ConstVar(Var, No)]: boolean
+"<root>"@(dummy) [Module(No)]: <error>
 

@@ -3,14 +3,14 @@ source: compiler/toc_analysis/src/typeck/test.rs
 expression: "type _ : procedure (\n    ki : int,\n    var v : int,\n    register r : int,\n    var register vr : int,\n    ci : cheat int,\n    var vci : cheat int,\n    register rci : cheat int,\n    var register vrci : cheat int\n)"
 ---
 "<unnamed>"@(dummy) [Undeclared]: <error>
-"ki"@(FileId(1), 25..27) [Declared]: <error>
-"v"@(FileId(1), 43..44) [Declared]: <error>
-"r"@(FileId(1), 65..66) [Declared]: <error>
-"vr"@(FileId(1), 91..93) [Declared]: <error>
-"ci"@(FileId(1), 105..107) [Declared]: <error>
-"vci"@(FileId(1), 129..132) [Declared]: <error>
-"rci"@(FileId(1), 159..162) [Declared]: <error>
-"vrci"@(FileId(1), 193..197) [Declared]: <error>
-"_"@(FileId(1), 5..6) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(9))] of procedure ( pass(value) int, pass(var ref) int, pass(value) register int, pass(var ref) register int, pass(value) cheat int, pass(var ref) cheat int, pass(value) register cheat int, pass(var ref) register cheat int, ) -> void
-"<root>"@(dummy) [Declared]: <error>
+"ki"@(FileId(1), 25..27) [Param(Value, No)]: <error>
+"v"@(FileId(1), 43..44) [Param(Reference(Var), No)]: <error>
+"r"@(FileId(1), 65..66) [Param(Value, Yes)]: <error>
+"vr"@(FileId(1), 91..93) [Param(Reference(Var), Yes)]: <error>
+"ci"@(FileId(1), 105..107) [Param(Value, No)]: <error>
+"vci"@(FileId(1), 129..132) [Param(Reference(Var), No)]: <error>
+"rci"@(FileId(1), 159..162) [Param(Value, Yes)]: <error>
+"vrci"@(FileId(1), 193..197) [Param(Reference(Var), Yes)]: <error>
+"_"@(FileId(1), 5..6) [Type]: alias[DefId(LibraryId(0), LocalDefId(9))] of procedure ( pass(value) int, pass(var ref) int, pass(value) register int, pass(var ref) register int, pass(value) cheat int, pass(var ref) cheat int, pass(value) register cheat int, pass(var ref) register cheat int, ) -> void
+"<root>"@(dummy) [Module(No)]: <error>
 

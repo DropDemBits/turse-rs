@@ -1,9 +1,7 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 41
 expression: "var a : int put a : a : a : a"
-
 ---
-"a"@(FileId(1), 4..5) [Declared]: int
-"<root>"@(dummy) [Declared]: <error>
+"a"@(FileId(1), 4..5) [ConstVar(Var, No)]: int
+"<root>"@(dummy) [Module(No)]: <error>
 

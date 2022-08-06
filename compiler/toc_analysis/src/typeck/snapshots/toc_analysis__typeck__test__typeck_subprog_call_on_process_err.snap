@@ -1,12 +1,10 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 41
 expression: "process never end never\nnever\nnever()\nvar _ := never()\n"
-
 ---
-"never"@(FileId(1), 8..13) [Declared]: process -> void
-"_"@(FileId(1), 42..43) [Declared]: <error>
-"<root>"@(dummy) [Declared]: <error>
+"never"@(FileId(1), 8..13) [Subprogram(Process)]: process -> void
+"_"@(FileId(1), 42..43) [ConstVar(Var, No)]: <error>
+"<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 24..29: cannot use `never` as a statement
 | error in file FileId(1) for 24..29: `never` is not a statement

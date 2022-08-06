@@ -3,9 +3,9 @@ source: compiler/toc_analysis/src/typeck/test.rs
 expression: "type _ : proc p(_:1..0)"
 ---
 "<unnamed>"@(dummy) [Undeclared]: <error>
-"_"@(FileId(1), 16..17) [Declared]: <error>
-"_"@(FileId(1), 5..6) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(2))] of procedure ( pass(value) range of `int` (Unevaluated(LibraryId(0), BodyId(0)) .. Expr(Unevaluated(LibraryId(0), BodyId(1)), No)), ) -> void
-"<root>"@(dummy) [Declared]: <error>
+"_"@(FileId(1), 16..17) [Param(Value, No)]: <error>
+"_"@(FileId(1), 5..6) [Type]: alias[DefId(LibraryId(0), LocalDefId(2))] of procedure ( pass(value) range of `int` (Unevaluated(LibraryId(0), BodyId(0)) .. Expr(Unevaluated(LibraryId(0), BodyId(1)), No)), ) -> void
+"<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 18..22: element range is too small
 | note in file FileId(1) for 18..22: computed range size is 0

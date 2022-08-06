@@ -1,9 +1,7 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 41
 expression: proc q return end q
-
 ---
-"q"@(FileId(1), 5..6) [Declared]: procedure -> void
-"<root>"@(dummy) [Declared]: <error>
+"q"@(FileId(1), 5..6) [Subprogram(Procedure)]: procedure -> void
+"<root>"@(dummy) [Module(No)]: <error>
 

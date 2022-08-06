@@ -1,11 +1,9 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 42
 expression: "type c : char\ncase 'k' of label c: end case\n"
-
 ---
-"c"@(FileId(1), 5..6) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(0))] of char
-"<root>"@(dummy) [Declared]: <error>
+"c"@(FileId(1), 5..6) [Type]: alias[DefId(LibraryId(0), LocalDefId(0))] of char
+"<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 32..33: cannot use `c` as an expression
 | error in file FileId(1) for 32..33: `c` is a reference to a type, not a variable

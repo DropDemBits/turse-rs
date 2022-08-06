@@ -1,11 +1,9 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 41
 expression: "var e : real\nput 1 : 0 : 0 : e\n"
-
 ---
-"e"@(FileId(1), 4..5) [Declared]: real
-"<root>"@(dummy) [Declared]: <error>
+"e"@(FileId(1), 4..5) [ConstVar(Var, No)]: real
+"<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 29..30: mismatched types
 | note in file FileId(1) for 29..30: this is of type `real`

@@ -2,18 +2,18 @@
 source: compiler/toc_analysis/src/typeck/test.rs
 expression: "type i : int\ntype am_in : real\ntype misery : char(*)\ntype eat_em_up : string\ntype f : function(c : i, p : am_in, r : misery) : eat_em_up\n\nvar y : f\nvar _ : int := y\n"
 ---
-"i"@(FileId(1), 5..6) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(0))] of int
-"am_in"@(FileId(1), 18..23) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(1))] of real
-"misery"@(FileId(1), 36..42) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(2))] of char_n Any
-"eat_em_up"@(FileId(1), 58..67) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(3))] of string
+"i"@(FileId(1), 5..6) [Type]: alias[DefId(LibraryId(0), LocalDefId(0))] of int
+"am_in"@(FileId(1), 18..23) [Type]: alias[DefId(LibraryId(0), LocalDefId(1))] of real
+"misery"@(FileId(1), 36..42) [Type]: alias[DefId(LibraryId(0), LocalDefId(2))] of char_n Any
+"eat_em_up"@(FileId(1), 58..67) [Type]: alias[DefId(LibraryId(0), LocalDefId(3))] of string
 "<unnamed>"@(dummy) [Undeclared]: <error>
-"c"@(FileId(1), 95..96) [Declared]: <error>
-"p"@(FileId(1), 102..103) [Declared]: <error>
-"r"@(FileId(1), 113..114) [Declared]: <error>
-"f"@(FileId(1), 82..83) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(8))] of function ( pass(value) alias[DefId(LibraryId(0), LocalDefId(0))] of int, pass(value) alias[DefId(LibraryId(0), LocalDefId(1))] of real, pass(value) alias[DefId(LibraryId(0), LocalDefId(2))] of char_n Any, ) -> alias[DefId(LibraryId(0), LocalDefId(3))] of string
-"y"@(FileId(1), 142..143) [Declared]: alias[DefId(LibraryId(0), LocalDefId(8))] of function ( pass(value) alias[DefId(LibraryId(0), LocalDefId(0))] of int, pass(value) alias[DefId(LibraryId(0), LocalDefId(1))] of real, pass(value) alias[DefId(LibraryId(0), LocalDefId(2))] of char_n Any, ) -> alias[DefId(LibraryId(0), LocalDefId(3))] of string
-"_"@(FileId(1), 152..153) [Declared]: int
-"<root>"@(dummy) [Declared]: <error>
+"c"@(FileId(1), 95..96) [Param(Value, No)]: <error>
+"p"@(FileId(1), 102..103) [Param(Value, No)]: <error>
+"r"@(FileId(1), 113..114) [Param(Value, No)]: <error>
+"f"@(FileId(1), 82..83) [Type]: alias[DefId(LibraryId(0), LocalDefId(8))] of function ( pass(value) alias[DefId(LibraryId(0), LocalDefId(0))] of int, pass(value) alias[DefId(LibraryId(0), LocalDefId(1))] of real, pass(value) alias[DefId(LibraryId(0), LocalDefId(2))] of char_n Any, ) -> alias[DefId(LibraryId(0), LocalDefId(3))] of string
+"y"@(FileId(1), 142..143) [ConstVar(Var, No)]: alias[DefId(LibraryId(0), LocalDefId(8))] of function ( pass(value) alias[DefId(LibraryId(0), LocalDefId(0))] of int, pass(value) alias[DefId(LibraryId(0), LocalDefId(1))] of real, pass(value) alias[DefId(LibraryId(0), LocalDefId(2))] of char_n Any, ) -> alias[DefId(LibraryId(0), LocalDefId(3))] of string
+"_"@(FileId(1), 152..153) [ConstVar(Var, No)]: int
+"<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 163..164: mismatched types
 | note in file FileId(1) for 163..164: this is of type `f (alias of function (int, real, char(*)) : string)`

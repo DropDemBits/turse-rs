@@ -2,11 +2,11 @@
 source: compiler/toc_analysis/src/typeck/test.rs
 expression: "function key() : int end key\nprocedure lime() end lime\n% can't be used like this, need paren\nkey lime\n"
 ---
-"key"@(FileId(1), 9..12) [Declared]: function ( ) -> int
+"key"@(FileId(1), 9..12) [Subprogram(Function)]: function ( ) -> int
 "<unnamed>"@(dummy) [Undeclared]: <error>
-"lime"@(FileId(1), 39..43) [Declared]: procedure ( ) -> void
+"lime"@(FileId(1), 39..43) [Subprogram(Procedure)]: procedure ( ) -> void
 "<unnamed>"@(dummy) [Undeclared]: <error>
-"<root>"@(dummy) [Declared]: <error>
+"<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 93..96: cannot use `key` as a statement
 | error in file FileId(1) for 93..96: `key` is callable, but requires adding `()` after here

@@ -1,11 +1,9 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 42
 expression: "var _ : 2 .. 0"
-
 ---
-"_"@(FileId(1), 4..5) [Declared]: range of `int` (Unevaluated(LibraryId(0), BodyId(0)) .. Expr(Unevaluated(LibraryId(0), BodyId(1)), No))
-"<root>"@(dummy) [Declared]: <error>
+"_"@(FileId(1), 4..5) [ConstVar(Var, No)]: range of `int` (Unevaluated(LibraryId(0), BodyId(0)) .. Expr(Unevaluated(LibraryId(0), BodyId(1)), No))
+"<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 8..14: element range is too small
 | note in file FileId(1) for 8..14: computed range size is -1

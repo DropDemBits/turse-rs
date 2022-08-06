@@ -2,9 +2,9 @@
 source: compiler/toc_analysis/src/typeck/test.rs
 expression: "procedure p(var a : cheat real) end p\nvar i : int\np(i)\n"
 ---
-"p"@(FileId(1), 10..11) [Declared]: procedure ( pass(var ref) cheat real, ) -> void
+"p"@(FileId(1), 10..11) [Subprogram(Procedure)]: procedure ( pass(var ref) cheat real, ) -> void
 "<unnamed>"@(dummy) [Undeclared]: <error>
-"a"@(FileId(1), 16..17) [Declared]: real
-"i"@(FileId(1), 42..43) [Declared]: int
-"<root>"@(dummy) [Declared]: <error>
+"a"@(FileId(1), 16..17) [Param(Reference(Var), No)]: real
+"i"@(FileId(1), 42..43) [ConstVar(Var, No)]: int
+"<root>"@(dummy) [Module(No)]: <error>
 

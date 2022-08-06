@@ -1,11 +1,9 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 42
 expression: "const a : array 1..* of int := init(1)\na(1) := 1"
-
 ---
-"a"@(FileId(1), 6..7) [Declared]: array ( range of `int` (Unevaluated(LibraryId(0), BodyId(0)) .. Unsized(1)), ) of int
-"<root>"@(dummy) [Declared]: <error>
+"a"@(FileId(1), 6..7) [ConstVar(Const, No)]: array ( range of `int` (Unevaluated(LibraryId(0), BodyId(0)) .. Unsized(1)), ) of int
+"<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 44..46: cannot assign into expression
 | error in file FileId(1) for 39..43: not a reference to a variable

@@ -1,10 +1,8 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 41
 expression: "\n    % Other scalars\n    var b : boolean\n\n    % should all produce boolean\n    var _v_res : boolean\n\n    _v_res := b not= b\n    "
-
 ---
-"b"@(FileId(1), 29..30) [Declared]: boolean
-"_v_res"@(FileId(1), 83..89) [Declared]: boolean
-"<root>"@(dummy) [Declared]: <error>
+"b"@(FileId(1), 29..30) [ConstVar(Var, No)]: boolean
+"_v_res"@(FileId(1), 83..89) [ConstVar(Var, No)]: boolean
+"<root>"@(dummy) [Module(No)]: <error>
 

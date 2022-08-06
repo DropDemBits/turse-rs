@@ -1,21 +1,19 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 42
 expression: "var i : int\nvar n : nat\nvar r : real\nvar c : char\nvar b: boolean\nvar cn : char(4)\nvar s : string\nvar sn : string(4)\ntype en: enum(a, b) var ef : en\n\nget i\nget n\nget r\nget c\nget b\nget cn\nget s\nget sn\nget ef\n"
-
 ---
-"i"@(FileId(1), 4..5) [Declared]: int
-"n"@(FileId(1), 16..17) [Declared]: nat
-"r"@(FileId(1), 28..29) [Declared]: real
-"c"@(FileId(1), 41..42) [Declared]: char
-"b"@(FileId(1), 54..55) [Declared]: boolean
-"cn"@(FileId(1), 69..71) [Declared]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
-"s"@(FileId(1), 86..87) [Declared]: string
-"sn"@(FileId(1), 101..103) [Declared]: string_n Fixed(Unevaluated(LibraryId(0), BodyId(1)))
-"a"@(FileId(1), 130..131) [Declared]: enum[DefId(LibraryId(0), LocalDefId(10))] ( "a"@(FileId(1), 130..131), "b"@(FileId(1), 133..134), )
-"b"@(FileId(1), 133..134) [Declared]: enum[DefId(LibraryId(0), LocalDefId(10))] ( "a"@(FileId(1), 130..131), "b"@(FileId(1), 133..134), )
-"en"@(FileId(1), 125..135) [Declared]: <error>
-"en"@(FileId(1), 121..123) [Resolved(Type)]: enum[DefId(LibraryId(0), LocalDefId(10))] ( "a"@(FileId(1), 130..131), "b"@(FileId(1), 133..134), )
-"ef"@(FileId(1), 140..142) [Declared]: enum[DefId(LibraryId(0), LocalDefId(10))] ( "a"@(FileId(1), 130..131), "b"@(FileId(1), 133..134), )
-"<root>"@(dummy) [Declared]: <error>
+"i"@(FileId(1), 4..5) [ConstVar(Var, No)]: int
+"n"@(FileId(1), 16..17) [ConstVar(Var, No)]: nat
+"r"@(FileId(1), 28..29) [ConstVar(Var, No)]: real
+"c"@(FileId(1), 41..42) [ConstVar(Var, No)]: char
+"b"@(FileId(1), 54..55) [ConstVar(Var, No)]: boolean
+"cn"@(FileId(1), 69..71) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
+"s"@(FileId(1), 86..87) [ConstVar(Var, No)]: string
+"sn"@(FileId(1), 101..103) [ConstVar(Var, No)]: string_n Fixed(Unevaluated(LibraryId(0), BodyId(1)))
+"a"@(FileId(1), 130..131) [EnumVariant]: enum[DefId(LibraryId(0), LocalDefId(10))] ( "a"@(FileId(1), 130..131), "b"@(FileId(1), 133..134), )
+"b"@(FileId(1), 133..134) [EnumVariant]: enum[DefId(LibraryId(0), LocalDefId(10))] ( "a"@(FileId(1), 130..131), "b"@(FileId(1), 133..134), )
+"en"@(FileId(1), 125..135) [Enum]: <error>
+"en"@(FileId(1), 121..123) [Type]: enum[DefId(LibraryId(0), LocalDefId(10))] ( "a"@(FileId(1), 130..131), "b"@(FileId(1), 133..134), )
+"ef"@(FileId(1), 140..142) [ConstVar(Var, No)]: enum[DefId(LibraryId(0), LocalDefId(10))] ( "a"@(FileId(1), 130..131), "b"@(FileId(1), 133..134), )
+"<root>"@(dummy) [Module(No)]: <error>
 

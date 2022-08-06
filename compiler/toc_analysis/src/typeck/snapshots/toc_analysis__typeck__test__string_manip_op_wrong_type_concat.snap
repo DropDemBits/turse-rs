@@ -2,28 +2,28 @@
 source: compiler/toc_analysis/src/typeck/test.rs
 expression: "\n    proc __ (var c_any : char(*), var s_any : string(*))\n    var c : char\n    var c_sz : char(6)\n    var s : string\n    var s_sz : string(6)\n    var i : int\n\n    var _e00 := c + i\n    var _e01 := c_any + i\n    var _e02 := c_sz + i\n    var _e03 := s + i\n    var _e04 := s_any + i\n    var _e05 := s_sz + i\n\n    var _e10 := i + c\n    var _e11 := i + c_any\n    var _e12 := i + c_sz\n    var _e13 := i + s\n    var _e14 := i + s_any\n    var _e15 := i + s_sz\n\n    % TODO: Uncomment to verify incompatible types\n    /*\n    var _e20 : char(13) := c_sz + c_sz\n    var _e21 : char(8) := c_sz + c\n    var _e22 : char(8) := c + c_sz\n    var _e23 : char(3) := c + c\n    var _e24 : char := c + c\n    */\n    end __\n    "
 ---
-"__"@(FileId(1), 10..12) [Declared]: procedure ( pass(var ref) char_n Any, pass(var ref) string_n Any, ) -> void
+"__"@(FileId(1), 10..12) [Subprogram(Procedure)]: procedure ( pass(var ref) char_n Any, pass(var ref) string_n Any, ) -> void
 "<unnamed>"@(dummy) [Undeclared]: <error>
-"c_any"@(FileId(1), 18..23) [Declared]: char_n Any
-"s_any"@(FileId(1), 39..44) [Declared]: string_n Any
-"c"@(FileId(1), 66..67) [Declared]: char
-"c_sz"@(FileId(1), 83..87) [Declared]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
-"s"@(FileId(1), 106..107) [Declared]: string
-"s_sz"@(FileId(1), 125..129) [Declared]: string_n Fixed(Unevaluated(LibraryId(0), BodyId(1)))
-"i"@(FileId(1), 150..151) [Declared]: int
-"_e00"@(FileId(1), 167..171) [Declared]: <error>
-"_e01"@(FileId(1), 189..193) [Declared]: <error>
-"_e02"@(FileId(1), 215..219) [Declared]: <error>
-"_e03"@(FileId(1), 240..244) [Declared]: <error>
-"_e04"@(FileId(1), 262..266) [Declared]: <error>
-"_e05"@(FileId(1), 288..292) [Declared]: <error>
-"_e10"@(FileId(1), 314..318) [Declared]: <error>
-"_e11"@(FileId(1), 336..340) [Declared]: <error>
-"_e12"@(FileId(1), 362..366) [Declared]: <error>
-"_e13"@(FileId(1), 387..391) [Declared]: <error>
-"_e14"@(FileId(1), 409..413) [Declared]: <error>
-"_e15"@(FileId(1), 435..439) [Declared]: <error>
-"<root>"@(dummy) [Declared]: <error>
+"c_any"@(FileId(1), 18..23) [Param(Reference(Var), No)]: char_n Any
+"s_any"@(FileId(1), 39..44) [Param(Reference(Var), No)]: string_n Any
+"c"@(FileId(1), 66..67) [ConstVar(Var, No)]: char
+"c_sz"@(FileId(1), 83..87) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
+"s"@(FileId(1), 106..107) [ConstVar(Var, No)]: string
+"s_sz"@(FileId(1), 125..129) [ConstVar(Var, No)]: string_n Fixed(Unevaluated(LibraryId(0), BodyId(1)))
+"i"@(FileId(1), 150..151) [ConstVar(Var, No)]: int
+"_e00"@(FileId(1), 167..171) [ConstVar(Var, No)]: <error>
+"_e01"@(FileId(1), 189..193) [ConstVar(Var, No)]: <error>
+"_e02"@(FileId(1), 215..219) [ConstVar(Var, No)]: <error>
+"_e03"@(FileId(1), 240..244) [ConstVar(Var, No)]: <error>
+"_e04"@(FileId(1), 262..266) [ConstVar(Var, No)]: <error>
+"_e05"@(FileId(1), 288..292) [ConstVar(Var, No)]: <error>
+"_e10"@(FileId(1), 314..318) [ConstVar(Var, No)]: <error>
+"_e11"@(FileId(1), 336..340) [ConstVar(Var, No)]: <error>
+"_e12"@(FileId(1), 362..366) [ConstVar(Var, No)]: <error>
+"_e13"@(FileId(1), 387..391) [ConstVar(Var, No)]: <error>
+"_e14"@(FileId(1), 409..413) [ConstVar(Var, No)]: <error>
+"_e15"@(FileId(1), 435..439) [ConstVar(Var, No)]: <error>
+"<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 177..178: mismatched types for string concatenation
 | note in file FileId(1) for 179..180: this is of type `int`

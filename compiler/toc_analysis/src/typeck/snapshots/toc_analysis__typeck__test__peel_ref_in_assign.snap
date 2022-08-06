@@ -1,10 +1,8 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 41
 expression: "var a : int var k : int := a"
-
 ---
-"a"@(FileId(1), 4..5) [Declared]: int
-"k"@(FileId(1), 16..17) [Declared]: int
-"<root>"@(dummy) [Declared]: <error>
+"a"@(FileId(1), 4..5) [ConstVar(Var, No)]: int
+"k"@(FileId(1), 16..17) [ConstVar(Var, No)]: int
+"<root>"@(dummy) [Module(No)]: <error>
 

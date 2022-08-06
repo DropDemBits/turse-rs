@@ -1,11 +1,9 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 41
 expression: "begin var k : char := 'baz' end"
-
 ---
-"k"@(FileId(1), 10..11) [Declared]: char
-"<root>"@(dummy) [Declared]: <error>
+"k"@(FileId(1), 10..11) [ConstVar(Var, No)]: char
+"<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 22..27: mismatched types
 | note in file FileId(1) for 22..27: this is of type `char(3)`

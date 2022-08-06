@@ -1,10 +1,8 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 42
 expression: "var _ : set of boolean"
-
 ---
-"<anonymous>"@(FileId(1), 8..22) [Declared]: <error>
-"_"@(FileId(1), 4..5) [Declared]: set[DefId(LibraryId(0), LocalDefId(0))] of boolean
-"<root>"@(dummy) [Declared]: <error>
+"<anonymous>"@(FileId(1), 8..22) [Set]: <error>
+"_"@(FileId(1), 4..5) [ConstVar(Var, No)]: set[DefId(LibraryId(0), LocalDefId(0))] of boolean
+"<root>"@(dummy) [Module(No)]: <error>
 

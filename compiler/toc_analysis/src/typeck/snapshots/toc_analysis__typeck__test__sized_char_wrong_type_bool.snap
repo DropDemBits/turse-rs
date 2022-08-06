@@ -1,11 +1,9 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 41
 expression: "var _ : char(true)"
-
 ---
-"_"@(FileId(1), 4..5) [Declared]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
-"<root>"@(dummy) [Declared]: <error>
+"_"@(FileId(1), 4..5) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
+"<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 13..17: mismatched types
 | note in file FileId(1) for 13..17: this is of type `boolean`

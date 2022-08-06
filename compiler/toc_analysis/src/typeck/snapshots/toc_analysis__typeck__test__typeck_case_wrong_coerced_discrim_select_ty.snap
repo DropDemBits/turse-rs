@@ -1,9 +1,8 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
 expression: "case 'c' of label \"cc\", \"\": end case"
-
 ---
-"<root>"@(dummy) [Declared]: <error>
+"<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 18..22: mismatched types
 | note in file FileId(1) for 18..22: this is of type `string`, of length 2

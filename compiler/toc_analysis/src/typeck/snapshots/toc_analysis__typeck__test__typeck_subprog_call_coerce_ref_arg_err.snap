@@ -2,11 +2,11 @@
 source: compiler/toc_analysis/src/typeck/test.rs
 expression: "procedure p(var a : real) end p\nvar i : int\np(i)\n"
 ---
-"p"@(FileId(1), 10..11) [Declared]: procedure ( pass(var ref) real, ) -> void
+"p"@(FileId(1), 10..11) [Subprogram(Procedure)]: procedure ( pass(var ref) real, ) -> void
 "<unnamed>"@(dummy) [Undeclared]: <error>
-"a"@(FileId(1), 16..17) [Declared]: real
-"i"@(FileId(1), 36..37) [Declared]: int
-"<root>"@(dummy) [Declared]: <error>
+"a"@(FileId(1), 16..17) [Param(Reference(Var), No)]: real
+"i"@(FileId(1), 36..37) [ConstVar(Var, No)]: int
+"<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 46..47: mismatched types
 | note in file FileId(1) for 46..47: this is of type `int`

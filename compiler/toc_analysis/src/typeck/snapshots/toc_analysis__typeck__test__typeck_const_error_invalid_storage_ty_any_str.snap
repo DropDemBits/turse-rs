@@ -1,11 +1,9 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 42
 expression: "const _ : string(*)"
-
 ---
-"_"@(FileId(1), 6..7) [Declared]: string_n Any
-"<root>"@(dummy) [Declared]: <error>
+"_"@(FileId(1), 6..7) [ConstVar(Const, No)]: string_n Any
+"<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 10..19: invalid storage type
 | error in file FileId(1) for 10..19: cannot use `string(*)` in `const` declarations

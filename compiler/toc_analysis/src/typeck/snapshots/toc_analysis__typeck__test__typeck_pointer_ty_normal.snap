@@ -1,9 +1,7 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 42
 expression: "type _ : ^int"
-
 ---
-"_"@(FileId(1), 5..6) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(0))] of pointer to int
-"<root>"@(dummy) [Declared]: <error>
+"_"@(FileId(1), 5..6) [Type]: alias[DefId(LibraryId(0), LocalDefId(0))] of pointer to int
+"<root>"@(dummy) [Module(No)]: <error>
 

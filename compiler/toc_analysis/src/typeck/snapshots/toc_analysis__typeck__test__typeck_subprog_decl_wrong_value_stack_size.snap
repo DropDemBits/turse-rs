@@ -1,12 +1,10 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 42
 expression: "type k : real process a : k end a"
-
 ---
-"k"@(FileId(1), 5..6) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(0))] of real
-"a"@(FileId(1), 22..23) [Declared]: process -> void
-"<root>"@(dummy) [Declared]: <error>
+"k"@(FileId(1), 5..6) [Type]: alias[DefId(LibraryId(0), LocalDefId(0))] of real
+"a"@(FileId(1), 22..23) [Subprogram(Process)]: process -> void
+"<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 26..27: cannot use `k` as an expression
 | error in file FileId(1) for 26..27: `k` is a reference to a type, not a variable

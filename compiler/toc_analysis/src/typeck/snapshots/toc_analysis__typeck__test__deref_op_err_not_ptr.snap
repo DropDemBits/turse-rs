@@ -1,12 +1,10 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 42
-expression: "var putty : int var j := ^putty"
-
+expression: "var putty : int\nvar j := ^putty\n"
 ---
-"putty"@(FileId(1), 4..9) [Declared]: int
-"j"@(FileId(1), 20..21) [Declared]: <error>
-"<root>"@(dummy) [Declared]: <error>
+"putty"@(FileId(1), 4..9) [ConstVar(Var, No)]: int
+"j"@(FileId(1), 20..21) [ConstVar(Var, No)]: <error>
+"<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 26..31: mismatched types
 | note in file FileId(1) for 26..31: this is of type `int`

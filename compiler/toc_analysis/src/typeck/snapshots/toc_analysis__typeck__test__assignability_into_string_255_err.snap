@@ -1,13 +1,11 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 41
 expression: "const N := 255\nvar c256 : char(256)\n\nvar _e00 : string(N) := c256 % [not captured by ctc]\n"
-
 ---
-"N"@(FileId(1), 6..7) [Declared]: int
-"c256"@(FileId(1), 19..23) [Declared]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(1)))
-"_e00"@(FileId(1), 41..45) [Declared]: string_n Fixed(Unevaluated(LibraryId(0), BodyId(2)))
-"<root>"@(dummy) [Declared]: <error>
+"N"@(FileId(1), 6..7) [ConstVar(Const, No)]: int
+"c256"@(FileId(1), 19..23) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(1)))
+"_e00"@(FileId(1), 41..45) [ConstVar(Var, No)]: string_n Fixed(Unevaluated(LibraryId(0), BodyId(2)))
+"<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 61..65: mismatched types
 | note in file FileId(1) for 61..65: this is of type `char(256)`
