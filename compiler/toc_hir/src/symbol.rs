@@ -316,6 +316,22 @@ pub enum Resolve {
     Err,
 }
 
+impl Resolve {
+    /// Asserts that this is a [`Resolve::Def`], and extracts the associated
+    /// [`LocalDefId`].
+    ///
+    /// ## Panics
+    ///
+    /// Panics if it's not a [`Resolve::Def`] (e.g. [`Resolve::Err`])
+    #[track_caller]
+    pub fn unwrap_def(self) -> LocalDefId {
+        match self {
+            Resolve::Def(local_def) => local_def,
+            Resolve::Err => panic!("called `Resolve::unwrap_def` on a `Resolve::Err` value"),
+        }
+    }
+}
+
 /// What a def might resolve to
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DefResolve {

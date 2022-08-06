@@ -1498,7 +1498,7 @@ impl BodyCodeGenerator<'_> {
         self.emit_absolute_location();
 
         // Then false branch
-        if let Some(false_branch) = stmt.false_branch {
+        if let Some(false_branch) = stmt.false_branch.stmt() {
             self.generate_stmt(false_branch);
         }
         self.code_fragment.anchor_branch(after_false);
@@ -2192,13 +2192,14 @@ impl BodyCodeGenerator<'_> {
         // Steps
         // - Load value from the referenced def (may need to perform canonical name resolution)
         match expr {
-            hir_expr::Name::Name(def_id) => {
-                let info = self.library.local_def(*def_id);
+            hir_expr::Name::Name(binding) => {
+                let def_id = self.library.binding_resolve(*binding).unwrap_def();
+                let info = self.library.local_def(def_id);
                 eprintln!("loading value from def {info:?} ({def_id:?})");
 
                 let def_ty = self
                     .db
-                    .type_of(DefId(self.library_id, *def_id).into())
+                    .type_of(DefId(self.library_id, def_id).into())
                     .in_db(self.db)
                     .to_base_type();
 
@@ -2208,7 +2209,7 @@ impl BodyCodeGenerator<'_> {
                 } else {
                     // As normal fetch
                     self.code_fragment
-                        .emit_locate_local(DefId(self.library_id, *def_id));
+                        .emit_locate_local(DefId(self.library_id, def_id));
                     self.generate_fetch_value(def_ty.id());
                 }
             }
@@ -2361,12 +2362,13 @@ impl BodyCodeGenerator<'_> {
         //   - If it's a stack var, it should be to the locals space
         //   - If it's a global var, it should be from a relocatable patch to the globals space
         match expr {
-            hir_expr::Name::Name(def_id) => {
-                let info = self.library.local_def(*def_id);
+            hir_expr::Name::Name(binding) => {
+                let def_id = self.library.binding_resolve(*binding).unwrap_def();
+                let info = self.library.local_def(def_id);
                 eprintln!("locating value from def {info:?} ({def_id:?})");
 
                 self.code_fragment
-                    .emit_locate_local(DefId(self.library_id, *def_id))
+                    .emit_locate_local(DefId(self.library_id, def_id))
             }
             hir_expr::Name::Self_ => todo!(),
         }
