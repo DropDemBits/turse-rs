@@ -316,10 +316,24 @@ pub enum Resolve {
     Err,
 }
 
+/// What a def might resolve to
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DefResolve {
+    /// Resolves to another local def
+    Local(LocalDefId),
+    /// Resolves to an external def
+    External(DefId),
+    /// Doesn't resolve to any def, as there wasn't any def that
+    /// was applicable for being the import's target, or this is
+    /// the canonical def
+    None,
+}
+
 /// Library-local map of bindings to their corresponding [`Resolve`]
 #[derive(Debug, PartialEq, Eq, Default)]
 pub struct ResolutionMap {
-    pub resolves: IndexMap<Spanned<Symbol>, Resolve>,
+    pub binding_resolves: IndexMap<Spanned<Symbol>, Resolve>,
+    pub def_resolves: DefMap<DefResolve>,
 }
 
 /// Mapping between a [`LocalDefId`] and the corresponding [`DefOwner`]

@@ -11,6 +11,6 @@ Library@(dummy)
             Primitive@(FileId(1), 17..20): Int
         StmtItem@(FileId(1), 25..64): ItemId(2)
           Module@(FileId(1), 25..64): "_"@(FileId(1), 32..33)
-            Import@(FileId(1), 49..54): SameAsItem "a_def"@(FileId(1), 49..54)
+            Import@(FileId(1), 49..54): SameAsItem local("a_def"@(FileId(1), 9..14))
             StmtBody@(FileId(1), 59..59): []
 

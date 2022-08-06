@@ -6,7 +6,10 @@ use toc_hir::{
     item::{DefinedType, ItemId, ItemKind, QualifyAs, SubprogramExtra},
     library::Library,
     stmt::{BodyStmt, CaseSelector, FalseBranch, ForBounds, GetWidth, Skippable, StmtId, StmtKind},
-    symbol::{DeclareKind, ForwardKind, LimitedKind, LocalDefId, ResolutionMap, Resolve, Symbol},
+    symbol::{
+        DeclareKind, DefResolve, ForwardKind, LimitedKind, LocalDefId, ResolutionMap, Resolve,
+        Symbol,
+    },
     ty::{ConstrainedEnd, Primitive, SeqLength, TypeId, TypeKind},
 };
 use toc_reporting::{CompileResult, MessageSink};
@@ -371,13 +374,27 @@ impl<'a> ResolveCtx<'a> {
                     let exported_def = this.library.item(export.item_id).def_id;
                     this.introduce_def(export.def_id, DeclareKind::ItemExport(exported_def));
                 }
+
+                // Map export defs to their corresponding import defs
+                for export in &item.exports {
+                    let exported_def = this.library.item(export.item_id).def_id;
+                    this.resolves
+                        .def_resolves
+                        .insert(export.def_id, DefResolve::Local(exported_def));
+                }
             }
             ItemKind::Import(item) => {
                 // resolve it right now
-                let name = this.library.local_def(item.def_id).name;
+                let def_info = &this.library.local_def(item.def_id);
+                let name = def_info.name;
 
-                let imported_def = if let Some(def_id) = this.scopes.import_sym(name) {
-                    Some(def_id)
+                let imported_def = if let Some(imported_def) = this.scopes.import_sym(name) {
+                    // Add a resolution as a local import
+                    this.resolves
+                        .def_resolves
+                        .insert(item.def_id, DefResolve::Local(imported_def));
+
+                    Some(imported_def)
                 } else {
                     let def_at = this
                         .library
@@ -599,7 +616,7 @@ impl<'a> ResolveCtx<'a> {
             ExprKind::Name(expr) => match expr {
                 Name::Name(binding) => {
                     let resolve = this.use_sym(*binding.item(), binding.span());
-                    this.resolves.resolves.insert(*binding, resolve);
+                    this.resolves.binding_resolves.insert(*binding, resolve);
                 }
                 Name::Self_ => unimplemented!(),
             },
@@ -638,7 +655,7 @@ impl<'a> ResolveCtx<'a> {
             TypeKind::Alias(ty) => {
                 let binding = ty.base_def;
                 let resolve = this.use_sym(*binding.item(), binding.span());
-                this.resolves.resolves.insert(binding, resolve);
+                this.resolves.binding_resolves.insert(binding, resolve);
             }
             TypeKind::Constrained(ty) => {
                 this.resolve_body(ty.start);

@@ -31,6 +31,16 @@ impl LocalDefId {
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct DefId(pub LibraryId, pub LocalDefId);
 
+impl DefId {
+    pub fn library(self) -> LibraryId {
+        self.0
+    }
+
+    pub fn local(self) -> LocalDefId {
+        self.1
+    }
+}
+
 impl fmt::Debug for DefId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let Self(lib_id, local_def) = self;

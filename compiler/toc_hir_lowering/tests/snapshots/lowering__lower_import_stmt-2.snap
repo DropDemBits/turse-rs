@@ -11,7 +11,7 @@ Library@(dummy)
             Primitive@(FileId(1), 13..16): Int
         StmtItem@(FileId(1), 21..66): ItemId(2)
           Module@(FileId(1), 21..66): "_"@(FileId(1), 28..29)
-            Import@(FileId(1), 45..56): SameAsItem "a"@(FileId(1), 55..56)
+            Import@(FileId(1), 45..56): SameAsItem local("a"@(FileId(1), 9..10))
             StmtBody@(FileId(1), 61..61): []
 error in file FileId(1) at 51..54: cannot use `const` and `var` on the same import
 | error in file FileId(1) for 45..50: first conflicting `const`

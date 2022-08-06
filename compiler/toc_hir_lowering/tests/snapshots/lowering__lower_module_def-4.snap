@@ -1,15 +1,13 @@
 ---
 source: compiler/toc_hir_lowering/tests/lowering.rs
-assertion_line: 61
 expression: "\n        module z\n            export ~.a, ~.b\n            var a, b : int\n        end z\n        module y\n            export ~.*all\n            var c, d : int\n        end y\n\n        % non pervasive\n        var i : int\n        i := a\n        i := b\n\n        % pervasive\n        module x\n            var i : int\n            i := c\n            i := d\n        end x\n        "
-
 ---
 Library@(dummy)
   Root@(dummy): FileId(1) -> ItemId(9)
     Module@(FileId(1), 0..368): "<root>"@(dummy)
       StmtBody@(FileId(1), 9..359): []
         StmtItem@(FileId(1), 9..86): ItemId(2)
-          Module@(FileId(1), 9..86): "z"@(FileId(1), 16..17), exports [Const Unqualified "a"@(FileId(1), 62..63), Const Unqualified "b"@(FileId(1), 65..66)]
+          Module@(FileId(1), 9..86): "z"@(FileId(1), 16..17), exports [Const Unqualified local("a"@(FileId(1), 62..63)), Const Unqualified local("b"@(FileId(1), 65..66))]
             StmtBody@(FileId(1), 58..72): []
               StmtItem@(FileId(1), 58..72): ItemId(0)
                 ConstVar@(FileId(1), 58..72): var "a"@(FileId(1), 62..63)
@@ -18,7 +16,7 @@ Library@(dummy)
                 ConstVar@(FileId(1), 58..72): var "b"@(FileId(1), 65..66)
                   Primitive@(FileId(1), 69..72): Int
         StmtItem@(FileId(1), 95..170): ItemId(5)
-          Module@(FileId(1), 95..170): "y"@(FileId(1), 102..103), exports [Const PervasiveUnqualified "c"@(FileId(1), 146..147), Const PervasiveUnqualified "d"@(FileId(1), 149..150)]
+          Module@(FileId(1), 95..170): "y"@(FileId(1), 102..103), exports [Const PervasiveUnqualified local("c"@(FileId(1), 146..147)), Const PervasiveUnqualified local("d"@(FileId(1), 149..150))]
             StmtBody@(FileId(1), 142..156): []
               StmtItem@(FileId(1), 142..156): ItemId(3)
                 ConstVar@(FileId(1), 142..156): var "c"@(FileId(1), 146..147)

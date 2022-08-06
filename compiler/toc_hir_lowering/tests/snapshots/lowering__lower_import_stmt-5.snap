@@ -12,7 +12,7 @@ Library@(dummy)
         StmtItem@(FileId(1), 21..64): ItemId(2)
           Subprogram@(FileId(1), 21..64): "_"@(FileId(1), 26..27)
             Void@(FileId(1), 21..27)
-            Import@(FileId(1), 43..54): SameAsItem "a"@(FileId(1), 53..54)
+            Import@(FileId(1), 43..54): SameAsItem local("a"@(FileId(1), 9..10))
             StmtBody@(FileId(1), 59..59): []
 error in file FileId(1) at 49..52: cannot use `const` and `var` on the same import
 | error in file FileId(1) for 43..48: first conflicting `const`

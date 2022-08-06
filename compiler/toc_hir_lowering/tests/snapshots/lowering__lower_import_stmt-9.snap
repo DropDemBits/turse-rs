@@ -8,7 +8,7 @@ Library@(dummy)
       StmtBody@(FileId(1), 5..40): []
         StmtItem@(FileId(1), 5..40): ItemId(1)
           Module@(FileId(1), 5..40): "_"@(FileId(1), 12..13)
-            Import@(FileId(1), 29..30): SameAsItem "_"@(FileId(1), 29..30)
+            Import@(FileId(1), 29..30): SameAsItem local("_"@(FileId(1), 12..13))
             StmtBody@(FileId(1), 35..35): []
 error in file FileId(1) at 29..30: `_` is already declared in this scope
 | note in file FileId(1) for 12..13: `_` previously declared here

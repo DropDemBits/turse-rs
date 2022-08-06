@@ -1,8 +1,6 @@
 ---
 source: compiler/toc_hir_lowering/tests/lowering.rs
-assertion_line: 61
 expression: "\n        var u, w, U : int\n        module a\n            export ~.all\n            var u, w, U : int\n        end a\n        "
-
 ---
 Library@(dummy)
   Root@(dummy): FileId(1) -> ItemId(7)
@@ -18,7 +16,7 @@ Library@(dummy)
           ConstVar@(FileId(1), 9..26): var "U"@(FileId(1), 19..20)
             Primitive@(FileId(1), 23..26): Int
         StmtItem@(FileId(1), 35..112): ItemId(6)
-          Module@(FileId(1), 35..112): "a"@(FileId(1), 42..43), exports [Const Unqualified "u"@(FileId(1), 85..86), Const Unqualified "w"@(FileId(1), 88..89), Const Unqualified "U"@(FileId(1), 91..92)]
+          Module@(FileId(1), 35..112): "a"@(FileId(1), 42..43), exports [Const Unqualified local("u"@(FileId(1), 85..86)), Const Unqualified local("w"@(FileId(1), 88..89)), Const Unqualified local("U"@(FileId(1), 91..92))]
             StmtBody@(FileId(1), 81..98): []
               StmtItem@(FileId(1), 81..98): ItemId(3)
                 ConstVar@(FileId(1), 81..98): var "u"@(FileId(1), 85..86)

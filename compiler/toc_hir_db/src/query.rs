@@ -9,7 +9,7 @@ use toc_hir::{
     library::{InLibrary, Library, LibraryId, LoweredLibrary},
     library_graph::LibraryGraph,
     stmt,
-    symbol::{DeclareKind, DefId, DefOwner, DefTable, LocalDefId, SymbolKind},
+    symbol::{DefId, DefOwner, DefResolve, DefTable, LocalDefId, SymbolKind},
     ty::{self, TypeOwner, TypeOwners},
     visitor::HirVisitor,
 };
@@ -231,40 +231,50 @@ pub(crate) fn resolve_def(db: &dyn HirDatabase, def_id: DefId) -> DefId {
     // ???: How does this interact with def collecting (i.e how are we redirected to the right library)?
     // Assuming it'd be done through `ItemExport` holding a library id to the real definition
 
-    let def_owner = if let Some(def_owner) = db.def_owner(def_id) {
-        def_owner
-    } else {
-        return def_id;
+    let library = db.library(def_id.library());
+
+    let next_def = match library.def_resolve(def_id.local()) {
+        // Follow the indirection
+        DefResolve::Local(local_def) => DefId(def_id.library(), local_def),
+        DefResolve::External(def) => def,
+        // This is the canonical def
+        DefResolve::None => return def_id,
     };
+
+    // let def_owner = if let Some(def_owner) = db.def_owner(def_id) {
+    //     def_owner
+    // } else {
+    //     return def_id;
+    // };
 
     // Get the (maybe indirect) definition
-    let maybe_canon = match def_owner {
-        DefOwner::Export(mod_id, export_id) => {
-            let library = db.library(def_id.0);
+    // let maybe_canon = match def_owner {
+    //     DefOwner::Export(mod_id, export_id) => {
+    //         let library = db.library(def_id.0);
 
-            // Get associated item
-            let module = library.module_item(mod_id);
-            let export = module.export(export_id);
-            let exported_item = library.item(export.item_id);
+    //         // Get associated item
+    //         let module = library.module_item(mod_id);
+    //         let export = module.export(export_id);
+    //         let exported_item = library.item(export.item_id);
 
-            DefId(def_id.0, exported_item.def_id)
-        }
-        DefOwner::Item(_) => {
-            // Defer to the sym kind
-            let library = db.library(def_id.0);
+    //         DefId(def_id.0, exported_item.def_id)
+    //     }
+    //     DefOwner::Item(_) => {
+    //         // Defer to the sym kind
+    //         let library = db.library(def_id.0);
 
-            match library.local_def(def_id.1).declare_kind {
-                DeclareKind::ItemImport(local_def) => DefId(def_id.0, local_def),
-                // Already the canonical definition
-                _ => return def_id,
-            }
-        }
-        // Already the canonical definition
-        _ => return def_id,
-    };
+    //         match library.local_def(def_id.1).declare_kind {
+    //             DeclareKind::ItemImport(local_def) => DefId(def_id.0, local_def),
+    //             // Already the canonical definition
+    //             _ => return def_id,
+    //         }
+    //     }
+    //     // Already the canonical definition
+    //     _ => return def_id,
+    // };
 
     // Poke through import chains
-    db.resolve_def(maybe_canon)
+    db.resolve_def(next_def)
 }
 
 pub(crate) fn symbol_kind(db: &dyn HirDatabase, def_id: DefId) -> Option<SymbolKind> {
@@ -316,10 +326,7 @@ impl HirVisitor for DefCollector<'_> {
             for name in &params.names {
                 // Skip the filler args
                 // They are placeholders, and can't be named anyways
-                if !matches!(
-                    self.library.local_def(*name).declare_kind,
-                    DeclareKind::Declared
-                ) {
+                if self.library.local_def(*name).kind.is_none() {
                     continue;
                 }
 

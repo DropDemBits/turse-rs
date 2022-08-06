@@ -111,7 +111,7 @@ impl<'out, 'hir> PrettyVisitor<'out, 'hir> {
     }
 
     fn display_extra_binding(&self, binding: Spanned<symbol::Symbol>) -> String {
-        match self.library.lookup_resolve(binding) {
+        match self.library.binding_resolve(binding) {
             symbol::Resolve::Def(def_id) => {
                 let def_info = self.library.local_def(def_id);
                 let name = def_info.name;
@@ -125,6 +125,18 @@ impl<'out, 'hir> PrettyVisitor<'out, 'hir> {
 
                 format!("{name:?}@{bind_span}, undeclared")
             }
+        }
+    }
+
+    fn display_extra_def_resolve(&self, local_def: symbol::LocalDefId) -> String {
+        match self.library.def_resolve(local_def) {
+            symbol::DefResolve::Local(local_def) => {
+                format!("local({})", self.display_def(local_def))
+            }
+            symbol::DefResolve::External(def) => {
+                format!("external({def:?})")
+            }
+            symbol::DefResolve::None => "unresolved".to_string(),
         }
     }
 
@@ -309,30 +321,20 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
                 let mut exports = item.exports.iter();
                 write!(extra, ", exports [").unwrap();
 
-                if let Some(first) = exports.next() {
-                    write!(extra, "{:?} {:?}", first.mutability, first.qualify_as).unwrap();
-                    if first.is_opaque {
+                let emit_export = |extra: &mut String, export: &item::ExportItem| {
+                    write!(extra, "{:?} {:?}", export.mutability, export.qualify_as).unwrap();
+                    if export.is_opaque {
                         write!(extra, " opaque").unwrap();
                     }
-                    write!(
-                        extra,
-                        " {}",
-                        self.display_def(self.library.item(first.item_id).def_id)
-                    )
-                    .unwrap();
+                    write!(extra, " {}", self.display_extra_def_resolve(export.def_id)).unwrap();
+                };
+
+                if let Some(first) = exports.next() {
+                    emit_export(&mut extra, first);
                 }
                 for rest in exports {
                     write!(extra, ", ").unwrap();
-                    write!(extra, "{:?} {:?}", rest.mutability, rest.qualify_as).unwrap();
-                    if rest.is_opaque {
-                        write!(extra, " Opaque").unwrap();
-                    }
-                    write!(
-                        extra,
-                        " {}",
-                        self.display_def(self.library.item(rest.item_id).def_id)
-                    )
-                    .unwrap();
+                    emit_export(&mut extra, rest)
                 }
 
                 write!(extra, "]").unwrap();
@@ -344,13 +346,14 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
     }
     fn visit_import(&self, id: item::ItemId, item: &item::Import) {
         let span = self.item_span(id);
+
         self.emit_node(
             "Import",
             span,
             Some(format_args!(
                 "{:?} {}",
                 item.mutability,
-                self.display_def(item.def_id)
+                self.display_extra_def_resolve(item.def_id)
             )),
         )
     }

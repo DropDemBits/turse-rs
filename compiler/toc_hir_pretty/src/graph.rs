@@ -8,7 +8,7 @@ use std::{
 };
 
 use toc_hir::library::LibraryId;
-use toc_hir::symbol::{Resolve, Symbol};
+use toc_hir::symbol::{self, Symbol};
 use toc_hir::visitor::WalkNode;
 use toc_hir::{
     body,
@@ -227,18 +227,30 @@ impl<'out, 'hir> PrettyVisitor<'out, 'hir> {
     }
 
     fn display_binding(&self, binding: Spanned<Symbol>) -> String {
-        match self.library.lookup_resolve(binding) {
-            Resolve::Def(def_id) => {
+        match self.library.binding_resolve(binding) {
+            symbol::Resolve::Def(def_id) => {
                 let def_info = self.library.local_def(def_id);
                 let name = escape_def_name(def_info.name);
 
                 format!("'{name}'\\n({def_id:?})")
             }
-            Resolve::Err => {
+            symbol::Resolve::Err => {
                 let name = escape_def_name(*binding.item());
 
                 format!("'{name}'\\n(undeclared)")
             }
+        }
+    }
+
+    fn display_extra_def_resolve(&self, local_def: symbol::LocalDefId) -> String {
+        match self.library.def_resolve(local_def) {
+            symbol::DefResolve::Local(local_def) => {
+                format!("local({})", self.display_def_id(local_def))
+            }
+            symbol::DefResolve::External(def) => {
+                format!("external({def:?})")
+            }
+            symbol::DefResolve::None => "unresolved".to_string(),
         }
     }
 
@@ -659,6 +671,7 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
             "Import",
             Layout::Vbox(vec![
                 Layout::Node(self.display_def_id(item.def_id)),
+                Layout::Node(self.display_extra_def_resolve(item.def_id)),
                 Layout::Node(format!("{:?}", item.mutability)),
             ]),
         )
