@@ -8,7 +8,11 @@ use toc_hir::{
 };
 
 use crate::{
-    const_eval::{errors::ErrorKind, ops::ConstOp, ConstError, ConstInt},
+    const_eval::{
+        errors::{ErrorKind, NotConst},
+        ops::ConstOp,
+        ConstError, ConstInt,
+    },
     ty,
 };
 
@@ -40,7 +44,7 @@ pub(crate) fn evaluate_const(
         Const::Unevaluated(_, _) => match &body.kind {
             toc_hir::body::BodyKind::Stmts(..) => {
                 return Err(ConstError::new(
-                    ErrorKind::NotConstExpr(None),
+                    ErrorKind::NotConstExpr(NotConst::Expr),
                     body.span.lookup_in(span_map),
                 ))
             }
@@ -125,7 +129,9 @@ pub(crate) fn evaluate_const(
                             toc_hir::symbol::Resolve::Err => {
                                 // Not a const expr
                                 return Err(ConstError::new(
-                                    ErrorKind::NotConstExpr(None),
+                                    ErrorKind::NotConstExpr(NotConst::Binding(
+                                        library_id, *binding,
+                                    )),
                                     expr_span,
                                 ));
                             }
@@ -149,7 +155,7 @@ pub(crate) fn evaluate_const(
                             None => {
                                 // Not a const expr
                                 return Err(ConstError::new(
-                                    ErrorKind::NotConstExpr(Some(canonical_def)),
+                                    ErrorKind::NotConstExpr(NotConst::Def(canonical_def)),
                                     expr_span,
                                 ));
                             }
@@ -210,7 +216,7 @@ pub(crate) fn evaluate_const(
                         // Never a const expr
                         // TODO: Use the self's associated def_id
                         return Err(ConstError::new(
-                            ErrorKind::NotConstExpr(Default::default()),
+                            ErrorKind::NotConstExpr(NotConst::Expr),
                             expr_span,
                         ));
                     }
@@ -262,18 +268,27 @@ pub(crate) fn evaluate_const(
                         // FIXME: Handle const-eval field lookups for modules
                         // Note: This will expose us to evaluation cycles, so those need to be handled as well
                         // when the time comes
-                        return Err(ConstError::new(ErrorKind::NotConstExpr(None), expr_span));
+                        return Err(ConstError::new(
+                            ErrorKind::NotConstExpr(NotConst::Expr),
+                            expr_span,
+                        ));
                     }
                 }
             }
             expr::ExprKind::Call(_) => {
                 // There are some functions which are allowed to be const-fns, but they're all builtins
                 // It's okay to treat it as not const-evaluable
-                return Err(ConstError::new(ErrorKind::NotConstExpr(None), expr_span));
+                return Err(ConstError::new(
+                    ErrorKind::NotConstExpr(NotConst::Expr),
+                    expr_span,
+                ));
             }
             _ => {
                 // The rest of the exprs aren't ever evaluable at compile time
-                return Err(ConstError::new(ErrorKind::NotConstExpr(None), expr_span));
+                return Err(ConstError::new(
+                    ErrorKind::NotConstExpr(NotConst::Expr),
+                    expr_span,
+                ));
             }
         }
     }

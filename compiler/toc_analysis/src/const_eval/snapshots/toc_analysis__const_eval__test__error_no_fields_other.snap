@@ -1,11 +1,9 @@
 ---
 source: compiler/toc_analysis/src/const_eval/test.rs
-assertion_line: 12
 expression: "const a := 1 const _ := a.o"
-
 ---
 "a"@(FileId(1), 6..7) -> Integer(ConstInt { magnitude: 1, sign: Positive, width: As32 })
-"_"@(FileId(1), 19..20) -> ConstError { kind: NotConstExpr(None), span: (FileId(1), 24..27) }
+"_"@(FileId(1), 19..20) -> ConstError { kind: NotConstExpr(Expr), span: (FileId(1), 24..27) }
 
 error in file FileId(1) at 24..27: cannot compute expression at compile-time
 | error in file FileId(1) for 24..27: expression cannot be computed at compile-time
