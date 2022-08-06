@@ -22,6 +22,14 @@ impl<T> InLibrary<T> {
     pub fn map<U>(self, f: impl FnOnce(T) -> U) -> InLibrary<U> {
         InLibrary(self.0, f(self.1))
     }
+
+    pub fn library(self) -> LibraryId {
+        self.0
+    }
+
+    pub fn item(self) -> T {
+        self.1
+    }
 }
 
 pub trait WrapInLibrary: Copy {

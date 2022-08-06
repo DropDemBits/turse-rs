@@ -78,7 +78,13 @@ fn alias_ty(
     let def_id = {
         let in_module = db.inside_module(hir_id.into());
         // Walk the segment path while we still can
-        let mut def_id = DefId(hir_id.0, *ty.base_def.item());
+        let mut def_id = {
+            let library = db.library(hir_id.library());
+            match library.binding_resolve(ty.base_def) {
+                symbol::Resolve::Def(local_def) => DefId(hir_id.library(), local_def),
+                symbol::Resolve::Err => return db.mk_error(),
+            }
+        };
 
         for segment in &ty.segments {
             let fields = db.fields_of((def_id, in_module).into());
@@ -617,9 +623,12 @@ fn name_ty(
     // If def-id, fetch type from def id map
     // If self, then fetch type from provided class def id?
     match expr {
-        expr::Name::Name(def_id) => {
-            // FIXME: Perform name resolution
-            let def_id = DefId(body_expr.0, *def_id);
+        expr::Name::Name(binding) => {
+            let library = db.library(body_expr.library());
+            let def_id = match library.binding_resolve(*binding) {
+                symbol::Resolve::Def(local_def) => DefId(body_expr.library(), local_def),
+                symbol::Resolve::Err => return db.mk_error(),
+            };
             let in_module = db.inside_module(body_expr.into());
 
             // Defer to result type if it's a paren-less function

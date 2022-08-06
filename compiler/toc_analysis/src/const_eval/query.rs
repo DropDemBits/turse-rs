@@ -116,10 +116,21 @@ pub(crate) fn evaluate_const(
             expr::ExprKind::Name(name) => {
                 // May or may not reference a constant expression
                 match name {
-                    expr::Name::Name(def_id) => {
+                    expr::Name::Name(binding) => {
                         // Resolve to canonical def first so that we aren't looking at any exports
-                        let canonical_def = db.resolve_def(DefId(library_id, *def_id));
-                        let library_id = canonical_def.0;
+                        let canonical_def = match library.binding_resolve(*binding) {
+                            toc_hir::symbol::Resolve::Def(local_def) => {
+                                db.resolve_def(DefId(library_id, local_def))
+                            }
+                            toc_hir::symbol::Resolve::Err => {
+                                // Not a const expr
+                                return Err(ConstError::new(
+                                    ErrorKind::NotConstExpr(None),
+                                    expr_span,
+                                ));
+                            }
+                        };
+                        let library_id = canonical_def.library();
                         let library = db.library(library_id);
 
                         let body = db.item_of(canonical_def).and_then(|item| {

@@ -1986,7 +1986,13 @@ impl TypeCheck<'_> {
         let def_id = {
             let in_module = db.inside_module(id.in_library(*library_id).into());
             // Walk the segment path while we still can
-            let mut def_id = DefId(*library_id, *ty.base_def.item());
+            let mut def_id = {
+                let library = db.library(*library_id);
+                match library.binding_resolve(ty.base_def) {
+                    toc_hir::symbol::Resolve::Def(local_def) => DefId(*library_id, local_def),
+                    toc_hir::symbol::Resolve::Err => return,
+                }
+            };
 
             for segment in &ty.segments {
                 let fields = db.fields_of((def_id, in_module).into());
