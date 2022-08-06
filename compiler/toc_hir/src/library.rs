@@ -99,8 +99,12 @@ impl Library {
         self.type_map.lookup_type(type_id)
     }
 
-    pub fn lookup_resolve(&self, binding: Spanned<symbol::Symbol>) -> Option<symbol::Resolve> {
-        self.resolve_map.resolves.get(&binding).copied()
+    pub fn lookup_resolve(&self, binding: Spanned<symbol::Symbol>) -> symbol::Resolve {
+        self.resolve_map
+            .resolves
+            .get(&binding)
+            .copied()
+            .unwrap_or(symbol::Resolve::Err)
     }
 
     pub fn local_defs(&self) -> impl Iterator<Item = symbol::LocalDefId> + '_ {

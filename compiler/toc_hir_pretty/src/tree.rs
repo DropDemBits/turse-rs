@@ -112,14 +112,14 @@ impl<'out, 'hir> PrettyVisitor<'out, 'hir> {
 
     fn display_extra_binding(&self, binding: Spanned<symbol::Symbol>) -> String {
         match self.library.lookup_resolve(binding) {
-            Some(symbol::Resolve::Def(def_id)) => {
+            symbol::Resolve::Def(def_id) => {
                 let def_info = self.library.local_def(def_id);
                 let name = def_info.name;
                 let def_span = self.display_span(def_info.def_at);
 
                 format!("{name:?}@{def_span}")
             }
-            Some(symbol::Resolve::Err) | None => {
+            symbol::Resolve::Err => {
                 let name = binding.item();
                 let bind_span = self.display_span(binding.span());
 

@@ -228,13 +228,13 @@ impl<'out, 'hir> PrettyVisitor<'out, 'hir> {
 
     fn display_binding(&self, binding: Spanned<Symbol>) -> String {
         match self.library.lookup_resolve(binding) {
-            Some(Resolve::Def(def_id)) => {
+            Resolve::Def(def_id) => {
                 let def_info = self.library.local_def(def_id);
                 let name = escape_def_name(def_info.name);
 
                 format!("'{name}'\\n({def_id:?})")
             }
-            Some(Resolve::Err) | None => {
+            Resolve::Err => {
                 let name = escape_def_name(*binding.item());
 
                 format!("'{name}'\\n(undeclared)")
