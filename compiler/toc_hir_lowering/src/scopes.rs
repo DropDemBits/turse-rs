@@ -8,7 +8,7 @@ mod test;
 
 use std::collections::{HashMap, HashSet};
 
-use toc_hir::symbol::{self, DeclareKind, ForwardKind, LocalDefId, Symbol};
+use toc_hir::symbol::{self, DeclareKind, DefMap, ForwardKind, LocalDefId, Symbol};
 
 #[derive(Debug)]
 pub(crate) struct Scope {
@@ -18,6 +18,8 @@ pub(crate) struct Scope {
     symbols: HashMap<Symbol, symbol::LocalDefId>,
     /// Any symbols within this scope that relate to a forward declaration.
     forward_symbols: HashMap<Symbol, (ForwardKind, Vec<symbol::LocalDefId>)>,
+    /// All undeclared symbols
+    undecl_symbols: HashSet<Symbol>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -89,26 +91,53 @@ impl Scope {
             kind,
             symbols: HashMap::new(),
             forward_symbols: HashMap::new(),
+            undecl_symbols: HashSet::new(),
         }
     }
 
     fn def_in(&mut self, name: Symbol, def_id: symbol::LocalDefId) {
         self.symbols.insert(name, def_id);
     }
+
+    /// Adds a symbol to this scope's undeclared list.
+    ///
+    /// Returns `true` if this is the first time it's being inserted.
+    fn undecl_def_in(&mut self, name: Symbol) -> bool {
+        self.undecl_symbols.insert(name)
+    }
+}
+
+/// Keeps track of what defs had pervasive attributes
+#[derive(Debug, Default)]
+pub(crate) struct PervasiveTracker {
+    pervasive_tracker: HashSet<symbol::LocalDefId>,
+}
+
+impl PervasiveTracker {
+    /// Checks if the given `def_id` is pervasive (i.e. always implicitly imported)
+    pub fn is_pervasive(&self, def_id: symbol::LocalDefId) -> bool {
+        self.pervasive_tracker.contains(&def_id)
+    }
+
+    /// Marks a def as being pervasive
+    pub fn mark_pervasive(&mut self, def_id: symbol::LocalDefId) {
+        self.pervasive_tracker.insert(def_id);
+    }
 }
 
 #[derive(Debug)]
 pub(crate) struct ScopeTracker {
     scopes: Vec<Scope>,
-    /// Keeps track of what symbols had pervasive attributes
-    pervasive_tracker: HashSet<symbol::LocalDefId>,
+    pervasive_tracker: PervasiveTracker,
+    declare_kinds: DefMap<DeclareKind>,
 }
 
 impl ScopeTracker {
-    pub fn new() -> Self {
+    pub fn new(pervasive_tracker: PervasiveTracker) -> Self {
         Self {
             scopes: vec![Scope::new(ScopeKind::Root)],
-            pervasive_tracker: HashSet::default(),
+            pervasive_tracker,
+            declare_kinds: Default::default(),
         }
     }
 
@@ -141,7 +170,18 @@ impl ScopeTracker {
 
     /// Checks if the given `def_id` is pervasive (i.e. always implicitly imported)
     pub fn is_pervasive(&self, def_id: symbol::LocalDefId) -> bool {
-        self.pervasive_tracker.contains(&def_id)
+        self.pervasive_tracker.is_pervasive(def_id)
+    }
+
+    pub fn declare_kind(&self, def_id: symbol::LocalDefId) -> DeclareKind {
+        self.declare_kinds
+            .get(def_id)
+            .copied()
+            .unwrap_or(DeclareKind::Undeclared)
+    }
+
+    pub fn declare_kind_mut(&mut self, def_id: symbol::LocalDefId) -> Option<&mut DeclareKind> {
+        self.declare_kinds.get_mut(def_id)
     }
 
     /// Bring the definition into scope with the name `name`
@@ -153,13 +193,13 @@ impl ScopeTracker {
         name: Symbol,
         def_id: symbol::LocalDefId,
         kind: DeclareKind,
-        is_pervasive: bool,
     ) -> Option<symbol::LocalDefId> {
         use std::collections::hash_map::Entry;
 
         let last_def = self.lookup_def(name, LookupKind::OnDef);
         let def_scope = self.scopes.last_mut().unwrap();
         def_scope.def_in(name, def_id);
+        self.declare_kinds.insert(def_id, kind);
 
         // Update the forward decl list
         match kind {
@@ -192,20 +232,17 @@ impl ScopeTracker {
             _ => (),
         }
 
-        if is_pervasive {
-            self.pervasive_tracker.insert(def_id);
-        }
-
         last_def
     }
 
-    /// Looks up the given def named `name`, using `or_undeclared` if it doesn't exist
-    pub fn use_sym(
-        &mut self,
-        name: Symbol,
-        or_undeclared: impl FnOnce() -> symbol::LocalDefId,
-    ) -> symbol::LocalDefId {
-        self.lookup_def(name, LookupKind::OnUse).unwrap_or_else(|| {
+    /// Looks up the given def named `name`, or returning [`None`] if it doesn't exist
+    pub fn use_sym(&mut self, name: Symbol) -> Option<symbol::LocalDefId> {
+        self.lookup_def(name, LookupKind::OnUse)
+
+        // TODO: Look at if this is true anymore, now that we store undeclared bindings
+        // as Resolve::Err
+        /*
+        .unwrap_or_else(|| {
             // ???: Do we still need to declare undecl's at the boundary scope?
             // Since we plan to run another pass to collect defs for the export tables,
             // would it make more sense to hoist up to root?
@@ -230,6 +267,15 @@ impl ScopeTracker {
             Self::boundary_scope(&mut self.scopes).def_in(name, def_id);
             def_id
         })
+        */
+    }
+
+    /// Tests if this is the first use of an undeclared identifier in this scope.
+    ///
+    /// This is not an idempotent operation, so subsequent calls
+    /// will return false, even if the first one returned true.
+    pub fn is_first_undecl_use(&mut self, name: Symbol) -> bool {
+        Self::boundary_scope(&mut self.scopes).undecl_def_in(name)
     }
 
     /// Looks up the definition that would be imported by `name`
@@ -350,6 +396,6 @@ impl ScopeTracker {
 
 impl Default for ScopeTracker {
     fn default() -> Self {
-        Self::new()
+        Self::new(Default::default())
     }
 }

@@ -175,7 +175,24 @@ pub struct If {
     /// True branch, executed if the condition is true
     pub true_branch: StmtId,
     /// Optional false branch
-    pub false_branch: Option<StmtId>,
+    pub false_branch: FalseBranch,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FalseBranch {
+    ElseIf(StmtId),
+    Else(StmtId),
+    None,
+}
+
+impl FalseBranch {
+    /// Extracts the [`StmtId`], if there is one.
+    pub fn stmt(self) -> Option<StmtId> {
+        match self {
+            FalseBranch::ElseIf(id) | FalseBranch::Else(id) => Some(id),
+            FalseBranch::None => None,
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]

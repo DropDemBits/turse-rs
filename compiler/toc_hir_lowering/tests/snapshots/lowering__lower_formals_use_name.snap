@@ -1,8 +1,6 @@
 ---
 source: compiler/toc_hir_lowering/tests/lowering.rs
-assertion_line: 59
 expression: "type i : int proc u (j : i) end u"
-
 ---
 Library@(dummy)
   Root@(dummy): FileId(1) -> ItemId(2)
@@ -13,7 +11,7 @@ Library@(dummy)
             Primitive@(FileId(1), 9..12): Int
         StmtItem@(FileId(1), 13..33): ItemId(1)
           Subprogram@(FileId(1), 13..33): "u"@(FileId(1), 18..19) ["j"@(FileId(1), 21..22)]
-            Alias@(FileId(1), 25..26): "i"@(FileId(1), 5..6), resolved(Type)
+            Alias@(FileId(1), 25..26): "i"@(FileId(1), 5..6)
             Void@(FileId(1), 13..27)
             StmtBody@(FileId(1), 28..28): ["j"@(FileId(1), 21..22)]
 

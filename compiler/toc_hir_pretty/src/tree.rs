@@ -12,11 +12,11 @@ use toc_hir::{
     item,
     library::{self, LoweredLibrary},
     stmt::{self, BodyStmt},
-    symbol::{LocalDefId, Mutability, SubprogramKind},
+    symbol::{self, LocalDefId, Mutability, SubprogramKind},
     ty,
     visitor::{HirVisitor, WalkEvent, Walker},
 };
-use toc_span::{HasSpanTable, SpanId};
+use toc_span::{HasSpanTable, SpanId, Spanned};
 
 pub fn pretty_print_tree(lowered: &LoweredLibrary) -> String {
     let mut output = String::new();
@@ -105,28 +105,26 @@ impl<'out, 'hir> PrettyVisitor<'out, 'hir> {
         format!("{name:?}@{def_span}")
     }
 
+    // TODO: fold the uses
     fn display_extra_def(&self, def_id: LocalDefId) -> String {
-        let def_info = self.library.local_def(def_id);
-        let def_display = self.display_def(def_id);
-        match def_info.declare_kind {
-            toc_hir::symbol::DeclareKind::Undeclared => {
-                format!("{def_display}, undeclared")
+        self.display_def(def_id)
+    }
+
+    fn display_extra_binding(&self, binding: Spanned<symbol::Symbol>) -> String {
+        match self.library.lookup_resolve(binding) {
+            Some(symbol::Resolve::Def(def_id)) => {
+                let def_info = self.library.local_def(def_id);
+                let name = def_info.name;
+                let def_span = self.display_span(def_info.def_at);
+
+                format!("{name:?}@{def_span}")
             }
-            toc_hir::symbol::DeclareKind::Forward(kind, None) => {
-                format!("{def_display}, unresolved forward({kind:?})")
+            Some(symbol::Resolve::Err) | None => {
+                let name = binding.item();
+                let bind_span = self.display_span(binding.span());
+
+                format!("{name:?}@{bind_span}, undeclared")
             }
-            toc_hir::symbol::DeclareKind::Forward(kind, Some(resolve_to)) => {
-                format!(
-                    "{}, forward({:?}) -> {}",
-                    def_display,
-                    kind,
-                    self.display_def(resolve_to)
-                )
-            }
-            toc_hir::symbol::DeclareKind::Resolved(kind) => {
-                format!("{def_display}, resolved({kind:?})")
-            }
-            _ => def_display,
         }
     }
 
@@ -494,8 +492,8 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
     fn visit_name(&self, id: BodyExpr, expr: &expr::Name) {
         let span = self.expr_span(id);
         match expr {
-            expr::Name::Name(def_id) => {
-                let extra = self.display_extra_def(*def_id);
+            expr::Name::Name(binding) => {
+                let extra = self.display_extra_binding(*binding);
                 self.emit_node("Name", span, Some(format_args!("{extra}")))
             }
             expr::Name::Self_ => self.emit_node("Self", span, None),
@@ -525,7 +523,7 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
     }
     fn visit_alias(&self, id: ty::TypeId, ty: &ty::Alias) {
         let span = self.type_span(id);
-        let extra = self.display_extra_def(*ty.base_def.item());
+        let extra = self.display_extra_binding(ty.base_def);
         let segments = ty
             .segments
             .iter()

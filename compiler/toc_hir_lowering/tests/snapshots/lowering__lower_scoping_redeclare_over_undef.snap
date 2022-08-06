@@ -1,7 +1,6 @@
 ---
 source: compiler/toc_hir_lowering/tests/lowering.rs
 expression: "a := a const a := 1"
-
 ---
 Library@(dummy)
   Root@(dummy): FileId(1) -> ItemId(1)
@@ -9,7 +8,7 @@ Library@(dummy)
       StmtBody@(FileId(1), 0..19): []
         Assign@(FileId(1), 0..6)
           Name@(FileId(1), 0..1): "a"@(FileId(1), 0..1), undeclared
-          Name@(FileId(1), 5..6): "a"@(FileId(1), 0..1), undeclared
+          Name@(FileId(1), 5..6): "a"@(FileId(1), 5..6), undeclared
         StmtItem@(FileId(1), 7..19): ItemId(0)
           ConstVar@(FileId(1), 7..19): const "a"@(FileId(1), 13..14)
             ExprBody@(FileId(1), 18..19)

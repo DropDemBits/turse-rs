@@ -8,7 +8,7 @@ use std::{
 };
 
 use toc_hir::library::LibraryId;
-use toc_hir::symbol::Symbol;
+use toc_hir::symbol::{Resolve, Symbol};
 use toc_hir::visitor::WalkNode;
 use toc_hir::{
     body,
@@ -21,7 +21,7 @@ use toc_hir::{
     ty,
     visitor::{HirVisitor, WalkEvent, Walker},
 };
-use toc_span::{HasSpanTable, SpanId};
+use toc_span::{HasSpanTable, SpanId, Spanned};
 
 const IS_LR_LAYOUT: bool = true;
 
@@ -226,6 +226,22 @@ impl<'out, 'hir> PrettyVisitor<'out, 'hir> {
         format!("'{name}'\\n({def_id:?})")
     }
 
+    fn display_binding(&self, binding: Spanned<Symbol>) -> String {
+        match self.library.lookup_resolve(binding) {
+            Some(Resolve::Def(def_id)) => {
+                let def_info = self.library.local_def(def_id);
+                let name = escape_def_name(def_info.name);
+
+                format!("'{name}'\\n({def_id:?})")
+            }
+            Some(Resolve::Err) | None => {
+                let name = escape_def_name(*binding.item());
+
+                format!("'{name}'\\n(undeclared)")
+            }
+        }
+    }
+
     fn layout_param_info(&self, info: &ty::Parameter) -> Layout {
         let mut h_layout = vec![];
 
@@ -331,7 +347,7 @@ impl<'out, 'hir> PrettyVisitor<'out, 'hir> {
                     "at: '{span}'",
                     span = self.display_span(def_info.def_at)
                 )),
-                Layout::Node(format!("kind: {kind:?}", kind = def_info.declare_kind)),
+                Layout::Node(format!("kind: {kind:?}", kind = def_info.kind)),
             ]),
         )
     }
@@ -924,7 +940,7 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
             format!("{stmt_id}:true_branch"),
             self.stmt_id(BodyStmt(id.0, stmt.true_branch)),
         );
-        if let Some(false_branch) = stmt.false_branch {
+        if let Some(false_branch) = stmt.false_branch.stmt() {
             self.emit_edge(
                 format!("{stmt_id}:false_branch"),
                 self.stmt_id(BodyStmt(id.0, false_branch)),
@@ -1140,7 +1156,7 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
 
     fn visit_name(&self, id: BodyExpr, expr: &expr::Name) {
         let (name, layout) = match expr {
-            expr::Name::Name(def_id) => ("Name", Layout::Node(self.display_def_id(*def_id))),
+            expr::Name::Name(binding) => ("Name", Layout::Node(self.display_binding(*binding))),
             expr::Name::Self_ => ("Self", Layout::Empty),
         };
 
@@ -1235,18 +1251,15 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
     }
 
     fn visit_alias(&self, id: ty::TypeId, ty: &ty::Alias) {
-        let mut name = self.display_def_id(*ty.base_def.item());
+        let mut name = self.display_binding(ty.base_def);
+        let base_name = name.clone();
 
         for segment in &ty.segments {
             name.push('.');
             name.push_str(segment.item().name());
         }
 
-        self.emit_type(
-            id,
-            "Alias",
-            Layout::Node(self.display_def_id(*ty.base_def.item())),
-        );
+        self.emit_type(id, "Alias", Layout::Node(base_name));
     }
 
     fn visit_constrained(&self, id: ty::TypeId, ty: &ty::Constrained) {

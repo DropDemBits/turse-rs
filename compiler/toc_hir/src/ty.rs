@@ -102,8 +102,8 @@ pub enum SeqLength {
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub struct Alias {
-    /// [`LocalDefId`](symbol::LocalDefId) to start working through
-    pub base_def: Spanned<symbol::LocalDefId>,
+    /// [`Symbol`] to start walking through
+    pub base_def: Spanned<Symbol>,
     /// Names of each segment to lookup
     pub segments: Vec<Spanned<Symbol>>,
 }

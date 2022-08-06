@@ -2,18 +2,18 @@
 use std::collections::HashMap;
 
 use indexmap::IndexMap;
-use toc_hir::symbol::{syms, IsMonitor, IsRegister, LocalDefId, SubprogramKind, SymbolKind};
+use toc_hir::symbol::{syms, IsMonitor, IsRegister, SubprogramKind, SymbolKind};
 use toc_hir::ty::PassBy;
 use toc_hir::{
     expr, item,
     stmt::{self, Assign},
-    symbol::{self, DeclareKind, ForwardKind, LimitedKind, Mutability, Symbol},
+    symbol::{self, Mutability, Symbol},
     ty,
 };
 use toc_span::{HasSpanTable, Span, SpanId, Spanned};
 use toc_syntax::ast::{self, AstNode};
 
-use crate::{lower::LoweredStmt, scopes::ScopeKind};
+use crate::lower::LoweredStmt;
 
 impl super::BodyLowering<'_, '_> {
     pub(super) fn lower_stmt(&mut self, stmt: ast::Stmt) -> Option<LoweredStmt> {
@@ -127,7 +127,7 @@ impl super::BodyLowering<'_, '_> {
         let type_spec = decl.type_spec().and_then(|ty| self.lower_type(ty));
         let init_expr = decl.init().map(|expr| self.ctx.lower_expr_body(expr));
 
-        // Declare names after uses to prevent def-use cycles
+        // Still declared here, but can be moved up
         let names = self.lower_name_list(
             decl.decl_list(),
             SymbolKind::ConstVar(mutability, is_register.into()),
@@ -181,28 +181,16 @@ impl super::BodyLowering<'_, '_> {
 
         let is_pervasive = decl.pervasive_attr().is_some();
 
-        let (type_def, decl_kind) = if let Some(forward) = decl.forward_token() {
+        let type_def = if let Some(forward) = decl.forward_token() {
             let token_span = self.ctx.intern_range(forward.text_range());
-            (
-                item::DefinedType::Forward(token_span),
-                DeclareKind::Forward(ForwardKind::Type, None),
-            )
+            item::DefinedType::Forward(token_span)
         } else {
             let ty = self.lower_required_type(decl.named_ty());
-            (
-                item::DefinedType::Alias(ty),
-                DeclareKind::Resolved(ForwardKind::Type),
-            )
+            item::DefinedType::Alias(ty)
         };
 
-        // Declare name after type to prevent def-use cycles
-        let def_id = self.lower_maybe_name_def(
-            decl.decl_name(),
-            SymbolKind::Type,
-            decl_kind,
-            is_pervasive,
-            span,
-        );
+        let def_id =
+            self.lower_maybe_name_def(decl.decl_name(), SymbolKind::Type, is_pervasive, span);
 
         let span = self.ctx.intern_range(decl.syntax().text_range());
 
@@ -232,7 +220,6 @@ impl super::BodyLowering<'_, '_> {
                 let def_id = self.lower_maybe_name_def(
                     binding.bind_as(),
                     SymbolKind::Binding(mutability, is_register.into()),
-                    DeclareKind::Declared,
                     false,
                     span,
                 );
@@ -274,7 +261,6 @@ impl super::BodyLowering<'_, '_> {
         let def_id = self.lower_maybe_name_def(
             subprog_header.name(),
             SymbolKind::Subprogram(SubprogramKind::Procedure),
-            DeclareKind::Declared,
             is_pervasive,
             span,
         );
@@ -312,7 +298,6 @@ impl super::BodyLowering<'_, '_> {
         let def_id = self.lower_maybe_name_def(
             subprog_header.name(),
             SymbolKind::Subprogram(SubprogramKind::Function),
-            DeclareKind::Declared,
             is_pervasive,
             span,
         );
@@ -347,7 +332,6 @@ impl super::BodyLowering<'_, '_> {
         let def_id = self.lower_maybe_name_def(
             subprog_header.name(),
             SymbolKind::Subprogram(SubprogramKind::Process),
-            DeclareKind::Declared,
             is_pervasive,
             span,
         );
@@ -389,82 +373,76 @@ impl super::BodyLowering<'_, '_> {
         let mut tys = vec![];
 
         // Prevent duplication of param names
-        self.ctx.scopes.push_scope(ScopeKind::SubprogramHeader);
-        {
-            let missing_name = self.ctx.library.add_def(
-                *syms::Unnamed,
-                self.ctx.library.span_table().dummy_span(),
-                None,
-                DeclareKind::Undeclared,
-            );
+        let missing_name = self.ctx.library.add_def(
+            *syms::Unnamed,
+            self.ctx.library.span_table().dummy_span(),
+            None,
+        );
 
-            for param_def in formals.param_decl() {
-                match param_def {
-                    ast::ParamDecl::ConstVarParam(param) => {
-                        let is_register = param.bind_to_register().is_some();
-                        let pass_by = match param.pass_as_ref() {
-                            None => PassBy::Value,
-                            Some(_) => PassBy::Reference(Mutability::Var),
-                        };
-                        let coerced_type = param.coerce_type().is_some();
-                        let param_ty = self.lower_required_type(param.param_ty());
+        for param_def in formals.param_decl() {
+            match param_def {
+                ast::ParamDecl::ConstVarParam(param) => {
+                    let is_register = param.bind_to_register().is_some();
+                    let pass_by = match param.pass_as_ref() {
+                        None => PassBy::Value,
+                        Some(_) => PassBy::Reference(Mutability::Var),
+                    };
+                    let coerced_type = param.coerce_type().is_some();
+                    let param_ty = self.lower_required_type(param.param_ty());
 
-                        let names = self.lower_name_list_with_missing(
-                            param.param_names(),
-                            SymbolKind::Param(pass_by, is_register.into()),
-                            false,
-                            missing_name,
-                        );
+                    let names = self.lower_name_list_with_missing(
+                        param.param_names(),
+                        SymbolKind::Param(pass_by, is_register.into()),
+                        false,
+                        missing_name,
+                    );
 
-                        for name in names {
-                            param_names.push(name);
-
-                            tys.push(Parameter {
-                                is_register,
-                                pass_by,
-                                coerced_type,
-                                param_ty,
-                            });
-                        }
-                    }
-                    ast::ParamDecl::SubprogType(param) => {
-                        let (name, param_ty) = match param {
-                            ast::SubprogType::FcnType(ty) => {
-                                let name = ty.name();
-                                let param_ty = self
-                                    .lower_type(ast::Type::FcnType(ty))
-                                    .expect("from known existing type");
-                                (name, param_ty)
-                            }
-                            ast::SubprogType::ProcType(ty) => {
-                                let name = ty.name();
-                                let param_ty = self
-                                    .lower_type(ast::Type::ProcType(ty))
-                                    .expect("from known existing type");
-                                (name, param_ty)
-                            }
-                        };
-
-                        let name = name.map_or(missing_name, |name| {
-                            self.lower_name_def(
-                                name,
-                                SymbolKind::Param(PassBy::Value, IsRegister::No),
-                                DeclareKind::Declared,
-                                false,
-                            )
-                        });
+                    for name in names {
                         param_names.push(name);
 
                         tys.push(Parameter {
-                            is_register: false,
-                            pass_by: PassBy::Value,
-                            coerced_type: false,
+                            is_register,
+                            pass_by,
+                            coerced_type,
                             param_ty,
-                        })
+                        });
                     }
                 }
+                ast::ParamDecl::SubprogType(param) => {
+                    let (name, param_ty) = match param {
+                        ast::SubprogType::FcnType(ty) => {
+                            let name = ty.name();
+                            let param_ty = self
+                                .lower_type(ast::Type::FcnType(ty))
+                                .expect("from known existing type");
+                            (name, param_ty)
+                        }
+                        ast::SubprogType::ProcType(ty) => {
+                            let name = ty.name();
+                            let param_ty = self
+                                .lower_type(ast::Type::ProcType(ty))
+                                .expect("from known existing type");
+                            (name, param_ty)
+                        }
+                    };
+
+                    let name = name.map_or(missing_name, |name| {
+                        self.lower_name_def(
+                            name,
+                            SymbolKind::Param(PassBy::Value, IsRegister::No),
+                            false,
+                        )
+                    });
+                    param_names.push(name);
+
+                    tys.push(Parameter {
+                        is_register: false,
+                        pass_by: PassBy::Value,
+                        coerced_type: false,
+                        param_ty,
+                    })
+                }
             }
-            self.ctx.scopes.pop_scope();
         }
 
         Some(item::ParamList {
@@ -493,7 +471,6 @@ impl super::BodyLowering<'_, '_> {
                     name,
                     // ???: Does this need to be pass by value? (can it be pass by const ref?)
                     SymbolKind::Param(PassBy::Value, IsRegister::No),
-                    DeclareKind::LimitedDeclared(LimitedKind::PostCondition),
                 )
             });
             (name, result.ty())
@@ -520,22 +497,11 @@ impl super::BodyLowering<'_, '_> {
             .as_ref()
             .map_or(vec![], |params| params.names.clone());
 
-        self.ctx.scopes.push_scope(ScopeKind::Subprogram);
-        let (body, imports) = {
-            // Lowering needs to be done inside of the target scope
-            let (imports, import_defs) = self.lower_import_list(decl.import_stmt());
+        let imports = self.lower_import_list(decl.import_stmt());
 
-            let (body, _) = self.ctx.lower_stmt_body(
-                ScopeKind::Block,
-                decl.stmt_list().unwrap(),
-                param_defs,
-                result_name,
-                &import_defs,
-            );
-
-            (body, imports)
-        };
-        self.ctx.scopes.pop_scope();
+        let (body, _) =
+            self.ctx
+                .lower_stmt_body(decl.stmt_list().unwrap(), param_defs, result_name);
 
         item::SubprogramBody { body, imports }
     }
@@ -546,7 +512,6 @@ impl super::BodyLowering<'_, '_> {
         let def_id = self.lower_maybe_name_def(
             decl.name(),
             SymbolKind::Module(IsMonitor::No),
-            DeclareKind::Declared,
             is_pervasive,
             span,
         );
@@ -557,41 +522,26 @@ impl super::BodyLowering<'_, '_> {
         self.unsupported_node(decl.pre_stmt());
         self.unsupported_node(decl.post_stmt());
 
-        self.ctx.scopes.push_scope(ScopeKind::Module);
         let (body, declares, imports) = {
             // Build imports
-            let (imports, import_defs) = self.lower_import_list(decl.import_stmt());
-
-            if !is_pervasive {
-                // Also make visible in the inner scope if it's not pervasive
-                self.ctx.introduce_def(def_id, false);
-            };
+            let imports = self.lower_import_list(decl.import_stmt());
 
             // Lower the rest of the body
-            let (body, declares) = self.ctx.lower_stmt_body(
-                ScopeKind::Block, // We're already inside an import boundary
-                decl.stmt_list().unwrap(),
-                vec![],
-                None,
-                &import_defs,
-            );
+            let (body, declares) =
+                self.ctx
+                    .lower_stmt_body(decl.stmt_list().unwrap(), vec![], None);
 
             (body, declares, imports)
         };
-        self.ctx.scopes.pop_scope();
 
         let exports = self.lower_export_list(decl.export_stmt(), &declares);
 
-        // Introduce unqualified exports into the current scope
-        for export in exports.iter().filter(|item| {
-            matches!(
-                item.qualify_as,
-                item::QualifyAs::Unqualified | item::QualifyAs::PervasiveUnqualified
-            )
-        }) {
-            let is_pervasive = matches!(export.qualify_as, item::QualifyAs::PervasiveUnqualified);
-
-            self.ctx.introduce_def(export.def_id, is_pervasive);
+        // Mark pervasive unqualifieds as being pervasive
+        for export in exports
+            .iter()
+            .filter(|item| matches!(item.qualify_as, item::QualifyAs::PervasiveUnqualified))
+        {
+            self.ctx.pervasive_tracker.mark_pervasive(export.def_id);
         }
 
         let span = self.ctx.intern_range(decl.syntax().text_range());
@@ -616,7 +566,7 @@ impl super::BodyLowering<'_, '_> {
     pub(super) fn lower_import_list(
         &mut self,
         imports: Option<ast::ImportStmt>,
-    ) -> (Vec<item::ItemId>, Vec<LocalDefId>) {
+    ) -> Vec<item::ItemId> {
         use std::collections::hash_map::Entry;
 
         let imports = if let Some(imports) = imports {
@@ -626,7 +576,7 @@ impl super::BodyLowering<'_, '_> {
         };
 
         let mut import_list = vec![];
-        let mut import_defs = vec![];
+        // let mut import_defs = vec![];
         let mut already_imported = HashMap::new();
 
         for import in imports.imports().unwrap().import_item() {
@@ -737,34 +687,8 @@ impl super::BodyLowering<'_, '_> {
                 );
             }
 
-            // Make an imported def
-            // Resolve it right now
-            let imported_def = if let Some(def_id) = self.ctx.scopes.import_sym(name_text.into()) {
-                def_id
-            } else {
-                // Make an undeclared
-                let def_at = self.ctx.mk_span(name.syntax().text_range());
-                let name = name_text;
-
-                self.ctx.messages.error(
-                    format!("`{name}` could not be imported"),
-                    format!("no definitions of `{name}` found in the surrounding scope"),
-                    def_at,
-                );
-
-                let def_at = self.ctx.library.intern_span(def_at);
-                self.ctx
-                    .library
-                    .add_def(name.into(), def_at, None, symbol::DeclareKind::Undeclared)
-            };
-
             let span = self.ctx.intern_range(import.syntax().text_range());
-            let def_id = self.name_to_def(
-                name,
-                SymbolKind::Import,
-                DeclareKind::ItemImport(imported_def),
-            );
-            import_defs.push(def_id);
+            let def_id = self.name_to_def(name, SymbolKind::Import);
 
             let item_id = self.ctx.library.add_item(item::Item {
                 def_id,
@@ -778,7 +702,7 @@ impl super::BodyLowering<'_, '_> {
             import_list.push(item_id);
         }
 
-        (import_list, import_defs)
+        import_list
     }
 
     fn lower_export_list(
@@ -911,12 +835,10 @@ impl super::BodyLowering<'_, '_> {
                         Mutability::Const
                     };
 
-                    let item_def = item.def_id;
                     let def_id = self.ctx.library.add_def(
                         export_name,
                         export_span,
                         Some(SymbolKind::Export),
-                        DeclareKind::ItemExport(item_def),
                     );
 
                     item::ExportItem {
@@ -1050,13 +972,11 @@ impl super::BodyLowering<'_, '_> {
                                 mutability
                             };
 
-                        let item_def = item.def_id;
                         let export_span = self.ctx.intern_range(name_tok.text_range());
                         let def_id = self.ctx.library.add_def(
                             name_text,
                             export_span,
                             Some(SymbolKind::Export),
-                            DeclareKind::ItemExport(item_def),
                         );
 
                         Some(item::ExportItem {
@@ -1234,23 +1154,15 @@ impl super::BodyLowering<'_, '_> {
             .and_then(|step_by| step_by.expr())
             .map(|expr| self.lower_expr(expr));
 
-        let counter_def;
-        let body_stmts;
+        let counter_def = name.map(|name| {
+            self.lower_name_def(
+                name,
+                SymbolKind::ConstVar(Mutability::Const, IsRegister::No),
+                false,
+            )
+        });
 
-        self.ctx.scopes.push_scope(ScopeKind::Loop);
-        {
-            // counter is only available inside of the loop body
-            counter_def = name.map(|name| {
-                self.lower_name_def(
-                    name,
-                    SymbolKind::ConstVar(Mutability::Const, IsRegister::No),
-                    symbol::DeclareKind::Declared,
-                    false,
-                )
-            });
-            body_stmts = self.lower_stmt_list(stmt.stmt_list().unwrap());
-        }
-        self.ctx.scopes.pop_scope();
+        let body_stmts = self.lower_stmt_list(stmt.stmt_list().unwrap());
 
         stmt::StmtKind::For(stmt::For {
             is_decreasing,
@@ -1262,9 +1174,7 @@ impl super::BodyLowering<'_, '_> {
     }
 
     fn lower_loop_stmt(&mut self, stmt: ast::LoopStmt) -> stmt::StmtKind {
-        self.ctx.scopes.push_scope(ScopeKind::Loop);
         let stmts = self.lower_stmt_list(stmt.stmt_list().unwrap());
-        self.ctx.scopes.pop_scope();
 
         stmt::StmtKind::Loop(stmt::Loop { stmts })
     }
@@ -1283,31 +1193,26 @@ impl super::BodyLowering<'_, '_> {
         let condition = self.lower_required_expr(if_body.condition());
 
         // Create block stmt for the true branch
-        self.ctx.scopes.push_scope(ScopeKind::Block);
-        let true_branch =
-            self.lower_stmt_list_to_block(if_body.true_branch().unwrap(), ScopeKind::Block);
-        self.ctx.scopes.pop_scope();
+        let true_branch = self.lower_stmt_list_to_block(if_body.true_branch().unwrap());
 
         // Handle the false branch
-        let false_branch = if_body.false_branch().map(|branch| match branch {
-            ast::FalseBranch::ElseStmt(stmt) => {
+        let false_branch = match if_body.false_branch() {
+            Some(ast::FalseBranch::ElseStmt(stmt)) => {
                 // Simple, just lower to a stmt block
-                self.ctx.scopes.push_scope(ScopeKind::Block);
-                let else_branch =
-                    self.lower_stmt_list_to_block(stmt.stmt_list().unwrap(), ScopeKind::Block);
-                self.ctx.scopes.pop_scope();
+                let else_branch = self.lower_stmt_list_to_block(stmt.stmt_list().unwrap());
 
-                else_branch
+                stmt::FalseBranch::Else(else_branch)
             }
-            ast::FalseBranch::ElseifStmt(stmt) => {
+            Some(ast::FalseBranch::ElseifStmt(stmt)) => {
                 // Also simple, just reuse our lowering of if bodies
                 let range = stmt.syntax().text_range();
                 let span = self.ctx.library.intern_span(self.ctx.mk_span(range));
                 let kind = self.lower_if_stmt_body(stmt.if_body().unwrap());
 
-                self.body.add_stmt(stmt::Stmt { kind, span })
+                stmt::FalseBranch::ElseIf(self.body.add_stmt(stmt::Stmt { kind, span }))
             }
-        });
+            None => stmt::FalseBranch::None,
+        };
 
         stmt::StmtKind::If(stmt::If {
             condition,
@@ -1337,9 +1242,7 @@ impl super::BodyLowering<'_, '_> {
                     stmt::CaseSelector::Exprs(selectors)
                 };
 
-                self.ctx.scopes.push_scope(ScopeKind::Block);
                 let stmts = self.lower_stmt_list(arm.stmt_list().unwrap());
-                self.ctx.scopes.pop_scope();
 
                 stmt::CaseArm { selectors, stmts }
             })
@@ -1354,9 +1257,7 @@ impl super::BodyLowering<'_, '_> {
     fn lower_block_stmt(&mut self, stmt: ast::BlockStmt) -> stmt::StmtKind {
         let stmt_list = stmt.stmt_list().unwrap();
 
-        self.ctx.scopes.push_scope(ScopeKind::Block);
         let stmts = self.lower_stmt_list(stmt_list);
-        self.ctx.scopes.pop_scope();
 
         stmt::StmtKind::Block(stmt::Block {
             kind: stmt::BlockKind::Normal,
@@ -1399,16 +1300,10 @@ impl super::BodyLowering<'_, '_> {
 impl super::BodyLowering<'_, '_> {
     // Utils //
 
-    fn lower_stmt_list_to_block(
-        &mut self,
-        stmt_list: ast::StmtList,
-        as_kind: ScopeKind,
-    ) -> stmt::StmtId {
+    fn lower_stmt_list_to_block(&mut self, stmt_list: ast::StmtList) -> stmt::StmtId {
         let range = stmt_list.syntax().text_range();
 
-        self.ctx.scopes.push_scope(as_kind);
         let stmts = self.lower_stmt_list(stmt_list);
-        self.ctx.scopes.pop_scope();
 
         let kind = stmt::StmtKind::Block(stmt::Block {
             kind: stmt::BlockKind::Normal,
@@ -1433,9 +1328,7 @@ impl super::BodyLowering<'_, '_> {
         let mut names = if let Some(name_list) = name_list {
             name_list
                 .names()
-                .map(|name| {
-                    self.lower_name_def(name, kind, symbol::DeclareKind::Declared, is_pervasive)
-                })
+                .map(|name| self.lower_name_def(name, kind, is_pervasive))
                 .collect()
         } else {
             vec![]
@@ -1443,12 +1336,7 @@ impl super::BodyLowering<'_, '_> {
 
         // Names list must contain at least one name
         if names.is_empty() {
-            names.push(self.ctx.library.add_def(
-                *syms::Unnamed,
-                default_span,
-                None,
-                DeclareKind::Undeclared,
-            ))
+            names.push(self.ctx.library.add_def(*syms::Unnamed, default_span, None))
         }
 
         names
@@ -1468,12 +1356,7 @@ impl super::BodyLowering<'_, '_> {
                 name_list
                     .names_with_missing()
                     .map(|name| match name {
-                        Some(name) => self.lower_name_def(
-                            name,
-                            kind,
-                            symbol::DeclareKind::Declared,
-                            is_pervasive,
-                        ),
+                        Some(name) => self.lower_name_def(name, kind, is_pervasive),
                         None => fill_with,
                     })
                     .collect::<Vec<_>>()
@@ -1492,16 +1375,13 @@ impl super::BodyLowering<'_, '_> {
         &mut self,
         name: ast::Name,
         kind: SymbolKind,
-        declare_kind: DeclareKind,
         is_pervasive: bool,
     ) -> symbol::LocalDefId {
-        // Can't declare an undefined symbol from a name def
-        assert_ne!(declare_kind, DeclareKind::Undeclared);
+        let def_id = self.name_to_def(name, kind);
 
-        let def_id = self.name_to_def(name, kind, declare_kind);
-
-        // Bring into scope
-        self.ctx.introduce_def(def_id, is_pervasive);
+        if is_pervasive {
+            self.ctx.pervasive_tracker.mark_pervasive(def_id);
+        }
 
         def_id
     }
@@ -1510,34 +1390,23 @@ impl super::BodyLowering<'_, '_> {
         &mut self,
         name: Option<ast::Name>,
         kind: SymbolKind,
-        declare_kind: DeclareKind,
         is_pervasive: bool,
         default_span: SpanId,
     ) -> symbol::LocalDefId {
-        // Can't declare an undefined symbol from a name def
-        assert_ne!(declare_kind, DeclareKind::Undeclared);
-
         if let Some(name) = name {
-            self.lower_name_def(name, kind, declare_kind, is_pervasive)
+            self.lower_name_def(name, kind, is_pervasive)
         } else {
             // Undeclared version
-            self.ctx
-                .library
-                .add_def(*syms::Unnamed, default_span, None, DeclareKind::Undeclared)
+            self.ctx.library.add_def(*syms::Unnamed, default_span, None)
         }
     }
 
-    fn name_to_def(
-        &mut self,
-        name: ast::Name,
-        kind: SymbolKind,
-        declare_kind: DeclareKind,
-    ) -> symbol::LocalDefId {
+    fn name_to_def(&mut self, name: ast::Name, kind: SymbolKind) -> symbol::LocalDefId {
         let token = name.identifier_token().unwrap();
         let span = self.ctx.intern_range(token.text_range());
         self.ctx
             .library
-            .add_def(token.text().into(), span, Some(kind), declare_kind)
+            .add_def(token.text().into(), span, Some(kind))
     }
 }
 

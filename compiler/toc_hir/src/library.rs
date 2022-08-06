@@ -4,9 +4,13 @@ use std::sync::Arc;
 
 use indexmap::IndexMap;
 use la_arena::Arena;
-use toc_span::{FileId, HasSpanTable, SpanTable};
+use toc_span::{FileId, HasSpanTable, SpanTable, Spanned};
 
-use crate::{body, item, symbol, ty};
+use crate::{
+    body, item,
+    symbol::{self, ResolutionMap},
+    ty,
+};
 
 pub use crate::ids::LibraryId;
 
@@ -60,6 +64,7 @@ pub struct Library {
     pub(crate) items: Arena<item::Item>,
     pub(crate) defs: Arena<symbol::DefInfo>,
     pub(crate) bodies: Arena<body::Body>,
+    pub(crate) resolve_map: ResolutionMap,
 }
 
 impl std::fmt::Debug for Library {
@@ -92,6 +97,10 @@ impl Library {
 
     pub fn lookup_type(&self, type_id: ty::TypeId) -> &ty::Type {
         self.type_map.lookup_type(type_id)
+    }
+
+    pub fn lookup_resolve(&self, binding: Spanned<symbol::Symbol>) -> Option<symbol::Resolve> {
+        self.resolve_map.resolves.get(&binding).copied()
     }
 
     pub fn local_defs(&self) -> impl Iterator<Item = symbol::LocalDefId> + '_ {

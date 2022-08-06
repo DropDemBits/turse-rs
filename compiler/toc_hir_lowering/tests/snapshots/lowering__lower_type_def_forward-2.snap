@@ -1,8 +1,6 @@
 ---
 source: compiler/toc_hir_lowering/tests/lowering.rs
-assertion_line: 59
 expression: "\n    type a : forward\n    type a : forward\n    type use_it : a\n    type a : int\n    "
-
 ---
 Library@(dummy)
   Root@(dummy): FileId(1) -> ItemId(4)
@@ -14,7 +12,7 @@ Library@(dummy)
           Type@(FileId(1), 26..42): forward "a"@(FileId(1), 31..32)
         StmtItem@(FileId(1), 47..62): ItemId(2)
           Type@(FileId(1), 47..62): "use_it"@(FileId(1), 52..58)
-            Alias@(FileId(1), 61..62): "a"@(FileId(1), 31..32), forward(Type) -> "a"@(FileId(1), 72..73)
+            Alias@(FileId(1), 61..62): "a"@(FileId(1), 31..32)
         StmtItem@(FileId(1), 67..79): ItemId(3)
           Type@(FileId(1), 67..79): "a"@(FileId(1), 72..73)
             Primitive@(FileId(1), 76..79): Int

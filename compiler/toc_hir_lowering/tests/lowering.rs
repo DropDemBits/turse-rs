@@ -921,6 +921,9 @@ fn lower_procedure_def() {
 
     // Missing both names
     assert_lower("proc end");
+
+    // Make sure extra is resolved
+    assert_lower("var lmao : int proc uwu : lmao end uwu");
 }
 
 #[test]
@@ -1065,6 +1068,9 @@ fn lower_process_def() {
 
     // Missing both names
     assert_lower("process end");
+
+    // Make sure extra is resolved
+    assert_lower("var lmao : int process uwu : lmao end uwu");
 }
 
 #[test]

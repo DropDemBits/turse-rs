@@ -117,6 +117,14 @@ impl BodyStmt {
     pub fn with_stmt(self, stmt: StmtId) -> Self {
         BodyStmt(self.0, stmt)
     }
+
+    pub fn body(self) -> BodyId {
+        self.0
+    }
+
+    pub fn stmt(self) -> StmtId {
+        self.1
+    }
 }
 
 /// Uniquely identifies an expression within a library
@@ -127,17 +135,25 @@ impl BodyExpr {
     pub fn with_expr(self, expr: ExprId) -> Self {
         BodyExpr(self.0, expr)
     }
+
+    pub fn body(self) -> BodyId {
+        self.0
+    }
+
+    pub fn expr(self) -> ExprId {
+        self.1
+    }
 }
 
 impl ExprId {
-    pub fn in_body(self, body: BodyId) -> BodyExpr {
-        BodyExpr(body, self)
+    pub fn in_body(self, body_id: BodyId) -> BodyExpr {
+        BodyExpr(body_id, self)
     }
 }
 
 impl StmtId {
-    pub fn in_body(self, body: body::BodyId) -> BodyStmt {
-        BodyStmt(body, self)
+    pub fn in_body(self, body_id: body::BodyId) -> BodyStmt {
+        BodyStmt(body_id, self)
     }
 }
 

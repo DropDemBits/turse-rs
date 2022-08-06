@@ -167,9 +167,9 @@ pub enum UnaryOp {
 #[derive(Debug, PartialEq, Eq)]
 pub enum Name {
     /// Normal identifier reference
-    Name(symbol::LocalDefId),
+    Name(Spanned<symbol::Symbol>),
     /// Reference to `self`
-    // TODO: Link a use-id to the appropriate class DefId
+    // FIXME: Resolve to the appropriate class DefId
     Self_,
 }
 

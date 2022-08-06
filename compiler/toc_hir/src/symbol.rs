@@ -3,8 +3,9 @@
 
 use std::fmt;
 
+use indexmap::IndexMap;
 use la_arena::ArenaMap;
-use toc_span::SpanId;
+use toc_span::{SpanId, Spanned};
 
 pub use crate::ids::{DefId, LocalDefId};
 use crate::{
@@ -67,9 +68,9 @@ pub struct DefInfo {
     /// What kind of declaration this definition refers to,
     /// or `None` if it's from an undeclared definition.
     pub kind: Option<SymbolKind>,
-    /// How this definition was declared
+    // How this definition was declared
     // ???: Can we punt this to only be during construction?
-    pub declare_kind: DeclareKind,
+    // pub declare_kind: DeclareKind,
 }
 
 /// What kind of item this symbol references.
@@ -247,8 +248,8 @@ pub enum DeclareKind {
 
     // TODO: Shunt this info into a libray local import table/resolution map?
     /// The symbol is of an imported item, optionally with a [`LocalDefId`]
-    /// pointing to the original item (or an undeclared definition).
-    ItemImport(LocalDefId),
+    /// pointing to the original item, or `None` if there isn't one.
+    ItemImport(Option<LocalDefId>),
 }
 
 /// Disambiguates between different forward declaration kinds
@@ -305,6 +306,22 @@ pub enum SubprogramKind {
     Process,
 }
 
+/// What a binding might resolve to
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Resolve {
+    /// Resolves to a local def
+    Def(LocalDefId),
+    /// Doesn't resolve to any def, either because it's undeclared
+    /// or not visible at the binding's resolution point.
+    Err,
+}
+
+/// Library-local map of bindings to their corresponding [`Resolve`]
+#[derive(Debug, PartialEq, Eq, Default)]
+pub struct ResolutionMap {
+    pub resolves: IndexMap<Spanned<Symbol>, Resolve>,
+}
+
 /// Mapping between a [`LocalDefId`] and the corresponding [`DefOwner`]
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct DefTable {
@@ -318,5 +335,33 @@ impl DefTable {
 
     pub fn get_owner(&self, def_id: LocalDefId) -> Option<DefOwner> {
         self.def_owners.get(def_id.0).copied()
+    }
+}
+
+/// Mapping between a [`LocalDefId`] and the coresponding `T`
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct DefMap<T> {
+    map: ArenaMap<LocalDefIndex, T>,
+}
+
+impl<T> DefMap<T> {
+    pub fn insert(&mut self, def_id: LocalDefId, value: T) {
+        self.map.insert(def_id.0, value)
+    }
+
+    pub fn get(&self, def_id: LocalDefId) -> Option<&T> {
+        self.map.get(def_id.0)
+    }
+
+    pub fn get_mut(&mut self, def_id: LocalDefId) -> Option<&mut T> {
+        self.map.get_mut(def_id.0)
+    }
+}
+
+impl<T> Default for DefMap<T> {
+    fn default() -> Self {
+        Self {
+            map: Default::default(),
+        }
     }
 }
