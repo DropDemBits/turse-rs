@@ -1,15 +1,13 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 42
 expression: "module a export b, var c\n    var b : int\n    const c : int := 1\nend a\na.b := 1\na.c := 2\n"
-
 ---
-"a"@(FileId(1), 7..8) [Declared]: <error>
-"b"@(FileId(1), 33..34) [Declared]: int
-"c"@(FileId(1), 51..52) [Declared]: int
-"b"@(FileId(1), 16..17) [ItemExport(LocalDefId(1))]: int
-"c"@(FileId(1), 23..24) [ItemExport(LocalDefId(2))]: int
-"<root>"@(dummy) [Declared]: <error>
+"a"@(FileId(1), 7..8) [Module(No)]: <error>
+"b"@(FileId(1), 33..34) [ConstVar(Var, No)]: int
+"c"@(FileId(1), 51..52) [ConstVar(Const, No)]: int
+"b"@(FileId(1), 16..17) [Export]: int
+"c"@(FileId(1), 23..24) [Export]: int
+"<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 74..76: cannot assign into `b`
 | error in file FileId(1) for 70..73: `b` is not exported as `var`

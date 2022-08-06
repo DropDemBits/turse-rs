@@ -1,7 +1,6 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-expression: "for : 1 .. end for"
-
+expression: "for : .. 1 end for"
 ---
-"<root>"@(dummy) [Declared]: <error>
+"<root>"@(dummy) [Module(No)]: <error>
 

@@ -2,14 +2,14 @@
 source: compiler/toc_analysis/src/typeck/test.rs
 expression: "module k\n    export opaque ~.* t, f\n\n    type t : int\n\n    fcn f() : t loop end loop end f\nend k\n\nvar a : t\nvar b := k.f()\nvar c : k.t\n"
 ---
-"k"@(FileId(1), 7..8) [Declared]: <error>
-"t"@(FileId(1), 46..47) [Resolved(Type)]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
-"f"@(FileId(1), 63..64) [Declared]: function ( ) -> opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
+"k"@(FileId(1), 7..8) [Module(No)]: <error>
+"t"@(FileId(1), 46..47) [Type]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
+"f"@(FileId(1), 63..64) [Subprogram(Function)]: function ( ) -> opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
 "<unnamed>"@(dummy) [Undeclared]: <error>
-"t"@(FileId(1), 31..32) [ItemExport(LocalDefId(1))]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
-"f"@(FileId(1), 34..35) [ItemExport(LocalDefId(2))]: function ( ) -> opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
-"a"@(FileId(1), 102..103) [Declared]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
-"b"@(FileId(1), 112..113) [Declared]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
-"c"@(FileId(1), 127..128) [Declared]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
-"<root>"@(dummy) [Declared]: <error>
+"t"@(FileId(1), 31..32) [Export]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
+"f"@(FileId(1), 34..35) [Export]: function ( ) -> opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
+"a"@(FileId(1), 102..103) [ConstVar(Var, No)]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
+"b"@(FileId(1), 112..113) [ConstVar(Var, No)]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
+"c"@(FileId(1), 127..128) [ConstVar(Var, No)]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
+"<root>"@(dummy) [Module(No)]: <error>
 

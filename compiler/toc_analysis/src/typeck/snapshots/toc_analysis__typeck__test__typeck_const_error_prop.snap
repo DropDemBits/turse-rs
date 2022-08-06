@@ -1,12 +1,10 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 41
 expression: "const k := 20 + false\nconst l : int := k   % Nothing reported here\n"
-
 ---
-"k"@(FileId(1), 6..7) [Declared]: <error>
-"l"@(FileId(1), 28..29) [Declared]: int
-"<root>"@(dummy) [Declared]: <error>
+"k"@(FileId(1), 6..7) [ConstVar(Const, No)]: <error>
+"l"@(FileId(1), 28..29) [ConstVar(Const, No)]: int
+"<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 14..15: mismatched types for addition
 | note in file FileId(1) for 16..21: this is of type `boolean`

@@ -2,9 +2,9 @@
 source: compiler/toc_analysis/src/typeck/test.rs
 expression: "var blah : int\nmodule _\n    import blah\n    var k := blah\nend _\n"
 ---
-"blah"@(FileId(1), 4..8) [Declared]: int
-"_"@(FileId(1), 22..23) [Declared]: <error>
-"blah"@(FileId(1), 35..39) [ItemImport(LocalDefId(0))]: int
-"k"@(FileId(1), 48..49) [Declared]: int
-"<root>"@(dummy) [Declared]: <error>
+"blah"@(FileId(1), 4..8) [ConstVar(Var, No)]: int
+"_"@(FileId(1), 22..23) [Module(No)]: <error>
+"blah"@(FileId(1), 35..39) [Import]: int
+"k"@(FileId(1), 48..49) [ConstVar(Var, No)]: int
+"<root>"@(dummy) [Module(No)]: <error>
 

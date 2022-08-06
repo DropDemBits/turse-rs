@@ -2,11 +2,11 @@
 source: compiler/toc_analysis/src/typeck/test.rs
 expression: "var cmx : char(256)\n\nproc __(var _e00 : string(*))\n_e00 := cmx % [not captured by ctc]\nend __\n"
 ---
-"cmx"@(FileId(1), 4..7) [Declared]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
-"__"@(FileId(1), 26..28) [Declared]: procedure ( pass(var ref) string_n Any, ) -> void
+"cmx"@(FileId(1), 4..7) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
+"__"@(FileId(1), 26..28) [Subprogram(Procedure)]: procedure ( pass(var ref) string_n Any, ) -> void
 "<unnamed>"@(dummy) [Undeclared]: <error>
-"_e00"@(FileId(1), 33..37) [Declared]: string_n Any
-"<root>"@(dummy) [Declared]: <error>
+"_e00"@(FileId(1), 33..37) [Param(Reference(Var), No)]: string_n Any
+"<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 56..58: mismatched types
 | note in file FileId(1) for 59..62: this is of type `char(256)`

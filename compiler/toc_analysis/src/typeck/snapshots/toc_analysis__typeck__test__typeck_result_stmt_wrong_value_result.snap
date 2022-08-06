@@ -1,12 +1,10 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 42
 expression: "fcn b : int type k : int result k end b"
-
 ---
-"b"@(FileId(1), 4..5) [Declared]: function -> int
-"k"@(FileId(1), 17..18) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(1))] of int
-"<root>"@(dummy) [Declared]: <error>
+"b"@(FileId(1), 4..5) [Subprogram(Function)]: function -> int
+"k"@(FileId(1), 17..18) [Type]: alias[DefId(LibraryId(0), LocalDefId(1))] of int
+"<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 32..33: cannot use `k` as an expression
 | error in file FileId(1) for 32..33: `k` is a reference to a type, not a variable

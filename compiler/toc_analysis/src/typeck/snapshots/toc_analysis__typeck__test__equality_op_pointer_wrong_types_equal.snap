@@ -1,15 +1,13 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 42
 expression: "\n    % Pointers\n    var a : unchecked ^int\n    var b : ^int\n    var c : ^char\n    var d : int\n\n    % should all produce boolean\n    var _v_res : boolean\n\n    _v_res := a = b\n    _v_res := c = b\n    _v_res := d = b\n    "
-
 ---
-"a"@(FileId(1), 24..25) [Declared]: unchecked pointer to int
-"b"@(FileId(1), 51..52) [Declared]: pointer to int
-"c"@(FileId(1), 68..69) [Declared]: pointer to char
-"d"@(FileId(1), 86..87) [Declared]: int
-"_v_res"@(FileId(1), 136..142) [Declared]: boolean
-"<root>"@(dummy) [Declared]: <error>
+"a"@(FileId(1), 24..25) [ConstVar(Var, No)]: unchecked pointer to int
+"b"@(FileId(1), 51..52) [ConstVar(Var, No)]: pointer to int
+"c"@(FileId(1), 68..69) [ConstVar(Var, No)]: pointer to char
+"d"@(FileId(1), 86..87) [ConstVar(Var, No)]: int
+"_v_res"@(FileId(1), 136..142) [ConstVar(Var, No)]: boolean
+"<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 170..171: mismatched types for `=`
 | note in file FileId(1) for 172..173: this is of type `pointer to int`

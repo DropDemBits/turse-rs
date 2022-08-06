@@ -1,9 +1,8 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
 expression: "get : 1.0"
-
 ---
-"<root>"@(dummy) [Declared]: <error>
+"<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 6..9: mismatched types
 | note in file FileId(1) for 6..9: this is of type `real`

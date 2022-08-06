@@ -1,20 +1,18 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 41
 expression: "\n    % Compatibility with all variant of numbers\n    var r : real\n    var i : int\n    var n : nat\n    var _rr := r ** r\n    var _ri := r ** i\n    var _ir := i ** r\n    var _rn := r ** n\n    var _nr := n ** r\n    var _ii := i ** i\n    var _in := i ** n\n    var _ni := n ** i\n    var _nn := n ** n\n"
-
 ---
-"r"@(FileId(1), 57..58) [Declared]: real
-"i"@(FileId(1), 74..75) [Declared]: int
-"n"@(FileId(1), 90..91) [Declared]: nat
-"_rr"@(FileId(1), 106..109) [Declared]: real
-"_ri"@(FileId(1), 128..131) [Declared]: real
-"_ir"@(FileId(1), 150..153) [Declared]: real
-"_rn"@(FileId(1), 172..175) [Declared]: real
-"_nr"@(FileId(1), 194..197) [Declared]: real
-"_ii"@(FileId(1), 216..219) [Declared]: int
-"_in"@(FileId(1), 238..241) [Declared]: int
-"_ni"@(FileId(1), 260..263) [Declared]: int
-"_nn"@(FileId(1), 282..285) [Declared]: nat
-"<root>"@(dummy) [Declared]: <error>
+"r"@(FileId(1), 57..58) [ConstVar(Var, No)]: real
+"i"@(FileId(1), 74..75) [ConstVar(Var, No)]: int
+"n"@(FileId(1), 90..91) [ConstVar(Var, No)]: nat
+"_rr"@(FileId(1), 106..109) [ConstVar(Var, No)]: real
+"_ri"@(FileId(1), 128..131) [ConstVar(Var, No)]: real
+"_ir"@(FileId(1), 150..153) [ConstVar(Var, No)]: real
+"_rn"@(FileId(1), 172..175) [ConstVar(Var, No)]: real
+"_nr"@(FileId(1), 194..197) [ConstVar(Var, No)]: real
+"_ii"@(FileId(1), 216..219) [ConstVar(Var, No)]: int
+"_in"@(FileId(1), 238..241) [ConstVar(Var, No)]: int
+"_ni"@(FileId(1), 260..263) [ConstVar(Var, No)]: int
+"_nn"@(FileId(1), 282..285) [ConstVar(Var, No)]: nat
+"<root>"@(dummy) [Module(No)]: <error>
 

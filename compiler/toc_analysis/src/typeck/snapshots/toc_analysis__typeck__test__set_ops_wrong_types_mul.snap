@@ -1,18 +1,16 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 42
 expression: "\n    type s1 : set of boolean\n    type s2 : set of boolean\n    var a : s1\n    var b : s2\n    var i : int\n\n    % should all produce the left set\n    var _v_res : s1\n\n    _v_res := a * b\n\n    % error types\n    _v_res := a * i\n    _v_res := i * a\n    "
-
 ---
-"s1"@(FileId(1), 15..29) [Declared]: <error>
-"s1"@(FileId(1), 10..12) [Resolved(Type)]: set[DefId(LibraryId(0), LocalDefId(0))] of boolean
-"s2"@(FileId(1), 44..58) [Declared]: <error>
-"s2"@(FileId(1), 39..41) [Resolved(Type)]: set[DefId(LibraryId(0), LocalDefId(2))] of boolean
-"a"@(FileId(1), 67..68) [Declared]: set[DefId(LibraryId(0), LocalDefId(0))] of boolean
-"b"@(FileId(1), 82..83) [Declared]: set[DefId(LibraryId(0), LocalDefId(2))] of boolean
-"i"@(FileId(1), 97..98) [Declared]: int
-"_v_res"@(FileId(1), 152..158) [Declared]: set[DefId(LibraryId(0), LocalDefId(0))] of boolean
-"<root>"@(dummy) [Declared]: <error>
+"s1"@(FileId(1), 15..29) [Set]: <error>
+"s1"@(FileId(1), 10..12) [Type]: set[DefId(LibraryId(0), LocalDefId(0))] of boolean
+"s2"@(FileId(1), 44..58) [Set]: <error>
+"s2"@(FileId(1), 39..41) [Type]: set[DefId(LibraryId(0), LocalDefId(2))] of boolean
+"a"@(FileId(1), 67..68) [ConstVar(Var, No)]: set[DefId(LibraryId(0), LocalDefId(0))] of boolean
+"b"@(FileId(1), 82..83) [ConstVar(Var, No)]: set[DefId(LibraryId(0), LocalDefId(2))] of boolean
+"i"@(FileId(1), 97..98) [ConstVar(Var, No)]: int
+"_v_res"@(FileId(1), 152..158) [ConstVar(Var, No)]: set[DefId(LibraryId(0), LocalDefId(0))] of boolean
+"<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 181..182: mismatched types for multiplication
 | note in file FileId(1) for 183..184: this is of type `set s2 (of boolean)`

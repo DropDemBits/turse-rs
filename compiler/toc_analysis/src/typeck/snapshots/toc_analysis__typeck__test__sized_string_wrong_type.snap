@@ -1,11 +1,9 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 41
 expression: "var _ : string(1.0)"
-
 ---
-"_"@(FileId(1), 4..5) [Declared]: string_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
-"<root>"@(dummy) [Declared]: <error>
+"_"@(FileId(1), 4..5) [ConstVar(Var, No)]: string_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
+"<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 15..18: mismatched types
 | note in file FileId(1) for 15..18: this is of type `real`

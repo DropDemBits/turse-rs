@@ -1,14 +1,12 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 42
 expression: "type s : set of boolean\nvar _ := s(*, all, b .. * - b)\n"
-
 ---
-"s"@(FileId(1), 9..23) [Declared]: <error>
-"s"@(FileId(1), 5..6) [Resolved(Type)]: set[DefId(LibraryId(0), LocalDefId(0))] of boolean
+"s"@(FileId(1), 9..23) [Set]: <error>
+"s"@(FileId(1), 5..6) [Type]: set[DefId(LibraryId(0), LocalDefId(0))] of boolean
 "b"@(FileId(1), 43..44) [Undeclared]: <error>
-"_"@(FileId(1), 28..29) [Declared]: set[DefId(LibraryId(0), LocalDefId(0))] of boolean
-"<root>"@(dummy) [Declared]: <error>
+"_"@(FileId(1), 28..29) [ConstVar(Var, No)]: set[DefId(LibraryId(0), LocalDefId(0))] of boolean
+"<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 33..34: constructor call has extra arguments
 | error in file FileId(1) for 33..34: call has extra arguments

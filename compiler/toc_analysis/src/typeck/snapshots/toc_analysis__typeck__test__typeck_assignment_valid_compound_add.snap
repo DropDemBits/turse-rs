@@ -1,10 +1,8 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 41
 expression: "var lhs : real\nvar rhs : int\nlhs += rhs\n"
-
 ---
-"lhs"@(FileId(1), 4..7) [Declared]: real
-"rhs"@(FileId(1), 19..22) [Declared]: int
-"<root>"@(dummy) [Declared]: <error>
+"lhs"@(FileId(1), 4..7) [ConstVar(Var, No)]: real
+"rhs"@(FileId(1), 19..22) [ConstVar(Var, No)]: int
+"<root>"@(dummy) [Module(No)]: <error>
 

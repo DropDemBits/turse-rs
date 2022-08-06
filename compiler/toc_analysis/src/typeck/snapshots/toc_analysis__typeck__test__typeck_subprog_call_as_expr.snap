@@ -2,8 +2,8 @@
 source: compiler/toc_analysis/src/typeck/test.rs
 expression: "function key() : int end key\nvar res := key()\n"
 ---
-"key"@(FileId(1), 9..12) [Declared]: function ( ) -> int
+"key"@(FileId(1), 9..12) [Subprogram(Function)]: function ( ) -> int
 "<unnamed>"@(dummy) [Undeclared]: <error>
-"res"@(FileId(1), 33..36) [Declared]: int
-"<root>"@(dummy) [Declared]: <error>
+"res"@(FileId(1), 33..36) [ConstVar(Var, No)]: int
+"<root>"@(dummy) [Module(No)]: <error>
 

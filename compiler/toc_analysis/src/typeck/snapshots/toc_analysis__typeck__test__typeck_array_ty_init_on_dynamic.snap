@@ -1,12 +1,10 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 42
 expression: "var c : int\nvar a : array 1..c of int := init(1)"
-
 ---
-"c"@(FileId(1), 4..5) [Declared]: int
-"a"@(FileId(1), 16..17) [Declared]: array ( range of `int` (Unevaluated(LibraryId(0), BodyId(0)) .. Expr(Unevaluated(LibraryId(0), BodyId(1)), Yes)), ) of int
-"<root>"@(dummy) [Declared]: <error>
+"c"@(FileId(1), 4..5) [ConstVar(Var, No)]: int
+"a"@(FileId(1), 16..17) [ConstVar(Var, No)]: array ( range of `int` (Unevaluated(LibraryId(0), BodyId(0)) .. Expr(Unevaluated(LibraryId(0), BodyId(1)), Yes)), ) of int
+"<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 41..48: cannot use `init` here
 | error in file FileId(1) for 41..48: `init` initializer cannot be used for dynamically sized arrays

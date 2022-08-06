@@ -1,9 +1,7 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 42
 expression: "var a : array 1..* of int := init(1)\na(1) := 1"
-
 ---
-"a"@(FileId(1), 4..5) [Declared]: array ( range of `int` (Unevaluated(LibraryId(0), BodyId(0)) .. Unsized(1)), ) of int
-"<root>"@(dummy) [Declared]: <error>
+"a"@(FileId(1), 4..5) [ConstVar(Var, No)]: array ( range of `int` (Unevaluated(LibraryId(0), BodyId(0)) .. Unsized(1)), ) of int
+"<root>"@(dummy) [Module(No)]: <error>
 

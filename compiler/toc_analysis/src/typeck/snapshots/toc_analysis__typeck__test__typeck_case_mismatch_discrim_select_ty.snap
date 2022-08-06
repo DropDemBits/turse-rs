@@ -1,10 +1,8 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 41
 expression: "case 'c' of label 123, 'dd', false end case"
-
 ---
-"<root>"@(dummy) [Declared]: <error>
+"<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 18..21: mismatched types
 | note in file FileId(1) for 5..8: discriminant is of type `char`

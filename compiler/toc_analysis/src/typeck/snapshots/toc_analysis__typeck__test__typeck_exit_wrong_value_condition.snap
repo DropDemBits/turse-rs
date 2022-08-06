@@ -1,11 +1,9 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 42
 expression: "loop\n    type b : boolean\n    exit when b\nend loop\n"
-
 ---
-"b"@(FileId(1), 14..15) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(0))] of boolean
-"<root>"@(dummy) [Declared]: <error>
+"b"@(FileId(1), 14..15) [Type]: alias[DefId(LibraryId(0), LocalDefId(0))] of boolean
+"<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 40..41: cannot use `b` as an expression
 | error in file FileId(1) for 40..41: `b` is a reference to a type, not a variable

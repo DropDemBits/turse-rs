@@ -1,12 +1,10 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 41
 expression: "var lhs : real\nvar rhs : boolean\nlhs += rhs\n"
-
 ---
-"lhs"@(FileId(1), 4..7) [Declared]: real
-"rhs"@(FileId(1), 19..22) [Declared]: boolean
-"<root>"@(dummy) [Declared]: <error>
+"lhs"@(FileId(1), 4..7) [ConstVar(Var, No)]: real
+"rhs"@(FileId(1), 19..22) [ConstVar(Var, No)]: boolean
+"<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 37..39: mismatched types for addition
 | note in file FileId(1) for 40..43: this is of type `boolean`

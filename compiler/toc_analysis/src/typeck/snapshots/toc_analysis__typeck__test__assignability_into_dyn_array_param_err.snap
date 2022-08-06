@@ -2,12 +2,12 @@
 source: compiler/toc_analysis/src/typeck/test.rs
 expression: "% dyn arrays aren't allowed, since the range is expected to be known at compile-time\nvar c : int\nvar a : array 1..c of char\nproc p(_ : array 1..2 of char(*)) end p\n\np(a)\n"
 ---
-"c"@(FileId(1), 89..90) [Declared]: int
-"a"@(FileId(1), 101..102) [Declared]: array ( range of `int` (Unevaluated(LibraryId(0), BodyId(0)) .. Expr(Unevaluated(LibraryId(0), BodyId(1)), Yes)), ) of char
-"p"@(FileId(1), 129..130) [Declared]: procedure ( pass(value) array ( range of `int` (Unevaluated(LibraryId(0), BodyId(2)) .. Expr(Unevaluated(LibraryId(0), BodyId(3)), No)), ) of char_n Any, ) -> void
+"c"@(FileId(1), 89..90) [ConstVar(Var, No)]: int
+"a"@(FileId(1), 101..102) [ConstVar(Var, No)]: array ( range of `int` (Unevaluated(LibraryId(0), BodyId(0)) .. Expr(Unevaluated(LibraryId(0), BodyId(1)), Yes)), ) of char
+"p"@(FileId(1), 129..130) [Subprogram(Procedure)]: procedure ( pass(value) array ( range of `int` (Unevaluated(LibraryId(0), BodyId(2)) .. Expr(Unevaluated(LibraryId(0), BodyId(3)), No)), ) of char_n Any, ) -> void
 "<unnamed>"@(dummy) [Undeclared]: <error>
-"_"@(FileId(1), 131..132) [Declared]: array ( range of `int` (Unevaluated(LibraryId(0), BodyId(2)) .. Expr(Unevaluated(LibraryId(0), BodyId(3)), No)), ) of char_n Any
-"<root>"@(dummy) [Declared]: <error>
+"_"@(FileId(1), 131..132) [Param(Value, No)]: array ( range of `int` (Unevaluated(LibraryId(0), BodyId(2)) .. Expr(Unevaluated(LibraryId(0), BodyId(3)), No)), ) of char_n Any
+"<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 167..168: mismatched types
 | note in file FileId(1) for 167..168: this is of type `array 1 .. {dynamic} of char`

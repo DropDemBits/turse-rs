@@ -1,13 +1,11 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 41
 expression: "type a0 : real\nvar k : a0\nvar _ := not k % unchanged\n"
-
 ---
-"a0"@(FileId(1), 5..7) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(0))] of real
-"k"@(FileId(1), 19..20) [Declared]: alias[DefId(LibraryId(0), LocalDefId(0))] of real
-"_"@(FileId(1), 30..31) [Declared]: <error>
-"<root>"@(dummy) [Declared]: <error>
+"a0"@(FileId(1), 5..7) [Type]: alias[DefId(LibraryId(0), LocalDefId(0))] of real
+"k"@(FileId(1), 19..20) [ConstVar(Var, No)]: alias[DefId(LibraryId(0), LocalDefId(0))] of real
+"_"@(FileId(1), 30..31) [ConstVar(Var, No)]: <error>
+"<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 35..38: mismatched types for logical `not`
 | note in file FileId(1) for 39..40: this is of type `a0 (alias of real)`

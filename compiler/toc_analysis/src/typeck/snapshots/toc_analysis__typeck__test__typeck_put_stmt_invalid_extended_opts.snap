@@ -1,19 +1,17 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 42
 expression: "var c : char\nvar cn : char(4)\nvar s : string\nvar sn : string(4)\ntype en: enum(a, b) var ef : en\n\nput c : 0 : 0 : 0\nput cn : 0 : 0 : 0\nput s : 0 : 0 : 0\nput sn : 0 : 0 : 0\nput ef : 0 : 0 : 0\n"
-
 ---
-"c"@(FileId(1), 4..5) [Declared]: char
-"cn"@(FileId(1), 17..19) [Declared]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
-"s"@(FileId(1), 34..35) [Declared]: string
-"sn"@(FileId(1), 49..51) [Declared]: string_n Fixed(Unevaluated(LibraryId(0), BodyId(1)))
-"a"@(FileId(1), 78..79) [Declared]: enum[DefId(LibraryId(0), LocalDefId(6))] ( "a"@(FileId(1), 78..79), "b"@(FileId(1), 81..82), )
-"b"@(FileId(1), 81..82) [Declared]: enum[DefId(LibraryId(0), LocalDefId(6))] ( "a"@(FileId(1), 78..79), "b"@(FileId(1), 81..82), )
-"en"@(FileId(1), 73..83) [Declared]: <error>
-"en"@(FileId(1), 69..71) [Resolved(Type)]: enum[DefId(LibraryId(0), LocalDefId(6))] ( "a"@(FileId(1), 78..79), "b"@(FileId(1), 81..82), )
-"ef"@(FileId(1), 88..90) [Declared]: enum[DefId(LibraryId(0), LocalDefId(6))] ( "a"@(FileId(1), 78..79), "b"@(FileId(1), 81..82), )
-"<root>"@(dummy) [Declared]: <error>
+"c"@(FileId(1), 4..5) [ConstVar(Var, No)]: char
+"cn"@(FileId(1), 17..19) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
+"s"@(FileId(1), 34..35) [ConstVar(Var, No)]: string
+"sn"@(FileId(1), 49..51) [ConstVar(Var, No)]: string_n Fixed(Unevaluated(LibraryId(0), BodyId(1)))
+"a"@(FileId(1), 78..79) [EnumVariant]: enum[DefId(LibraryId(0), LocalDefId(6))] ( "a"@(FileId(1), 78..79), "b"@(FileId(1), 81..82), )
+"b"@(FileId(1), 81..82) [EnumVariant]: enum[DefId(LibraryId(0), LocalDefId(6))] ( "a"@(FileId(1), 78..79), "b"@(FileId(1), 81..82), )
+"en"@(FileId(1), 73..83) [Enum]: <error>
+"en"@(FileId(1), 69..71) [Type]: enum[DefId(LibraryId(0), LocalDefId(6))] ( "a"@(FileId(1), 78..79), "b"@(FileId(1), 81..82), )
+"ef"@(FileId(1), 88..90) [ConstVar(Var, No)]: enum[DefId(LibraryId(0), LocalDefId(6))] ( "a"@(FileId(1), 78..79), "b"@(FileId(1), 81..82), )
+"<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 109..110: invalid put option
 | note in file FileId(1) for 101..102: cannot specify fraction width for `char`

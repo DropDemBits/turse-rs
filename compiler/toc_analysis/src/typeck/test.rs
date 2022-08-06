@@ -66,10 +66,13 @@ fn stringify_typeck_results(
         let def_info = library.local_def(did);
         let name = def_info.name;
         let name_span = def_info.def_at.lookup_in(&library);
-        let def_kind = def_info.declare_kind;
+        let sym_kind = match def_info.kind {
+            Some(kind) => format!("{kind:?}"),
+            None => "Undeclared".to_string(),
+        };
         let ty = db.type_of(DefId(lib, did).into()).in_db(db);
 
-        writeln!(&mut s, "{name:?}@{name_span:?} [{def_kind:?}]: {ty:?}").unwrap();
+        writeln!(&mut s, "{name:?}@{name_span:?} [{sym_kind}]: {ty:?}").unwrap();
     }
 
     // Pretty print the messages

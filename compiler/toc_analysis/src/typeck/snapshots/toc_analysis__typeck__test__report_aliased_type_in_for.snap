@@ -1,13 +1,11 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 41
 expression: "type a0 : string\nvar sa0 : a0\nvar s : string\n\nfor : sa0 .. sa0 end for\nfor : s .. sa0 end for\nfor : sa0 .. s end for\n\nfor : 1 .. sa0 end for\nfor : sa0 .. 1 end for\n"
-
 ---
-"a0"@(FileId(1), 5..7) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(0))] of string
-"sa0"@(FileId(1), 21..24) [Declared]: alias[DefId(LibraryId(0), LocalDefId(0))] of string
-"s"@(FileId(1), 34..35) [Declared]: string
-"<root>"@(dummy) [Declared]: <error>
+"a0"@(FileId(1), 5..7) [Type]: alias[DefId(LibraryId(0), LocalDefId(0))] of string
+"sa0"@(FileId(1), 21..24) [ConstVar(Var, No)]: alias[DefId(LibraryId(0), LocalDefId(0))] of string
+"s"@(FileId(1), 34..35) [ConstVar(Var, No)]: string
+"<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 52..62: mismatched types
 | note in file FileId(1) for 59..62: this is of type `a0 (alias of string)`

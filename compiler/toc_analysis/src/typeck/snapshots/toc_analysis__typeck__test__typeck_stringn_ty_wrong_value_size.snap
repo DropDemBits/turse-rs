@@ -1,12 +1,10 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 42
 expression: "type k : int type _ : string(k)"
-
 ---
-"k"@(FileId(1), 5..6) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(0))] of int
-"_"@(FileId(1), 18..19) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(1))] of string_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
-"<root>"@(dummy) [Declared]: <error>
+"k"@(FileId(1), 5..6) [Type]: alias[DefId(LibraryId(0), LocalDefId(0))] of int
+"_"@(FileId(1), 18..19) [Type]: alias[DefId(LibraryId(0), LocalDefId(1))] of string_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
+"<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 29..30: cannot use `k` as an expression
 | error in file FileId(1) for 29..30: `k` is a reference to a type, not a variable

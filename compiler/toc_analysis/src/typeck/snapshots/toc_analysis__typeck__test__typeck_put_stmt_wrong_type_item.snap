@@ -1,12 +1,10 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 41
 expression: "type p : procedure\nvar i : p\nput i\n"
-
 ---
-"p"@(FileId(1), 5..6) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(0))] of procedure -> void
-"i"@(FileId(1), 23..24) [Declared]: alias[DefId(LibraryId(0), LocalDefId(0))] of procedure -> void
-"<root>"@(dummy) [Declared]: <error>
+"p"@(FileId(1), 5..6) [Type]: alias[DefId(LibraryId(0), LocalDefId(0))] of procedure -> void
+"i"@(FileId(1), 23..24) [ConstVar(Var, No)]: alias[DefId(LibraryId(0), LocalDefId(0))] of procedure -> void
+"<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 33..34: invalid put type
 | error in file FileId(1) for 33..34: cannot put a value of `p (alias of procedure)`

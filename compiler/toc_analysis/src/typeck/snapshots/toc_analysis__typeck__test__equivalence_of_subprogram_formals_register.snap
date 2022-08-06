@@ -3,16 +3,16 @@ source: compiler/toc_analysis/src/typeck/test.rs
 expression: "type t_f : function(a, b : int, var c : string) : int\ntype t_fr : function(register a, b : int, var register c : string) : int\nvar f : t_f\nvar fc : t_fr\n\n% transitive\nf := fc\nfc := f\n"
 ---
 "<unnamed>"@(dummy) [Undeclared]: <error>
-"a"@(FileId(1), 20..21) [Declared]: <error>
-"b"@(FileId(1), 23..24) [Declared]: <error>
-"c"@(FileId(1), 36..37) [Declared]: <error>
-"t_f"@(FileId(1), 5..8) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(4))] of function ( pass(value) int, pass(value) int, pass(var ref) string, ) -> int
+"a"@(FileId(1), 20..21) [Param(Value, No)]: <error>
+"b"@(FileId(1), 23..24) [Param(Value, No)]: <error>
+"c"@(FileId(1), 36..37) [Param(Reference(Var), No)]: <error>
+"t_f"@(FileId(1), 5..8) [Type]: alias[DefId(LibraryId(0), LocalDefId(4))] of function ( pass(value) int, pass(value) int, pass(var ref) string, ) -> int
 "<unnamed>"@(dummy) [Undeclared]: <error>
-"a"@(FileId(1), 84..85) [Declared]: <error>
-"b"@(FileId(1), 87..88) [Declared]: <error>
-"c"@(FileId(1), 109..110) [Declared]: <error>
-"t_fr"@(FileId(1), 59..63) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(9))] of function ( pass(value) register int, pass(value) register int, pass(var ref) register string, ) -> int
-"f"@(FileId(1), 131..132) [Declared]: alias[DefId(LibraryId(0), LocalDefId(4))] of function ( pass(value) int, pass(value) int, pass(var ref) string, ) -> int
-"fc"@(FileId(1), 143..145) [Declared]: alias[DefId(LibraryId(0), LocalDefId(9))] of function ( pass(value) register int, pass(value) register int, pass(var ref) register string, ) -> int
-"<root>"@(dummy) [Declared]: <error>
+"a"@(FileId(1), 84..85) [Param(Value, Yes)]: <error>
+"b"@(FileId(1), 87..88) [Param(Value, Yes)]: <error>
+"c"@(FileId(1), 109..110) [Param(Reference(Var), Yes)]: <error>
+"t_fr"@(FileId(1), 59..63) [Type]: alias[DefId(LibraryId(0), LocalDefId(9))] of function ( pass(value) register int, pass(value) register int, pass(var ref) register string, ) -> int
+"f"@(FileId(1), 131..132) [ConstVar(Var, No)]: alias[DefId(LibraryId(0), LocalDefId(4))] of function ( pass(value) int, pass(value) int, pass(var ref) string, ) -> int
+"fc"@(FileId(1), 143..145) [ConstVar(Var, No)]: alias[DefId(LibraryId(0), LocalDefId(9))] of function ( pass(value) register int, pass(value) register int, pass(var ref) register string, ) -> int
+"<root>"@(dummy) [Module(No)]: <error>
 

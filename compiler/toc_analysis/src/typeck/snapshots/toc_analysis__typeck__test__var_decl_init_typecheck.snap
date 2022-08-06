@@ -1,9 +1,7 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 41
 expression: "var k : string := \"oeuf\""
-
 ---
-"k"@(FileId(1), 4..5) [Declared]: string
-"<root>"@(dummy) [Declared]: <error>
+"k"@(FileId(1), 4..5) [ConstVar(Var, No)]: string
+"<root>"@(dummy) [Module(No)]: <error>
 

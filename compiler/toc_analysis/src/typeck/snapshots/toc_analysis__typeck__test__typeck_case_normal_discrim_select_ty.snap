@@ -1,7 +1,6 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
 expression: "case 'c' of label 'c', 'd', 'e' end case"
-
 ---
-"<root>"@(dummy) [Declared]: <error>
+"<root>"@(dummy) [Module(No)]: <error>
 

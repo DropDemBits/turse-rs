@@ -1,12 +1,10 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 42
 expression: "var N : int var _ : string(N)"
-
 ---
-"N"@(FileId(1), 4..5) [Declared]: int
-"_"@(FileId(1), 16..17) [Declared]: string_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
-"<root>"@(dummy) [Declared]: <error>
+"N"@(FileId(1), 4..5) [ConstVar(Var, No)]: int
+"_"@(FileId(1), 16..17) [ConstVar(Var, No)]: string_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
+"<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 27..28: cannot compute `N` at compile-time
 | error in file FileId(1) for 27..28: `N` is a reference to a variable, not a constant

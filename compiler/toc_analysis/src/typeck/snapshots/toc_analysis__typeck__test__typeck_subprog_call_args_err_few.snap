@@ -2,12 +2,12 @@
 source: compiler/toc_analysis/src/typeck/test.rs
 expression: "procedure boop(a, b, c : int) end boop\nboop(1, 2)\nboop(1)\n"
 ---
-"boop"@(FileId(1), 10..14) [Declared]: procedure ( pass(value) int, pass(value) int, pass(value) int, ) -> void
+"boop"@(FileId(1), 10..14) [Subprogram(Procedure)]: procedure ( pass(value) int, pass(value) int, pass(value) int, ) -> void
 "<unnamed>"@(dummy) [Undeclared]: <error>
-"a"@(FileId(1), 15..16) [Declared]: int
-"b"@(FileId(1), 18..19) [Declared]: int
-"c"@(FileId(1), 21..22) [Declared]: int
-"<root>"@(dummy) [Declared]: <error>
+"a"@(FileId(1), 15..16) [Param(Value, No)]: int
+"b"@(FileId(1), 18..19) [Param(Value, No)]: int
+"c"@(FileId(1), 21..22) [Param(Value, No)]: int
+"<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 39..43: expected 3 arguments, found 2
 | error in file FileId(1) for 39..43: call is missing 1 argument

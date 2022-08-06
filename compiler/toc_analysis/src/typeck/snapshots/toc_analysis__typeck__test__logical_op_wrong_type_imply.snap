@@ -1,22 +1,20 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 41
 expression: "\n    var b : boolean\n    var r : real\n    var i : int\n    var n : nat\n    var _bi := b => i\n    var _bn := b => n\n    var _ib := i => b\n    var _nb := n => b\n    var _ri := r => i\n    var _rn := r => n\n    var _ir := i => r\n    var _nr := n => r\n"
-
 ---
-"b"@(FileId(1), 9..10) [Declared]: boolean
-"r"@(FileId(1), 29..30) [Declared]: real
-"i"@(FileId(1), 46..47) [Declared]: int
-"n"@(FileId(1), 62..63) [Declared]: nat
-"_bi"@(FileId(1), 78..81) [Declared]: <error>
-"_bn"@(FileId(1), 100..103) [Declared]: <error>
-"_ib"@(FileId(1), 122..125) [Declared]: <error>
-"_nb"@(FileId(1), 144..147) [Declared]: <error>
-"_ri"@(FileId(1), 166..169) [Declared]: <error>
-"_rn"@(FileId(1), 188..191) [Declared]: <error>
-"_ir"@(FileId(1), 210..213) [Declared]: <error>
-"_nr"@(FileId(1), 232..235) [Declared]: <error>
-"<root>"@(dummy) [Declared]: <error>
+"b"@(FileId(1), 9..10) [ConstVar(Var, No)]: boolean
+"r"@(FileId(1), 29..30) [ConstVar(Var, No)]: real
+"i"@(FileId(1), 46..47) [ConstVar(Var, No)]: int
+"n"@(FileId(1), 62..63) [ConstVar(Var, No)]: nat
+"_bi"@(FileId(1), 78..81) [ConstVar(Var, No)]: <error>
+"_bn"@(FileId(1), 100..103) [ConstVar(Var, No)]: <error>
+"_ib"@(FileId(1), 122..125) [ConstVar(Var, No)]: <error>
+"_nb"@(FileId(1), 144..147) [ConstVar(Var, No)]: <error>
+"_ri"@(FileId(1), 166..169) [ConstVar(Var, No)]: <error>
+"_rn"@(FileId(1), 188..191) [ConstVar(Var, No)]: <error>
+"_ir"@(FileId(1), 210..213) [ConstVar(Var, No)]: <error>
+"_nr"@(FileId(1), 232..235) [ConstVar(Var, No)]: <error>
+"<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 87..89: mismatched types for `=>`
 | note in file FileId(1) for 90..91: this is of type `int`

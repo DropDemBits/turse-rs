@@ -1,11 +1,9 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 42
 expression: "proc a : 1.0 end a"
-
 ---
-"a"@(FileId(1), 5..6) [Declared]: procedure -> void
-"<root>"@(dummy) [Declared]: <error>
+"a"@(FileId(1), 5..6) [Subprogram(Procedure)]: procedure -> void
+"<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 9..12: mismatched types
 | note in file FileId(1) for 9..12: this is of type `real`

@@ -1,15 +1,13 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 42
 expression: "module a export b type b : int end a\nvar e : a.b.c := 1\nvar f : a.nope := 1\n"
-
 ---
-"a"@(FileId(1), 7..8) [Declared]: <error>
-"b"@(FileId(1), 23..24) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(1))] of int
-"b"@(FileId(1), 16..17) [ItemExport(LocalDefId(1))]: alias[DefId(LibraryId(0), LocalDefId(1))] of int
-"e"@(FileId(1), 41..42) [Declared]: <error>
-"f"@(FileId(1), 60..61) [Declared]: <error>
-"<root>"@(dummy) [Declared]: <error>
+"a"@(FileId(1), 7..8) [Module(No)]: <error>
+"b"@(FileId(1), 23..24) [Type]: alias[DefId(LibraryId(0), LocalDefId(1))] of int
+"b"@(FileId(1), 16..17) [Export]: alias[DefId(LibraryId(0), LocalDefId(1))] of int
+"e"@(FileId(1), 41..42) [ConstVar(Var, No)]: <error>
+"f"@(FileId(1), 60..61) [ConstVar(Var, No)]: <error>
+"<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 49..50: no field named `c` in `b`
 | error in file FileId(1) for 49..50: no field named `c` in here

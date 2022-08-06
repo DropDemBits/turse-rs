@@ -1,18 +1,16 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 42
 expression: "var *_ : boolean\n\nmodule m\n    export opaque s, var a\n    type s : set of boolean\n    var a := s(true)\n    _ := true in a\nend m\n\n% should fail\nvar vs := m.s(false)\n_ := false in m.a\n"
-
 ---
-"_"@(FileId(1), 5..6) [Declared]: boolean
-"m"@(FileId(1), 25..26) [Declared]: <error>
-"s"@(FileId(1), 67..81) [Declared]: <error>
-"s"@(FileId(1), 63..64) [Resolved(Type)]: opaque[DefId(LibraryId(0), LocalDefId(3))] type to set[DefId(LibraryId(0), LocalDefId(2))] of boolean
-"a"@(FileId(1), 90..91) [Declared]: opaque[DefId(LibraryId(0), LocalDefId(3))] type to set[DefId(LibraryId(0), LocalDefId(2))] of boolean
-"s"@(FileId(1), 45..46) [ItemExport(LocalDefId(3))]: opaque[DefId(LibraryId(0), LocalDefId(3))] type to set[DefId(LibraryId(0), LocalDefId(2))] of boolean
-"a"@(FileId(1), 52..53) [ItemExport(LocalDefId(4))]: opaque[DefId(LibraryId(0), LocalDefId(3))] type to set[DefId(LibraryId(0), LocalDefId(2))] of boolean
-"vs"@(FileId(1), 147..149) [Declared]: <error>
-"<root>"@(dummy) [Declared]: <error>
+"_"@(FileId(1), 5..6) [ConstVar(Var, No)]: boolean
+"m"@(FileId(1), 25..26) [Module(No)]: <error>
+"s"@(FileId(1), 67..81) [Set]: <error>
+"s"@(FileId(1), 63..64) [Type]: opaque[DefId(LibraryId(0), LocalDefId(3))] type to set[DefId(LibraryId(0), LocalDefId(2))] of boolean
+"a"@(FileId(1), 90..91) [ConstVar(Var, No)]: opaque[DefId(LibraryId(0), LocalDefId(3))] type to set[DefId(LibraryId(0), LocalDefId(2))] of boolean
+"s"@(FileId(1), 45..46) [Export]: opaque[DefId(LibraryId(0), LocalDefId(3))] type to set[DefId(LibraryId(0), LocalDefId(2))] of boolean
+"a"@(FileId(1), 52..53) [Export]: opaque[DefId(LibraryId(0), LocalDefId(3))] type to set[DefId(LibraryId(0), LocalDefId(2))] of boolean
+"vs"@(FileId(1), 147..149) [ConstVar(Var, No)]: <error>
+"<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 153..156: cannot call or subscript `s`
 | note in file FileId(1) for 153..156: this is of type `s (an opaque type)`

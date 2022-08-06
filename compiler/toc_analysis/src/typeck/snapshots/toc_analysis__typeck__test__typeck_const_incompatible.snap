@@ -1,11 +1,9 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 41
 expression: "const k : char := 20"
-
 ---
-"k"@(FileId(1), 6..7) [Declared]: char
-"<root>"@(dummy) [Declared]: <error>
+"k"@(FileId(1), 6..7) [ConstVar(Const, No)]: char
+"<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 18..20: mismatched types
 | note in file FileId(1) for 18..20: this is of type `{integer}`

@@ -1,9 +1,7 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 42
-expression: "var _ := ^()"
-
+expression: "var _ := ^()\n"
 ---
-"_"@(FileId(1), 4..5) [Declared]: <error>
-"<root>"@(dummy) [Declared]: <error>
+"_"@(FileId(1), 4..5) [ConstVar(Var, No)]: <error>
+"<root>"@(dummy) [Module(No)]: <error>
 

@@ -1,21 +1,19 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 42
 expression: "var i : int\nvar n : nat\nvar r : real\nvar c : char\nvar b: boolean\nvar cn : char(4)\ntype en: enum(a, b) var ef : en\n\nget i : *\nget n : *\nget r : *\nget c : *\nget b : *\nget cn : *\nget ef : *\n"
-
 ---
-"i"@(FileId(1), 4..5) [Declared]: int
-"n"@(FileId(1), 16..17) [Declared]: nat
-"r"@(FileId(1), 28..29) [Declared]: real
-"c"@(FileId(1), 41..42) [Declared]: char
-"b"@(FileId(1), 54..55) [Declared]: boolean
-"cn"@(FileId(1), 69..71) [Declared]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
-"a"@(FileId(1), 96..97) [Declared]: enum[DefId(LibraryId(0), LocalDefId(8))] ( "a"@(FileId(1), 96..97), "b"@(FileId(1), 99..100), )
-"b"@(FileId(1), 99..100) [Declared]: enum[DefId(LibraryId(0), LocalDefId(8))] ( "a"@(FileId(1), 96..97), "b"@(FileId(1), 99..100), )
-"en"@(FileId(1), 91..101) [Declared]: <error>
-"en"@(FileId(1), 87..89) [Resolved(Type)]: enum[DefId(LibraryId(0), LocalDefId(8))] ( "a"@(FileId(1), 96..97), "b"@(FileId(1), 99..100), )
-"ef"@(FileId(1), 106..108) [Declared]: enum[DefId(LibraryId(0), LocalDefId(8))] ( "a"@(FileId(1), 96..97), "b"@(FileId(1), 99..100), )
-"<root>"@(dummy) [Declared]: <error>
+"i"@(FileId(1), 4..5) [ConstVar(Var, No)]: int
+"n"@(FileId(1), 16..17) [ConstVar(Var, No)]: nat
+"r"@(FileId(1), 28..29) [ConstVar(Var, No)]: real
+"c"@(FileId(1), 41..42) [ConstVar(Var, No)]: char
+"b"@(FileId(1), 54..55) [ConstVar(Var, No)]: boolean
+"cn"@(FileId(1), 69..71) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
+"a"@(FileId(1), 96..97) [EnumVariant]: enum[DefId(LibraryId(0), LocalDefId(8))] ( "a"@(FileId(1), 96..97), "b"@(FileId(1), 99..100), )
+"b"@(FileId(1), 99..100) [EnumVariant]: enum[DefId(LibraryId(0), LocalDefId(8))] ( "a"@(FileId(1), 96..97), "b"@(FileId(1), 99..100), )
+"en"@(FileId(1), 91..101) [Enum]: <error>
+"en"@(FileId(1), 87..89) [Type]: enum[DefId(LibraryId(0), LocalDefId(8))] ( "a"@(FileId(1), 96..97), "b"@(FileId(1), 99..100), )
+"ef"@(FileId(1), 106..108) [ConstVar(Var, No)]: enum[DefId(LibraryId(0), LocalDefId(8))] ( "a"@(FileId(1), 96..97), "b"@(FileId(1), 99..100), )
+"<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 119..120: invalid get option used
 | error in file FileId(1) for 119..120: cannot specify line width for `int`

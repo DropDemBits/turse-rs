@@ -2,15 +2,15 @@
 source: compiler/toc_analysis/src/typeck/test.rs
 expression: "module m\n    export opaque t, f\n    type t : int\n    fcn f() : t loop end loop end f\n\n    var a : int := f()\nend m\n\n% should fail\nvar b : int := m.f()\n"
 ---
-"m"@(FileId(1), 7..8) [Declared]: <error>
-"t"@(FileId(1), 41..42) [Resolved(Type)]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
-"f"@(FileId(1), 57..58) [Declared]: function ( ) -> opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
+"m"@(FileId(1), 7..8) [Module(No)]: <error>
+"t"@(FileId(1), 41..42) [Type]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
+"f"@(FileId(1), 57..58) [Subprogram(Function)]: function ( ) -> opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
 "<unnamed>"@(dummy) [Undeclared]: <error>
-"a"@(FileId(1), 94..95) [Declared]: int
-"t"@(FileId(1), 27..28) [ItemExport(LocalDefId(1))]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
-"f"@(FileId(1), 30..31) [ItemExport(LocalDefId(2))]: function ( ) -> opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
-"b"@(FileId(1), 134..135) [Declared]: int
-"<root>"@(dummy) [Declared]: <error>
+"a"@(FileId(1), 94..95) [ConstVar(Var, No)]: int
+"t"@(FileId(1), 27..28) [Export]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
+"f"@(FileId(1), 30..31) [Export]: function ( ) -> opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
+"b"@(FileId(1), 134..135) [ConstVar(Var, No)]: int
+"<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 145..150: mismatched types
 | note in file FileId(1) for 145..150: this is of type `t (an opaque type)`

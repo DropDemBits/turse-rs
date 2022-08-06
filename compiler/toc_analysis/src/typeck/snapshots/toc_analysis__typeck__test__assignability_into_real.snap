@@ -1,15 +1,13 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 41
 expression: "var r : real\nvar i : int\nvar n : nat\n\nvar _v00 : real := 1\nvar _v01 : real := i\nvar _v02 : real := n\nvar _v03 : real := r\n"
-
 ---
-"r"@(FileId(1), 4..5) [Declared]: real
-"i"@(FileId(1), 17..18) [Declared]: int
-"n"@(FileId(1), 29..30) [Declared]: nat
-"_v00"@(FileId(1), 42..46) [Declared]: real
-"_v01"@(FileId(1), 63..67) [Declared]: real
-"_v02"@(FileId(1), 84..88) [Declared]: real
-"_v03"@(FileId(1), 105..109) [Declared]: real
-"<root>"@(dummy) [Declared]: <error>
+"r"@(FileId(1), 4..5) [ConstVar(Var, No)]: real
+"i"@(FileId(1), 17..18) [ConstVar(Var, No)]: int
+"n"@(FileId(1), 29..30) [ConstVar(Var, No)]: nat
+"_v00"@(FileId(1), 42..46) [ConstVar(Var, No)]: real
+"_v01"@(FileId(1), 63..67) [ConstVar(Var, No)]: real
+"_v02"@(FileId(1), 84..88) [ConstVar(Var, No)]: real
+"_v03"@(FileId(1), 105..109) [ConstVar(Var, No)]: real
+"<root>"@(dummy) [Module(No)]: <error>
 

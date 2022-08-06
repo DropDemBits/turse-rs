@@ -1,10 +1,8 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 41
 expression: "begin var aaaa : int bind aaaa to end"
-
 ---
-"aaaa"@(FileId(1), 10..14) [Declared]: int
-"aaaa"@(FileId(1), 26..30) [Declared]: <error>
-"<root>"@(dummy) [Declared]: <error>
+"aaaa"@(FileId(1), 10..14) [ConstVar(Var, No)]: int
+"aaaa"@(FileId(1), 26..30) [Binding(Const, No)]: <error>
+"<root>"@(dummy) [Module(No)]: <error>
 

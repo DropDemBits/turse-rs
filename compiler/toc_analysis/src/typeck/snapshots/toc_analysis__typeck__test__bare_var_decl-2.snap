@@ -1,11 +1,9 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 41
 expression: "const k k := 3"
-
 ---
-"k"@(FileId(1), 6..7) [Declared]: <error>
-"<root>"@(dummy) [Declared]: <error>
+"k"@(FileId(1), 6..7) [ConstVar(Const, No)]: <error>
+"<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 10..12: cannot assign into `k`
 | error in file FileId(1) for 8..9: `k` is a reference to a constant, not a variable

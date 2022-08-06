@@ -1,9 +1,7 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 41
 expression: "% pass through, since we can't say anything about this\nno_compile"
-
 ---
 "no_compile"@(FileId(1), 55..65) [Undeclared]: <error>
-"<root>"@(dummy) [Declared]: <error>
+"<root>"@(dummy) [Module(No)]: <error>
 

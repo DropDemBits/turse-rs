@@ -1,11 +1,9 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 42
 expression: "function _ : char(*) end _"
-
 ---
-"_"@(FileId(1), 9..10) [Declared]: function -> char_n Any
-"<root>"@(dummy) [Declared]: <error>
+"_"@(FileId(1), 9..10) [Subprogram(Function)]: function -> char_n Any
+"<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 13..20: invalid storage type
 | error in file FileId(1) for 13..20: cannot use `char(*)` in `function` declarations

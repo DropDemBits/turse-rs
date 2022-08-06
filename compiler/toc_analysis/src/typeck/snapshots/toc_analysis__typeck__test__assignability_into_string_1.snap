@@ -1,19 +1,17 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 41
 expression: "const N := 1\nvar c : char\nvar c1 : char(1)\nvar s : string\nvar s1 : string(1)\nvar s5 : string(5)\n\nvar _v00 : string(N) := c\nvar _v01 : string(N) := c1\nvar _v02 : string(N) := s % runtime checked\nvar _v03 : string(N) := s1\nvar _v04 : string(N) := s5 % runtime checked\n"
-
 ---
-"N"@(FileId(1), 6..7) [Declared]: int
-"c"@(FileId(1), 17..18) [Declared]: char
-"c1"@(FileId(1), 30..32) [Declared]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(1)))
-"s"@(FileId(1), 47..48) [Declared]: string
-"s1"@(FileId(1), 62..64) [Declared]: string_n Fixed(Unevaluated(LibraryId(0), BodyId(2)))
-"s5"@(FileId(1), 81..83) [Declared]: string_n Fixed(Unevaluated(LibraryId(0), BodyId(3)))
-"_v00"@(FileId(1), 101..105) [Declared]: string_n Fixed(Unevaluated(LibraryId(0), BodyId(4)))
-"_v01"@(FileId(1), 127..131) [Declared]: string_n Fixed(Unevaluated(LibraryId(0), BodyId(6)))
-"_v02"@(FileId(1), 154..158) [Declared]: string_n Fixed(Unevaluated(LibraryId(0), BodyId(8)))
-"_v03"@(FileId(1), 198..202) [Declared]: string_n Fixed(Unevaluated(LibraryId(0), BodyId(10)))
-"_v04"@(FileId(1), 225..229) [Declared]: string_n Fixed(Unevaluated(LibraryId(0), BodyId(12)))
-"<root>"@(dummy) [Declared]: <error>
+"N"@(FileId(1), 6..7) [ConstVar(Const, No)]: int
+"c"@(FileId(1), 17..18) [ConstVar(Var, No)]: char
+"c1"@(FileId(1), 30..32) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(1)))
+"s"@(FileId(1), 47..48) [ConstVar(Var, No)]: string
+"s1"@(FileId(1), 62..64) [ConstVar(Var, No)]: string_n Fixed(Unevaluated(LibraryId(0), BodyId(2)))
+"s5"@(FileId(1), 81..83) [ConstVar(Var, No)]: string_n Fixed(Unevaluated(LibraryId(0), BodyId(3)))
+"_v00"@(FileId(1), 101..105) [ConstVar(Var, No)]: string_n Fixed(Unevaluated(LibraryId(0), BodyId(4)))
+"_v01"@(FileId(1), 127..131) [ConstVar(Var, No)]: string_n Fixed(Unevaluated(LibraryId(0), BodyId(6)))
+"_v02"@(FileId(1), 154..158) [ConstVar(Var, No)]: string_n Fixed(Unevaluated(LibraryId(0), BodyId(8)))
+"_v03"@(FileId(1), 198..202) [ConstVar(Var, No)]: string_n Fixed(Unevaluated(LibraryId(0), BodyId(10)))
+"_v04"@(FileId(1), 225..229) [ConstVar(Var, No)]: string_n Fixed(Unevaluated(LibraryId(0), BodyId(12)))
+"<root>"@(dummy) [Module(No)]: <error>
 

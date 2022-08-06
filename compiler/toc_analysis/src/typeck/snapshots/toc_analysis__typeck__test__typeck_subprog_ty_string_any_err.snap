@@ -3,8 +3,8 @@ source: compiler/toc_analysis/src/typeck/test.rs
 expression: "type _ : function () : string(*)"
 ---
 "<unnamed>"@(dummy) [Undeclared]: <error>
-"_"@(FileId(1), 5..6) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(1))] of function ( ) -> string_n Any
-"<root>"@(dummy) [Declared]: <error>
+"_"@(FileId(1), 5..6) [Type]: alias[DefId(LibraryId(0), LocalDefId(1))] of function ( ) -> string_n Any
+"<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 23..32: invalid storage type
 | error in file FileId(1) for 23..32: cannot use `string(*)` in `function` types

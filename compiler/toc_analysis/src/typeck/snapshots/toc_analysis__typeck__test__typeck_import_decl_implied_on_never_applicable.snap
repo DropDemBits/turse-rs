@@ -2,9 +2,9 @@
 source: compiler/toc_analysis/src/typeck/test.rs
 expression: "type ty : int\nmodule _\n    import ty\n    type tou : ty\nend _\n"
 ---
-"ty"@(FileId(1), 5..7) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(0))] of int
-"_"@(FileId(1), 21..22) [Declared]: <error>
-"ty"@(FileId(1), 34..36) [ItemImport(LocalDefId(0))]: alias[DefId(LibraryId(0), LocalDefId(0))] of int
-"tou"@(FileId(1), 46..49) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(3))] of int
-"<root>"@(dummy) [Declared]: <error>
+"ty"@(FileId(1), 5..7) [Type]: alias[DefId(LibraryId(0), LocalDefId(0))] of int
+"_"@(FileId(1), 21..22) [Module(No)]: <error>
+"ty"@(FileId(1), 34..36) [Import]: alias[DefId(LibraryId(0), LocalDefId(0))] of int
+"tou"@(FileId(1), 46..49) [Type]: alias[DefId(LibraryId(0), LocalDefId(3))] of int
+"<root>"@(dummy) [Module(No)]: <error>
 

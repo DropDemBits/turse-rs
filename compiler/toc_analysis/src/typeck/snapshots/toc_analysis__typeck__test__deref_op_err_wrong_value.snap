@@ -1,11 +1,9 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 42
-expression: "type ptr : ^int ^ptr"
-
+expression: "type ptr : ^int\n^ptr\n"
 ---
-"ptr"@(FileId(1), 5..8) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(0))] of pointer to int
-"<root>"@(dummy) [Declared]: <error>
+"ptr"@(FileId(1), 5..8) [Type]: alias[DefId(LibraryId(0), LocalDefId(0))] of pointer to int
+"<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 16..20: cannot use expression as a statement
 | error in file FileId(1) for 16..20: expression is not a statement

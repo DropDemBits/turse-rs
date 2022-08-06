@@ -1,19 +1,17 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 41
 expression: "const N := 256\nvar c : char\nvar c5 : char(5)\nvar c257 : char(257)\nvar s5 : string(5)\n\nvar _e00 : char(N) := c\nvar _e01 : char(N) := c5\nvar _e01 : char(N) := c257\nvar _e02 : char(N) := s5 % [not captured by ctc]\n"
-
 ---
-"N"@(FileId(1), 6..7) [Declared]: int
-"c"@(FileId(1), 19..20) [Declared]: char
-"c5"@(FileId(1), 32..34) [Declared]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(1)))
-"c257"@(FileId(1), 49..53) [Declared]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(2)))
-"s5"@(FileId(1), 70..72) [Declared]: string_n Fixed(Unevaluated(LibraryId(0), BodyId(3)))
-"_e00"@(FileId(1), 90..94) [Declared]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(4)))
-"_e01"@(FileId(1), 114..118) [Declared]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(6)))
-"_e01"@(FileId(1), 139..143) [Declared]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(8)))
-"_e02"@(FileId(1), 166..170) [Declared]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(10)))
-"<root>"@(dummy) [Declared]: <error>
+"N"@(FileId(1), 6..7) [ConstVar(Const, No)]: int
+"c"@(FileId(1), 19..20) [ConstVar(Var, No)]: char
+"c5"@(FileId(1), 32..34) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(1)))
+"c257"@(FileId(1), 49..53) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(2)))
+"s5"@(FileId(1), 70..72) [ConstVar(Var, No)]: string_n Fixed(Unevaluated(LibraryId(0), BodyId(3)))
+"_e00"@(FileId(1), 90..94) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(4)))
+"_e01"@(FileId(1), 114..118) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(6)))
+"_e01"@(FileId(1), 139..143) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(8)))
+"_e02"@(FileId(1), 166..170) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(10)))
+"<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 108..109: mismatched types
 | note in file FileId(1) for 108..109: this is of type `char`

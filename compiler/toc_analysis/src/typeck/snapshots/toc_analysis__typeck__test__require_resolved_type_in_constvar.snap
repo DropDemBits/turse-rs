@@ -1,12 +1,10 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 41
 expression: "type fowo : forward var _ : fowo"
-
 ---
-"fowo"@(FileId(1), 5..9) [Forward(Type, None)]: alias[DefId(LibraryId(0), LocalDefId(0))] of forward
-"_"@(FileId(1), 24..25) [Declared]: <error>
-"<root>"@(dummy) [Declared]: <error>
+"fowo"@(FileId(1), 5..9) [Type]: alias[DefId(LibraryId(0), LocalDefId(0))] of forward
+"_"@(FileId(1), 24..25) [ConstVar(Var, No)]: <error>
+"<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 28..32: `fowo` has not been resolved at this point
 | error in file FileId(1) for 28..32: `fowo` is required to be resolved at this point

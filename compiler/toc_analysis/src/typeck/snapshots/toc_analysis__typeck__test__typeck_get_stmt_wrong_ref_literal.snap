@@ -1,9 +1,8 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
 expression: "get 1\n"
-
 ---
-"<root>"@(dummy) [Declared]: <error>
+"<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 4..5: cannot assign into expression
 | error in file FileId(1) for 4..5: not a reference to a variable

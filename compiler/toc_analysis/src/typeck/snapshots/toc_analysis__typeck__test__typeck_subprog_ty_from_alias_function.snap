@@ -3,8 +3,8 @@ source: compiler/toc_analysis/src/typeck/test.rs
 expression: "type sha : function (a : int, b : char) : int"
 ---
 "<unnamed>"@(dummy) [Undeclared]: <error>
-"a"@(FileId(1), 21..22) [Declared]: <error>
-"b"@(FileId(1), 30..31) [Declared]: <error>
-"sha"@(FileId(1), 5..8) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(3))] of function ( pass(value) int, pass(value) char, ) -> int
-"<root>"@(dummy) [Declared]: <error>
+"a"@(FileId(1), 21..22) [Param(Value, No)]: <error>
+"b"@(FileId(1), 30..31) [Param(Value, No)]: <error>
+"sha"@(FileId(1), 5..8) [Type]: alias[DefId(LibraryId(0), LocalDefId(3))] of function ( pass(value) int, pass(value) char, ) -> int
+"<root>"@(dummy) [Module(No)]: <error>
 
