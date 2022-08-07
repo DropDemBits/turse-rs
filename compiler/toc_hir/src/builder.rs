@@ -42,11 +42,13 @@ impl LibraryBuilder {
         name: Symbol,
         span: SpanId,
         kind: Option<symbol::SymbolKind>,
+        pervasive: symbol::IsPervasive,
     ) -> symbol::LocalDefId {
         let def = symbol::DefInfo {
             name,
             def_at: span,
             kind,
+            pervasive,
         };
         let index = self.defs.alloc(def);
         symbol::LocalDefId(index)

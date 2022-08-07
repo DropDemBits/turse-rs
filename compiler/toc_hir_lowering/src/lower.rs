@@ -26,7 +26,7 @@ mod ty;
 use std::sync::Arc;
 
 use toc_ast_db::db::SourceParser;
-use toc_hir::symbol::{syms, IsMonitor, SymbolKind};
+use toc_hir::symbol::{syms, IsMonitor, IsPervasive, SymbolKind};
 use toc_hir::{
     body,
     builder::{self, BodyBuilder},
@@ -40,7 +40,6 @@ use toc_reporting::{CompileResult, MessageBundle, MessageSink};
 use toc_span::{FileId, HasSpanTable, Span, SpanId, TextRange};
 use toc_syntax::ast::{self, AstNode};
 
-use crate::resolver::PervasiveTracker;
 use crate::{LoweredLibrary, LoweringDb};
 
 // Implement for anything that can provide an AST source.
@@ -69,18 +68,16 @@ where
         let reachable_files: Vec<_> = self.depend_graph(library_root).unit_sources().collect();
         let mut root_items = vec![];
         let mut library = builder::LibraryBuilder::default();
-        let mut pervasive_tracker = PervasiveTracker::default();
 
         // Lower all files reachable from the library root
         for file in reachable_files {
-            let (item, msgs) =
-                FileLowering::lower_file(db, file, &mut library, &mut pervasive_tracker).take();
+            let (item, msgs) = FileLowering::lower_file(db, file, &mut library).take();
             root_items.push((file, item));
             messages = messages.combine(msgs);
         }
 
         let (resolve_map, resolve_msgs) =
-            crate::resolver::resolve_defs(&root_items, &library, pervasive_tracker).take();
+            crate::resolver::resolve_defs(&root_items, &library).take();
         messages = messages.combine(resolve_msgs);
 
         let lib = library.finish(root_items, resolve_map);
@@ -105,23 +102,15 @@ where
 struct FileLowering<'ctx> {
     file: FileId,
     library: &'ctx mut builder::LibraryBuilder,
-    pervasive_tracker: &'ctx mut PervasiveTracker,
-    // scopes: scopes::ScopeTracker,
     messages: MessageSink,
 }
 
 impl<'ctx> FileLowering<'ctx> {
-    fn new(
-        file: FileId,
-        library: &'ctx mut builder::LibraryBuilder,
-        pervasive_tracker: &'ctx mut PervasiveTracker,
-    ) -> Self {
+    fn new(file: FileId, library: &'ctx mut builder::LibraryBuilder) -> Self {
         Self {
             file,
             library,
-            pervasive_tracker,
             messages: MessageSink::new(),
-            // scopes: scopes::ScopeTracker::new(),
         }
     }
 
@@ -129,14 +118,13 @@ impl<'ctx> FileLowering<'ctx> {
         db: &dyn LoweringDb,
         file: FileId,
         library: &'ctx mut builder::LibraryBuilder,
-        pervasive_tracker: &'ctx mut PervasiveTracker,
     ) -> CompileResult<item::ItemId> {
         // Parse & validate file
         let parse_res = db.parse_file(file);
         let validate_res = db.validate_file(file);
 
         // Enter the actual lowering
-        let mut ctx = Self::new(file, library, pervasive_tracker);
+        let mut ctx = Self::new(file, library);
         let root = ast::Source::cast(parse_res.result().syntax()).unwrap();
         let root_item = ctx.lower_root(root);
 
@@ -173,6 +161,7 @@ impl<'ctx> FileLowering<'ctx> {
             *syms::Root,
             self.library.span_table().dummy_span(),
             Some(SymbolKind::Module(IsMonitor::No)),
+            IsPervasive::No,
         );
         let module_span = self.intern_range(root.syntax().text_range());
         let module = item::Module {

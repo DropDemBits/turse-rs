@@ -2,7 +2,7 @@
 use std::collections::HashMap;
 
 use indexmap::IndexMap;
-use toc_hir::symbol::{syms, IsMonitor, IsRegister, SubprogramKind, SymbolKind};
+use toc_hir::symbol::{syms, IsMonitor, IsPervasive, IsRegister, SubprogramKind, SymbolKind};
 use toc_hir::ty::PassBy;
 use toc_hir::{
     expr, item,
@@ -377,6 +377,7 @@ impl super::BodyLowering<'_, '_> {
             *syms::Unnamed,
             self.ctx.library.span_table().dummy_span(),
             None,
+            IsPervasive::No,
         );
 
         for param_def in formals.param_decl() {
@@ -471,6 +472,7 @@ impl super::BodyLowering<'_, '_> {
                     name,
                     // ???: Does this need to be pass by value? (can it be pass by const ref?)
                     SymbolKind::Param(PassBy::Value, IsRegister::No),
+                    false,
                 )
             });
             (name, result.ty())
@@ -536,14 +538,6 @@ impl super::BodyLowering<'_, '_> {
 
         let exports = self.lower_export_list(decl.export_stmt(), &declares);
 
-        // Mark pervasive unqualifieds as being pervasive
-        for export in exports
-            .iter()
-            .filter(|item| matches!(item.qualify_as, item::QualifyAs::PervasiveUnqualified))
-        {
-            self.ctx.pervasive_tracker.mark_pervasive(export.def_id);
-        }
-
         let span = self.ctx.intern_range(decl.syntax().text_range());
         let item_id = self.ctx.library.add_item(item::Item {
             def_id,
@@ -576,7 +570,6 @@ impl super::BodyLowering<'_, '_> {
         };
 
         let mut import_list = vec![];
-        // let mut import_defs = vec![];
         let mut already_imported = HashMap::new();
 
         for import in imports.imports().unwrap().import_item() {
@@ -688,7 +681,7 @@ impl super::BodyLowering<'_, '_> {
             }
 
             let span = self.ctx.intern_range(import.syntax().text_range());
-            let def_id = self.name_to_def(name, SymbolKind::Import);
+            let def_id = self.name_to_def(name, SymbolKind::Import, false);
 
             let item_id = self.ctx.library.add_item(item::Item {
                 def_id,
@@ -839,6 +832,7 @@ impl super::BodyLowering<'_, '_> {
                         export_name,
                         export_span,
                         Some(SymbolKind::Export),
+                        matches!(qualify_as, item::QualifyAs::PervasiveUnqualified).into(),
                     );
 
                     item::ExportItem {
@@ -977,6 +971,7 @@ impl super::BodyLowering<'_, '_> {
                             name_text,
                             export_span,
                             Some(SymbolKind::Export),
+                            matches!(qualify_as, item::QualifyAs::PervasiveUnqualified).into(),
                         );
 
                         Some(item::ExportItem {
@@ -1336,7 +1331,12 @@ impl super::BodyLowering<'_, '_> {
 
         // Names list must contain at least one name
         if names.is_empty() {
-            names.push(self.ctx.library.add_def(*syms::Unnamed, default_span, None))
+            names.push(self.ctx.library.add_def(
+                *syms::Unnamed,
+                default_span,
+                None,
+                is_pervasive.into(),
+            ))
         }
 
         names
@@ -1377,13 +1377,7 @@ impl super::BodyLowering<'_, '_> {
         kind: SymbolKind,
         is_pervasive: bool,
     ) -> symbol::LocalDefId {
-        let def_id = self.name_to_def(name, kind);
-
-        if is_pervasive {
-            self.ctx.pervasive_tracker.mark_pervasive(def_id);
-        }
-
-        def_id
+        self.name_to_def(name, kind, is_pervasive)
     }
 
     fn lower_maybe_name_def(
@@ -1397,16 +1391,23 @@ impl super::BodyLowering<'_, '_> {
             self.lower_name_def(name, kind, is_pervasive)
         } else {
             // Undeclared version
-            self.ctx.library.add_def(*syms::Unnamed, default_span, None)
+            self.ctx
+                .library
+                .add_def(*syms::Unnamed, default_span, None, IsPervasive::No)
         }
     }
 
-    fn name_to_def(&mut self, name: ast::Name, kind: SymbolKind) -> symbol::LocalDefId {
+    fn name_to_def(
+        &mut self,
+        name: ast::Name,
+        kind: SymbolKind,
+        is_pervasive: bool,
+    ) -> symbol::LocalDefId {
         let token = name.identifier_token().unwrap();
         let span = self.ctx.intern_range(token.text_range());
         self.ctx
             .library
-            .add_def(token.text().into(), span, Some(kind))
+            .add_def(token.text().into(), span, Some(kind), is_pervasive.into())
     }
 }
 

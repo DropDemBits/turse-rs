@@ -10,8 +10,6 @@ use std::collections::{HashMap, HashSet};
 
 use toc_hir::symbol::{self, DefMap, LocalDefId, Symbol};
 
-use super::PervasiveTracker;
-
 /// How a symbol is brought into scope
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum DeclareKind {
@@ -155,16 +153,16 @@ impl Scope {
 #[derive(Debug)]
 pub(crate) struct ScopeTracker {
     scopes: Vec<Scope>,
-    pervasive_tracker: PervasiveTracker,
     declare_kinds: DefMap<DeclareKind>,
+    pervasive_defs: DefMap<()>,
 }
 
 impl ScopeTracker {
-    pub fn new(pervasive_tracker: PervasiveTracker) -> Self {
+    pub fn new() -> Self {
         Self {
             scopes: vec![Scope::new(ScopeKind::Root)],
-            pervasive_tracker,
             declare_kinds: Default::default(),
+            pervasive_defs: Default::default(),
         }
     }
 
@@ -197,7 +195,7 @@ impl ScopeTracker {
 
     /// Checks if the given `def_id` is pervasive (i.e. always implicitly imported)
     pub fn is_pervasive(&self, def_id: symbol::LocalDefId) -> bool {
-        self.pervasive_tracker.is_pervasive(def_id)
+        self.pervasive_defs.get(def_id).is_some()
     }
 
     pub fn declare_kind(&self, def_id: symbol::LocalDefId) -> DeclareKind {
@@ -220,13 +218,19 @@ impl ScopeTracker {
         name: Symbol,
         def_id: symbol::LocalDefId,
         kind: DeclareKind,
+        is_pervasive: bool,
     ) -> Option<symbol::LocalDefId> {
         use std::collections::hash_map::Entry;
 
         let last_def = self.lookup_def(name, LookupKind::OnDef);
         let def_scope = self.scopes.last_mut().unwrap();
         def_scope.def_in(name, def_id);
+
         self.declare_kinds.insert(def_id, kind);
+
+        if is_pervasive {
+            self.pervasive_defs.insert(def_id, ());
+        }
 
         // Update the forward decl list
         match kind {
@@ -265,36 +269,6 @@ impl ScopeTracker {
     /// Looks up the given def named `name`, or returning [`None`] if it doesn't exist
     pub fn use_sym(&mut self, name: Symbol) -> Option<symbol::LocalDefId> {
         self.lookup_def(name, LookupKind::OnUse)
-
-        // TODO: Look at if this is true anymore, now that we store undeclared bindings
-        // as Resolve::Err
-        /*
-        .unwrap_or_else(|| {
-            // ???: Do we still need to declare undecl's at the boundary scope?
-            // Since we plan to run another pass to collect defs for the export tables,
-            // would it make more sense to hoist up to root?
-            //
-            // The original motivation was that undeclared defs may or may not represent
-            // unqualified imports, so it make sense to have the same undeclared names
-            // in an import boundary to share a LocalDefId. Thus, if the undecl def is
-            // really an unqualified import, we'd have done something approximating the
-            // right thing.
-            //
-            // However, if ScopeTracker has access to the complete export tables, then we
-            // can disambiguate between unqualified imports and undeclared definitions,
-            // leaving us free to always have all of the undeclared defs share a LocalDefId.
-            //
-            // Addendum:
-            // This conveniently deals with deduplicating undeclared identifier errors, so
-            // not doing this would mean that we'd have to handle that undeclared tracking
-            // elsewhere.
-
-            // Declare at the import boundary
-            let def_id = or_undeclared();
-            Self::boundary_scope(&mut self.scopes).def_in(name, def_id);
-            def_id
-        })
-        */
     }
 
     /// Tests if this is the first use of an undeclared identifier in this scope.
@@ -302,6 +276,12 @@ impl ScopeTracker {
     /// This is not an idempotent operation, so subsequent calls
     /// will return false, even if the first one returned true.
     pub fn is_first_undecl_use(&mut self, name: Symbol) -> bool {
+        // ???: Do we still need to declare undecl's at the boundary scope?
+        // We still hoist to an import boundary scope because we still want
+        // to deduplicate undeclared identifier errors. It's still a question
+        // of whether or not we want to extend it to any import boundary
+        // (including soft boundaries), but the way we do it right now is
+        // alright enough.
         Self::boundary_scope(&mut self.scopes).undecl_def_in(name)
     }
 
@@ -423,6 +403,6 @@ impl ScopeTracker {
 
 impl Default for ScopeTracker {
     fn default() -> Self {
-        Self::new(Default::default())
+        Self::new()
     }
 }

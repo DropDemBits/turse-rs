@@ -68,6 +68,10 @@ pub struct DefInfo {
     /// What kind of declaration this definition refers to,
     /// or `None` if it's from an undeclared definition.
     pub kind: Option<SymbolKind>,
+
+    /// Whether or not this def is automatically imported through
+    /// child import boundaries.
+    pub pervasive: IsPervasive,
 }
 
 /// What kind of item this symbol references.
@@ -213,6 +217,10 @@ impl std::fmt::Display for SymbolKind {
 
         f.write_str(name)
     }
+}
+
+crate::make_named_bool! {
+    pub enum IsPervasive;
 }
 
 crate::make_named_bool! {

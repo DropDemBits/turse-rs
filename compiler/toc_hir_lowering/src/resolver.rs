@@ -2,8 +2,6 @@
 
 mod scopes;
 
-use std::collections::HashSet;
-
 use toc_hir::{
     body::{BodyId, BodyKind},
     expr::{BodyExpr, ExprId, ExprKind, Name, RangeBound},
@@ -18,34 +16,15 @@ use toc_span::{FileId, SpanId};
 
 use scopes::{DeclareKind, ForwardKind, LimitedKind, ScopeKind, ScopeTracker};
 
-/// Keeps track of what defs had pervasive attributes
-#[derive(Debug, Default)]
-pub struct PervasiveTracker {
-    pervasive_tracker: HashSet<LocalDefId>,
-}
-
-impl PervasiveTracker {
-    /// Checks if the given `def_id` is pervasive (i.e. always implicitly imported)
-    pub fn is_pervasive(&self, def_id: LocalDefId) -> bool {
-        self.pervasive_tracker.contains(&def_id)
-    }
-
-    /// Marks a def as being pervasive
-    pub fn mark_pervasive(&mut self, def_id: LocalDefId) {
-        self.pervasive_tracker.insert(def_id);
-    }
-}
-
 /// Resolves bindings in a library, producing a [`ResolutionMap`]
 pub(crate) fn resolve_defs(
     root_items: &[(FileId, ItemId)],
     library: &Library,
-    pervasive_tracker: PervasiveTracker,
 ) -> CompileResult<ResolutionMap> {
     let mut ctx = ResolveCtx {
         library,
         resolves: Default::default(),
-        scopes: ScopeTracker::new(pervasive_tracker),
+        scopes: ScopeTracker::new(),
         messages: Default::default(),
     };
 
@@ -111,7 +90,9 @@ impl<'a> ResolveCtx<'a> {
         let span = def_info.def_at;
 
         // Bring into scope
-        let old_def = self.scopes.def_sym(name, def_id, kind);
+        let old_def = self
+            .scopes
+            .def_sym(name, def_id, kind, def_info.pervasive.into());
 
         // Resolve any associated forward decls
         if let DeclareKind::Resolved(resolve_kind) = kind {
@@ -340,8 +321,14 @@ impl<'a> ResolveCtx<'a> {
                         // Introduce params
                         if let Some(param_list) = &item.param_list {
                             for &param_def in &param_list.names {
-                                let name = this.library.local_def(param_def).name;
-                                this.scopes.def_sym(name, param_def, DeclareKind::Declared);
+                                let def_info = &this.library.local_def(param_def);
+                                let name = def_info.name;
+                                this.scopes.def_sym(
+                                    name,
+                                    param_def,
+                                    DeclareKind::Declared,
+                                    def_info.pervasive.into(),
+                                );
                             }
                         }
 
