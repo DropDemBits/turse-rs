@@ -68,9 +68,6 @@ pub struct DefInfo {
     /// What kind of declaration this definition refers to,
     /// or `None` if it's from an undeclared definition.
     pub kind: Option<SymbolKind>,
-    // How this definition was declared
-    // ???: Can we punt this to only be during construction?
-    // pub declare_kind: DeclareKind,
 }
 
 /// What kind of item this symbol references.
@@ -224,49 +221,6 @@ crate::make_named_bool! {
 
 crate::make_named_bool! {
     pub enum IsMonitor;
-}
-
-/// How a symbol is brought into scope
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum DeclareKind {
-    /// The symbol is undeclared at the point of definition.
-    Undeclared,
-    /// The symbol is a normal declaration at the point of definition.
-    Declared,
-    /// The symbol is declared, but is only usable in certain contexts
-    LimitedDeclared(LimitedKind),
-    /// The symbol is a forward reference to a later declaration,
-    /// with a [`LocalDefId`] pointing to the resolving definition.
-    Forward(ForwardKind, Option<LocalDefId>),
-    /// The symbol is a resolution of a forward declaration.
-    Resolved(ForwardKind),
-
-    // TODO: We only care about where it's exported from, attrs can come later (library local export table?)
-    /// The symbol is from an export of an item, with a [`LocalDefId`]
-    /// pointing to the original item.
-    ItemExport(LocalDefId),
-
-    // TODO: Shunt this info into a libray local import table/resolution map?
-    /// The symbol is of an imported item, optionally with a [`LocalDefId`]
-    /// pointing to the original item, or `None` if there isn't one.
-    ItemImport(Option<LocalDefId>),
-}
-
-/// Disambiguates between different forward declaration kinds
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ForwardKind {
-    /// `type` forward declaration
-    Type,
-    /// `procedure` forward declaration
-    // Only constructed in tests right now
-    _Procedure,
-}
-
-/// Specificity on why a symbol is limited in visibility
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum LimitedKind {
-    /// Only usable in post-condition statements
-    PostCondition,
 }
 
 /// Any HIR node that contains a definition

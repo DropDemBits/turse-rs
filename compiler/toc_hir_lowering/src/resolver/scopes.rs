@@ -8,7 +8,52 @@ mod test;
 
 use std::collections::{HashMap, HashSet};
 
-use toc_hir::symbol::{self, DeclareKind, DefMap, ForwardKind, LocalDefId, Symbol};
+use toc_hir::symbol::{self, DefMap, LocalDefId, Symbol};
+
+use super::PervasiveTracker;
+
+/// How a symbol is brought into scope
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum DeclareKind {
+    /// The symbol is undeclared at the point of definition.
+    Undeclared,
+    /// The symbol is a normal declaration at the point of definition.
+    Declared,
+    /// The symbol is declared, but is only usable in certain contexts
+    LimitedDeclared(LimitedKind),
+    /// The symbol is a forward reference to a later declaration,
+    /// with a [`LocalDefId`] pointing to the resolving definition.
+    Forward(ForwardKind, Option<LocalDefId>),
+    /// The symbol is a resolution of a forward declaration.
+    Resolved(ForwardKind),
+
+    // TODO: We only care about where it's exported from, attrs can come later (library local export table?)
+    /// The symbol is from an export of an item, with a [`LocalDefId`]
+    /// pointing to the original item.
+    ItemExport(LocalDefId),
+
+    // TODO: Shunt this info into a libray local import table/resolution map?
+    /// The symbol is of an imported item, optionally with a [`LocalDefId`]
+    /// pointing to the original item, or `None` if there isn't one.
+    ItemImport(Option<LocalDefId>),
+}
+
+/// Disambiguates between different forward declaration kinds
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum ForwardKind {
+    /// `type` forward declaration
+    Type,
+    /// `procedure` forward declaration
+    // Only constructed in tests right now
+    _Procedure,
+}
+
+/// Specificity on why a symbol is limited in visibility
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum LimitedKind {
+    /// Only usable in post-condition statements
+    PostCondition,
+}
 
 #[derive(Debug)]
 pub(crate) struct Scope {
@@ -104,24 +149,6 @@ impl Scope {
     /// Returns `true` if this is the first time it's being inserted.
     fn undecl_def_in(&mut self, name: Symbol) -> bool {
         self.undecl_symbols.insert(name)
-    }
-}
-
-/// Keeps track of what defs had pervasive attributes
-#[derive(Debug, Default)]
-pub(crate) struct PervasiveTracker {
-    pervasive_tracker: HashSet<symbol::LocalDefId>,
-}
-
-impl PervasiveTracker {
-    /// Checks if the given `def_id` is pervasive (i.e. always implicitly imported)
-    pub fn is_pervasive(&self, def_id: symbol::LocalDefId) -> bool {
-        self.pervasive_tracker.contains(&def_id)
-    }
-
-    /// Marks a def as being pervasive
-    pub fn mark_pervasive(&mut self, def_id: symbol::LocalDefId) {
-        self.pervasive_tracker.insert(def_id);
     }
 }
 

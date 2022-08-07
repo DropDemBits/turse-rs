@@ -1,9 +1,7 @@
 //! Scope testing
-use toc_hir::symbol::{DeclareKind, ForwardKind, LocalDefId};
+use toc_hir::symbol::LocalDefId;
 
-use crate::scopes::ScopeKind;
-
-use super::{PervasiveTracker, ScopeTracker};
+use super::{DeclareKind, ForwardKind, PervasiveTracker, ScopeKind, ScopeTracker};
 
 #[derive(Default)]
 struct LocalDefAlloc {

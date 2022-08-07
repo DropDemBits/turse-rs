@@ -1,21 +1,40 @@
 //! Resolution of name nodes to specific local defs
 
+mod scopes;
+
+use std::collections::HashSet;
+
 use toc_hir::{
     body::{BodyId, BodyKind},
     expr::{BodyExpr, ExprId, ExprKind, Name, RangeBound},
     item::{DefinedType, ItemId, ItemKind, QualifyAs, SubprogramExtra},
     library::Library,
     stmt::{BodyStmt, CaseSelector, FalseBranch, ForBounds, GetWidth, Skippable, StmtId, StmtKind},
-    symbol::{
-        DeclareKind, DefResolve, ForwardKind, LimitedKind, LocalDefId, ResolutionMap, Resolve,
-        Symbol,
-    },
+    symbol::{DefResolve, LocalDefId, ResolutionMap, Resolve, Symbol},
     ty::{ConstrainedEnd, Primitive, SeqLength, TypeId, TypeKind},
 };
 use toc_reporting::{CompileResult, MessageSink};
 use toc_span::{FileId, SpanId};
 
-use crate::scopes::{PervasiveTracker, ScopeKind, ScopeTracker};
+use scopes::{DeclareKind, ForwardKind, LimitedKind, ScopeKind, ScopeTracker};
+
+/// Keeps track of what defs had pervasive attributes
+#[derive(Debug, Default)]
+pub struct PervasiveTracker {
+    pervasive_tracker: HashSet<LocalDefId>,
+}
+
+impl PervasiveTracker {
+    /// Checks if the given `def_id` is pervasive (i.e. always implicitly imported)
+    pub fn is_pervasive(&self, def_id: LocalDefId) -> bool {
+        self.pervasive_tracker.contains(&def_id)
+    }
+
+    /// Marks a def as being pervasive
+    pub fn mark_pervasive(&mut self, def_id: LocalDefId) {
+        self.pervasive_tracker.insert(def_id);
+    }
+}
 
 /// Resolves bindings in a library, producing a [`ResolutionMap`]
 pub(crate) fn resolve_defs(

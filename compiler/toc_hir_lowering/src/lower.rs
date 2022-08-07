@@ -20,7 +20,6 @@
 // - so lower_expr_body and lower_stmt_body needs to be in BodyLowering
 
 mod expr;
-mod resolver;
 mod stmt;
 mod ty;
 
@@ -41,7 +40,7 @@ use toc_reporting::{CompileResult, MessageBundle, MessageSink};
 use toc_span::{FileId, HasSpanTable, Span, SpanId, TextRange};
 use toc_syntax::ast::{self, AstNode};
 
-use crate::scopes::PervasiveTracker;
+use crate::resolver::PervasiveTracker;
 use crate::{LoweredLibrary, LoweringDb};
 
 // Implement for anything that can provide an AST source.
@@ -80,9 +79,8 @@ where
             messages = messages.combine(msgs);
         }
 
-        // TODO: Map name exprs to defs
         let (resolve_map, resolve_msgs) =
-            resolver::resolve_defs(&root_items, &library, pervasive_tracker).take();
+            crate::resolver::resolve_defs(&root_items, &library, pervasive_tracker).take();
         messages = messages.combine(resolve_msgs);
 
         let lib = library.finish(root_items, resolve_map);

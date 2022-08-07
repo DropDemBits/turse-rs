@@ -18,7 +18,7 @@
 // Other DBs will deal with what they map to (e.g. a separate DB managing all of the CSTs)
 
 mod lower;
-mod scopes;
+mod resolver;
 
 use toc_hir::{library::LoweredLibrary, library_graph::LibraryGraph};
 use toc_reporting::CompileResult;
