@@ -34,6 +34,8 @@ pub(crate) enum DeclareKind {
     /// The symbol is of an imported item, optionally with a [`LocalDefId`]
     /// pointing to the original item, or `None` if there isn't one.
     ItemImport(Option<LocalDefId>),
+
+    UnqualifiedImport(LocalDefId, LocalDefId),
 }
 
 /// Disambiguates between different forward declaration kinds

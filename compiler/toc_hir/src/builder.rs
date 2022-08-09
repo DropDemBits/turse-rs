@@ -79,15 +79,20 @@ impl LibraryBuilder {
         &mut self.defs[def_id.into()]
     }
 
-    pub fn finish(
-        self,
-        root_items: Vec<(FileId, item::ItemId)>,
-        resolve_map: symbol::ResolutionMap,
-    ) -> library::Library {
+    pub fn freeze_root_items(self, root_items: Vec<(FileId, item::ItemId)>) -> Self {
+        Self {
+            library: library::Library {
+                // Convert from vec of tuples to an index map
+                root_items: root_items.into_iter().collect(),
+                ..self.library
+            },
+        }
+    }
+
+    pub fn finish(self, resolve_map: symbol::ResolutionMap) -> library::Library {
         let Self { library } = self;
 
         library::Library {
-            root_items: root_items.into_iter().collect(),
             resolve_map,
             ..library
         }

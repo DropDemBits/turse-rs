@@ -72,15 +72,18 @@ where
         // Lower all files reachable from the library root
         for file in reachable_files {
             let (item, msgs) = FileLowering::lower_file(db, file, &mut library).take();
-            root_items.push((file, item));
             messages = messages.combine(msgs);
+            root_items.push((file, item));
         }
 
-        let (resolve_map, resolve_msgs) =
-            crate::resolver::resolve_defs(&root_items, &library).take();
+        let library = library.freeze_root_items(root_items);
+
+        // FIXME: This needs be punted to after all HIR trees are constructed,
+        // as we need to know the module exports of a foreign library
+        let (resolve_map, resolve_msgs) = crate::resolver::resolve_defs(&library).take();
         messages = messages.combine(resolve_msgs);
 
-        let lib = library.finish(root_items, resolve_map);
+        let lib = library.finish(resolve_map);
 
         CompileResult::new(Arc::new(lib), messages)
     }

@@ -8,27 +8,72 @@ use toc_hir::{
     item::{DefinedType, ItemId, ItemKind, QualifyAs, SubprogramExtra},
     library::Library,
     stmt::{BodyStmt, CaseSelector, FalseBranch, ForBounds, GetWidth, Skippable, StmtId, StmtKind},
-    symbol::{DefResolve, LocalDefId, ResolutionMap, Resolve, Symbol},
+    symbol::{DefMap, DefResolve, IsPervasive, LocalDefId, ResolutionMap, Resolve, Symbol},
     ty::{ConstrainedEnd, Primitive, SeqLength, TypeId, TypeKind},
+    visitor,
 };
 use toc_reporting::{CompileResult, MessageSink};
-use toc_span::{FileId, SpanId};
+use toc_span::SpanId;
 
 use scopes::{DeclareKind, ForwardKind, LimitedKind, ScopeKind, ScopeTracker};
 
+/// An unqualified exported item.
+pub(crate) struct UnqualifiedDef {
+    /// [`LocalDefId`] of the corresponding `export`
+    def_id: LocalDefId,
+    /// [`LocalDefId`] of the item that was exported
+    export_def: LocalDefId,
+    pervasive: IsPervasive,
+}
+
+pub(crate) fn module_exports(library: &Library) -> DefMap<Vec<UnqualifiedDef>> {
+    use std::cell::RefCell;
+
+    struct ExportCollector<'lib> {
+        library: &'lib Library,
+        exports: RefCell<DefMap<Vec<UnqualifiedDef>>>,
+    }
+
+    impl visitor::HirVisitor for ExportCollector<'_> {
+        fn visit_module(&self, _id: toc_hir::item::ItemId, item: &toc_hir::item::Module) {
+            let def_id = item.def_id;
+            let unquali_exports = item
+                .exports
+                .iter()
+                .map(|export| UnqualifiedDef {
+                    def_id: export.def_id,
+                    export_def: self.library.item(export.item_id).def_id,
+                    pervasive: matches!(export.qualify_as, QualifyAs::PervasiveUnqualified).into(),
+                })
+                .collect();
+            self.exports.borrow_mut().insert(def_id, unquali_exports);
+        }
+    }
+
+    let visitor = ExportCollector {
+        library,
+        exports: Default::default(),
+    };
+
+    visitor::Walker::from_library(library).visit_preorder(&visitor);
+
+    visitor.exports.take()
+}
+
 /// Resolves bindings in a library, producing a [`ResolutionMap`]
-pub(crate) fn resolve_defs(
-    root_items: &[(FileId, ItemId)],
-    library: &Library,
-) -> CompileResult<ResolutionMap> {
+pub(crate) fn resolve_defs(library: &Library) -> CompileResult<ResolutionMap> {
+    let def_exports = module_exports(library);
+
+    // Do the actual resolving process
     let mut ctx = ResolveCtx {
         library,
+        def_exports,
         resolves: Default::default(),
-        scopes: ScopeTracker::new(),
+        scopes: Default::default(),
         messages: Default::default(),
     };
 
-    for (_, root_item) in root_items {
+    for (_, root_item) in &library.root_items {
         ctx.resolve_item(*root_item);
     }
 
@@ -37,6 +82,7 @@ pub(crate) fn resolve_defs(
 
 struct ResolveCtx<'lib> {
     library: &'lib Library,
+    def_exports: DefMap<Vec<UnqualifiedDef>>,
     resolves: ResolutionMap,
     scopes: ScopeTracker,
     messages: MessageSink,
@@ -418,6 +464,8 @@ impl<'a> ResolveCtx<'a> {
                 };
 
                 this.introduce_def(item.def_id, DeclareKind::ItemImport(imported_def));
+
+                // FIXME: Also introduce unqualifieds, if applicable
             }
         }
     }
