@@ -35,6 +35,8 @@ pub(crate) enum DeclareKind {
     /// pointing to the original item, or `None` if there isn't one.
     ItemImport(Option<LocalDefId>),
 
+    /// The symbol an unqualified export from an import.
+    /// [`LocalDefId`]s point to `(original_import, original_export)`
     UnqualifiedImport(LocalDefId, LocalDefId),
 }
 

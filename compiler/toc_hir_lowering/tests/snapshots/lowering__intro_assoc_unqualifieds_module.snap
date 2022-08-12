@@ -1,0 +1,25 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+expression: "\nmodule _\n    export ~. waw\n    module waw\n        export ~. var sus\n        var sus : int\n    end waw\nend _\n\nmodule target\n    import waw\n    sus := 1\nend target\n    "
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(5)
+    Module@(FileId(1), 0..167): "<root>"@(dummy)
+      StmtBody@(FileId(1), 1..162): []
+        StmtItem@(FileId(1), 1..108): ItemId(2)
+          Module@(FileId(1), 1..108): "_"@(FileId(1), 8..9), exports [Const Unqualified local("waw"@(FileId(1), 39..42))]
+            StmtBody@(FileId(1), 32..102): []
+              StmtItem@(FileId(1), 32..102): ItemId(1)
+                Module@(FileId(1), 32..102): "waw"@(FileId(1), 39..42), exports [Var Unqualified local("sus"@(FileId(1), 81..84))]
+                  StmtBody@(FileId(1), 77..90): []
+                    StmtItem@(FileId(1), 77..90): ItemId(0)
+                      ConstVar@(FileId(1), 77..90): var "sus"@(FileId(1), 81..84)
+                        Primitive@(FileId(1), 87..90): Int
+        StmtItem@(FileId(1), 110..162): ItemId(4)
+          Module@(FileId(1), 110..162): "target"@(FileId(1), 117..123)
+            Import@(FileId(1), 135..138): SameAsItem local("waw"@(FileId(1), 24..27))
+            StmtBody@(FileId(1), 143..151): []
+              Assign@(FileId(1), 143..151)
+                Name@(FileId(1), 143..146): "sus"@(FileId(1), 65..68)
+                Literal@(FileId(1), 150..151): Integer(1)
+

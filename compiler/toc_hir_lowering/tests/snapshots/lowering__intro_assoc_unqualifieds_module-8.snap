@@ -1,0 +1,32 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+expression: "\nmodule wrap\n    export ~. unquali\n    module unquali\n        export ~. uwu\n        var uwu : int\n    end unquali\nend wrap\n\nmodule target\n    import unquali\n\n    module wa\n        export ~. uwu\n        var uwu : int\n    end wa\nend target\n    "
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(7)
+    Module@(FileId(1), 0..242): "<root>"@(dummy)
+      StmtBody@(FileId(1), 1..237): []
+        StmtItem@(FileId(1), 1..122): ItemId(2)
+          Module@(FileId(1), 1..122): "wrap"@(FileId(1), 8..12), exports [Const Unqualified local("unquali"@(FileId(1), 46..53))]
+            StmtBody@(FileId(1), 39..113): []
+              StmtItem@(FileId(1), 39..113): ItemId(1)
+                Module@(FileId(1), 39..113): "unquali"@(FileId(1), 46..53), exports [Const Unqualified local("uwu"@(FileId(1), 88..91))]
+                  StmtBody@(FileId(1), 84..97): []
+                    StmtItem@(FileId(1), 84..97): ItemId(0)
+                      ConstVar@(FileId(1), 84..97): var "uwu"@(FileId(1), 88..91)
+                        Primitive@(FileId(1), 94..97): Int
+        StmtItem@(FileId(1), 124..237): ItemId(6)
+          Module@(FileId(1), 124..237): "target"@(FileId(1), 131..137)
+            Import@(FileId(1), 149..156): SameAsItem local("unquali"@(FileId(1), 27..34))
+            StmtBody@(FileId(1), 162..226): []
+              StmtItem@(FileId(1), 162..226): ItemId(5)
+                Module@(FileId(1), 162..226): "wa"@(FileId(1), 169..171), exports [Const Unqualified local("uwu"@(FileId(1), 206..209))]
+                  StmtBody@(FileId(1), 202..215): []
+                    StmtItem@(FileId(1), 202..215): ItemId(4)
+                      ConstVar@(FileId(1), 202..215): var "uwu"@(FileId(1), 206..209)
+                        Primitive@(FileId(1), 212..215): Int
+error in file FileId(1) at 206..209: `uwu` is already declared in the parent scope
+| note in file FileId(1) for 149..156: `uwu` is an unqualified import from `unquali`
+| error in file FileId(1) for 190..193: `uwu` exported unqualified from here
+| info: importing a class or module also imports its unqualified exports
+

@@ -8,7 +8,7 @@ use toc_hir::{
     item::{DefinedType, ItemId, ItemKind, QualifyAs, SubprogramExtra},
     library::Library,
     stmt::{BodyStmt, CaseSelector, FalseBranch, ForBounds, GetWidth, Skippable, StmtId, StmtKind},
-    symbol::{DefMap, DefResolve, IsPervasive, LocalDefId, ResolutionMap, Resolve, Symbol},
+    symbol::{DefMap, DefResolve, LocalDefId, ResolutionMap, Resolve, Symbol},
     ty::{ConstrainedEnd, Primitive, SeqLength, TypeId, TypeKind},
     visitor,
 };
@@ -18,12 +18,12 @@ use toc_span::SpanId;
 use scopes::{DeclareKind, ForwardKind, LimitedKind, ScopeKind, ScopeTracker};
 
 /// An unqualified exported item.
+#[derive(Debug, Clone, Copy)]
 pub(crate) struct UnqualifiedDef {
     /// [`LocalDefId`] of the corresponding `export`
     def_id: LocalDefId,
     /// [`LocalDefId`] of the item that was exported
     export_def: LocalDefId,
-    pervasive: IsPervasive,
 }
 
 pub(crate) fn module_exports(library: &Library) -> DefMap<Vec<UnqualifiedDef>> {
@@ -43,7 +43,6 @@ pub(crate) fn module_exports(library: &Library) -> DefMap<Vec<UnqualifiedDef>> {
                 .map(|export| UnqualifiedDef {
                     def_id: export.def_id,
                     export_def: self.library.item(export.item_id).def_id,
-                    pervasive: matches!(export.qualify_as, QualifyAs::PervasiveUnqualified).into(),
                 })
                 .collect();
             self.exports.borrow_mut().insert(def_id, unquali_exports);
@@ -94,6 +93,7 @@ impl<'a> ResolveCtx<'a> {
         let resolve = match self.scopes.use_sym(name) {
             Some(def) => Resolve::Def(def),
             None => {
+                // FIXME: add help text if it can be imported
                 if self.scopes.is_first_undecl_use(name) {
                     self.messages.error(
                         format!("`{name}` is undeclared"),
@@ -160,7 +160,7 @@ impl<'a> ResolveCtx<'a> {
         if let Some(old_def) = old_def {
             // Report redeclares, specializing based on what kind of declaration it is
             let old_def_info = self.library.local_def(old_def);
-            let old_declare_kind = self.scopes.declare_kind(old_def);
+            let old_declare = self.scopes.declare_kind(old_def);
 
             let old_span = old_def_info.def_at.lookup_in(&self.library);
             let new_span = span.lookup_in(&self.library);
@@ -168,7 +168,35 @@ impl<'a> ResolveCtx<'a> {
             // Just use the name from the old def for both, since by definition they are the same
             let name = old_def_info.name;
 
-            match (old_declare_kind, kind) {
+            // Handles picking the right message for if it's an unqualified import or not
+            fn previously_declared_here<'a>(
+                library: &'_ Library,
+                builder: toc_reporting::MessageBuilder<'a>,
+                name: Symbol,
+                declare_kind: DeclareKind,
+                span: toc_span::Span,
+            ) -> toc_reporting::MessageBuilder<'a> {
+                match declare_kind {
+                    DeclareKind::UnqualifiedImport(from_import, _) => {
+                        let import_def = library.local_def(from_import);
+                        let import_span = import_def.def_at.lookup_in(library);
+                        let import_name = import_def.name;
+
+                        builder
+                            .with_note(
+                                format!("`{name}` is an unqualified import from `{import_name}`"),
+                                import_span,
+                            )
+                            // Note: it should be fine to add info here, but should we?
+                            .with_info(
+                                "importing a class or module also imports its unqualified exports",
+                            )
+                    }
+                    _ => builder.with_note(format!("`{name}` previously declared here"), span),
+                }
+            }
+
+            match (old_declare, kind) {
                 (DeclareKind::Undeclared, _) | (_, DeclareKind::Undeclared) => {
                     // Always ok to declare over undeclared symbols
                 }
@@ -227,13 +255,12 @@ impl<'a> ResolveCtx<'a> {
                         .def_at
                         .lookup_in(&self.library);
 
-                    self.messages
-                        .error_detailed(
-                            format!("`{name}` is already declared in the parent scope"),
-                            from_item_span,
-                        )
-                        .with_note(format!("`{name}` previously declared here"), old_span)
-                        .with_error(format!("`{name}` exported from here"), new_span)
+                    let builder = self.messages.error_detailed(
+                        format!("`{name}` is already declared in the parent scope"),
+                        from_item_span,
+                    );
+                    previously_declared_here(self.library, builder, name, old_declare, old_span)
+                        .with_error(format!("`{name}` exported unqualified from here"), new_span)
                         .finish();
                 }
                 (_, DeclareKind::ItemImport(_)) => {
@@ -258,24 +285,113 @@ impl<'a> ResolveCtx<'a> {
                             .finish();
                     } else {
                         // Declared for another reason
+                        let builder = self.messages.error_detailed(
+                            format!("`{name}` is already declared in this scope"),
+                            new_span,
+                        );
+                        previously_declared_here(
+                            self.library,
+                            builder,
+                            name,
+                            old_declare,
+                            old_span,
+                        )
+                        .with_error(format!("`{name}` imported here"), new_span)
+                        .finish();
+                    }
+                }
+                (DeclareKind::ItemImport(_), DeclareKind::UnqualifiedImport(from_import, _)) => {
+                    let import_def = &self.library.local_def(from_import);
+                    let import_span = import_def.def_at.lookup_in(&self.library);
+                    let import_name = import_def.name;
+
+                    if import_name == name {
+                        // Unqualified import is occluding the original import's name
+                        self.messages
+                            .error_detailed(
+                                format!("`{name}` is already declared in this import"),
+                                import_span,
+                            )
+                            .with_error(
+                                format!("`{name}` is imported here, and it has an unqualified export of the same name"),
+                                import_span,
+                            )
+                            .finish();
+                    } else {
+                        // Unqualified importing over a previous import
                         self.messages
                             .error_detailed(
                                 format!("`{name}` is already declared in this scope"),
-                                new_span,
+                                import_span,
                             )
-                            .with_note(format!("`{name}` previously declared here"), old_span)
-                            .with_error(format!("`{name}` imported here"), new_span)
+                            .with_note(format!("`{name}` previously imported here"), old_span)
+                            .with_error(
+                                format!("`{name}` is an unqualified export of `{import_name}`"),
+                                import_span,
+                            )
+                            .with_info(
+                                "importing a class or module also imports its unqualified exports",
+                            )
                             .finish();
                     }
                 }
-                _ => {
-                    // From a new declaration
+                (
+                    DeclareKind::UnqualifiedImport(old_import, _),
+                    DeclareKind::UnqualifiedImport(new_import, _),
+                ) => {
+                    // Specialize when they're both unqualified imports
+                    let import_def = self.library.local_def(old_import);
+                    let old_span = import_def.def_at.lookup_in(&self.library);
+                    let old_name = import_def.name;
+
+                    let import_def = self.library.local_def(new_import);
+                    let new_span = import_def.def_at.lookup_in(&self.library);
+                    let new_name = import_def.name;
+
                     self.messages
                         .error_detailed(
                             format!("`{name}` is already declared in this scope"),
+                            old_span,
+                        )
+                        .with_note(
+                            format!("`{old_name}` has an unqualified export named `{name}`"),
+                            old_span,
+                        )
+                        .with_error(
+                            format!("`{new_name}` also has an unqualified export named `{name}`"),
                             new_span,
                         )
-                        .with_note(format!("`{name}` previously declared here"), old_span)
+                        .with_info(
+                            "importing a class or module also imports its unqualified exports",
+                        )
+                        .finish();
+                }
+                (_, DeclareKind::UnqualifiedImport(from_import, _)) => {
+                    let import_def = &self.library.local_def(from_import);
+                    let import_span = import_def.def_at.lookup_in(&self.library);
+                    let import_name = import_def.name;
+
+                    let builder = self.messages.error_detailed(
+                        format!("`{name}` is already declared in this scope"),
+                        import_span,
+                    );
+                    previously_declared_here(self.library, builder, name, old_declare, old_span)
+                        .with_error(
+                            format!("`{name}` is an unqualified export of `{import_name}`"),
+                            import_span,
+                        )
+                        .with_info(
+                            "importing a class or module also imports its unqualified exports",
+                        )
+                        .finish();
+                }
+                _ => {
+                    // From a new declaration
+                    let builder = self.messages.error_detailed(
+                        format!("`{name}` is already declared in this scope"),
+                        new_span,
+                    );
+                    previously_declared_here(self.library, builder, name, old_declare, old_span)
                         .with_error(format!("`{name}` redeclared here"), new_span)
                         .finish();
                 }
@@ -465,7 +581,36 @@ impl<'a> ResolveCtx<'a> {
 
                 this.introduce_def(item.def_id, DeclareKind::ItemImport(imported_def));
 
-                // FIXME: Also introduce unqualifieds, if applicable
+                // Also introduce unqualifieds, if applicable
+                // ???: Do we need some sort of gate in `item::Import` allowing or
+                // not allowing importing unqualifieds?
+                // Reference Turing doesn't do it for all imports.
+                if let Some(def_id) = imported_def {
+                    // FIXME: If it's external, the associated unqualified imports
+                    // need to be changed from DefResolve::Local to DefResolve::External
+                    let def_id = {
+                        let mut def_id = def_id;
+                        while let Some(res_def) = this.resolves.def_resolves.get(def_id) {
+                            match res_def {
+                                DefResolve::Local(new_def) => def_id = *new_def,
+                                DefResolve::External(_) => unimplemented!(),
+                                DefResolve::None => break,
+                            }
+                        }
+                        def_id
+                    };
+
+                    // FIXME: we don't really need this clone, but that requires
+                    // moving the `def_exports` into a query
+                    if let Some(exported_defs) = this.def_exports.get(def_id).cloned() {
+                        for export in exported_defs {
+                            this.introduce_def(
+                                export.def_id,
+                                DeclareKind::UnqualifiedImport(item.def_id, export.export_def),
+                            );
+                        }
+                    }
+                }
             }
         }
     }
