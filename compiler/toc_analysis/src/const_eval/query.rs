@@ -124,18 +124,18 @@ pub(crate) fn evaluate_const(
                         // Resolve to canonical def first so that we aren't looking at any exports
                         let canonical_def = match library.binding_resolve(*binding) {
                             toc_hir::symbol::Resolve::Def(local_def) => {
-                                db.resolve_def(DefId(library_id, local_def))
+                                db.resolve_def(DefId(library_id, local_def)).ok()
                             }
-                            toc_hir::symbol::Resolve::Err => {
-                                // Not a const expr
-                                return Err(ConstError::new(
-                                    ErrorKind::NotConstExpr(NotConst::Binding(
-                                        library_id, *binding,
-                                    )),
-                                    expr_span,
-                                ));
-                            }
-                        };
+                            toc_hir::symbol::Resolve::Err => None,
+                        }
+                        .ok_or_else(|| {
+                            // Not a const expr
+                            ConstError::new(
+                                ErrorKind::NotConstExpr(NotConst::Binding(library_id, *binding)),
+                                expr_span,
+                            )
+                        })?;
+
                         let library_id = canonical_def.library();
                         let library = db.library(library_id);
 

@@ -93,7 +93,7 @@ pub(crate) fn unresolved_binding_def(
 }
 
 pub(crate) fn binding_def(db: &dyn TypeDatabase, bind_src: BindingSource) -> Option<DefId> {
-    unresolved_binding_def(db, bind_src).map(|def_id| db.resolve_def(def_id))
+    unresolved_binding_def(db, bind_src).and_then(|def_id| db.resolve_def(def_id).ok())
 }
 
 fn lookup_binding_def(db: &dyn TypeDatabase, bind_src: BindingSource) -> Option<DefId> {
@@ -156,7 +156,8 @@ pub(super) fn value_produced(
         db: &dyn TypeDatabase,
         def_id: DefId,
     ) -> Result<ValueKind, NotValue> {
-        let kind = db.symbol_kind(db.resolve_def(def_id));
+        let def_id = db.resolve_def(def_id).map_err(|_| NotValue::Missing)?;
+        let kind = db.symbol_kind(def_id);
 
         match kind {
             Some(
@@ -426,7 +427,8 @@ pub(crate) fn fields_of(
     match source {
         db::FieldSource::DefId(def_id, in_module) => {
             // Defer to the owning item
-            let InLibrary(library_id, item_id) = db.item_of(db.resolve_def(def_id))?;
+            let def_id = db.resolve_def(def_id).ok()?;
+            let InLibrary(library_id, item_id) = db.item_of(def_id)?;
             let library = db.library(library_id);
             let item = library.item(item_id);
 

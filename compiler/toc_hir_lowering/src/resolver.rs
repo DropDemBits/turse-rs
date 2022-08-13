@@ -564,6 +564,11 @@ impl<'a> ResolveCtx<'a> {
 
                     Some(imported_def)
                 } else {
+                    // This doesn't have a resolution
+                    this.resolves
+                        .def_resolves
+                        .insert(item.def_id, DefResolve::Err);
+
                     let def_at = this
                         .library
                         .local_def(item.def_id)
@@ -588,21 +593,14 @@ impl<'a> ResolveCtx<'a> {
                 if let Some(def_id) = imported_def {
                     // FIXME: If it's external, the associated unqualified imports
                     // need to be changed from DefResolve::Local to DefResolve::External
-                    let def_id = {
-                        let mut def_id = def_id;
-                        while let Some(res_def) = this.resolves.def_resolves.get(def_id) {
-                            match res_def {
-                                DefResolve::Local(new_def) => def_id = *new_def,
-                                DefResolve::External(_) => unimplemented!(),
-                                DefResolve::None => break,
-                            }
-                        }
-                        def_id
-                    };
+                    let def_id = this.resolve_def(def_id);
 
                     // FIXME: we don't really need this clone, but that requires
                     // moving the `def_exports` into a query
-                    if let Some(exported_defs) = this.def_exports.get(def_id).cloned() {
+                    if let Some(exported_defs) = def_id
+                        .and_then(|def_id| this.def_exports.get(def_id))
+                        .cloned()
+                    {
                         for export in exported_defs {
                             this.introduce_def(
                                 export.def_id,
@@ -613,6 +611,27 @@ impl<'a> ResolveCtx<'a> {
                 }
             }
         }
+    }
+
+    /// First tries to resolve the def locally, then defers to external resolution
+    fn resolve_def(&self, def_id: LocalDefId) -> Option<LocalDefId> {
+        let mut def_id = def_id;
+
+        loop {
+            match self
+                .resolves
+                .def_resolves
+                .get(def_id)
+                .unwrap_or(&DefResolve::Canonical)
+            {
+                DefResolve::Local(new_def) => def_id = *new_def,
+                DefResolve::External(_) => unimplemented!(),
+                DefResolve::Err => return None,
+                DefResolve::Canonical => break,
+            }
+        }
+
+        Some(def_id)
     }
 }
 

@@ -99,15 +99,18 @@ fn alias_ty(
         }
 
         // Poke through any remaining indirection
-        db.resolve_def(def_id)
+        db.resolve_def(def_id).ok()
     };
 
-    if db.symbol_kind(def_id).map_or(true, SymbolKind::is_type) {
-        // Defer to the type's definition
-        db.type_of(def_id.into())
-    } else {
-        // Not a reference to a type
-        db.mk_error()
+    match def_id {
+        Some(def_id) if db.symbol_kind(def_id).map_or(true, SymbolKind::is_type) => {
+            // Defer to the type's definition
+            db.type_of(def_id.into())
+        }
+        _ => {
+            // Not a reference to a type
+            db.mk_error()
+        }
     }
 }
 
@@ -418,7 +421,10 @@ fn import_item_ty(
     item: &item::Import,
 ) -> TypeId {
     // Defer to the canonical def's ty
-    db.type_of(db.resolve_def(DefId(item_id.0, item.def_id)).into())
+    match db.resolve_def(DefId(item_id.0, item.def_id)) {
+        Ok(def_id) => db.type_of(def_id.into()),
+        Err(_) => db.mk_error(),
+    }
 }
 
 pub(crate) fn ty_from_item_param(

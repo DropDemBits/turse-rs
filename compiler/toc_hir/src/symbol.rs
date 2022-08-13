@@ -301,10 +301,11 @@ pub enum DefResolve {
     Local(LocalDefId),
     /// Resolves to an external def
     External(DefId),
-    /// Doesn't resolve to any def, as there wasn't any def that
-    /// was applicable for being the import's target, or this is
-    /// the canonical def
-    None,
+    /// No resolution was applicable, e.g. there wasn't any def that
+    /// was applicable for being the import's target
+    Err,
+    /// This is already the canonical def.
+    Canonical,
 }
 
 /// Library-local map of bindings to their corresponding [`Resolve`]

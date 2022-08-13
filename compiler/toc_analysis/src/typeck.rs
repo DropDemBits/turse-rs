@@ -509,7 +509,10 @@ impl TypeCheck<'_> {
             item::ImportMutability::Explicit(muta, span) => (muta, span),
         };
 
-        let canon_def = self.db.resolve_def(DefId(self.library_id, item.def_id));
+        let canon_def = match self.db.resolve_def(DefId(self.library_id, item.def_id)) {
+            Ok(def) => def,
+            Err(_) => return,
+        };
         let real_mut = self.db.value_produced(canon_def.into());
 
         let is_applicable = match real_mut {
@@ -2023,20 +2026,22 @@ impl TypeCheck<'_> {
             }
 
             // Poke through any remaining indirection
-            db.resolve_def(def_id)
+            db.resolve_def(def_id).ok()
         };
 
-        if !db.symbol_kind(def_id).is_missing_or(SymbolKind::is_type) {
-            let span = span.lookup_in(library);
+        if let Some(def_id) = def_id {
+            if !db.symbol_kind(def_id).is_missing_or(SymbolKind::is_type) {
+                let span = span.lookup_in(library);
 
-            self.report_mismatched_binding(
-                SymbolKind::Type,
-                def_id.into(),
-                span,
-                span,
-                |thing| format!("cannot use {thing} as a type alias"),
-                None,
-            );
+                self.report_mismatched_binding(
+                    SymbolKind::Type,
+                    def_id.into(),
+                    span,
+                    span,
+                    |thing| format!("cannot use {thing} as a type alias"),
+                    None,
+                );
+            }
         }
     }
 
@@ -2653,7 +2658,9 @@ impl TypeCheck<'_> {
         let (thing, def_info) = match db.binding_def(value_src.into()) {
             Some(unresolved_def) => {
                 // From some def
-                let def_id = db.resolve_def(unresolved_def);
+                let def_id = db
+                    .resolve_def(unresolved_def)
+                    .expect("needs to be a resolved def");
                 let binding_to = match db.symbol_kind(def_id) {
                     Some(binding_to) => binding_to,
                     None => return true,

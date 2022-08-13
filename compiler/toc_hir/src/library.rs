@@ -120,7 +120,7 @@ impl Library {
             .def_resolves
             .get(local_def)
             .copied()
-            .unwrap_or(symbol::DefResolve::None)
+            .unwrap_or(symbol::DefResolve::Canonical)
     }
 
     pub fn local_defs(&self) -> impl Iterator<Item = symbol::LocalDefId> + '_ {

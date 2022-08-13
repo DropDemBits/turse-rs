@@ -250,7 +250,8 @@ impl<'out, 'hir> PrettyVisitor<'out, 'hir> {
             symbol::DefResolve::External(def) => {
                 format!("external({def:?})")
             }
-            symbol::DefResolve::None => "unresolved".to_string(),
+            symbol::DefResolve::Err => "unresolved".to_string(),
+            symbol::DefResolve::Canonical => "".to_string(),
         }
     }
 

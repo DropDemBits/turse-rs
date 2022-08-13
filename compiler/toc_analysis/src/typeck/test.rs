@@ -2185,6 +2185,12 @@ test_named_group! { typeck_type_alias,
         type e : enum(v)
         var a : e.v
         ",
+        from_unresolved_def => "
+        module _
+            import tail
+            type _t : tail
+        end _
+        ",
     ]
 }
 
@@ -3171,6 +3177,24 @@ test_named_group! { resolve_defs,
 
         put n.o
         var c : n.p
+        ",
+        on_undecl_field_lookup => "
+        module base
+            export ~. tail
+        end base
+
+        module target
+            import tail
+            tail.truce
+        end target
+        ",
+        on_undecl_value_produced => "
+        module _
+            import undecl
+            begin
+                bind a to undecl
+            end
+        end _
         ",
     ]
 }
