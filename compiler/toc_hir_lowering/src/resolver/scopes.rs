@@ -8,7 +8,54 @@ mod test;
 
 use std::collections::{HashMap, HashSet};
 
-use toc_hir::symbol::{self, DeclareKind, ForwardKind, LocalDefId, Symbol};
+use toc_hir::symbol::{self, DefMap, LocalDefId, Symbol};
+
+/// How a symbol is brought into scope
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum DeclareKind {
+    /// The symbol is undeclared at the point of definition.
+    Undeclared,
+    /// The symbol is a normal declaration at the point of definition.
+    Declared,
+    /// The symbol is declared, but is only usable in certain contexts
+    LimitedDeclared(LimitedKind),
+    /// The symbol is a forward reference to a later declaration,
+    /// with a [`LocalDefId`] pointing to the resolving definition.
+    Forward(ForwardKind, Option<LocalDefId>),
+    /// The symbol is a resolution of a forward declaration.
+    Resolved(ForwardKind),
+
+    // TODO: We only care about where it's exported from, attrs can come later (library local export table?)
+    /// The symbol is from an export of an item, with a [`LocalDefId`]
+    /// pointing to the original item.
+    ItemExport(LocalDefId),
+
+    // TODO: Shunt this info into a libray local import table/resolution map?
+    /// The symbol is of an imported item, optionally with a [`LocalDefId`]
+    /// pointing to the original item, or `None` if there isn't one.
+    ItemImport(Option<LocalDefId>),
+
+    /// The symbol an unqualified export from an import.
+    /// [`LocalDefId`]s point to `(original_import, original_export)`
+    UnqualifiedImport(LocalDefId, LocalDefId),
+}
+
+/// Disambiguates between different forward declaration kinds
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum ForwardKind {
+    /// `type` forward declaration
+    Type,
+    /// `procedure` forward declaration
+    // Only constructed in tests right now
+    _Procedure,
+}
+
+/// Specificity on why a symbol is limited in visibility
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum LimitedKind {
+    /// Only usable in post-condition statements
+    PostCondition,
+}
 
 #[derive(Debug)]
 pub(crate) struct Scope {
@@ -18,6 +65,8 @@ pub(crate) struct Scope {
     symbols: HashMap<Symbol, symbol::LocalDefId>,
     /// Any symbols within this scope that relate to a forward declaration.
     forward_symbols: HashMap<Symbol, (ForwardKind, Vec<symbol::LocalDefId>)>,
+    /// All undeclared symbols
+    undecl_symbols: HashSet<Symbol>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -89,26 +138,35 @@ impl Scope {
             kind,
             symbols: HashMap::new(),
             forward_symbols: HashMap::new(),
+            undecl_symbols: HashSet::new(),
         }
     }
 
     fn def_in(&mut self, name: Symbol, def_id: symbol::LocalDefId) {
         self.symbols.insert(name, def_id);
     }
+
+    /// Adds a symbol to this scope's undeclared list.
+    ///
+    /// Returns `true` if this is the first time it's being inserted.
+    fn undecl_def_in(&mut self, name: Symbol) -> bool {
+        self.undecl_symbols.insert(name)
+    }
 }
 
 #[derive(Debug)]
 pub(crate) struct ScopeTracker {
     scopes: Vec<Scope>,
-    /// Keeps track of what symbols had pervasive attributes
-    pervasive_tracker: HashSet<symbol::LocalDefId>,
+    declare_kinds: DefMap<DeclareKind>,
+    pervasive_defs: DefMap<()>,
 }
 
 impl ScopeTracker {
     pub fn new() -> Self {
         Self {
             scopes: vec![Scope::new(ScopeKind::Root)],
-            pervasive_tracker: HashSet::default(),
+            declare_kinds: Default::default(),
+            pervasive_defs: Default::default(),
         }
     }
 
@@ -141,7 +199,18 @@ impl ScopeTracker {
 
     /// Checks if the given `def_id` is pervasive (i.e. always implicitly imported)
     pub fn is_pervasive(&self, def_id: symbol::LocalDefId) -> bool {
-        self.pervasive_tracker.contains(&def_id)
+        self.pervasive_defs.get(def_id).is_some()
+    }
+
+    pub fn declare_kind(&self, def_id: symbol::LocalDefId) -> DeclareKind {
+        self.declare_kinds
+            .get(def_id)
+            .copied()
+            .unwrap_or(DeclareKind::Undeclared)
+    }
+
+    pub fn declare_kind_mut(&mut self, def_id: symbol::LocalDefId) -> Option<&mut DeclareKind> {
+        self.declare_kinds.get_mut(def_id)
     }
 
     /// Bring the definition into scope with the name `name`
@@ -160,6 +229,12 @@ impl ScopeTracker {
         let last_def = self.lookup_def(name, LookupKind::OnDef);
         let def_scope = self.scopes.last_mut().unwrap();
         def_scope.def_in(name, def_id);
+
+        self.declare_kinds.insert(def_id, kind);
+
+        if is_pervasive {
+            self.pervasive_defs.insert(def_id, ());
+        }
 
         // Update the forward decl list
         match kind {
@@ -192,44 +267,26 @@ impl ScopeTracker {
             _ => (),
         }
 
-        if is_pervasive {
-            self.pervasive_tracker.insert(def_id);
-        }
-
         last_def
     }
 
-    /// Looks up the given def named `name`, using `or_undeclared` if it doesn't exist
-    pub fn use_sym(
-        &mut self,
-        name: Symbol,
-        or_undeclared: impl FnOnce() -> symbol::LocalDefId,
-    ) -> symbol::LocalDefId {
-        self.lookup_def(name, LookupKind::OnUse).unwrap_or_else(|| {
-            // ???: Do we still need to declare undecl's at the boundary scope?
-            // Since we plan to run another pass to collect defs for the export tables,
-            // would it make more sense to hoist up to root?
-            //
-            // The original motivation was that undeclared defs may or may not represent
-            // unqualified imports, so it make sense to have the same undeclared names
-            // in an import boundary to share a LocalDefId. Thus, if the undecl def is
-            // really an unqualified import, we'd have done something approximating the
-            // right thing.
-            //
-            // However, if ScopeTracker has access to the complete export tables, then we
-            // can disambiguate between unqualified imports and undeclared definitions,
-            // leaving us free to always have all of the undeclared defs share a LocalDefId.
-            //
-            // Addendum:
-            // This conveniently deals with deduplicating undeclared identifier errors, so
-            // not doing this would mean that we'd have to handle that undeclared tracking
-            // elsewhere.
+    /// Looks up the given def named `name`, or returning [`None`] if it doesn't exist
+    pub fn use_sym(&mut self, name: Symbol) -> Option<symbol::LocalDefId> {
+        self.lookup_def(name, LookupKind::OnUse)
+    }
 
-            // Declare at the import boundary
-            let def_id = or_undeclared();
-            Self::boundary_scope(&mut self.scopes).def_in(name, def_id);
-            def_id
-        })
+    /// Tests if this is the first use of an undeclared identifier in this scope.
+    ///
+    /// This is not an idempotent operation, so subsequent calls
+    /// will return false, even if the first one returned true.
+    pub fn is_first_undecl_use(&mut self, name: Symbol) -> bool {
+        // ???: Do we still need to declare undecl's at the boundary scope?
+        // We still hoist to an import boundary scope because we still want
+        // to deduplicate undeclared identifier errors. It's still a question
+        // of whether or not we want to extend it to any import boundary
+        // (including soft boundaries), but the way we do it right now is
+        // alright enough.
+        Self::boundary_scope(&mut self.scopes).undecl_def_in(name)
     }
 
     /// Looks up the definition that would be imported by `name`

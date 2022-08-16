@@ -9,7 +9,7 @@ Library@(dummy)
         StmtItem@(FileId(1), 5..44): ItemId(1)
           Subprogram@(FileId(1), 5..44): "_"@(FileId(1), 10..11)
             Void@(FileId(1), 5..11)
-            Import@(FileId(1), 27..34): SameAsItem "nothing"@(FileId(1), 27..34)
+            Import@(FileId(1), 27..34): SameAsItem unresolved
             StmtBody@(FileId(1), 39..39): []
 error in file FileId(1) at 27..34: `nothing` could not be imported
 | error in file FileId(1) for 27..34: no definitions of `nothing` found in the surrounding scope

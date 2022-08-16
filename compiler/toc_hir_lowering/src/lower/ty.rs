@@ -1,5 +1,5 @@
 //! Lowering into `Type` HIR nodes
-use toc_hir::symbol::{syms, DeclareKind, SymbolKind};
+use toc_hir::symbol::{syms, IsPervasive, SymbolKind};
 use toc_hir::{symbol, ty};
 use toc_span::{HasSpanTable, Span, Spanned};
 use toc_syntax::ast::{self, AstNode};
@@ -103,11 +103,10 @@ impl super::BodyLowering<'_, '_> {
 
                     // at a simple alias
                     let name = expr.name()?.identifier_token()?;
-                    let span = self.ctx.mk_span(name.text_range());
-                    let def_id = self.ctx.use_sym(name.text().into(), span);
+                    let span = self.ctx.intern_range(name.text_range());
 
                     break Some(ty::TypeKind::Alias(ty::Alias {
-                        base_def: Spanned::new(def_id, self.ctx.intern_range(name.text_range())),
+                        base_def: Spanned::new(name.text().into(), span),
                         segments,
                     }));
                 }
@@ -283,7 +282,7 @@ impl super::BodyLowering<'_, '_> {
                     name,
                     span,
                     Some(SymbolKind::EnumVariant),
-                    DeclareKind::Declared,
+                    IsPervasive::No,
                 );
 
                 Some(def_id)
@@ -293,7 +292,7 @@ impl super::BodyLowering<'_, '_> {
             type_decl_name(ty),
             span,
             Some(SymbolKind::Enum),
-            DeclareKind::Declared,
+            IsPervasive::No,
         );
 
         Some(ty::TypeKind::Enum(ty::Enum { def_id, variants }))
@@ -417,7 +416,7 @@ impl super::BodyLowering<'_, '_> {
             type_decl_name(ty),
             span,
             Some(SymbolKind::Set),
-            DeclareKind::Declared,
+            IsPervasive::No,
         );
 
         Some(ty::TypeKind::Set(ty::Set {

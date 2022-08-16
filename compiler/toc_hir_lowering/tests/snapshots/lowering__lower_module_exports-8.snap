@@ -1,15 +1,13 @@
 ---
 source: compiler/toc_hir_lowering/tests/lowering.rs
-assertion_line: 61
 expression: "\n    module z\n        export var *~. opaque all\n        var heres, tree : int\n        type again : int\n    end z"
-
 ---
 Library@(dummy)
   Root@(dummy): FileId(1) -> ItemId(4)
     Module@(FileId(1), 0..112): "<root>"@(dummy)
       StmtBody@(FileId(1), 5..112): []
         StmtItem@(FileId(1), 5..112): ItemId(3)
-          Module@(FileId(1), 5..112): "z"@(FileId(1), 12..13), exports [Var PervasiveUnqualified "heres"@(FileId(1), 60..65), Var PervasiveUnqualified "tree"@(FileId(1), 67..71), Const PervasiveUnqualified Opaque "again"@(FileId(1), 91..96)]
+          Module@(FileId(1), 5..112): "z"@(FileId(1), 12..13), exports [Var PervasiveUnqualified local("heres"@(FileId(1), 60..65)), Var PervasiveUnqualified local("tree"@(FileId(1), 67..71)), Const PervasiveUnqualified opaque local("again"@(FileId(1), 91..96))]
             StmtBody@(FileId(1), 56..102): []
               StmtItem@(FileId(1), 56..77): ItemId(0)
                 ConstVar@(FileId(1), 56..77): var "heres"@(FileId(1), 60..65)

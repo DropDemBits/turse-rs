@@ -1,9 +1,7 @@
 //! Scope testing
-use toc_hir::symbol::{DeclareKind, ForwardKind, LocalDefId};
+use toc_hir::symbol::LocalDefId;
 
-use crate::scopes::ScopeKind;
-
-use super::ScopeTracker;
+use super::{DeclareKind, ForwardKind, ScopeKind, ScopeTracker};
 
 #[derive(Default)]
 struct LocalDefAlloc {
@@ -18,14 +16,6 @@ impl LocalDefAlloc {
     }
 }
 
-fn assert_declared() -> LocalDefId {
-    panic!("should be declared")
-}
-
-fn make_undeclared(defs: &mut LocalDefAlloc) -> impl FnOnce() -> LocalDefId + '_ {
-    move || defs.next()
-}
-
 #[test]
 fn test_ident_declare_use() {
     // declare | usage
@@ -34,7 +24,7 @@ fn test_ident_declare_use() {
 
     let def_id = defs.next();
     scopes.def_sym("a".into(), def_id, DeclareKind::Declared, false);
-    let lookup_id = scopes.use_sym("a".into(), assert_declared);
+    let lookup_id = scopes.use_sym("a".into()).unwrap();
 
     assert_eq!(def_id, lookup_id);
 }
@@ -79,11 +69,11 @@ fn test_ident_declare_shadow() {
         // Old def should be outer_def
         assert_eq!(old_def, Some(outer_def));
         // Use here should fetch shadow_def
-        assert_eq!(scopes.use_sym("a".into(), assert_declared), shadow_def);
+        assert_eq!(scopes.use_sym("a".into()).unwrap(), shadow_def);
     });
 
     // Use here should fetch outer_def
-    assert_eq!(scopes.use_sym("a".into(), assert_declared), outer_def);
+    assert_eq!(scopes.use_sym("a".into()).unwrap(), outer_def);
 }
 
 #[test]
@@ -96,7 +86,7 @@ fn test_ident_declare_no_shadow() {
     let (shadow_def, shadow_use) = scopes.with_scope(false, |scopes| {
         let shadow_def = defs.next();
         let old_def = scopes.def_sym("a".into(), shadow_def, DeclareKind::Declared, false);
-        let shadow_use = scopes.use_sym("a".into(), assert_declared);
+        let shadow_use = scopes.use_sym("a".into()).unwrap();
 
         assert!(old_def.is_none());
 
@@ -106,7 +96,7 @@ fn test_ident_declare_no_shadow() {
     // Outer declare
     let outer_def = defs.next();
     let old_def = scopes.def_sym("a".into(), outer_def, DeclareKind::Declared, false);
-    let outer_use = scopes.use_sym("a".into(), assert_declared);
+    let outer_use = scopes.use_sym("a".into()).unwrap();
 
     // No shadowing should be done, outer_use should match outer_def,
     // and old_def shouldn't exist
@@ -120,43 +110,43 @@ fn test_ident_declare_no_shadow() {
 #[test]
 fn test_use_undefined() {
     let mut scopes = ScopeTracker::new();
-    let mut defs = LocalDefAlloc::default();
 
-    let def_id = scopes.use_sym("a".into(), || defs.next());
+    let def_id = scopes.use_sym("a".into());
 
-    // Should declare a new identifier
-    assert_eq!(def_id, LocalDefId::new(0));
+    // Should just be `None`
+    assert_eq!(def_id, None);
 }
 
 #[test]
 fn test_use_shared_undefined() {
-    // Undeclared identifiers should be hoisted to the top-most import boundary
+    // Undeclared syms should be hoisted to the top-most import boundary
     let mut scopes = ScopeTracker::new();
-    let mut defs = LocalDefAlloc::default();
 
     // Don't contaminate root scope
-    let inner_id = scopes.with_scope(true, |scopes| {
-        let inner_id = {
+    scopes.with_scope(true, |scopes| {
+        scopes.with_scope(false, |scopes| {
             scopes.with_scope(false, |scopes| {
                 scopes.with_scope(false, |scopes| {
-                    scopes.with_scope(false, |scopes| {
-                        // Hoist through nested inner blocks, functions, and procedures
-                        scopes.use_sym("undef".into(), make_undeclared(&mut defs))
-                    })
+                    assert_eq!(scopes.use_sym("undef".into()), None);
+
+                    // Hoist through nested inner blocks, functions, and procedures
+                    // This should be the first time it's being used
+                    assert!(scopes.is_first_undecl_use("undef".into()));
                 })
             })
-        };
+        });
 
-        // Declaration should have been hoisted to module level
-        let top_level = scopes.use_sym("undef".into(), make_undeclared(&mut defs));
-        assert_eq!(inner_id, top_level);
+        assert_eq!(scopes.use_sym("undef".into()), None);
 
-        inner_id
+        // Undeclared tracking should have been hoisted to module level
+        // This should not be the first undecl'd use
+        assert!(!scopes.is_first_undecl_use("undef".into()));
     });
 
-    // Identifier should not be hoisted across the import boundary
-    let not_here = scopes.use_sym("undef".into(), make_undeclared(&mut defs));
-    assert_ne!(inner_id, not_here);
+    assert_eq!(scopes.use_sym("undef".into()), None);
+    // Tracking should not be hoisted across the import boundary,
+    // so this should be the first use.
+    assert!(scopes.is_first_undecl_use("undef".into()));
 }
 
 #[test]
@@ -171,7 +161,7 @@ fn test_use_import() {
 
     // Inner use
     scopes.with_scope(false, |scopes| {
-        let import_id = scopes.use_sym("a".into(), assert_declared);
+        let import_id = scopes.use_sym("a".into()).unwrap();
 
         // Should use the same id
         assert_eq!(import_id, declare_id);
@@ -180,30 +170,31 @@ fn test_use_import() {
 
 #[test]
 fn test_import_boundaries() {
-    let mut scopes = ScopeTracker::new();
     let mut defs = LocalDefAlloc::default();
 
-    // Declare some external identifiers
     let non_pervasive = defs.next();
+    let pervasive = defs.next();
+
+    // Declare some external identifiers
+    let mut scopes = ScopeTracker::new();
     scopes.def_sym(
         "non_pervasive".into(),
         non_pervasive,
         DeclareKind::Declared,
         false,
     );
-    let pervasive = defs.next();
     scopes.def_sym("pervasive".into(), pervasive, DeclareKind::Declared, true);
-    let undecl = scopes.use_sym("undecl".into(), make_undeclared(&mut defs));
 
     // Make an inner block
     scopes.with_scope(false, |scopes| {
         // Should be able to access all 3 identifiers
-        let inner_use_a = scopes.use_sym("non_pervasive".into(), assert_declared);
-        let inner_use_b = scopes.use_sym("pervasive".into(), assert_declared);
-        let inner_use_c = scopes.use_sym("undecl".into(), assert_declared);
-        assert_eq!(inner_use_a, non_pervasive);
-        assert_eq!(inner_use_b, pervasive);
-        assert_eq!(inner_use_c, undecl);
+        let inner_use_a = scopes.use_sym("non_pervasive".into());
+        let inner_use_b = scopes.use_sym("pervasive".into());
+        let inner_use_c = scopes.use_sym("undecl".into());
+        assert_eq!(inner_use_a, Some(non_pervasive));
+        assert_eq!(inner_use_b, Some(pervasive));
+        assert_eq!(inner_use_c, None);
+        assert!(scopes.is_first_undecl_use("undecl".into()));
     });
 
     // Make a block with a hard import boundary
@@ -211,13 +202,15 @@ fn test_import_boundaries() {
         // Can access even through an inner block
         scopes.with_scope(false, |scopes| {
             // Should only be able to access the pervasive identifier
-            let undecl_use_a = scopes.use_sym("non_pervasive".into(), make_undeclared(&mut defs));
-            let imported_use_b = scopes.use_sym("pervasive".into(), make_undeclared(&mut defs));
-            let undecl_use_c = scopes.use_sym("undecl".into(), make_undeclared(&mut defs));
+            let undecl_use_a = scopes.use_sym("non_pervasive".into());
+            let imported_use_b = scopes.use_sym("pervasive".into());
+            let undecl_use_c = scopes.use_sym("undecl".into());
 
-            assert_ne!(undecl_use_a, non_pervasive);
-            assert_eq!(imported_use_b, pervasive);
-            assert_ne!(undecl_use_c, undecl);
+            assert_ne!(undecl_use_a, Some(non_pervasive));
+            assert_eq!(imported_use_b, Some(pervasive));
+            assert_eq!(undecl_use_c, None);
+            // Different from the other one, hidden behind an import boundary
+            assert!(scopes.is_first_undecl_use("undecl".into()));
         });
     });
 }
@@ -242,7 +235,7 @@ fn test_forward_declare() {
         false,
     );
 
-    assert_eq!(scopes.use_sym("fwd".into(), assert_declared), resolve_def);
+    assert_eq!(scopes.use_sym("fwd".into()).unwrap(), resolve_def);
     assert_eq!(
         scopes.take_resolved_forwards("fwd".into(), ForwardKind::Type),
         Some(vec![forward_def])
@@ -279,7 +272,7 @@ fn test_forward_declare_double() {
         false,
     );
 
-    assert_eq!(scopes.use_sym("fwd".into(), assert_declared), resolve_def);
+    assert_eq!(scopes.use_sym("fwd".into()).unwrap(), resolve_def);
     assert_eq!(
         scopes.take_resolved_forwards("fwd".into(), ForwardKind::Type),
         Some(vec![forward_def0, forward_def1])
@@ -316,7 +309,7 @@ fn test_forward_declare_overwritten() {
         false,
     );
 
-    assert_eq!(scopes.use_sym("fwd".into(), assert_declared), resolve_def);
+    assert_eq!(scopes.use_sym("fwd".into()).unwrap(), resolve_def);
     assert_eq!(
         scopes.take_resolved_forwards("fwd".into(), ForwardKind::Type),
         None
@@ -348,7 +341,7 @@ fn test_forward_declare_overwritten_normal() {
         false,
     );
 
-    assert_eq!(scopes.use_sym("fwd".into(), assert_declared), resolve_def);
+    assert_eq!(scopes.use_sym("fwd".into()), Some(resolve_def));
     assert_eq!(
         scopes.take_resolved_forwards("fwd".into(), ForwardKind::Type),
         None
@@ -360,12 +353,13 @@ fn test_forward_resolve_only_same_scope() {
     // Forward declares are only resolved in the same scope,
     // doesn't matter if it's an import boundary,
     // doesn't matter if the identifier is pervasive or not
-    let mut scopes = ScopeTracker::new();
     let mut defs = LocalDefAlloc::default();
 
     let forward_def = defs.next();
     let inner_def = defs.next();
     let resolve_def = defs.next();
+
+    let mut scopes = ScopeTracker::new();
 
     // def scope def
     scopes.def_sym(
@@ -412,7 +406,7 @@ fn test_forward_resolve_only_same_scope() {
         false,
     );
 
-    assert_eq!(scopes.use_sym("fwd".into(), assert_declared), resolve_def);
+    assert_eq!(scopes.use_sym("fwd".into()), Some(resolve_def));
     assert_eq!(
         scopes.take_resolved_forwards("fwd".into(), ForwardKind::Type),
         Some(vec![forward_def])
@@ -422,12 +416,13 @@ fn test_forward_resolve_only_same_scope() {
 #[test]
 fn test_import_def_no_boundary() {
     // import ---
-    let mut scopes = ScopeTracker::new();
     let mut defs = LocalDefAlloc::default();
 
     // shouldn't be peeked at from SurroundingScope
     // should be peeked at from CurrentScope
     let a_def = defs.next();
+
+    let mut scopes = ScopeTracker::new();
     scopes.def_sym("a".into(), a_def, DeclareKind::Declared, true);
 
     assert_eq!(scopes.import_sym("a".into()), None);
@@ -436,7 +431,6 @@ fn test_import_def_no_boundary() {
 #[test]
 fn test_import_def_between_boundaries() {
     // import --- import -*- import
-    let mut scopes = ScopeTracker::new();
     let mut defs = LocalDefAlloc::default();
 
     let outer_pv = defs.next();
@@ -444,6 +438,7 @@ fn test_import_def_between_boundaries() {
     let middle = defs.next();
     let inner = defs.next();
 
+    let mut scopes = ScopeTracker::new();
     scopes.def_sym("outer_pv".into(), outer_pv, DeclareKind::Declared, true);
     scopes.def_sym("outer".into(), outer, DeclareKind::Declared, false);
 
@@ -476,7 +471,6 @@ fn test_import_def_implicit_boundary() {
     // --- explicit -*- implicit
     // --- implicit -*- implicit (never encountered, would do scope hopping)
     // --- implicit -*- explicit
-    let mut scopes = ScopeTracker::new();
     let mut defs = LocalDefAlloc::default();
 
     let outer_pv = defs.next();
@@ -484,6 +478,7 @@ fn test_import_def_implicit_boundary() {
     let middle = defs.next();
     let inner = defs.next();
 
+    let mut scopes = ScopeTracker::new();
     scopes.def_sym("outer_pv".into(), outer_pv, DeclareKind::Declared, true);
     scopes.def_sym("outer".into(), outer, DeclareKind::Declared, false);
 
@@ -505,7 +500,7 @@ fn test_import_def_implicit_boundary() {
             assert_eq!(scopes.import_sym("inner".into()), None);
 
             // middle should also be visible
-            assert_eq!(scopes.use_sym("middle".into(), assert_declared), middle);
+            assert_eq!(scopes.use_sym("middle".into()).unwrap(), middle);
         }
         scopes.pop_scope();
     }

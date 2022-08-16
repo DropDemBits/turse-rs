@@ -1,0 +1,9 @@
+---
+source: compiler/toc_analysis/src/const_eval/test.rs
+expression: "\n    module base\n        export ~. tail\n    end base\n\n    module target\n        import tail\n        const _ := tail\n    end target\n    "
+---
+"_"@(FileId(1), 106..107) -> ConstError { kind: NotConstExpr(Binding(LibraryId(0), Spanned("tail", SpanId(9)))), span: (FileId(1), 111..115) }
+
+error in file FileId(1) at 111..115: cannot compute `tail` at compile-time
+| error in file FileId(1) for 111..115: expression cannot be computed at compile-time
+

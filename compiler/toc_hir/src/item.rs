@@ -205,6 +205,8 @@ pub struct Module {
     pub def_id: symbol::LocalDefId,
     pub declares: Vec<ItemId>,
     pub imports: Vec<ItemId>,
+    /// What this module exports.
+    /// There are no [`ExportItem`]s which share the same [`Symbol`].
     pub exports: Vec<ExportItem>,
     pub body: body::BodyId,
 }

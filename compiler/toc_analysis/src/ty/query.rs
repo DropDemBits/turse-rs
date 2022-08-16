@@ -93,7 +93,7 @@ pub(crate) fn unresolved_binding_def(
 }
 
 pub(crate) fn binding_def(db: &dyn TypeDatabase, bind_src: BindingSource) -> Option<DefId> {
-    unresolved_binding_def(db, bind_src).map(|def_id| db.resolve_def(def_id))
+    unresolved_binding_def(db, bind_src).and_then(|def_id| db.resolve_def(def_id).ok())
 }
 
 fn lookup_binding_def(db: &dyn TypeDatabase, bind_src: BindingSource) -> Option<DefId> {
@@ -118,9 +118,12 @@ fn lookup_binding_def(db: &dyn TypeDatabase, bind_src: BindingSource) -> Option<
 
             // Only name exprs and fields can produce a binding
             match &library.body(body_id).expr(expr_id).kind {
-                expr::ExprKind::Missing => (None),
+                expr::ExprKind::Missing => None,
                 expr::ExprKind::Name(name) => match name {
-                    expr::Name::Name(def_id) => (Some(DefId(lib_id, *def_id))),
+                    expr::Name::Name(binding) => match library.binding_resolve(*binding) {
+                        symbol::Resolve::Def(local_def) => Some(DefId(lib_id, local_def)),
+                        symbol::Resolve::Err => None,
+                    },
                     expr::Name::Self_ => todo!(),
                 },
                 expr::ExprKind::Field(field) => {
@@ -153,7 +156,8 @@ pub(super) fn value_produced(
         db: &dyn TypeDatabase,
         def_id: DefId,
     ) -> Result<ValueKind, NotValue> {
-        let kind = db.symbol_kind(db.resolve_def(def_id));
+        let def_id = db.resolve_def(def_id).map_err(|_| NotValue::Missing)?;
+        let kind = db.symbol_kind(def_id);
 
         match kind {
             Some(
@@ -208,8 +212,11 @@ pub(super) fn value_produced(
             match &library.body(body_id).expr(expr_id).kind {
                 expr::ExprKind::Missing => Err(NotValue::Missing),
                 expr::ExprKind::Name(name) => match name {
-                    expr::Name::Name(def_id) => {
-                        let def_id = DefId(lib_id, *def_id);
+                    expr::Name::Name(binding) => {
+                        let def_id = match library.binding_resolve(*binding) {
+                            symbol::Resolve::Def(local_def) => (DefId(lib_id, local_def)),
+                            symbol::Resolve::Err => return Err(NotValue::Missing),
+                        };
 
                         match db.def_owner(def_id) {
                             Some(DefOwner::Export(mod_id, export_id)) => {
@@ -420,7 +427,8 @@ pub(crate) fn fields_of(
     match source {
         db::FieldSource::DefId(def_id, in_module) => {
             // Defer to the owning item
-            let InLibrary(library_id, item_id) = db.item_of(db.resolve_def(def_id))?;
+            let def_id = db.resolve_def(def_id).ok()?;
+            let InLibrary(library_id, item_id) = db.item_of(def_id)?;
             let library = db.library(library_id);
             let item = library.item(item_id);
 
@@ -566,9 +574,14 @@ pub(crate) fn find_exported_def(
     match &library.body(body_id).expr(expr_id).kind {
         expr::ExprKind::Name(expr) => {
             match expr {
-                expr::Name::Name(local_def) => {
+                expr::Name::Name(binding) => {
                     // Take from the def
-                    db.exporting_def(DefId(library_id, *local_def).into())
+                    let def_id = match library.binding_resolve(*binding) {
+                        symbol::Resolve::Def(local_def) => (DefId(library_id, local_def)),
+                        symbol::Resolve::Err => return None,
+                    };
+
+                    db.exporting_def(def_id.into())
                 }
                 expr::Name::Self_ => None,
             }

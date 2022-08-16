@@ -1,8 +1,6 @@
 ---
 source: compiler/toc_hir_lowering/tests/lowering.rs
-assertion_line: 61
 expression: "\n    type a : int\n    type chain: a.b.c.d.e\n    "
-
 ---
 Library@(dummy)
   Root@(dummy): FileId(1) -> ItemId(2)
@@ -13,5 +11,5 @@ Library@(dummy)
             Primitive@(FileId(1), 14..17): Int
         StmtItem@(FileId(1), 22..43): ItemId(1)
           Type@(FileId(1), 22..43): "chain"@(FileId(1), 27..32)
-            Alias@(FileId(1), 34..43): "a"@(FileId(1), 10..11), resolved(Type).b.c.d.e
+            Alias@(FileId(1), 34..43): "a"@(FileId(1), 10..11).b.c.d.e
 

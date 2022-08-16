@@ -3,8 +3,9 @@
 
 use std::fmt;
 
+use indexmap::IndexMap;
 use la_arena::ArenaMap;
-use toc_span::SpanId;
+use toc_span::{SpanId, Spanned};
 
 pub use crate::ids::{DefId, LocalDefId};
 use crate::{
@@ -67,9 +68,10 @@ pub struct DefInfo {
     /// What kind of declaration this definition refers to,
     /// or `None` if it's from an undeclared definition.
     pub kind: Option<SymbolKind>,
-    /// How this definition was declared
-    // ???: Can we punt this to only be during construction?
-    pub declare_kind: DeclareKind,
+
+    /// Whether or not this def is automatically imported through
+    /// child import boundaries.
+    pub pervasive: IsPervasive,
 }
 
 /// What kind of item this symbol references.
@@ -218,54 +220,15 @@ impl std::fmt::Display for SymbolKind {
 }
 
 crate::make_named_bool! {
+    pub enum IsPervasive;
+}
+
+crate::make_named_bool! {
     pub enum IsRegister;
 }
 
 crate::make_named_bool! {
     pub enum IsMonitor;
-}
-
-/// How a symbol is brought into scope
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum DeclareKind {
-    /// The symbol is undeclared at the point of definition.
-    Undeclared,
-    /// The symbol is a normal declaration at the point of definition.
-    Declared,
-    /// The symbol is declared, but is only usable in certain contexts
-    LimitedDeclared(LimitedKind),
-    /// The symbol is a forward reference to a later declaration,
-    /// with a [`LocalDefId`] pointing to the resolving definition.
-    Forward(ForwardKind, Option<LocalDefId>),
-    /// The symbol is a resolution of a forward declaration.
-    Resolved(ForwardKind),
-
-    // TODO: We only care about where it's exported from, attrs can come later (library local export table?)
-    /// The symbol is from an export of an item, with a [`LocalDefId`]
-    /// pointing to the original item.
-    ItemExport(LocalDefId),
-
-    // TODO: Shunt this info into a libray local import table/resolution map?
-    /// The symbol is of an imported item, optionally with a [`LocalDefId`]
-    /// pointing to the original item (or an undeclared definition).
-    ItemImport(LocalDefId),
-}
-
-/// Disambiguates between different forward declaration kinds
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ForwardKind {
-    /// `type` forward declaration
-    Type,
-    /// `procedure` forward declaration
-    // Only constructed in tests right now
-    _Procedure,
-}
-
-/// Specificity on why a symbol is limited in visibility
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum LimitedKind {
-    /// Only usable in post-condition statements
-    PostCondition,
 }
 
 /// Any HIR node that contains a definition
@@ -305,6 +268,53 @@ pub enum SubprogramKind {
     Process,
 }
 
+/// What a binding might resolve to
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Resolve {
+    /// Resolves to a local def
+    Def(LocalDefId),
+    /// Doesn't resolve to any def, either because it's undeclared
+    /// or not visible at the binding's resolution point.
+    Err,
+}
+
+impl Resolve {
+    /// Asserts that this is a [`Resolve::Def`], and extracts the associated
+    /// [`LocalDefId`].
+    ///
+    /// ## Panics
+    ///
+    /// Panics if it's not a [`Resolve::Def`] (e.g. [`Resolve::Err`])
+    #[track_caller]
+    pub fn unwrap_def(self) -> LocalDefId {
+        match self {
+            Resolve::Def(local_def) => local_def,
+            Resolve::Err => panic!("called `Resolve::unwrap_def` on a `Resolve::Err` value"),
+        }
+    }
+}
+
+/// What a def might resolve to
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DefResolve {
+    /// Resolves to another local def
+    Local(LocalDefId),
+    /// Resolves to an external def
+    External(DefId),
+    /// No resolution was applicable, e.g. there wasn't any def that
+    /// was applicable for being the import's target
+    Err,
+    /// This is already the canonical def.
+    Canonical,
+}
+
+/// Library-local map of bindings to their corresponding [`Resolve`]
+#[derive(Debug, PartialEq, Eq, Default)]
+pub struct ResolutionMap {
+    pub binding_resolves: IndexMap<Spanned<Symbol>, Resolve>,
+    pub def_resolves: DefMap<DefResolve>,
+}
+
 /// Mapping between a [`LocalDefId`] and the corresponding [`DefOwner`]
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct DefTable {
@@ -318,5 +328,33 @@ impl DefTable {
 
     pub fn get_owner(&self, def_id: LocalDefId) -> Option<DefOwner> {
         self.def_owners.get(def_id.0).copied()
+    }
+}
+
+/// Mapping between a [`LocalDefId`] and the coresponding `T`
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct DefMap<T> {
+    map: ArenaMap<LocalDefIndex, T>,
+}
+
+impl<T> DefMap<T> {
+    pub fn insert(&mut self, def_id: LocalDefId, value: T) {
+        self.map.insert(def_id.0, value)
+    }
+
+    pub fn get(&self, def_id: LocalDefId) -> Option<&T> {
+        self.map.get(def_id.0)
+    }
+
+    pub fn get_mut(&mut self, def_id: LocalDefId) -> Option<&mut T> {
+        self.map.get_mut(def_id.0)
+    }
+}
+
+impl<T> Default for DefMap<T> {
+    fn default() -> Self {
+        Self {
+            map: Default::default(),
+        }
     }
 }

@@ -5,7 +5,7 @@ use std::{fmt::Debug, sync::Arc};
 use toc_hir::symbol::{self, DefId};
 use toc_span::Span;
 
-use crate::const_eval::{Const, ConstError, ConstInt, ConstValue, ErrorKind};
+use crate::const_eval::{Const, ConstError, ConstInt, ConstValue, ErrorKind, NotConst};
 
 pub(crate) mod db;
 mod lower;
@@ -529,7 +529,9 @@ where
             TypeKind::Enum(_, variants) => {
                 // Always the ordinal of the last variant
                 if variants.is_empty() {
-                    return Err(ConstError::without_span(ErrorKind::NotConstExpr(None)));
+                    return Err(ConstError::without_span(ErrorKind::NotConstExpr(
+                        NotConst::Expr,
+                    )));
                 }
 
                 let last_ord = variants
@@ -567,8 +569,10 @@ where
                         count.checked_sub(ConstInt::ONE)?.checked_add(start_bound)
                     }
                     EndBound::Any => {
-                        // FIXME: This should be a non-const error?
-                        Err(ConstError::without_span(ErrorKind::NotConstExpr(None)))
+                        // Can't use any-sized in a const context
+                        Err(ConstError::without_span(ErrorKind::NotConstExpr(
+                            NotConst::Expr,
+                        )))
                     }
                 }
             }

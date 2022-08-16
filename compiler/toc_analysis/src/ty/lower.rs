@@ -78,7 +78,13 @@ fn alias_ty(
     let def_id = {
         let in_module = db.inside_module(hir_id.into());
         // Walk the segment path while we still can
-        let mut def_id = DefId(hir_id.0, *ty.base_def.item());
+        let mut def_id = {
+            let library = db.library(hir_id.library());
+            match library.binding_resolve(ty.base_def) {
+                symbol::Resolve::Def(local_def) => DefId(hir_id.library(), local_def),
+                symbol::Resolve::Err => return db.mk_error(),
+            }
+        };
 
         for segment in &ty.segments {
             let fields = db.fields_of((def_id, in_module).into());
@@ -93,15 +99,18 @@ fn alias_ty(
         }
 
         // Poke through any remaining indirection
-        db.resolve_def(def_id)
+        db.resolve_def(def_id).ok()
     };
 
-    if db.symbol_kind(def_id).map_or(true, SymbolKind::is_type) {
-        // Defer to the type's definition
-        db.type_of(def_id.into())
-    } else {
-        // Not a reference to a type
-        db.mk_error()
+    match def_id {
+        Some(def_id) if db.symbol_kind(def_id).map_or(true, SymbolKind::is_type) => {
+            // Defer to the type's definition
+            db.type_of(def_id.into())
+        }
+        _ => {
+            // Not a reference to a type
+            db.mk_error()
+        }
     }
 }
 
@@ -412,7 +421,10 @@ fn import_item_ty(
     item: &item::Import,
 ) -> TypeId {
     // Defer to the canonical def's ty
-    db.type_of(db.resolve_def(DefId(item_id.0, item.def_id)).into())
+    match db.resolve_def(DefId(item_id.0, item.def_id)) {
+        Ok(def_id) => db.type_of(def_id.into()),
+        Err(_) => db.mk_error(),
+    }
 }
 
 pub(crate) fn ty_from_item_param(
@@ -617,9 +629,12 @@ fn name_ty(
     // If def-id, fetch type from def id map
     // If self, then fetch type from provided class def id?
     match expr {
-        expr::Name::Name(def_id) => {
-            // FIXME: Perform name resolution
-            let def_id = DefId(body_expr.0, *def_id);
+        expr::Name::Name(binding) => {
+            let library = db.library(body_expr.library());
+            let def_id = match library.binding_resolve(*binding) {
+                symbol::Resolve::Def(local_def) => DefId(body_expr.library(), local_def),
+                symbol::Resolve::Err => return db.mk_error(),
+            };
             let in_module = db.inside_module(body_expr.into());
 
             // Defer to result type if it's a paren-less function

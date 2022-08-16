@@ -1,0 +1,29 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+expression: "\nmodule wrap\n    export ~. unquali\n    module unquali\n        export ~. uwu\n        var uwu : int\n    end unquali\nend wrap\n\nvar * uwu : int\nmodule target\n    import unquali\nend target\n    "
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(6)
+    Module@(FileId(1), 0..188): "<root>"@(dummy)
+      StmtBody@(FileId(1), 1..183): []
+        StmtItem@(FileId(1), 1..122): ItemId(2)
+          Module@(FileId(1), 1..122): "wrap"@(FileId(1), 8..12), exports [Const Unqualified local("unquali"@(FileId(1), 46..53))]
+            StmtBody@(FileId(1), 39..113): []
+              StmtItem@(FileId(1), 39..113): ItemId(1)
+                Module@(FileId(1), 39..113): "unquali"@(FileId(1), 46..53), exports [Const Unqualified local("uwu"@(FileId(1), 88..91))]
+                  StmtBody@(FileId(1), 84..97): []
+                    StmtItem@(FileId(1), 84..97): ItemId(0)
+                      ConstVar@(FileId(1), 84..97): var "uwu"@(FileId(1), 88..91)
+                        Primitive@(FileId(1), 94..97): Int
+        StmtItem@(FileId(1), 124..139): ItemId(3)
+          ConstVar@(FileId(1), 124..139): var "uwu"@(FileId(1), 130..133)
+            Primitive@(FileId(1), 136..139): Int
+        StmtItem@(FileId(1), 140..183): ItemId(5)
+          Module@(FileId(1), 140..183): "target"@(FileId(1), 147..153)
+            Import@(FileId(1), 165..172): SameAsItem local("unquali"@(FileId(1), 27..34))
+            StmtBody@(FileId(1), 173..173): []
+error in file FileId(1) at 165..172: `uwu` is already declared in this scope
+| note in file FileId(1) for 130..133: `uwu` previously declared here
+| error in file FileId(1) for 165..172: `uwu` is an unqualified export of `unquali`
+| info: importing a class or module also imports its unqualified exports
+

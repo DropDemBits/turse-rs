@@ -31,7 +31,7 @@ impl LibraryBuilder {
     /// ## Parameters
     /// - `name`: The name of the symbol to define
     /// - `span`: The text span of the definition
-    /// - `kind`: The kind of symbol to define
+    /// - `kind`: The kind of symbol to define, or None if it's undeclared
     ///
     /// ## Returns
     /// The [`LocalDefId`] associated with the definition
@@ -42,13 +42,13 @@ impl LibraryBuilder {
         name: Symbol,
         span: SpanId,
         kind: Option<symbol::SymbolKind>,
-        declare_kind: symbol::DeclareKind,
+        pervasive: symbol::IsPervasive,
     ) -> symbol::LocalDefId {
         let def = symbol::DefInfo {
             name,
             def_at: span,
             kind,
-            declare_kind,
+            pervasive,
         };
         let index = self.defs.alloc(def);
         symbol::LocalDefId(index)
@@ -79,11 +79,21 @@ impl LibraryBuilder {
         &mut self.defs[def_id.into()]
     }
 
-    pub fn finish(self, root_items: Vec<(FileId, item::ItemId)>) -> library::Library {
+    pub fn freeze_root_items(self, root_items: Vec<(FileId, item::ItemId)>) -> Self {
+        Self {
+            library: library::Library {
+                // Convert from vec of tuples to an index map
+                root_items: root_items.into_iter().collect(),
+                ..self.library
+            },
+        }
+    }
+
+    pub fn finish(self, resolve_map: symbol::ResolutionMap) -> library::Library {
         let Self { library } = self;
 
         library::Library {
-            root_items: root_items.into_iter().collect(),
+            resolve_map,
             ..library
         }
     }
@@ -99,6 +109,7 @@ impl Default for LibraryBuilder {
                 bodies: Default::default(),
                 type_map: Default::default(),
                 span_map: Default::default(),
+                resolve_map: Default::default(),
             },
         }
     }

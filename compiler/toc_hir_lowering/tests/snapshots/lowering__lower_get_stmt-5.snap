@@ -1,7 +1,6 @@
 ---
 source: compiler/toc_hir_lowering/tests/lowering.rs
 expression: "get a : a*a"
-
 ---
 Library@(dummy)
   Root@(dummy): FileId(1) -> ItemId(0)
@@ -10,8 +9,8 @@ Library@(dummy)
         Get@(FileId(1), 0..11)
           Name@(FileId(1), 4..5): "a"@(FileId(1), 4..5), undeclared
           Binary@(FileId(1), 8..11): Mul
-            Name@(FileId(1), 8..9): "a"@(FileId(1), 4..5), undeclared
-            Name@(FileId(1), 10..11): "a"@(FileId(1), 4..5), undeclared
+            Name@(FileId(1), 8..9): "a"@(FileId(1), 8..9), undeclared
+            Name@(FileId(1), 10..11): "a"@(FileId(1), 10..11), undeclared
 error in file FileId(1) at 4..5: `a` is undeclared
 | error in file FileId(1) for 4..5: no definitions of `a` are in scope
 

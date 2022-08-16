@@ -492,7 +492,7 @@ impl<'hir> Walker<'hir> {
     fn walk_if(&mut self, in_body: body::BodyId, node: &stmt::If) {
         self.enter_expr(in_body, node.condition);
         self.enter_stmt(in_body, node.true_branch);
-        if let Some(false_branch) = node.false_branch {
+        if let Some(false_branch) = node.false_branch.stmt() {
             self.enter_stmt(in_body, false_branch);
         }
     }

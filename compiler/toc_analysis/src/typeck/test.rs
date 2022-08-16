@@ -603,8 +603,8 @@ test_for_each_op! { comparison_op_wrong_types,
     % Different sets
     type s1 : set of boolean
     type s2 : set of boolean
-    var as1 : s1
-    var bs2 : s2
+    var as1, as2 : s1
+    var bs1, bs2 : s2
     var aas : set of boolean
 
     % should all produce boolean anyway
@@ -676,17 +676,19 @@ test_for_each_op! { comparison_op_wrong_types_enums,
     % Different enums
     type e1 : enum(v)
     type e2 : enum(v)
-    var ae1 : e1
-    var be2 : e2
-    var aas : enum(v)
+    var ae : e1
+    var be : e2
+    var aA : enum(v)
+    var bA : enum(v)
 
     % should all produce boolean anyway
     var _v_res : boolean
 
-    _v_res := ae1 {0} be2
-    _v_res := be1 {0} ae2
-    _v_res := aes {0} ae1
-    _v_res := ae1 {0} aes
+    _v_res := ae {0} be
+    _v_res := be {0} ae
+    _v_res := aA {0} ae
+    _v_res := ae {0} aA
+    _v_res := aA {0} bA
     "#
 }
 
@@ -2183,6 +2185,12 @@ test_named_group! { typeck_type_alias,
         type e : enum(v)
         var a : e.v
         ",
+        from_unresolved_def => "
+        module _
+            import tail
+            type _t : tail
+        end _
+        ",
     ]
 }
 
@@ -3169,6 +3177,24 @@ test_named_group! { resolve_defs,
 
         put n.o
         var c : n.p
+        ",
+        on_undecl_field_lookup => "
+        module base
+            export ~. tail
+        end base
+
+        module target
+            import tail
+            tail.truce
+        end target
+        ",
+        on_undecl_value_produced => "
+        module _
+            import undecl
+            begin
+                bind a to undecl
+            end
+        end _
         ",
     ]
 }

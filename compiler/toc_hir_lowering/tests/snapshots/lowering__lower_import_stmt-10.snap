@@ -8,7 +8,7 @@ Library@(dummy)
       StmtBody@(FileId(1), 5..41): []
         StmtItem@(FileId(1), 5..41): ItemId(1)
           Module@(FileId(1), 5..41): "_"@(FileId(1), 13..14)
-            Import@(FileId(1), 30..31): SameAsItem "_"@(FileId(1), 30..31)
+            Import@(FileId(1), 30..31): SameAsItem local("_"@(FileId(1), 13..14))
             StmtBody@(FileId(1), 36..36): []
 error in file FileId(1) at 30..31: `_` is already imported in this scope
 | note in file FileId(1) for 13..14: `_` declared pervasive here

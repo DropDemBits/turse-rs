@@ -921,6 +921,9 @@ fn lower_procedure_def() {
 
     // Missing both names
     assert_lower("proc end");
+
+    // Make sure extra is resolved
+    assert_lower("var lmao : int proc uwu : lmao end uwu");
 }
 
 #[test]
@@ -1065,6 +1068,9 @@ fn lower_process_def() {
 
     // Missing both names
     assert_lower("process end");
+
+    // Make sure extra is resolved
+    assert_lower("var lmao : int process uwu : lmao end uwu");
 }
 
 #[test]
@@ -1701,5 +1707,163 @@ fn intro_import_defs_subprogram() {
     proc _
         import p_def
     end _",
+    );
+}
+
+#[test]
+fn intro_assoc_unqualifieds_module() {
+    // Making sure that it works
+    assert_lower(
+        "
+module _
+    export ~. waw
+    module waw
+        export ~. var sus
+        var sus : int
+    end waw
+end _
+
+module target
+    import waw
+    sus := 1
+end target
+    ",
+    );
+
+    // Making sure that we give good error reporting against
+    // - over previous import
+    assert_lower(
+        "
+module wrap
+    export ~. unquali
+    module unquali
+        export ~. uwu
+        var uwu : int
+    end unquali
+end wrap
+
+var uwu : int
+module target
+    import uwu, unquali
+end target
+    ",
+    );
+
+    // - over previous unqualified import
+    assert_lower(
+        "
+module wrapA
+    export ~.a
+    module a
+        export ~. var uwu
+        var uwu : int
+    end a
+end wrapA
+
+module wrapB
+    export ~.b
+    module b
+        export ~. var uwu
+        var uwu : int
+    end b
+end wrapB
+
+module target
+    import a, b
+end target
+    ",
+    );
+
+    // - over pervasive
+    assert_lower(
+        "
+module wrap
+    export ~. unquali
+    module unquali
+        export ~. uwu
+        var uwu : int
+    end unquali
+end wrap
+
+var * uwu : int
+module target
+    import unquali
+end target
+    ",
+    );
+
+    // - over previously declared
+    assert_lower(
+        "
+module wrap
+    export ~. unquali
+    module unquali
+        export ~. uwu
+        var uwu : int
+    end unquali
+end wrap
+
+module uwu
+    import unquali
+end uwu
+    ",
+    );
+
+    // In the same import
+    assert_lower(
+        "
+module wrap
+    export ~. uwu
+    module uwu
+        export ~. uwu
+        var uwu : int
+    end uwu
+end wrap
+
+module target
+    import uwu
+end target
+    ",
+    );
+
+    // being declared over by the same import
+    assert_lower(
+        "
+module wrap
+    export ~. unquali
+    module unquali
+        export ~. uwu
+        var uwu : int
+    end unquali
+end wrap
+
+module target
+    import unquali
+
+    var uwu : int
+end target
+    ",
+    );
+
+    // being declared over by a new unqualified
+    assert_lower(
+        "
+module wrap
+    export ~. unquali
+    module unquali
+        export ~. uwu
+        var uwu : int
+    end unquali
+end wrap
+
+module target
+    import unquali
+
+    module wa
+        export ~. uwu
+        var uwu : int
+    end wa
+end target
+    ",
     );
 }

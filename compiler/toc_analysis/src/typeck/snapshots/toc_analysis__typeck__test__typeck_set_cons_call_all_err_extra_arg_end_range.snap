@@ -4,7 +4,6 @@ expression: "type s : set of boolean\nvar _ := s(*, all, b .. * - b)\n"
 ---
 "s"@(FileId(1), 9..23) [Set]: <error>
 "s"@(FileId(1), 5..6) [Type]: set[DefId(LibraryId(0), LocalDefId(0))] of boolean
-"b"@(FileId(1), 43..44) [Undeclared]: <error>
 "_"@(FileId(1), 28..29) [ConstVar(Var, No)]: set[DefId(LibraryId(0), LocalDefId(0))] of boolean
 "<root>"@(dummy) [Module(No)]: <error>
 

@@ -1,8 +1,6 @@
 ---
 source: compiler/toc_hir_lowering/tests/lowering.rs
-assertion_line: 59
 expression: "\n    type a : forward\n    type use_it : a % should not be resolved to latter a\n    var a : int\n    type a : char\n    "
-
 ---
 Library@(dummy)
   Root@(dummy): FileId(1) -> ItemId(4)
@@ -12,7 +10,7 @@ Library@(dummy)
           Type@(FileId(1), 5..21): forward "a"@(FileId(1), 10..11)
         StmtItem@(FileId(1), 26..41): ItemId(1)
           Type@(FileId(1), 26..41): "use_it"@(FileId(1), 31..37)
-            Alias@(FileId(1), 40..41): "a"@(FileId(1), 10..11), unresolved forward(Type)
+            Alias@(FileId(1), 40..41): "a"@(FileId(1), 10..11)
         StmtItem@(FileId(1), 83..94): ItemId(2)
           ConstVar@(FileId(1), 83..94): var "a"@(FileId(1), 87..88)
             Primitive@(FileId(1), 91..94): Int

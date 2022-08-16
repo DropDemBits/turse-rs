@@ -89,9 +89,9 @@ pub trait HirDatabase: toc_hir_lowering::LoweringDb {
     fn bodies_of(&self, library: LibraryId) -> Arc<Vec<body::BodyId>>;
 
     /// Resolved the given `def_id` to the canonical definition (i.e. beyond any exports),
-    /// or itself if it is one.
+    /// or the last def before an undeclared was encountered.
     #[salsa::invoke(query::resolve_def)]
-    fn resolve_def(&self, def_id: DefId) -> DefId;
+    fn resolve_def(&self, def_id: DefId) -> Result<DefId, DefId>;
 
     /// Gets the [`SymbolKind`] of the given `def_id`, or [`None`] if it's an undeclared definition.
     ///

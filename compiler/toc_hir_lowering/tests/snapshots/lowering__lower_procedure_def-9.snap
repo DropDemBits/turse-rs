@@ -1,0 +1,20 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+expression: "var lmao : int proc uwu : lmao end uwu"
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(2)
+    Module@(FileId(1), 0..38): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..38): []
+        StmtItem@(FileId(1), 0..14): ItemId(0)
+          ConstVar@(FileId(1), 0..14): var "lmao"@(FileId(1), 4..8)
+            Primitive@(FileId(1), 11..14): Int
+        StmtItem@(FileId(1), 15..38): ItemId(1)
+          Subprogram@(FileId(1), 15..38): "uwu"@(FileId(1), 20..23)
+            ExprBody@(FileId(1), 26..30)
+              Name@(FileId(1), 26..30): "lmao"@(FileId(1), 4..8)
+            Void@(FileId(1), 15..30)
+            StmtBody@(FileId(1), 31..31): []
+error in file FileId(1) at 24..30: device specification is not allowed here
+| error in file FileId(1) for 24..30: `procedure` is not in a device monitor
+

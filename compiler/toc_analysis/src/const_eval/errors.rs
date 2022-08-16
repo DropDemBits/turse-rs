@@ -1,6 +1,9 @@
 //! Errors during constant evaluation
-use toc_hir::symbol::{DefId, Symbol};
-use toc_span::Span;
+use toc_hir::{
+    library::LibraryId,
+    symbol::{DefId, Resolve, Symbol},
+};
+use toc_span::{Span, Spanned};
 
 use crate::const_eval::db;
 
@@ -84,14 +87,14 @@ impl ConstError {
         }
 
         let mut builder = match &self.kind {
-            ErrorKind::NotConstExpr(Some(def_id)) => {
+            ErrorKind::NotConstExpr(NotConst::Def(def_id)) => {
                 // Report at the reference's definition spot
                 let bind_to = match db.symbol_kind(*def_id) {
                     Some(kind) => kind,
                     None => return, // taken from an undeclared ident or missing expr
                 };
-                let library = db.library(def_id.0);
-                let def_info = library.local_def(def_id.1);
+                let library = db.library(def_id.library());
+                let def_info = library.local_def(def_id.local());
                 let name = def_info.name;
                 let def_span = def_info.def_at.lookup_in(&library);
 
@@ -105,6 +108,22 @@ impl ConstError {
                         self.span,
                     )
                     .with_note(format!("`{name}` declared here",), def_span)
+            }
+            ErrorKind::NotConstExpr(NotConst::Binding(library_id, binding)) => {
+                let name = binding.item();
+                let library = db.library(*library_id);
+
+                if matches!(library.binding_resolve(*binding), Resolve::Err) {
+                    // taken from an undeclared ident
+                    return;
+                }
+
+                reporter
+                    .error_detailed(
+                        format!("cannot compute `{name}` at compile-time"),
+                        self.span,
+                    )
+                    .with_error(format!("{}", self.kind), self.span)
             }
             // Report common message header
             _ => reporter
@@ -143,14 +162,10 @@ pub(crate) enum ErrorKind {
     /// Missing expression operand
     #[error("operand is an invalid expression")]
     MissingExpr,
-    /// Not a compile-time expression,
-    ///
-    /// If the expression comes from an identifier, then the provided [`DefId`]
-    /// points to the symbol's definition location,
-    // TODO: Add tests for the non-reference version
-    // We don't generate the non-reference kind yet since we haven't lowered all exprs
+    /// Not a compile-time expression. The included [`NotConst`] specifies what kind of
+    /// not compile-time expression this is.
     #[error("expression cannot be computed at compile-time")]
-    NotConstExpr(Option<DefId>),
+    NotConstExpr(NotConst),
     /// Error is already reported
     #[allow(dead_code)] // TODO: Figure out how we can dedup errors
     #[error("compile-time evaluation error already reported")]
@@ -199,4 +214,18 @@ pub(crate) enum ErrorKind {
     /// Currently unsupported const eval operation
     #[error("operation is currently not implemented for compile-time evaluation")]
     UnsupportedOp,
+}
+
+/// What kind of expression is not a compile time one
+// FIXME: Add tests for the non-reference version
+// We don't generate the non-reference kind yet since we haven't lowered all exprs
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum NotConst {
+    /// Known def, points to the associated definition.
+    Def(DefId),
+    /// Binding, not necessarily a known def.
+    /// Points to the location of the binding
+    Binding(LibraryId, Spanned<Symbol>),
+    /// Other expression, not nameable.
+    Expr,
 }
