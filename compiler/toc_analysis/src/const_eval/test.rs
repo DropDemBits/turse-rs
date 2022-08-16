@@ -773,7 +773,8 @@ fn error_no_const_expr() {
     assert_const_eval("const b := ()");
 
     // Referencing an unresolved import
-    assert_const_eval("
+    assert_const_eval(
+        "
     module base
         export ~. tail
     end base
@@ -782,7 +783,8 @@ fn error_no_const_expr() {
         import tail
         const _ := tail
     end target
-    ");
+    ",
+    );
 
     // Referencing `self`
     // TODO: Uncomment when `self` is lowered again
