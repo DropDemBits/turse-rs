@@ -232,8 +232,8 @@ pub struct ExportItem {
     pub mutability: symbol::Mutability,
     pub qualify_as: QualifyAs,
     pub is_opaque: bool,
-    /// Associated item to export
-    pub item_id: ItemId,
+    /// Associated def to export
+    pub exported_def: symbol::LocalDefId,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

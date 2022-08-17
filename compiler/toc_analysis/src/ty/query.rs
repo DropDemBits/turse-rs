@@ -49,7 +49,7 @@ fn ty_of_def(db: &dyn db::TypeDatabase, def_id: DefId) -> TypeId {
 
                 let module = library.module_item(module_id);
                 let export = module.export(export_id);
-                let def_id = DefId(def_id.0, library.item(export.item_id).def_id);
+                let def_id = DefId(def_id.0, export.exported_def);
 
                 db.type_of(def_id.into())
             }
@@ -439,7 +439,7 @@ pub(crate) fn fields_of(
                         .exports
                         .iter()
                         .map(|export| {
-                            let local_def = library.item(export.item_id).def_id;
+                            let local_def = export.exported_def;
                             let field_name = library.local_def(local_def).name;
                             let def_id = DefId(library_id, local_def);
 

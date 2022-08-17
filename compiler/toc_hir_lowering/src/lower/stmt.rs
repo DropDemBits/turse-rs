@@ -741,6 +741,7 @@ impl super::BodyLowering<'_, '_> {
                 .into_iter()
                 .map(|(export_name, item_id)| {
                     let item = self.ctx.library.item(item_id);
+                    let exported_def = item.def_id;
                     let is_opaque = if !matches!(item.kind, item::ItemKind::Type(_)) {
                         // Opaque is only applicable to types
                         false
@@ -772,7 +773,7 @@ impl super::BodyLowering<'_, '_> {
                         mutability,
                         qualify_as,
                         is_opaque,
-                        item_id,
+                        exported_def,
                     }
                 })
                 .collect()
@@ -817,6 +818,7 @@ impl super::BodyLowering<'_, '_> {
 
                     if let Some(item_id) = item {
                         let item = self.ctx.library.item(item_id);
+                        let exported_def = item.def_id;
 
                         // Report when opaqueness is not applicable
                         let is_opaque = if is_opaque
@@ -911,7 +913,7 @@ impl super::BodyLowering<'_, '_> {
                             mutability,
                             qualify_as,
                             is_opaque,
-                            item_id,
+                            exported_def,
                         })
                     } else {
                         let span = Span::new(self.ctx.file, name.syntax().text_range());
