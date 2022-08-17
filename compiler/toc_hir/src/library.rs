@@ -70,7 +70,7 @@ pub struct Library {
     /// Table of all interned types
     pub(crate) type_map: ty::TypeTable,
     pub(crate) items: Arena<item::Item>,
-    pub(crate) defs: Arena<symbol::DefInfo>,
+    pub(crate) defs: symbol::DefInfoTable,
     pub(crate) bodies: Arena<body::Body>,
     pub(crate) resolve_map: ResolutionMap,
 }
@@ -99,8 +99,8 @@ impl Library {
         }
     }
 
-    pub fn local_def(&self, def_id: symbol::LocalDefId) -> &symbol::DefInfo {
-        &self.defs[def_id.into()]
+    pub fn local_def(&self, local_def: symbol::LocalDefId) -> &symbol::DefInfo {
+        self.defs.get_info(local_def)
     }
 
     pub fn lookup_type(&self, type_id: ty::TypeId) -> &ty::Type {
@@ -124,7 +124,7 @@ impl Library {
     }
 
     pub fn local_defs(&self) -> impl Iterator<Item = symbol::LocalDefId> + '_ {
-        self.defs.iter().map(|(id, _)| symbol::LocalDefId(id))
+        self.defs.iter().map(|(id, _)| id)
     }
 
     pub fn body_ids(&self) -> Vec<body::BodyId> {

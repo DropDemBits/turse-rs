@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use toc_hir::{
     symbol::{
         syms, DefInfoTable, DefMap, IsMonitor, IsPervasive, IsRegister, LocalDefId, Mutability,
-        SubprogramKind, Symbol, SymbolKind,
+        NodeSpan, SubprogramKind, Symbol, SymbolKind,
     },
     ty::PassBy,
 };
@@ -18,14 +18,10 @@ use toc_syntax::{
 
 use crate::LoweringDb;
 
-/// Unique identification of an item by its span
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub(crate) struct IdentSpan(pub SpanId);
-
 #[derive(Debug, Default)]
 pub(crate) struct CollectRes {
     pub(crate) defs: DefInfoTable,
-    pub(crate) ident_defs: HashMap<IdentSpan, LocalDefId>,
+    pub(crate) node_defs: HashMap<NodeSpan, LocalDefId>,
     pub(crate) assoc_defs: DefMap<Vec<LocalDefId>>,
     pub(crate) spans: SpanTable,
 }
@@ -39,7 +35,7 @@ pub(crate) fn collect_defs(
 
     for &file in reachable_files {
         let root = ast::Source::cast(db.parse_file(file).result().syntax()).unwrap();
-        CollectCtx::collect(file, root, &mut res, &mut messages);
+        FileCollector::collect(file, root, &mut res, &mut messages);
     }
 
     CompileResult::new(res, messages.finish())
@@ -83,7 +79,7 @@ impl Default for DefScope {
     }
 }
 
-struct CollectCtx<'a> {
+struct FileCollector<'a> {
     file: FileId,
     root: ast::Source,
     res: &'a mut CollectRes,
@@ -91,7 +87,7 @@ struct CollectCtx<'a> {
     scopes: DefScope,
 }
 
-impl<'a> CollectCtx<'a> {
+impl<'a> FileCollector<'a> {
     fn collect(
         file: FileId,
         root: ast::Source,
@@ -142,6 +138,8 @@ impl<'a> CollectCtx<'a> {
                             ast::ClassDecl(_decl) => {},
                             ast::MonitorDecl(_decl) => {},
 
+                            ast::ImportItem(decl) => self.collect_decl_import(decl),
+
                             // Notable stmts //
                             ast::ForStmt(stmt) => self.collect_stmt_for(stmt),
                             ast::HandlerStmt(_stmt) => {},
@@ -156,6 +154,8 @@ impl<'a> CollectCtx<'a> {
                             ast::SetType(ty) => self.collect_ty_set(ty),
                             ast::RecordType(_ty) => {},
                             ast::UnionType(_ty) => {},
+                            ast::FcnType(ty) => self.collect_ty_fcn(ty),
+                            ast::ProcType(ty) => self.collect_ty_proc(ty),
                             ast::CollectionType(_ty) => {},
                             _ => {}
                         }
@@ -267,17 +267,17 @@ impl<'a> CollectCtx<'a> {
     }
 
     fn bind_span(&mut self, local_def: LocalDefId, span: SpanId) {
-        self.res.ident_defs.insert(IdentSpan(span), local_def);
+        self.res.node_defs.insert(NodeSpan(span), local_def);
     }
 
     fn lookup_name_def(&mut self, name: Option<ast::Name>) -> Option<LocalDefId> {
         let name = name?.identifier_token().unwrap();
 
         let span = self.intern_range(name.text_range());
-        let ident = IdentSpan(span);
+        let ident = NodeSpan(span);
         let local_def = self
             .res
-            .ident_defs
+            .node_defs
             .get(&ident)
             .copied()
             .expect("def didn't get added beforehand");
@@ -286,7 +286,7 @@ impl<'a> CollectCtx<'a> {
     }
 }
 
-impl CollectCtx<'_> {
+impl FileCollector<'_> {
     // Decls //
     fn collect_decl_constvar(&mut self, node: ast::ConstVarDecl) {
         let is_pervasive = node.pervasive_attr().is_some();
@@ -447,6 +447,26 @@ impl CollectCtx<'_> {
         }
     }
 
+    fn collect_decl_import(&mut self, node: ast::ImportItem) {
+        if let Some(name) = node.external_item().and_then(|item| item.name()) {
+            let local_def = self.add_name(name, Some(SymbolKind::Import), IsPervasive::No);
+
+            // Only consider as an export candidate if we aren't in a forward decl
+            // <ImportItem> => ImportList => ForwardDecl
+            // TODO: use a def scope instead once we deal with forward decls
+            let in_forward_decl = Some(node)
+                .and_then(|n| n.syntax().parent())
+                .and_then(ast::ImportList::cast)
+                .and_then(|n| n.syntax().parent())
+                .and_then(ast::ForwardDecl::cast)
+                .is_some();
+
+            if !in_forward_decl {
+                self.scopes.introduce_def(local_def);
+            }
+        }
+    }
+
     fn collect_stmt_for(&mut self, node: ast::ForStmt) {
         if let Some(name) = node.name() {
             self.add_exported_name(
@@ -490,6 +510,16 @@ impl CollectCtx<'_> {
 
         // bind it to the entire type node, since it doesn't have a name
         self.bind_span(local_def, span);
+    }
+
+    fn collect_ty_fcn(&mut self, node: ast::FcnType) {
+        // Only needed because formal lowering is shared
+        self.collect_formals_spec(node.params());
+    }
+
+    fn collect_ty_proc(&mut self, node: ast::ProcType) {
+        // Only needed because formal lowering is shared
+        self.collect_formals_spec(node.params());
     }
 }
 

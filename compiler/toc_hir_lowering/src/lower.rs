@@ -26,7 +26,7 @@ mod ty;
 use std::sync::Arc;
 
 use toc_ast_db::db::SourceParser;
-use toc_hir::symbol::{syms, IsMonitor, IsPervasive, SymbolKind};
+use toc_hir::symbol::{syms, IsMonitor, IsPervasive, NodeSpan, SymbolKind};
 use toc_hir::{
     body,
     builder::{self, BodyBuilder},
@@ -72,7 +72,13 @@ where
         messages = messages.combine(msgs);
 
         let mut root_items = vec![];
-        let mut library = builder::LibraryBuilder::default();
+        let mut library = builder::LibraryBuilder::new(
+            collect_res.spans,
+            collect_res.defs,
+            // Note: these could be moved to inside FileLowering
+            collect_res.node_defs,
+            collect_res.assoc_defs,
+        );
 
         // Lower all files reachable from the library root
         for file in reachable_files {
@@ -258,6 +264,11 @@ impl<'ctx> FileLowering<'ctx> {
     fn intern_range(&mut self, range: toc_span::TextRange) -> SpanId {
         let span = self.mk_span(range);
         self.library.intern_span(span)
+    }
+
+    /// Constructs a [`NodeSpan`] from an AST node's [`TextRange`]
+    fn node_span(&mut self, range: toc_span::TextRange) -> NodeSpan {
+        NodeSpan(self.intern_range(range))
     }
 }
 

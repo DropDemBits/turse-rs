@@ -1,11 +1,13 @@
 //! Helper builders for creating the HIR tree
 
+use std::collections::HashMap;
+
 use la_arena::Arena;
-use toc_span::{FileId, Span, SpanId};
+use toc_span::{FileId, Span, SpanId, SpanTable};
 
 use crate::{
     body, expr, item, library, stmt,
-    symbol::{self, Symbol},
+    symbol::{self, NodeSpan, Symbol},
     ty,
 };
 
@@ -14,11 +16,31 @@ use crate::{
 /// [`Library`]: library::Library
 pub struct LibraryBuilder {
     library: library::Library,
+    node_defs: HashMap<NodeSpan, symbol::LocalDefId>,
+    assoc_defs: symbol::DefMap<Vec<symbol::LocalDefId>>,
 }
 
 impl LibraryBuilder {
-    pub fn new() -> Self {
-        Self::default()
+    pub fn new(
+        span_map: SpanTable,
+        defs: symbol::DefInfoTable,
+        node_defs: HashMap<NodeSpan, symbol::LocalDefId>,
+        assoc_defs: symbol::DefMap<Vec<symbol::LocalDefId>>,
+    ) -> Self {
+        Self {
+            library: library::Library {
+                span_map,
+                defs,
+
+                root_items: Default::default(),
+                items: Default::default(),
+                bodies: Default::default(),
+                type_map: Default::default(),
+                resolve_map: Default::default(),
+            },
+            node_defs,
+            assoc_defs,
+        }
     }
 
     pub fn add_item(&mut self, item: item::Item) -> item::ItemId {
@@ -44,14 +66,7 @@ impl LibraryBuilder {
         kind: Option<symbol::SymbolKind>,
         pervasive: symbol::IsPervasive,
     ) -> symbol::LocalDefId {
-        let def = symbol::DefInfo {
-            name,
-            def_at: span,
-            kind,
-            pervasive,
-        };
-        let index = self.defs.alloc(def);
-        symbol::LocalDefId(index)
+        self.defs.add_def(name, span, kind, pervasive)
     }
 
     pub fn add_body(&mut self, body: body::Body) -> body::BodyId {
@@ -65,6 +80,21 @@ impl LibraryBuilder {
 
     pub fn intern_span(&mut self, span: Span) -> SpanId {
         self.span_map.intern_span(span)
+    }
+
+    /// Finds the def bound to a specific AST node.
+    /// Assumes that there is a def at the given `node_span`
+    pub fn node_def(&self, node_span: NodeSpan) -> symbol::LocalDefId {
+        self.node_defs[&node_span]
+    }
+
+    /// Finds defs assocatied with `local_def`
+    /// Assumes that there are associated defs
+    pub fn associated_defs(
+        &self,
+        local_def: symbol::LocalDefId,
+    ) -> &Vec<symbol::LocalDefId> {
+        self.assoc_defs.get(local_def).unwrap()
     }
 
     pub fn make_body_with(
@@ -82,31 +112,16 @@ impl LibraryBuilder {
                 root_items: root_items.into_iter().collect(),
                 ..self.library
             },
+            ..self
         }
     }
 
     pub fn finish(self, resolve_map: symbol::ResolutionMap) -> library::Library {
-        let Self { library } = self;
+        let Self { library, .. } = self;
 
         library::Library {
             resolve_map,
             ..library
-        }
-    }
-}
-
-impl Default for LibraryBuilder {
-    fn default() -> Self {
-        Self {
-            library: library::Library {
-                root_items: Default::default(),
-                items: Default::default(),
-                defs: Default::default(),
-                bodies: Default::default(),
-                type_map: Default::default(),
-                span_map: Default::default(),
-                resolve_map: Default::default(),
-            },
         }
     }
 }

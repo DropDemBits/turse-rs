@@ -56,17 +56,14 @@ impl From<&str> for Symbol {
     }
 }
 
-/// A specific identifier in a [`Library`](crate::library::Library)
+// FIXME: This feels more like an AST or `toc_span` construct, move it elsewhere
+/// The span of a specific AST node in a [`Library`](crate::library::Library)
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct Ident(pub Symbol, pub SpanId);
+pub struct NodeSpan(pub SpanId);
 
-impl Ident {
-    pub fn symbol(self) -> Symbol {
-        self.0
-    }
-
+impl NodeSpan {
     pub fn span(self) -> SpanId {
-        self.1
+        self.0
     }
 }
 
@@ -103,6 +100,14 @@ impl DefInfoTable {
         };
         let index = self.defs.alloc(def);
         LocalDefId(index)
+    }
+
+    pub fn get_info(&self, local_def: LocalDefId) -> &DefInfo {
+        &self.defs[local_def.0]
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = (LocalDefId, &'_ DefInfo)> + '_ {
+        self.defs.iter().map(|(id, info)| (LocalDefId(id), info))
     }
 }
 
