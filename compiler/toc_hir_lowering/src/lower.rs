@@ -66,6 +66,11 @@ where
         }
 
         let reachable_files: Vec<_> = self.depend_graph(library_root).unit_sources().collect();
+
+        // Collect all the defs in the library
+        let (collect_res, msgs) = crate::collector::collect_defs(db, &reachable_files).take();
+        messages = messages.combine(msgs);
+
         let mut root_items = vec![];
         let mut library = builder::LibraryBuilder::default();
 

@@ -75,10 +75,6 @@ impl LibraryBuilder {
         self.add_body(body)
     }
 
-    pub fn local_def_mut(&mut self, def_id: symbol::LocalDefId) -> &mut symbol::DefInfo {
-        &mut self.defs[def_id.into()]
-    }
-
     pub fn freeze_root_items(self, root_items: Vec<(FileId, item::ItemId)>) -> Self {
         Self {
             library: library::Library {

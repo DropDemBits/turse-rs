@@ -443,6 +443,9 @@ pub type SyntaxToken = rowan::SyntaxToken<Lang>;
 #[allow(unused)]
 pub type SyntaxElement = rowan::NodeOrToken<SyntaxNode, SyntaxToken>;
 
+// Other rowan re-exports
+pub use rowan::WalkEvent;
+
 // Operators
 
 pub const MIN_REF_BINDING_POWER: u8 = 19;
