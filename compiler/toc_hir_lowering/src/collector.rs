@@ -4,8 +4,8 @@ use std::collections::HashMap;
 
 use toc_hir::{
     symbol::{
-        DefInfoTable, DefMap, Ident, IsMonitor, IsPervasive, IsRegister, LocalDefId, Mutability,
-        SubprogramKind, SymbolKind,
+        syms, DefInfoTable, DefMap, IsMonitor, IsPervasive, IsRegister, LocalDefId, Mutability,
+        SubprogramKind, Symbol, SymbolKind,
     },
     ty::PassBy,
 };
@@ -18,11 +18,15 @@ use toc_syntax::{
 
 use crate::LoweringDb;
 
+/// Unique identification of an item by its span
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub(crate) struct IdentSpan(pub SpanId);
+
 #[derive(Debug, Default)]
 pub(crate) struct CollectRes {
     pub(crate) defs: DefInfoTable,
-    pub(crate) ident_defs: HashMap<Ident, LocalDefId>,
-    pub(crate) export_candidates: DefMap<Vec<LocalDefId>>,
+    pub(crate) ident_defs: HashMap<IdentSpan, LocalDefId>,
+    pub(crate) assoc_defs: DefMap<Vec<LocalDefId>>,
     pub(crate) spans: SpanTable,
 }
 
@@ -113,46 +117,65 @@ impl<'a> CollectCtx<'a> {
         // same regardless
 
         for event in self.root.syntax().preorder() {
-            // Pull out node & state
-            let (node, state) = match event {
-                WalkEvent::Enter(n) => (n, NodeState::Enter),
-                WalkEvent::Leave(n) => (n, NodeState::Leave),
-            };
-
             // FIXME: Handle include globs
             // AAAAAAAAAAAAAAAAAAAAAAAAAAA
 
-            match_ast! {
-                match (node) {
-                    // Decls //
-                    ast::ConstVarDecl(decl) => self.collect_decl_constvar(decl, state),
-                    ast::TypeDecl(decl) => self.collect_decl_type(decl, state),
-                    ast::BindDecl(decl) => self.collect_decl_bind(decl, state),
-                    ast::ProcDecl(decl) => self.collect_decl_proc(decl, state),
-                    ast::FcnDecl(decl) => self.collect_decl_fcn(decl, state),
-                    ast::ProcessDecl(decl) => self.collect_decl_process(decl, state),
-                    ast::ExternalDecl(_decl) => {},
-                    ast::ForwardDecl(_decl) => {},
-                    ast::DeferredDecl(_decl) => {},
-                    ast::BodyDecl(_decl) => {},
-                    ast::ModuleDecl(decl) => self.collect_decl_module(decl, state),
-                    ast::ClassDecl(_decl) => {},
-                    ast::MonitorDecl(_decl) => {},
+            // Pull out node & state
+            match event {
+                WalkEvent::Enter(node) => {
+                    let state = NodeState::Enter;
 
-                    // Notable stmts //
-                    ast::ForStmt(stmt) => self.collect_stmt_for(stmt, state),
-                    ast::HandlerStmt(_stmt) => {},
+                    match_ast! {
+                        match (node) {
+                            // Decls //
+                            ast::ConstVarDecl(decl) => self.collect_decl_constvar(decl),
+                            ast::TypeDecl(decl) => self.collect_decl_type(decl),
+                            ast::BindDecl(decl) => self.collect_decl_bind(decl),
+                            ast::ProcDecl(decl) => self.collect_decl_proc(decl),
+                            ast::FcnDecl(decl) => self.collect_decl_fcn(decl),
+                            ast::ProcessDecl(decl) => self.collect_decl_process(decl),
+                            ast::ExternalDecl(_decl) => {},
+                            ast::ForwardDecl(_decl) => {},
+                            ast::DeferredDecl(_decl) => {},
+                            ast::BodyDecl(_decl) => {},
+                            ast::ModuleDecl(decl) => self.collect_decl_module(decl, state),
+                            ast::ClassDecl(_decl) => {},
+                            ast::MonitorDecl(_decl) => {},
 
-                    // Scopes don't need to be precise, so long as they
-                    // prevent defs from escaping & being considered
-                    // export candidates
-                    ast::StmtList(stmt) => self.wrap_scope(stmt, state),
+                            // Notable stmts //
+                            ast::ForStmt(stmt) => self.collect_stmt_for(stmt),
+                            ast::HandlerStmt(_stmt) => {},
 
-                    // Types //
-                    ast::CollectionType(_ty) => {},
-                    _ => {}
+                            // Scopes don't need to be precise, so long as they
+                            // prevent defs from escaping & being considered
+                            // export candidates
+                            ast::StmtList(stmt) => self.wrap_scope(stmt, state),
+
+                            // Types //
+                            ast::EnumType(ty) => self.collect_ty_enum(ty),
+                            ast::SetType(ty) => self.collect_ty_set(ty),
+                            ast::RecordType(_ty) => {},
+                            ast::UnionType(_ty) => {},
+                            ast::CollectionType(_ty) => {},
+                            _ => {}
+                        }
+                    }
                 }
-            }
+                WalkEvent::Leave(node) => {
+                    let state = NodeState::Leave;
+
+                    // These are the only nodes which care about node exit
+                    match_ast! {
+                        match (node) {
+                            ast::ModuleDecl(decl) => self.collect_decl_module(decl, state),
+                            ast::ClassDecl(_decl) => {},
+                            ast::MonitorDecl(_decl) => {},
+                            ast::StmtList(stmt) => self.wrap_scope(stmt, state),
+                            _ => {}
+                        }
+                    }
+                }
+            };
         }
     }
 
@@ -238,16 +261,20 @@ impl<'a> CollectCtx<'a> {
         let span = self.intern_range(name_tok.text_range());
 
         let def_id = self.res.defs.add_def(name.into(), span, kind, is_pervasive);
-        self.res.ident_defs.insert(Ident(name.into(), span), def_id);
+        self.bind_span(def_id, span);
 
         def_id
     }
 
-    fn lookup_def(&mut self, name: Option<ast::Name>) -> Option<LocalDefId> {
+    fn bind_span(&mut self, local_def: LocalDefId, span: SpanId) {
+        self.res.ident_defs.insert(IdentSpan(span), local_def);
+    }
+
+    fn lookup_name_def(&mut self, name: Option<ast::Name>) -> Option<LocalDefId> {
         let name = name?.identifier_token().unwrap();
 
         let span = self.intern_range(name.text_range());
-        let ident = Ident(name.text().into(), span);
+        let ident = IdentSpan(span);
         let local_def = self
             .res
             .ident_defs
@@ -261,11 +288,7 @@ impl<'a> CollectCtx<'a> {
 
 impl CollectCtx<'_> {
     // Decls //
-    fn collect_decl_constvar(&mut self, node: ast::ConstVarDecl, state: NodeState) {
-        if matches!(state, NodeState::Leave) {
-            return;
-        }
-
+    fn collect_decl_constvar(&mut self, node: ast::ConstVarDecl) {
         let is_pervasive = node.pervasive_attr().is_some();
         let is_register = node.register_attr().is_some();
         let is_var = node.var_token().is_some();
@@ -278,22 +301,14 @@ impl CollectCtx<'_> {
         );
     }
 
-    fn collect_decl_type(&mut self, node: ast::TypeDecl, state: NodeState) {
-        if matches!(state, NodeState::Leave) {
-            return;
-        }
-
+    fn collect_decl_type(&mut self, node: ast::TypeDecl) {
         if let Some(name) = node.decl_name() {
             let is_pervasive = node.pervasive_attr().is_some();
             self.add_exported_name(name, Some(SymbolKind::Type), is_pervasive.into());
         }
     }
 
-    fn collect_decl_bind(&mut self, node: ast::BindDecl, state: NodeState) {
-        if matches!(state, NodeState::Leave) {
-            return;
-        }
-
+    fn collect_decl_bind(&mut self, node: ast::BindDecl) {
         for binding in node.bindings() {
             if let Some(name) = binding.bind_as() {
                 let mutability = Mutability::from_is_mutable(binding.as_var().is_some());
@@ -310,12 +325,7 @@ impl CollectCtx<'_> {
         }
     }
 
-    fn collect_decl_proc(&mut self, node: ast::ProcDecl, state: NodeState) {
-        // scope wrapping handled by `wrap_scope`
-        if matches!(state, NodeState::Leave) {
-            return;
-        }
-
+    fn collect_decl_proc(&mut self, node: ast::ProcDecl) {
         // name + param names
         let header = node.proc_header().unwrap();
 
@@ -331,12 +341,7 @@ impl CollectCtx<'_> {
         self.collect_formals_spec(header.params());
     }
 
-    fn collect_decl_fcn(&mut self, node: ast::FcnDecl, state: NodeState) {
-        // scope wrapping handled by `wrap_scope`
-        if matches!(state, NodeState::Leave) {
-            return;
-        }
-
+    fn collect_decl_fcn(&mut self, node: ast::FcnDecl) {
         // name + param names + maybe result name
         let header = node.fcn_header().unwrap();
 
@@ -361,12 +366,7 @@ impl CollectCtx<'_> {
         }
     }
 
-    fn collect_decl_process(&mut self, node: ast::ProcessDecl, state: NodeState) {
-        // scope wrapping handled by `wrap_scope`
-        if matches!(state, NodeState::Leave) {
-            return;
-        }
-
+    fn collect_decl_process(&mut self, node: ast::ProcessDecl) {
         // name + param names
         let header = node.process_header().unwrap();
 
@@ -439,20 +439,15 @@ impl CollectCtx<'_> {
             NodeState::Leave => {
                 let candidates = self.scopes.pop_scope();
 
-                if let Some(local_def) = self.lookup_def(node.name()) {
+                if let Some(local_def) = self.lookup_name_def(node.name()) {
                     // associate defs as export candidates
-                    self.res.export_candidates.insert(local_def, candidates);
+                    self.res.assoc_defs.insert(local_def, candidates);
                 }
             }
         }
     }
 
-    fn collect_stmt_for(&mut self, node: ast::ForStmt, state: NodeState) {
-        // scope wrapping handled by `wrap_scope`
-        if matches!(state, NodeState::Leave) {
-            return;
-        }
-
+    fn collect_stmt_for(&mut self, node: ast::ForStmt) {
         if let Some(name) = node.name() {
             self.add_exported_name(
                 name,
@@ -461,4 +456,50 @@ impl CollectCtx<'_> {
             );
         }
     }
+
+    fn collect_ty_enum(&mut self, node: ast::EnumType) {
+        let variants = node
+            .fields()
+            .unwrap()
+            .names()
+            .map(|name| self.add_name(name, Some(SymbolKind::EnumVariant), IsPervasive::No))
+            .collect();
+
+        let span = self.intern_range(node.syntax().text_range());
+        let local_def = self.res.defs.add_def(
+            type_decl_name(node),
+            span,
+            Some(SymbolKind::Enum),
+            IsPervasive::No,
+        );
+
+        // bind it to the entire type node, since it doesn't have a name
+        self.bind_span(local_def, span);
+
+        self.res.assoc_defs.insert(local_def, variants);
+    }
+
+    fn collect_ty_set(&mut self, node: ast::SetType) {
+        let span = self.intern_range(node.syntax().text_range());
+        let local_def = self.res.defs.add_def(
+            type_decl_name(node),
+            span,
+            Some(SymbolKind::Set),
+            IsPervasive::No,
+        );
+
+        // bind it to the entire type node, since it doesn't have a name
+        self.bind_span(local_def, span);
+    }
+}
+
+/// Gets the name from the enclosing `type` decl, or the [`Anonymous`](syms::Anonymous) symbol
+fn type_decl_name(ty: impl ast::AstNode) -> Symbol {
+    ty.syntax()
+        .parent()
+        .and_then(ast::TypeDecl::cast)
+        .and_then(|node| node.decl_name())
+        .map_or(*syms::Anonymous, |name| {
+            name.identifier_token().unwrap().text().into()
+        })
 }
