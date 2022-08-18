@@ -90,10 +90,7 @@ impl LibraryBuilder {
 
     /// Finds defs assocatied with `local_def`
     /// Assumes that there are associated defs
-    pub fn associated_defs(
-        &self,
-        local_def: symbol::LocalDefId,
-    ) -> &Vec<symbol::LocalDefId> {
+    pub fn associated_defs(&self, local_def: symbol::LocalDefId) -> &Vec<symbol::LocalDefId> {
         self.assoc_defs.get(local_def).unwrap()
     }
 
