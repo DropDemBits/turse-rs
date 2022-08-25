@@ -1,32 +1,19 @@
 //! Helper builders for creating the HIR tree
 
-use std::collections::HashMap;
-
 use la_arena::Arena;
 use toc_span::{FileId, Span, SpanId, SpanTable};
 
-use crate::{
-    body, expr, item, library, stmt,
-    symbol::{self, NodeSpan, Symbol},
-    ty,
-};
+use crate::{body, expr, item, library, stmt, symbol, ty};
 
 /// Builder for constructing a [`Library`]
 ///
 /// [`Library`]: library::Library
 pub struct LibraryBuilder {
     library: library::Library,
-    node_defs: HashMap<NodeSpan, symbol::LocalDefId>,
-    assoc_defs: symbol::DefMap<Vec<symbol::LocalDefId>>,
 }
 
 impl LibraryBuilder {
-    pub fn new(
-        span_map: SpanTable,
-        defs: symbol::DefInfoTable,
-        node_defs: HashMap<NodeSpan, symbol::LocalDefId>,
-        assoc_defs: symbol::DefMap<Vec<symbol::LocalDefId>>,
-    ) -> Self {
+    pub fn new(span_map: SpanTable, defs: symbol::DefInfoTable) -> Self {
         Self {
             library: library::Library {
                 span_map,
@@ -38,8 +25,6 @@ impl LibraryBuilder {
                 type_map: Default::default(),
                 resolve_map: Default::default(),
             },
-            node_defs,
-            assoc_defs,
         }
     }
 
@@ -61,7 +46,7 @@ impl LibraryBuilder {
     /// [`LocalDefId`]: crate::symbol::LocalDefId
     pub fn add_def(
         &mut self,
-        name: Symbol,
+        name: symbol::Symbol,
         span: SpanId,
         kind: Option<symbol::SymbolKind>,
         pervasive: symbol::IsPervasive,
@@ -80,18 +65,6 @@ impl LibraryBuilder {
 
     pub fn intern_span(&mut self, span: Span) -> SpanId {
         self.span_map.intern_span(span)
-    }
-
-    /// Finds the def bound to a specific AST node.
-    /// Assumes that there is a def at the given `node_span`
-    pub fn node_def(&self, node_span: NodeSpan) -> symbol::LocalDefId {
-        self.node_defs[&node_span]
-    }
-
-    /// Finds defs assocatied with `local_def`
-    /// Assumes that there are associated defs
-    pub fn associated_defs(&self, local_def: symbol::LocalDefId) -> &Vec<symbol::LocalDefId> {
-        self.assoc_defs.get(local_def).unwrap()
     }
 
     pub fn make_body_with(

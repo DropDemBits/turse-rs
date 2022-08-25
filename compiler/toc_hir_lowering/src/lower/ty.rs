@@ -270,8 +270,8 @@ impl super::BodyLowering<'_, '_> {
 
     fn lower_enum_type(&mut self, ty: ast::EnumType) -> Option<ty::TypeKind> {
         let node_span = self.ctx.node_span(ty.syntax().text_range());
-        let def_id = self.ctx.library.node_def(node_span);
-        let variants = self.ctx.library.associated_defs(def_id).clone();
+        let def_id = self.ctx.node_def(node_span);
+        let variants = self.ctx.collect_optional_name_defs(ty.fields().unwrap());
 
         Some(ty::TypeKind::Enum(ty::Enum { def_id, variants }))
     }
@@ -389,7 +389,7 @@ impl super::BodyLowering<'_, '_> {
 
     fn lower_set_type(&mut self, ty: ast::SetType) -> Option<ty::TypeKind> {
         let node_span = self.ctx.node_span(ty.syntax().text_range());
-        let def_id = self.ctx.library.node_def(node_span);
+        let def_id = self.ctx.node_def(node_span);
         let elem = self.lower_required_type(ty.elem_ty());
 
         Some(ty::TypeKind::Set(ty::Set {

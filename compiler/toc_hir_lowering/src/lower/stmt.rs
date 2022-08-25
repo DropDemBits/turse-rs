@@ -123,7 +123,7 @@ impl super::BodyLowering<'_, '_> {
         let is_var = decl.var_token().is_some();
         let mutability = Mutability::from_is_mutable(is_var);
 
-        let names = self.collect_name_defs(decl.decl_list().unwrap(), span);
+        let names = self.ctx.collect_name_defs(decl.decl_list().unwrap(), span);
         let type_spec = decl.type_spec().and_then(|ty| self.lower_type(ty));
         let init_expr = decl.init().map(|expr| self.ctx.lower_expr_body(expr));
 
@@ -171,7 +171,7 @@ impl super::BodyLowering<'_, '_> {
         //     - Forward -> Must resolve in the same scope
         let span = self.ctx.intern_range(decl.syntax().text_range());
 
-        let def_id = self.collect_name(decl.decl_name(), span);
+        let def_id = self.ctx.collect_name(decl.decl_name(), span);
         let type_def = if let Some(forward) = decl.forward_token() {
             let token_span = self.ctx.intern_range(forward.text_range());
             item::DefinedType::Forward(token_span)
@@ -198,7 +198,7 @@ impl super::BodyLowering<'_, '_> {
                 let mutability = Mutability::from_is_mutable(binding.as_var().is_some());
                 let is_register = binding.to_register().is_some();
 
-                let def_id = self.collect_name(binding.bind_as(), span);
+                let def_id = self.ctx.collect_name(binding.bind_as(), span);
                 let bind_to = self.lower_required_expr_body(binding.expr());
 
                 let binding = item::Binding {
@@ -233,7 +233,7 @@ impl super::BodyLowering<'_, '_> {
         let span = self.ctx.intern_range(decl.syntax().text_range());
         let subprog_header = decl.proc_header().unwrap();
 
-        let def_id = self.collect_name(subprog_header.name(), span);
+        let def_id = self.ctx.collect_name(subprog_header.name(), span);
         let param_list = self.lower_formals_spec(subprog_header.params());
         let result = self.none_subprog_result(subprog_header.syntax().text_range());
         let extra = match subprog_header.device_spec().and_then(|spec| spec.expr()) {
@@ -263,7 +263,7 @@ impl super::BodyLowering<'_, '_> {
         let span = self.ctx.intern_range(decl.syntax().text_range());
         let subprog_header = decl.fcn_header().unwrap();
 
-        let def_id = self.collect_name(subprog_header.name(), span);
+        let def_id = self.ctx.collect_name(subprog_header.name(), span);
         let param_list = self.lower_formals_spec(subprog_header.params());
         let result = self.lower_subprog_result(subprog_header.fcn_result());
         let extra = item::SubprogramExtra::None;
@@ -290,7 +290,7 @@ impl super::BodyLowering<'_, '_> {
         let span = self.ctx.intern_range(decl.syntax().text_range());
         let subprog_header = decl.process_header().unwrap();
 
-        let def_id = self.collect_name(subprog_header.name(), span);
+        let def_id = self.ctx.collect_name(subprog_header.name(), span);
         let param_list = self.lower_formals_spec(subprog_header.params());
         let result = self.none_subprog_result(subprog_header.syntax().text_range());
         let extra = match subprog_header.stack_size() {
@@ -346,7 +346,7 @@ impl super::BodyLowering<'_, '_> {
                     let coerced_type = param.coerce_type().is_some();
                     let param_ty = self.lower_required_type(param.param_ty());
 
-                    let names = self
+                    let names = self.ctx
                         .collect_name_defs_with_missing(param.param_names().unwrap(), missing_name);
 
                     for name in names {
@@ -378,7 +378,7 @@ impl super::BodyLowering<'_, '_> {
                         }
                     };
 
-                    let name = self.collect_optional_name(name).unwrap_or(missing_name);
+                    let name = self.ctx.collect_optional_name(name).unwrap_or(missing_name);
                     param_names.push(name);
 
                     tys.push(Parameter {
@@ -412,7 +412,7 @@ impl super::BodyLowering<'_, '_> {
 
     fn lower_subprog_result(&mut self, result: Option<ast::FcnResult>) -> item::SubprogramResult {
         let (name, ty) = match result {
-            Some(result) => (self.collect_optional_name(result.name()), result.ty()),
+            Some(result) => (self.ctx.collect_optional_name(result.name()), result.ty()),
             None => (None, None),
         };
 
@@ -448,7 +448,7 @@ impl super::BodyLowering<'_, '_> {
 
     fn lower_module_decl(&mut self, decl: ast::ModuleDecl) -> stmt::StmtKind {
         let span = self.ctx.intern_range(decl.syntax().text_range());
-        let def_id = self.collect_name(decl.name(), span);
+        let def_id = self.ctx.collect_name(decl.name(), span);
 
         self.unsupported_node(decl.implement_stmt());
         self.unsupported_node(decl.implement_by_stmt());
@@ -613,7 +613,7 @@ impl super::BodyLowering<'_, '_> {
             }
 
             let span = self.ctx.intern_range(import.syntax().text_range());
-            let def_id = self.collect_required_name(name);
+            let def_id = self.ctx.collect_required_name(name);
 
             let item_id = self.ctx.library.add_item(item::Item {
                 def_id,
@@ -1055,7 +1055,7 @@ impl super::BodyLowering<'_, '_> {
     fn lower_for_stmt(&mut self, stmt: ast::ForStmt) -> stmt::StmtKind {
         let is_decreasing = stmt.decreasing_token().is_some();
 
-        let counter_def = self.collect_optional_name(stmt.name());
+        let counter_def = self.ctx.collect_optional_name(stmt.name());
         let for_bounds = {
             let for_bounds = stmt.for_bounds().unwrap();
 
@@ -1232,80 +1232,6 @@ impl super::BodyLowering<'_, '_> {
         let span = self.ctx.library.intern_span(self.ctx.mk_span(range));
 
         self.body.add_stmt(toc_hir::stmt::Stmt { kind, span })
-    }
-
-    /// Gathers the defs associated with `name_list`,
-    /// holding up the invariant that it always contains at least one identifier.
-    ///
-    /// `no_name_span` is used if there isn't any names in `name_list`
-    fn collect_name_defs(
-        &mut self,
-        name_list: ast::NameList,
-        no_name_span: SpanId,
-    ) -> Vec<symbol::LocalDefId> {
-        let mut names = name_list
-            .names()
-            .map(|name| self.collect_required_name(name))
-            .collect::<Vec<_>>();
-
-        if names.is_empty() {
-            // maintain invariant that there's at least one name
-            names.push(self.ctx.library.add_def(
-                *syms::Unnamed,
-                no_name_span,
-                None,
-                IsPervasive::No,
-            ))
-        }
-
-        names
-    }
-
-    /// Gathers the defs associated with `name_list`,
-    /// filling empty name places with `fill_with`
-    fn collect_name_defs_with_missing(
-        &mut self,
-        name_list: ast::NameList,
-        fill_with: symbol::LocalDefId,
-    ) -> Vec<symbol::LocalDefId> {
-        let mut names = name_list
-            .names_with_missing()
-            .map(|name| match name {
-                Some(name) => self.collect_required_name(name),
-                None => fill_with,
-            })
-            .collect::<Vec<_>>();
-
-        if names.is_empty() {
-            // maintain invariant that there's at least one name
-            names.push(fill_with)
-        }
-
-        names
-    }
-
-    fn collect_name(
-        &mut self,
-        name: Option<ast::Name>,
-        no_name_span: SpanId,
-    ) -> symbol::LocalDefId {
-        match name {
-            Some(name) => self.collect_required_name(name),
-            None => self
-                .ctx
-                .library
-                .add_def(*syms::Unnamed, no_name_span, None, IsPervasive::No),
-        }
-    }
-
-    fn collect_required_name(&mut self, name: ast::Name) -> symbol::LocalDefId {
-        let name_tok = name.identifier_token().unwrap();
-        let node_span = self.ctx.node_span(name_tok.text_range());
-        self.ctx.library.node_def(node_span)
-    }
-
-    fn collect_optional_name(&mut self, name: Option<ast::Name>) -> Option<symbol::LocalDefId> {
-        Some(self.collect_required_name(name?))
     }
 }
 

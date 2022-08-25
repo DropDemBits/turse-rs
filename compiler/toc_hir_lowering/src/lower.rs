@@ -23,6 +23,7 @@ mod expr;
 mod stmt;
 mod ty;
 
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use toc_ast_db::db::SourceParser;
@@ -72,17 +73,12 @@ where
         messages = messages.combine(msgs);
 
         let mut root_items = vec![];
-        let mut library = builder::LibraryBuilder::new(
-            collect_res.spans,
-            collect_res.defs,
-            // Note: these could be moved to inside FileLowering
-            collect_res.node_defs,
-            collect_res.assoc_defs,
-        );
+        let mut library = builder::LibraryBuilder::new(collect_res.spans, collect_res.defs);
 
         // Lower all files reachable from the library root
         for file in reachable_files {
-            let (item, msgs) = FileLowering::lower_file(db, file, &mut library).take();
+            let (item, msgs) =
+                FileLowering::lower_file(db, file, &mut library, &collect_res.node_defs).take();
             messages = messages.combine(msgs);
             root_items.push((file, item));
         }
@@ -116,14 +112,20 @@ where
 struct FileLowering<'ctx> {
     file: FileId,
     library: &'ctx mut builder::LibraryBuilder,
+    node_defs: &'ctx HashMap<NodeSpan, LocalDefId>,
     messages: MessageSink,
 }
 
 impl<'ctx> FileLowering<'ctx> {
-    fn new(file: FileId, library: &'ctx mut builder::LibraryBuilder) -> Self {
+    fn new(
+        file: FileId,
+        library: &'ctx mut builder::LibraryBuilder,
+        node_defs: &'ctx HashMap<NodeSpan, LocalDefId>,
+    ) -> Self {
         Self {
             file,
             library,
+            node_defs,
             messages: MessageSink::new(),
         }
     }
@@ -132,13 +134,14 @@ impl<'ctx> FileLowering<'ctx> {
         db: &dyn LoweringDb,
         file: FileId,
         library: &'ctx mut builder::LibraryBuilder,
+        node_defs: &'ctx HashMap<NodeSpan, LocalDefId>,
     ) -> CompileResult<item::ItemId> {
         // Parse & validate file
         let parse_res = db.parse_file(file);
         let validate_res = db.validate_file(file);
 
         // Enter the actual lowering
-        let mut ctx = Self::new(file, library);
+        let mut ctx = Self::new(file, library, node_defs);
         let root = ast::Source::cast(parse_res.result().syntax()).unwrap();
         let root_item = ctx.lower_root(root);
 
@@ -269,6 +272,87 @@ impl<'ctx> FileLowering<'ctx> {
     /// Constructs a [`NodeSpan`] from an AST node's [`TextRange`]
     fn node_span(&mut self, range: toc_span::TextRange) -> NodeSpan {
         NodeSpan(self.intern_range(range))
+    }
+
+    /// Finds the def bound to a specific AST node.
+    /// Assumes that there is a def at the given `node_span`
+    pub fn node_def(&self, node_span: NodeSpan) -> LocalDefId {
+        self.node_defs[&node_span]
+    }
+
+    /// Gathers the defs associated with `name_list`,
+    /// holding up the invariant that it always contains at least one identifier.
+    ///
+    /// `no_name_span` is used if there isn't any names in `name_list`
+    fn collect_name_defs(
+        &mut self,
+        name_list: ast::NameList,
+        no_name_span: SpanId,
+    ) -> Vec<LocalDefId> {
+        let mut names = self.collect_optional_name_defs(name_list);
+
+        if names.is_empty() {
+            // maintain invariant that there's at least one name
+            names.push(
+                self.library
+                    .add_def(*syms::Unnamed, no_name_span, None, IsPervasive::No),
+            )
+        }
+
+        names
+    }
+
+    /// Gathers the defs associated with `name_list`,
+    /// filling empty name places with `fill_with`
+    fn collect_name_defs_with_missing(
+        &mut self,
+        name_list: ast::NameList,
+        fill_with: LocalDefId,
+    ) -> Vec<LocalDefId> {
+        let mut names = name_list
+            .names_with_missing()
+            .map(|name| match name {
+                Some(name) => self.collect_required_name(name),
+                None => fill_with,
+            })
+            .collect::<Vec<_>>();
+
+        if names.is_empty() {
+            // maintain invariant that there's at least one name
+            names.push(fill_with)
+        }
+
+        names
+    }
+
+    /// Gathers the defs associated with `name_list`, but allows
+    /// no names to be present
+    fn collect_optional_name_defs(&mut self, name_list: ast::NameList) -> Vec<LocalDefId> {
+        let names = name_list
+            .names()
+            .map(|name| self.collect_required_name(name))
+            .collect::<Vec<_>>();
+
+        names
+    }
+
+    fn collect_name(&mut self, name: Option<ast::Name>, no_name_span: SpanId) -> LocalDefId {
+        match name {
+            Some(name) => self.collect_required_name(name),
+            None => self
+                .library
+                .add_def(*syms::Unnamed, no_name_span, None, IsPervasive::No),
+        }
+    }
+
+    fn collect_required_name(&mut self, name: ast::Name) -> LocalDefId {
+        let name_tok = name.identifier_token().unwrap();
+        let node_span = self.node_span(name_tok.text_range());
+        self.node_def(node_span)
+    }
+
+    fn collect_optional_name(&mut self, name: Option<ast::Name>) -> Option<LocalDefId> {
+        Some(self.collect_required_name(name?))
     }
 }
 
