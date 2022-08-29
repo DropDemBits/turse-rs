@@ -17,6 +17,9 @@ pub(crate) enum DeclareKind {
     Undeclared,
     /// The symbol is a normal declaration at the point of definition.
     Declared,
+    /// This symbol always occludes previous declarations, including
+    /// pervasive declarations.
+    AlwaysShadow,
     /// The symbol is declared, but is only usable in certain contexts
     LimitedDeclared(LimitedKind),
     /// The symbol is a forward reference to a later declaration,
@@ -77,7 +80,6 @@ pub(crate) enum ScopeKind {
     Block,
     Loop,
     Subprogram,
-    SubprogramHeader,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -121,7 +123,7 @@ impl ScopeKind {
     fn import_boundary(&self) -> ImportBoundary {
         match self {
             ScopeKind::Root | ScopeKind::Module => ImportBoundary::Explicit,
-            ScopeKind::Subprogram | ScopeKind::SubprogramHeader => ImportBoundary::Implicit,
+            ScopeKind::Subprogram  => ImportBoundary::Implicit,
             _ => ImportBoundary::None,
         }
     }
@@ -226,7 +228,19 @@ impl ScopeTracker {
     ) -> Option<symbol::LocalDefId> {
         use std::collections::hash_map::Entry;
 
-        let last_def = self.lookup_def(name, LookupKind::OnDef);
+        let last_def = {
+            let last_def = self.lookup_def(name, LookupKind::OnDef);
+
+            if matches!(kind, DeclareKind::AlwaysShadow) {
+                // Last def is only applicable if there's already a def in
+                // the current scope
+                self.scopes
+                    .last()
+                    .and_then(|scope| last_def.filter(|_| scope.symbols.contains_key(&name)))
+            } else {
+                last_def
+            }
+        };
         let def_scope = self.scopes.last_mut().unwrap();
         def_scope.def_in(name, def_id);
 
@@ -355,15 +369,6 @@ impl ScopeTracker {
     fn lookup_def(&self, name: Symbol, lookup_kind: LookupKind) -> Option<symbol::LocalDefId> {
         // Top-down search through all scopes for a DefId
         let mut restrict_to_pervasive = false;
-
-        if matches!(lookup_kind, LookupKind::OnDef) {
-            if let Some(scope) = self.scopes.last() {
-                if scope.kind == ScopeKind::SubprogramHeader {
-                    // In subprogram header for new definition, only look in this scope for duplicate parameter naming
-                    return scope.symbols.get(&name).copied();
-                }
-            }
-        }
 
         for scope in self.scopes.iter().rev() {
             if let Some(def_id) = scope.symbols.get(&name) {

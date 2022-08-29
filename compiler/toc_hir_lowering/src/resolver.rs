@@ -455,13 +455,6 @@ impl<'a> ResolveCtx<'a> {
                 this.introduce_def(item.def_id, DeclareKind::Declared);
 
                 if let Some(param_list) = &item.param_list {
-                    // Make sure there aren't any duplicate names
-                    this.with_scope(ScopeKind::SubprogramHeader, |this| {
-                        for param_def in &param_list.names {
-                            this.introduce_def(*param_def, DeclareKind::Declared);
-                        }
-                    });
-
                     for param in &param_list.tys {
                         this.resolve_type(param.param_ty);
                     }
@@ -479,16 +472,11 @@ impl<'a> ResolveCtx<'a> {
                 this.with_scope(ScopeKind::Subprogram, |this| {
                     this.with_scope(ScopeKind::Block, |this| {
                         // Introduce params
+                        // `AlwaysShadow` takes care of reporting duplicate params,
+                        // while also properly shadowing external names
                         if let Some(param_list) = &item.param_list {
                             for &param_def in &param_list.names {
-                                let def_info = &this.library.local_def(param_def);
-                                let name = def_info.name;
-                                this.scopes.def_sym(
-                                    name,
-                                    param_def,
-                                    DeclareKind::Declared,
-                                    def_info.pervasive.into(),
-                                );
+                                this.introduce_def(param_def, DeclareKind::AlwaysShadow);
                             }
                         }
 
