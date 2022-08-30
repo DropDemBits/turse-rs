@@ -72,13 +72,20 @@ where
         let (collect_res, msgs) = crate::collector::collect_defs(db, &reachable_files).take();
         messages = messages.combine(msgs);
 
+        let (resolve_res, msgs) =
+            crate::ast_resolver::resolve_defs(db, &reachable_files, collect_res).take();
+        messages = messages.combine(msgs);
+
         let mut root_items = vec![];
-        let mut library = builder::LibraryBuilder::new(collect_res.spans, collect_res.defs);
+        let mut library = builder::LibraryBuilder::new(
+            resolve_res.spans,
+            resolve_res.defs,
+        );
 
         // Lower all files reachable from the library root
         for file in reachable_files {
             let (item, msgs) =
-                FileLowering::lower_file(db, file, &mut library, &collect_res.node_defs).take();
+                FileLowering::lower_file(db, file, &mut library, &resolve_res.node_defs).take();
             messages = messages.combine(msgs);
             root_items.push((file, item));
         }

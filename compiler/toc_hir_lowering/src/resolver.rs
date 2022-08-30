@@ -1,6 +1,6 @@
 //! Resolution of name nodes to specific local defs
 
-mod scopes;
+pub(crate) mod scopes;
 
 use toc_hir::{
     body::{BodyId, BodyKind},

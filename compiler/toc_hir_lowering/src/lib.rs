@@ -20,6 +20,7 @@
 mod lower;
 mod resolver;
 mod collector;
+mod ast_resolver;
 
 use toc_hir::{library::LoweredLibrary, library_graph::LibraryGraph};
 use toc_reporting::CompileResult;
