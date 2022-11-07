@@ -2,9 +2,9 @@
 source: compiler/toc_analysis/src/typeck/test.rs
 expression: "type sha : procedure (a : int, b : char)"
 ---
-"<unnamed>"@(dummy) [Undeclared]: <error>
+"sha"@(FileId(1), 5..8) [Type]: alias[DefId(LibraryId(0), LocalDefId(0))] of procedure ( pass(value) int, pass(value) char, ) -> void
 "a"@(FileId(1), 22..23) [Param(Value, No)]: <error>
 "b"@(FileId(1), 31..32) [Param(Value, No)]: <error>
-"sha"@(FileId(1), 5..8) [Type]: alias[DefId(LibraryId(0), LocalDefId(3))] of procedure ( pass(value) int, pass(value) char, ) -> void
+"<unnamed>"@(dummy) [Undeclared]: <error>
 "<root>"@(dummy) [Module(No)]: <error>
 

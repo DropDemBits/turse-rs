@@ -4,9 +4,9 @@ expression: "type tyres : string\nfunction own(me : nat, pie : real) sammy : tyr
 ---
 "tyres"@(FileId(1), 5..10) [Type]: alias[DefId(LibraryId(0), LocalDefId(0))] of string
 "own"@(FileId(1), 29..32) [Subprogram(Function)]: function ( pass(value) nat, pass(value) real, ) -> alias[DefId(LibraryId(0), LocalDefId(0))] of string
-"<unnamed>"@(dummy) [Undeclared]: <error>
 "me"@(FileId(1), 33..35) [Param(Value, No)]: nat
 "pie"@(FileId(1), 43..46) [Param(Value, No)]: real
 "sammy"@(FileId(1), 55..60) [Param(Value, No)]: alias[DefId(LibraryId(0), LocalDefId(0))] of string
+"<unnamed>"@(dummy) [Undeclared]: <error>
 "<root>"@(dummy) [Module(No)]: <error>
 

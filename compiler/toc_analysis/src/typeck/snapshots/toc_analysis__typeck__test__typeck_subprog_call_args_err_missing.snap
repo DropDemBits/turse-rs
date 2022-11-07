@@ -3,7 +3,7 @@ source: compiler/toc_analysis/src/typeck/test.rs
 expression: "procedure boop(a : int) end boop\n% shouldn't die, not reporting an error is fine\nboop(())\n"
 ---
 "boop"@(FileId(1), 10..14) [Subprogram(Procedure)]: procedure ( pass(value) int, ) -> void
-"<unnamed>"@(dummy) [Undeclared]: <error>
 "a"@(FileId(1), 15..16) [Param(Value, No)]: int
+"<unnamed>"@(dummy) [Undeclared]: <error>
 "<root>"@(dummy) [Module(No)]: <error>
 

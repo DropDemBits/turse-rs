@@ -6,9 +6,9 @@ expression: "module m\n    export opaque t, a, ~.* b\n    type t : int\n\n    va
 "t"@(FileId(1), 48..49) [Type]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
 "a"@(FileId(1), 65..66) [ConstVar(Var, No)]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
 "b"@(FileId(1), 79..80) [ConstVar(Var, No)]: alias[DefId(LibraryId(0), LocalDefId(1))] of int
+"c"@(FileId(1), 149..150) [ConstVar(Var, No)]: int
 "t"@(FileId(1), 27..28) [Export]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
 "a"@(FileId(1), 30..31) [Export]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
 "b"@(FileId(1), 37..38) [Export]: alias[DefId(LibraryId(0), LocalDefId(1))] of int
-"c"@(FileId(1), 149..150) [ConstVar(Var, No)]: int
 "<root>"@(dummy) [Module(No)]: <error>
 

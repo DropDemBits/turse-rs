@@ -3,8 +3,8 @@ source: compiler/toc_analysis/src/typeck/test.rs
 expression: "function sha(a : int, b : char) : int end sha"
 ---
 "sha"@(FileId(1), 9..12) [Subprogram(Function)]: function ( pass(value) int, pass(value) char, ) -> int
-"<unnamed>"@(dummy) [Undeclared]: <error>
 "a"@(FileId(1), 13..14) [Param(Value, No)]: int
 "b"@(FileId(1), 22..23) [Param(Value, No)]: char
+"<unnamed>"@(dummy) [Undeclared]: <error>
 "<root>"@(dummy) [Module(No)]: <error>
 

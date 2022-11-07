@@ -5,11 +5,11 @@ expression: "module m\n    export opaque t, f\n    type t : int\n    fcn f() : t
 "m"@(FileId(1), 7..8) [Module(No)]: <error>
 "t"@(FileId(1), 41..42) [Type]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
 "f"@(FileId(1), 57..58) [Subprogram(Function)]: function ( ) -> opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
-"<unnamed>"@(dummy) [Undeclared]: <error>
 "a"@(FileId(1), 94..95) [ConstVar(Var, No)]: int
+"b"@(FileId(1), 134..135) [ConstVar(Var, No)]: int
+"<unnamed>"@(dummy) [Undeclared]: <error>
 "t"@(FileId(1), 27..28) [Export]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
 "f"@(FileId(1), 30..31) [Export]: function ( ) -> opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
-"b"@(FileId(1), 134..135) [ConstVar(Var, No)]: int
 "<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 145..150: mismatched types

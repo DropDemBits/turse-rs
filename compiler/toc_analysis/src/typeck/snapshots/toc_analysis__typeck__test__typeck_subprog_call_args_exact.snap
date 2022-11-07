@@ -4,9 +4,9 @@ expression: "var tree : int\nprocedure boop(a, b : int, var c : int) end boop\nb
 ---
 "tree"@(FileId(1), 4..8) [ConstVar(Var, No)]: int
 "boop"@(FileId(1), 25..29) [Subprogram(Procedure)]: procedure ( pass(value) int, pass(value) int, pass(var ref) int, ) -> void
-"<unnamed>"@(dummy) [Undeclared]: <error>
 "a"@(FileId(1), 30..31) [Param(Value, No)]: int
 "b"@(FileId(1), 33..34) [Param(Value, No)]: int
 "c"@(FileId(1), 46..47) [Param(Reference(Var), No)]: int
+"<unnamed>"@(dummy) [Undeclared]: <error>
 "<root>"@(dummy) [Module(No)]: <error>
 

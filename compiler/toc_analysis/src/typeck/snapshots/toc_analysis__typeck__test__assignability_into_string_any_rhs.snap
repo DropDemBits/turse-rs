@@ -3,7 +3,6 @@ source: compiler/toc_analysis/src/typeck/test.rs
 expression: "% all runtime checked\nproc __(var s_any, _v09 : string(*), var c_any, _v05 : char(*))\n\nvar _v00 : char := s_any\nvar _v01 : char(1) := s_any\nvar _v02 : char(5) := s_any\nvar _v03 : char(255) := s_any\nvar _v04 : char(256) := s_any\n_v05 := s_any\nvar _v06 : string := s_any\nvar _v07 : string(1) := s_any\nvar _v08 : string(5) := s_any\n_v09 := s_any\nend __\n"
 ---
 "__"@(FileId(1), 27..29) [Subprogram(Procedure)]: procedure ( pass(var ref) string_n Any, pass(var ref) string_n Any, pass(var ref) char_n Any, pass(var ref) char_n Any, ) -> void
-"<unnamed>"@(dummy) [Undeclared]: <error>
 "s_any"@(FileId(1), 34..39) [Param(Reference(Var), No)]: string_n Any
 "_v09"@(FileId(1), 41..45) [Param(Reference(Var), No)]: string_n Any
 "c_any"@(FileId(1), 63..68) [Param(Reference(Var), No)]: char_n Any
@@ -16,5 +15,6 @@ expression: "% all runtime checked\nproc __(var s_any, _v09 : string(*), var c_a
 "_v06"@(FileId(1), 246..250) [ConstVar(Var, No)]: string
 "_v07"@(FileId(1), 273..277) [ConstVar(Var, No)]: string_n Fixed(Unevaluated(LibraryId(0), BodyId(10)))
 "_v08"@(FileId(1), 303..307) [ConstVar(Var, No)]: string_n Fixed(Unevaluated(LibraryId(0), BodyId(12)))
+"<unnamed>"@(dummy) [Undeclared]: <error>
 "<root>"@(dummy) [Module(No)]: <error>
 

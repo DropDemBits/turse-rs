@@ -2,11 +2,11 @@
 source: compiler/toc_analysis/src/typeck/test.rs
 expression: "type e : enum(a, b, c)\nvar _ := e.e\n"
 ---
-"a"@(FileId(1), 14..15) [EnumVariant]: enum[DefId(LibraryId(0), LocalDefId(3))] ( "a"@(FileId(1), 14..15), "b"@(FileId(1), 17..18), "c"@(FileId(1), 20..21), )
-"b"@(FileId(1), 17..18) [EnumVariant]: enum[DefId(LibraryId(0), LocalDefId(3))] ( "a"@(FileId(1), 14..15), "b"@(FileId(1), 17..18), "c"@(FileId(1), 20..21), )
-"c"@(FileId(1), 20..21) [EnumVariant]: enum[DefId(LibraryId(0), LocalDefId(3))] ( "a"@(FileId(1), 14..15), "b"@(FileId(1), 17..18), "c"@(FileId(1), 20..21), )
+"e"@(FileId(1), 5..6) [Type]: enum[DefId(LibraryId(0), LocalDefId(1))] ( "a"@(FileId(1), 14..15), "b"@(FileId(1), 17..18), "c"@(FileId(1), 20..21), )
 "e"@(FileId(1), 9..22) [Enum]: <error>
-"e"@(FileId(1), 5..6) [Type]: enum[DefId(LibraryId(0), LocalDefId(3))] ( "a"@(FileId(1), 14..15), "b"@(FileId(1), 17..18), "c"@(FileId(1), 20..21), )
+"a"@(FileId(1), 14..15) [EnumVariant]: enum[DefId(LibraryId(0), LocalDefId(1))] ( "a"@(FileId(1), 14..15), "b"@(FileId(1), 17..18), "c"@(FileId(1), 20..21), )
+"b"@(FileId(1), 17..18) [EnumVariant]: enum[DefId(LibraryId(0), LocalDefId(1))] ( "a"@(FileId(1), 14..15), "b"@(FileId(1), 17..18), "c"@(FileId(1), 20..21), )
+"c"@(FileId(1), 20..21) [EnumVariant]: enum[DefId(LibraryId(0), LocalDefId(1))] ( "a"@(FileId(1), 14..15), "b"@(FileId(1), 17..18), "c"@(FileId(1), 20..21), )
 "_"@(FileId(1), 27..28) [ConstVar(Var, No)]: <error>
 "<root>"@(dummy) [Module(No)]: <error>
 
