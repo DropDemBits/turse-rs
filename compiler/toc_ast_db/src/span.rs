@@ -64,18 +64,13 @@ impl LineMapping {
             return None;
         }
 
-        let line = self
+        // Find the info containing the index
+        // `line_infos` always has at least 1 element, it's ok to unwrap
+        let &info = self
             .line_infos
             .iter()
-            .enumerate()
-            .find_map(|(line, info)| (index < info.start).then_some(line - 1))
-            .unwrap_or(self.line_infos.len() - 1);
-
-        // `line_starts` is always greater than 1, it's ok to unwrap
-        // also bounded by `line_starts.len()`
-        //
-        // info should also exist at this point
-        let info = *self.line_infos.get(line).expect("no line infos");
+            .find(|info| info.line_span().contains(&index))
+            .unwrap_or_else(|| self.line_infos.last().unwrap());
 
         Some(info)
     }
