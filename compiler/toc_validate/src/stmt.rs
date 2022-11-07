@@ -518,11 +518,7 @@ pub(super) fn validate_import_item(item: ast::ImportItem, ctx: &mut ValidateCtx)
 
 pub(super) fn validate_external_item(item: ast::ExternalItem, ctx: &mut ValidateCtx) {
     // Only caring about external items with paths
-    let path_node = if let Some(node) = item.path() {
-        node
-    } else {
-        return;
-    };
+    let Some(path_node) = item.path() else { return; };
 
     // If we're in an import list, it must not be inside of a forward decl
     let import_list = item

@@ -107,9 +107,7 @@ pub(super) fn validate_union_type(ty: ast::UnionType, ctx: &mut ValidateCtx) {
 
 pub(super) fn validate_collection_type(ty: ast::CollectionType, ctx: &mut ValidateCtx) {
     // Must be in a `var` decl
-    let cv_decl = if let Some(cv_decl) = ty.syntax().parent().and_then(ast::ConstVarDecl::cast) {
-        cv_decl
-    } else {
+    let Some(cv_decl) = ty.syntax().parent().and_then(ast::ConstVarDecl::cast) else {
         let span = ctx.mk_span(ty.syntax().text_range());
         ctx.sink.error(
             "`collection` type is not allowed here",
@@ -184,9 +182,7 @@ pub(super) fn validate_condition_type(ty: ast::ConditionType, ctx: &mut Validate
         }
     });
 
-    let cv_decl = if let Some(cv_decl) = cv_decl {
-        cv_decl
-    } else {
+    let Some(cv_decl) = cv_decl else {
         let span = ctx.mk_span(ty.syntax().text_range());
         ctx.sink.error(
             "`condition` type is not allowed here",

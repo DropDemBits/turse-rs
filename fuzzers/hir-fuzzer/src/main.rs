@@ -34,6 +34,7 @@ fn main() {
     inner::do_fuzz()
 }
 
+#[allow(dead_code)]
 fn run(source: &str) {
     let mut db = FuzzDb::default();
     let fixture = match toc_vfs::generate_vfs(&mut db, source) {

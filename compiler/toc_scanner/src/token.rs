@@ -6,7 +6,7 @@ use logos::Logos;
 use std::{convert::TryFrom, fmt, iter::Peekable, ops::Range};
 use toc_span::TextSize;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Token<'src> {
     pub kind: TokenKind,
     pub lexeme: &'src str,
@@ -387,7 +387,7 @@ fn lex_block_comment(lexer: &mut logos::Lexer<TokenKind>) {
     // Track all the endings
     for in_between in lexer.remainder().split_inclusive("*/") {
         // Check if the ending is actually present
-        let ending_count = if in_between.contains("*/") { 1 } else { 0 };
+        let ending_count = in_between.contains("*/").into();
 
         // Adjust nesting
         comment_nesting = comment_nesting
@@ -508,7 +508,7 @@ fn nom_number_literal(lexer: &mut logos::Lexer<TokenKind>) -> NumberKind {
     let remainder: &str = lexer.remainder();
     let mut remaining = remainder.chars().peekable();
 
-    let kind = match remaining.next() {
+    match remaining.next() {
         Some('.') if !is_fractional_part && !matches!(remaining.peek(), Some('.')) => {
             // Don't consume if we're already the fractional part, or the dot is part of a '..'
 
@@ -547,9 +547,7 @@ fn nom_number_literal(lexer: &mut logos::Lexer<TokenKind>) -> NumberKind {
         }
         _ if is_fractional_part => NumberKind::Real,
         _ => NumberKind::Int,
-    };
-
-    kind
+    }
 }
 
 impl TokenKind {

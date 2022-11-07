@@ -236,9 +236,7 @@ pub(crate) fn evaluate_const(
                 match lhs_tyref.kind() {
                     ty::TypeKind::Enum(_, variants) => {
                         // Enum variants
-                        let library_id = if let Some(first) = variants.first() {
-                            first.0
-                        } else {
+                        let Some(library_id) = variants.first().map(|def| def.library()) else {
                             return Err(ConstError::new(
                                 ErrorKind::NoFields(*expr.field.item()),
                                 expr.field.span().lookup_in(&library),
@@ -252,7 +250,7 @@ pub(crate) fn evaluate_const(
                             .enumerate()
                             .find_map(|(idx, def_id)| {
                                 (library.local_def(def_id.1).name == *expr.field.item())
-                                    .then(|| idx)
+                                    .then_some(idx)
                             })
                             .ok_or_else(|| {
                                 ConstError::new(

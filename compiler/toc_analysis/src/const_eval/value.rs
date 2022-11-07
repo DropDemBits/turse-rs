@@ -64,17 +64,15 @@ impl ConstValue {
             ConstValue::CharN(v) => format!(r#"'{v}'"#),
             ConstValue::EnumVariant(ty_id, ord) => {
                 let ty_ref = ty_id.in_db(db);
-                let (def_id, variants) = if let ty::TypeKind::Enum(def_id, variants) = ty_ref.kind()
-                {
-                    (def_id.def_id(), variants)
-                } else {
+                let ty::TypeKind::Enum(with_def, variants) = ty_ref.kind() else {
                     unreachable!("not enum ty for `EnumVariant` ty");
                 };
+                let def_id = with_def.def_id();
                 let variant_def = variants.get(*ord).expect("bad ordinal for `EnumVariant`");
 
-                let library = db.library(def_id.0);
-                let ty_name = library.local_def(def_id.1).name;
-                let variant_name = library.local_def(variant_def.1).name;
+                let library = db.library(def_id.library());
+                let ty_name = library.local_def(def_id.local()).name;
+                let variant_name = library.local_def(variant_def.local()).name;
 
                 format!("{ty_name}.{variant_name}")
             }
@@ -88,7 +86,7 @@ impl ConstValue {
             // Identity transform
             ConstValue::Integer(v) => Some(*v),
             // Simple mapping to 0 and 1
-            ConstValue::Bool(v) => ConstInt::from_unsigned(if *v { 1 } else { 0 }, false).ok(),
+            ConstValue::Bool(v) => ConstInt::from_unsigned(u64::from(*v), false).ok(),
             // Just the codepoint
             ConstValue::Char(v) => ConstInt::from_unsigned((*v).into(), false).ok(),
             // From the ord value inside

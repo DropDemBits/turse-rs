@@ -468,9 +468,7 @@ impl<'a> CharSeqExtractor<'a> {
     fn eat_slash_escape(&mut self) {
         let escape_start = self.current_pos();
 
-        let escaped = if let Some(chr) = self.bump() {
-            chr
-        } else {
+        let Some(escaped) = self.bump() else {
             // Missing escaped character
             let escape_end = self.peek_pos();
             self.push_error(InvalidChar::InvalidSlashEscape, escape_start, escape_end);
@@ -631,9 +629,7 @@ impl<'a> CharSeqExtractor<'a> {
     fn eat_caret_escape(&mut self) {
         let escape_start = self.current_pos();
 
-        let escaped = if let Some(chr) = self.bump() {
-            chr
-        } else {
+        let Some(escaped) = self.bump() else {
             // Missing escaped character
             let escape_end = self.peek_pos();
             self.push_error(InvalidChar::InvalidCaretEscape, escape_start, escape_end);

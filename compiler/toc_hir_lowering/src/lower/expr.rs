@@ -213,9 +213,7 @@ impl super::BodyLowering<'_, '_> {
                 Some(ast::ParamKind::RangeItem(expr)) => {
                     // Range expression
                     let mut lower_range_bound = |range_bound: Option<ast::RangeBound>| {
-                        let range_bound = if let Some(bound) = range_bound {
-                            bound
-                        } else {
+                        let Some(range_bound) = range_bound else {
                             return expr::RangeBound::FromStart(self.missing_expr());
                         };
 

@@ -80,7 +80,7 @@ fn do_const_eval(source: &str) -> String {
                 Ok(v) => format!("{name} -> {v:?}\n"),
                 Err(err) => {
                     let text = format!("{name} -> {err:?}\n");
-                    err.report_to(self.db, &mut *self.reporter.borrow_mut());
+                    err.report_to(self.db, &mut self.reporter.borrow_mut());
                     text
                 }
             };

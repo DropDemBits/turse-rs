@@ -259,9 +259,8 @@ impl TypeCheck<'_> {
         }
 
         // Check the initializer expression
-        let (ty_spec, init) = if let Some(bundle) = item.type_spec.zip(item.init_expr) {
-            bundle
-        } else {
+
+        let Some((ty_spec, init)) = item.type_spec.zip(item.init_expr) else {
             // Inferred or already specified
             return;
         };
@@ -317,12 +316,10 @@ impl TypeCheck<'_> {
                         };
 
                         // Make an iter to compare against
-                        let elem_count = if let Some(count) = elem_count
+                        let Some(elem_count) = elem_count
                             .into_u64()
                             .and_then(|sz| usize::try_from(sz).ok())
-                        {
-                            count
-                        } else {
+                        else {
                             // This should be covered as part of array typeck
                             return;
                         };
@@ -434,11 +431,14 @@ impl TypeCheck<'_> {
     }
 
     fn typeck_type_decl(&self, _id: item::ItemId, item: &item::Type) {
-        if let item::DefinedType::Alias(ty) = &item.type_def {
-            // Must be resoled & positive
-            self.require_resolved_type(*ty);
-            self.require_positive_size(*ty, || "`type` declarations".into());
-        }
+        let item::DefinedType::Alias(ty) = &item.type_def else {
+            // Don't care about forward declared type decls
+            return;
+        };
+
+        // Must be resoled & positive
+        self.require_resolved_type(*ty);
+        self.require_positive_size(*ty, || "`type` declarations".into());
     }
 
     fn typeck_bind_decl(&self, id: item::ItemId, item: &item::Binding) {
@@ -468,7 +468,7 @@ impl TypeCheck<'_> {
             bind_to_span,
             |thing| format!("cannot bind `{from}` to {thing}"),
             is_register
-                .then(|| "registers don't have a location in memory, so they cannot be bound to"),
+                .then_some("registers don't have a location in memory, so they cannot be bound to"),
         );
     }
 
@@ -482,11 +482,11 @@ impl TypeCheck<'_> {
             format!("`{kind}` declarations")
         };
 
-        self.require_known_positive_size(item.result.ty, &in_where);
+        self.require_known_positive_size(item.result.ty, in_where);
 
         if let Some(param_list) = &item.param_list {
             for param in &param_list.tys {
-                self.require_positive_size(param.param_ty, &in_where);
+                self.require_positive_size(param.param_ty, in_where);
             }
         }
 
@@ -875,22 +875,20 @@ impl TypeCheck<'_> {
                 }
 
                 // Must be a type alias
-                let binding_def = if let Some(def_id) = db.binding_def(bounds_expr.into()) {
-                    def_id
-                } else {
-                    // To reach here:
-                    // - Must be an implicit for bound (implied satisfaction)
-                    // - Must not produce a value (i.e be an item that doesn't produce a value)
-                    //   - Can't be missing or undeclared, since they're different from 'not-value'dness
-                    //     (considered indeterminate)
-                    // - Must not produce a def
-                    //   - Non-ref exprs are the only ones that are both user-accessible & not defs
-                    //
-                    // These conditions are mutually exclusive, so therefore here is unreachable.
-                    unreachable!("see attached comment for more info")
-                };
+                //
+                // Allowed to unwrap, since to reach here:
+                //
+                // - Must be an implicit for bound (implied satisfaction)
+                // - Must not produce a value (i.e be an item that doesn't produce a value)
+                //   - Can't be missing or undeclared, since they're different from 'not-value'dness
+                //     (considered indeterminate)
+                // - Must not produce a def
+                //   - Non-ref exprs are the only ones that are both user-accessible & not defs
+                //
+                // These conditions are mutually exclusive, so therefore here is unreachable.
+                let binding_def = db.binding_def(bounds_expr.into()).unwrap();
 
-                // Same reasoning as unreachable block on why we can unwrap here
+                // Same reasoning as above on why we can unwrap here
                 if !db.symbol_kind(binding_def).unwrap().is_type() {
                     self.report_mismatched_binding(
                         SymbolKind::Type,
@@ -1069,12 +1067,9 @@ impl TypeCheck<'_> {
         for &selector in stmt
             .arms
             .iter()
-            .filter_map(|arm| {
-                if let stmt::CaseSelector::Exprs(exprs) = &arm.selectors {
-                    Some(exprs)
-                } else {
-                    None
-                }
+            .filter_map(|arm| match &arm.selectors {
+                stmt::CaseSelector::Exprs(exprs) => Some(exprs),
+                _ => None,
             })
             .flatten()
         {
@@ -1418,9 +1413,7 @@ impl TypeCheck<'_> {
             _ => None,
         };
 
-        let call_kind = if let Some(kind) = call_kind {
-            kind
-        } else {
+        let Some(call_kind) = call_kind else {
             // can't call expression
             let full_lhs_tyref = lhs_ty.in_db(db);
             let thing = match self.db.binding_def(lhs_expr.into()) {
@@ -1605,14 +1598,11 @@ impl TypeCheck<'_> {
         // - Arg binding?
         // - Arg count?
 
-        let (kind, param_list) = if let ty::TypeKind::Subprogram(kind, params, _) = lhs_tyref.kind()
-        {
-            debug_assert_ne!(*kind, SubprogramKind::Process);
-            (*kind, params.as_ref())
-        } else {
+        let ty::TypeKind::Subprogram(kind, param_list, _) = lhs_tyref.kind() else {
             // Already checked that it's callable, or that it's an error
             return;
         };
+        debug_assert_ne!(*kind, SubprogramKind::Process);
 
         // Check if parens are required
         if param_list.is_some() && arg_list.is_none() {
@@ -2364,11 +2354,11 @@ impl TypeCheck<'_> {
             format!("`{kind}` types")
         };
 
-        self.require_known_positive_size(ty.result_ty, &in_where);
+        self.require_known_positive_size(ty.result_ty, in_where);
 
         if let Some(param_list) = &ty.param_list {
             for param in param_list {
-                self.require_positive_size(param.param_ty, &in_where);
+                self.require_positive_size(param.param_ty, in_where);
             }
         }
     }

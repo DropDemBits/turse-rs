@@ -136,9 +136,7 @@ fn emit_message(db: &MainDatabase, cache: &mut VfsCache, msg: &toc_reporting::Re
     };
 
     let top_span = msg.span();
-    let (file, range) = if let Some(span) = mk_range(db, top_span) {
-        span
-    } else {
+    let Some((file, range)) = mk_range(db, top_span) else {
         // Notify that we've encountered a bad span
         // Missing files don't fall under here, as they use the file they're missing from
         tracing::error!("BUG: Encountered bad message span (Original message: {msg:#?})");

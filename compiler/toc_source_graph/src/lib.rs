@@ -193,7 +193,7 @@ impl Iterator for LibrarySources<'_> {
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
-            let node = self.visitor.next(&self.graph)?;
+            let node = self.visitor.next(self.graph)?;
             let (file, kind) = self.graph.node_weight(node).copied().unwrap();
 
             if matches!(kind, SourceKind::Unit) {

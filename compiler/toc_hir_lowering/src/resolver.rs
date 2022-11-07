@@ -96,7 +96,7 @@ impl<'a> ResolveCtx<'a> {
                     self.messages.error(
                         format!("`{name}` is undeclared"),
                         format!("no definitions of `{name}` are in scope"),
-                        span.lookup_in(&self.library),
+                        span.lookup_in(self.library),
                     );
                 }
 
@@ -112,7 +112,7 @@ impl<'a> ResolveCtx<'a> {
                         self.messages.error(
                             format!("`cannot use {name}` here"),
                             format!("`{name}` can only be used in a `post` statement"),
-                            span.lookup_in(&self.library),
+                            span.lookup_in(self.library),
                         );
                     }
                 }
@@ -160,8 +160,8 @@ impl<'a> ResolveCtx<'a> {
             let old_def_info = self.library.local_def(old_def);
             let old_declare = self.scopes.declare_kind(old_def);
 
-            let old_span = old_def_info.def_at.lookup_in(&self.library);
-            let new_span = span.lookup_in(&self.library);
+            let old_span = old_def_info.def_at.lookup_in(self.library);
+            let new_span = span.lookup_in(self.library);
 
             // Just use the name from the old def for both, since by definition they are the same
             let name = old_def_info.name;
@@ -251,7 +251,7 @@ impl<'a> ResolveCtx<'a> {
                         .library
                         .local_def(exported_from)
                         .def_at
-                        .lookup_in(&self.library);
+                        .lookup_in(self.library);
 
                     let builder = self.messages.error_detailed(
                         format!("`{name}` is already declared in the parent scope"),
@@ -300,7 +300,7 @@ impl<'a> ResolveCtx<'a> {
                 }
                 (DeclareKind::ItemImport(_), DeclareKind::UnqualifiedImport(from_import, _)) => {
                     let import_def = &self.library.local_def(from_import);
-                    let import_span = import_def.def_at.lookup_in(&self.library);
+                    let import_span = import_def.def_at.lookup_in(self.library);
                     let import_name = import_def.name;
 
                     if import_name == name {
@@ -339,11 +339,11 @@ impl<'a> ResolveCtx<'a> {
                 ) => {
                     // Specialize when they're both unqualified imports
                     let import_def = self.library.local_def(old_import);
-                    let old_span = import_def.def_at.lookup_in(&self.library);
+                    let old_span = import_def.def_at.lookup_in(self.library);
                     let old_name = import_def.name;
 
                     let import_def = self.library.local_def(new_import);
-                    let new_span = import_def.def_at.lookup_in(&self.library);
+                    let new_span = import_def.def_at.lookup_in(self.library);
                     let new_name = import_def.name;
 
                     self.messages
@@ -366,7 +366,7 @@ impl<'a> ResolveCtx<'a> {
                 }
                 (_, DeclareKind::UnqualifiedImport(from_import, _)) => {
                     let import_def = &self.library.local_def(from_import);
-                    let import_span = import_def.def_at.lookup_in(&self.library);
+                    let import_span = import_def.def_at.lookup_in(self.library);
                     let import_name = import_def.name;
 
                     let builder = self.messages.error_detailed(
@@ -557,7 +557,7 @@ impl<'a> ResolveCtx<'a> {
                         .library
                         .local_def(item.def_id)
                         .def_at
-                        .lookup_in(&this.library);
+                        .lookup_in(this.library);
 
                     this.messages.error(
                         format!("`{name}` could not be imported"),

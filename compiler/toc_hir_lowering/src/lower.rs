@@ -373,9 +373,7 @@ impl<'ctx: 'body, 'body> BodyLowering<'ctx, 'body> {
 
         for node in stmt_list.stmts() {
             let range = node.syntax().text_range();
-            let lowered = if let Some(lowered) = self.lower_stmt(node) {
-                lowered
-            } else {
+            let Some(lowered) = self.lower_stmt(node) else {
                 continue;
             };
 

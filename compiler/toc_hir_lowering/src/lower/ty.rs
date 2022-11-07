@@ -287,7 +287,7 @@ impl super::BodyLowering<'_, '_> {
                     .map(|end| matches!(end, ast::EndBound::UnsizedBound(_)))
                     .unwrap_or(false);
 
-                is_init_sized.then(|| range)
+                is_init_sized.then_some(range)
             } else {
                 None
             }

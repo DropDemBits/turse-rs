@@ -225,9 +225,7 @@ fn join_dedot(mut base_path: PathBuf, append: &Path) -> PathBuf {
 /// Returns true if the path is needs to be joined onto another path
 fn needs_joining(path: &Path) -> bool {
     let mut comps = path.components();
-    let first = if let Some(comp) = comps.next() {
-        comp
-    } else {
+    let Some(first) = comps.next() else {
         // empty path
         return true;
     };
