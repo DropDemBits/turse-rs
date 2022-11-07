@@ -123,7 +123,7 @@ impl ScopeKind {
     fn import_boundary(&self) -> ImportBoundary {
         match self {
             ScopeKind::Root | ScopeKind::Module => ImportBoundary::Explicit,
-            ScopeKind::Subprogram  => ImportBoundary::Implicit,
+            ScopeKind::Subprogram => ImportBoundary::Implicit,
             _ => ImportBoundary::None,
         }
     }

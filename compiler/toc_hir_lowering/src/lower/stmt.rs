@@ -346,7 +346,8 @@ impl super::BodyLowering<'_, '_> {
                     let coerced_type = param.coerce_type().is_some();
                     let param_ty = self.lower_required_type(param.param_ty());
 
-                    let names = self.ctx
+                    let names = self
+                        .ctx
                         .collect_name_defs_with_missing(param.param_names().unwrap(), missing_name);
 
                     for name in names {

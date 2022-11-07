@@ -17,9 +17,9 @@
 // FileDB should only care about giving unique file handles corresponding to text sources.
 // Other DBs will deal with what they map to (e.g. a separate DB managing all of the CSTs)
 
+mod collector;
 mod lower;
 mod resolver;
-mod collector;
 
 use toc_hir::{library::LoweredLibrary, library_graph::LibraryGraph};
 use toc_reporting::CompileResult;
