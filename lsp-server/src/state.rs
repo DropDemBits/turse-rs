@@ -26,9 +26,7 @@ pub(crate) struct ServerState {
 impl ServerState {
     pub(crate) fn open_file(&mut self, uri: &lsp_types::Url, version: i32, text: String) {
         // This is where we update the source graph, as well as the file sources, and the file store
-        let path = if let Ok(path) = uri.to_file_path() {
-            path
-        } else {
+        let Ok(path) = uri.to_file_path() else {
             error!("BUG: Encountered bad path during file open: {uri:?}");
             return;
         };
@@ -42,9 +40,7 @@ impl ServerState {
 
     pub(crate) fn close_file(&mut self, uri: &lsp_types::Url) {
         // This is where we remove files from the source graph (if applicable / non-root) and from the file store
-        let path = if let Ok(path) = uri.to_file_path() {
-            path
-        } else {
+        let Ok(path) = uri.to_file_path() else {
             error!("BUG: Encountered bad path during file close: {uri:?}");
             return;
         };
@@ -62,9 +58,7 @@ impl ServerState {
         version: i32,
         changes: Vec<lsp_types::TextDocumentContentChangeEvent>,
     ) {
-        let path = if let Ok(path) = uri.to_file_path() {
-            path
-        } else {
+        let Ok(path) = uri.to_file_path() else {
             error!("BUG: Encountered bad path during file change: {uri:?}");
             return;
         };
@@ -128,9 +122,7 @@ impl ServerState {
 
         for msg in msgs.iter() {
             // Convert each message into a `Diagnostic`
-            let range = if let Some(span) = self.map_span_to_location(msg.span()) {
-                span.range
-            } else {
+            let Some(range) = self.map_span_to_location(msg.span()).map(|loc| loc.range) else {
                 error!("BUG: Encountered bad message span (Original message: {msg:#?})");
                 continue;
             };
@@ -140,15 +132,12 @@ impl ServerState {
                 .annotations()
                 .iter()
                 .filter_map(|annotate| {
-                    let location =
-                        if let Some(location) = self.map_span_to_location(annotate.span()) {
-                            location
-                        } else {
-                            error!(
-                                "BUG: Encountered bad annotation span (Original annotation (from {range:?}): {annotate:#?})"
-                            );
-                            return None;
-                        };
+                    let Some(location) = self.map_span_to_location(annotate.span()) else {
+                        error!(
+                            "BUG: Encountered bad annotation span (Original annotation (from {range:?}): {annotate:#?})"
+                        );
+                        return None;
+                    };
 
                     Some(DiagnosticRelatedInformation {
                         location,
@@ -181,9 +170,7 @@ impl ServerState {
             );
 
             // Only accept diagnostics with files attached
-            let file = if let Some((file, _)) = msg.span().into_parts() {
-                file
-            } else {
+            let Some((file, _)) = msg.span().into_parts() else {
                 // FIXME: Log a warning in this situation
                 continue;
             };

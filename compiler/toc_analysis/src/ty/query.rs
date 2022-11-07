@@ -389,9 +389,7 @@ pub(super) fn value_produced(
                         _ => None,
                     };
 
-                    let call_kind = if let Some(call_kind) = call_kind {
-                        call_kind
-                    } else {
+                    let Some(call_kind) = call_kind else {
                         // Defer to the fallback
                         // This always produces some sort of value
                         //
@@ -468,11 +466,10 @@ pub(crate) fn fields_of(
             let ty_ref = ty_id.in_db(db).peel_opaque(in_module).peel_aliases();
 
             // Only applicable for enums
-            let (library, variants) = if let TypeKind::Enum(with_def, variants) = ty_ref.kind() {
-                (db.library(with_def.def_id().0), variants)
-            } else {
+            let TypeKind::Enum(with_def, variants) = ty_ref.kind() else {
                 return None;
             };
+            let library = db.library(with_def.def_id().library());
 
             let fields = variants
                 .iter()

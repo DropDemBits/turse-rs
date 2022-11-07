@@ -164,9 +164,7 @@ fn preproc_expr_binding_power(p: &mut Parser, min_binding_power: u8) -> Option<C
     })?;
 
     loop {
-        let op = if let Some(op) = infix_op(p) {
-            op
-        } else {
+        let Some(op) = infix_op(p) else {
             // probably the end of the expr
             p.reset_expected_tokens();
             break;

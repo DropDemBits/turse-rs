@@ -318,9 +318,7 @@ pub fn is_equivalent<T: db::ConstEval + ?Sized>(db: &T, left: TypeId, right: Typ
                 _ => (),
             }
 
-            let (left_sz, right_sz) = if let Some(sizes) = left_sz.ok().zip(right_sz.ok()) {
-                sizes
-            } else {
+            let Some((left_sz, right_sz)) = left_sz.ok().zip(right_sz.ok()) else {
                 // Invalid evaluations treated as equivalent types
                 return true;
             };
@@ -1360,14 +1358,12 @@ pub fn check_binary_op<T: ?Sized + db::ConstEval>(
         // Set membership tests (a, set(a) => boolean)
         expr::BinaryOp::In | expr::BinaryOp::NotIn => {
             // `right` must be a set
-            let elem_ty = if let TypeKind::Set(_, elem_ty) = right.kind() {
-                *elem_ty
-            } else {
+            let TypeKind::Set(_, elem_ty) = right.kind() else {
                 return mk_type_error();
             };
 
             // Element type & `left` type must be coercible
-            if is_coercible_into(db, elem_ty, left.id()) {
+            if is_coercible_into(db, *elem_ty, left.id()) {
                 Ok(())
             } else {
                 mk_type_error()
@@ -1750,10 +1746,8 @@ fn report_not_value<'db, DB>(
     };
 
     let (binding_def, binding_to) = if let Some(def_id) = db.binding_def(binding_src) {
-        let binding_to = match db.symbol_kind(def_id) {
-            Some(binding_to) => binding_to,
-            None => return, // all values are accepted
-        };
+        // not being a symbol implies that it's a value, and all values are accepted
+        let Some(binding_to) = db.symbol_kind(def_id) else { return };
 
         (def_id, binding_to)
     } else {

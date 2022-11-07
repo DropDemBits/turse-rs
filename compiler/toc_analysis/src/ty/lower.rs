@@ -504,9 +504,7 @@ fn for_counter_ty(
                 db.mk_error()
             } else {
                 // - maybe alias
-                let binding_def = if let Some(def_id) = db.binding_def(bounds_expr.into()) {
-                    def_id
-                } else {
+                let Some( binding_def )  = db.binding_def(bounds_expr.into()) else {
                     return db.mk_error();
                 };
 
@@ -744,11 +742,7 @@ pub(super) fn ty_from_body_owner(
     library_id: LibraryId,
     body_owner: Option<body::BodyOwner>,
 ) -> TypeId {
-    let body_owner = if let Some(body_owner) = body_owner {
-        body_owner
-    } else {
-        unreachable!("all bodies should have owners")
-    };
+    let body_owner = body_owner.expect("all bodies should have owners");
 
     match body_owner {
         body::BodyOwner::Item(item_id) => {

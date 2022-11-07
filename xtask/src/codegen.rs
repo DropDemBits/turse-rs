@@ -71,10 +71,9 @@ fn generate_nodes(lowered: &LoweredGrammar) -> String {
                 if lowered.is_group(&child.variant) {
                     format_ident!("{}", child.variant)
                 } else {
-                    let name = if let Some(other_name) = &child.provided_name {
-                        other_name
-                    } else {
-                        &child.variant
+                    let name = match &child.provided_name {
+                        Some(other_name) => other_name,
+                        _ => &child.variant,
                     };
 
                     format_ident!("{name}")

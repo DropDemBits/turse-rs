@@ -413,10 +413,9 @@ where
                     // Observing through is okay, since we don't leak the type itself
                     let range_tyref = {
                         let ty_ref = range_ty.in_db(self.db);
-                        if let TypeKind::Opaque(_, type_id) = ty_ref.kind() {
-                            type_id.in_db(self.db)
-                        } else {
-                            ty_ref.peel_aliases()
+                        match ty_ref.kind() {
+                            TypeKind::Opaque(_, type_id) => type_id.in_db(self.db),
+                            _ => ty_ref.peel_aliases(),
                         }
                     };
 
