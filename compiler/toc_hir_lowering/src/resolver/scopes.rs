@@ -356,7 +356,7 @@ impl ScopeTracker {
 
                 // Forward entries are only returned if it's being resolved to the same kind of forward decl
                 // Otherwise, they should be left unresolved
-                (resolve_kind == forward_kind).then(|| resolve_list)
+                (resolve_kind == forward_kind).then_some(resolve_list)
             }
             Entry::Vacant(_) => {
                 // No forward entries to return

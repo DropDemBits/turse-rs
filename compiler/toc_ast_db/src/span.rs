@@ -68,7 +68,7 @@ impl LineMapping {
             .line_infos
             .iter()
             .enumerate()
-            .find_map(|(line, info)| (index < info.start).then(|| line - 1))
+            .find_map(|(line, info)| (index < info.start).then_some(line - 1))
             .unwrap_or(self.line_infos.len() - 1);
 
         // `line_starts` is always greater than 1, it's ok to unwrap

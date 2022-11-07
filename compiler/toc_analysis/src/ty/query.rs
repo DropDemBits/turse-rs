@@ -147,8 +147,8 @@ pub(super) fn value_produced(
 
     fn value_with_mutability(muta: Mutability, reg: IsRegister) -> ValueKind {
         match reg {
-            symbol::IsRegister::No => (ValueKind::Reference(muta)),
-            symbol::IsRegister::Yes => (ValueKind::Register(muta)),
+            symbol::IsRegister::No => ValueKind::Reference(muta),
+            symbol::IsRegister::Yes => ValueKind::Register(muta),
         }
     }
 
@@ -214,7 +214,7 @@ pub(super) fn value_produced(
                 expr::ExprKind::Name(name) => match name {
                     expr::Name::Name(binding) => {
                         let def_id = match library.binding_resolve(*binding) {
-                            symbol::Resolve::Def(local_def) => (DefId(lib_id, local_def)),
+                            symbol::Resolve::Def(local_def) => DefId(lib_id, local_def),
                             symbol::Resolve::Err => return Err(NotValue::Missing),
                         };
 
@@ -577,7 +577,7 @@ pub(crate) fn find_exported_def(
                 expr::Name::Name(binding) => {
                     // Take from the def
                     let def_id = match library.binding_resolve(*binding) {
-                        symbol::Resolve::Def(local_def) => (DefId(library_id, local_def)),
+                        symbol::Resolve::Def(local_def) => DefId(library_id, local_def),
                         symbol::Resolve::Err => return None,
                     };
 
@@ -595,7 +595,7 @@ pub(crate) fn find_exported_def(
                     // Find matching export
                     module.exports.iter().find_map(|export| {
                         let found = library.local_def(export.def_id).name == *expr.field.item();
-                        found.then(|| DefId(library_id, export.def_id))
+                        found.then_some(DefId(library_id, export.def_id))
                     })
                 } else {
                     // Not from a module-like item

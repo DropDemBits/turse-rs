@@ -252,7 +252,7 @@ pub(crate) fn evaluate_const(
                             .enumerate()
                             .find_map(|(idx, def_id)| {
                                 (library.local_def(def_id.1).name == *expr.field.item())
-                                    .then(|| idx)
+                                    .then_some(idx)
                             })
                             .ok_or_else(|| {
                                 ConstError::new(

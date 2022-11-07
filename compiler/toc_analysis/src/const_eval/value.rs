@@ -88,7 +88,7 @@ impl ConstValue {
             // Identity transform
             ConstValue::Integer(v) => Some(*v),
             // Simple mapping to 0 and 1
-            ConstValue::Bool(v) => ConstInt::from_unsigned(if *v { 1 } else { 0 }, false).ok(),
+            ConstValue::Bool(v) => ConstInt::from_unsigned(u64::from(*v), false).ok(),
             // Just the codepoint
             ConstValue::Char(v) => ConstInt::from_unsigned((*v).into(), false).ok(),
             // From the ord value inside

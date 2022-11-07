@@ -468,7 +468,7 @@ impl TypeCheck<'_> {
             bind_to_span,
             |thing| format!("cannot bind `{from}` to {thing}"),
             is_register
-                .then(|| "registers don't have a location in memory, so they cannot be bound to"),
+                .then_some("registers don't have a location in memory, so they cannot be bound to"),
         );
     }
 
@@ -482,11 +482,11 @@ impl TypeCheck<'_> {
             format!("`{kind}` declarations")
         };
 
-        self.require_known_positive_size(item.result.ty, &in_where);
+        self.require_known_positive_size(item.result.ty, in_where);
 
         if let Some(param_list) = &item.param_list {
             for param in &param_list.tys {
-                self.require_positive_size(param.param_ty, &in_where);
+                self.require_positive_size(param.param_ty, in_where);
             }
         }
 
@@ -2364,11 +2364,11 @@ impl TypeCheck<'_> {
             format!("`{kind}` types")
         };
 
-        self.require_known_positive_size(ty.result_ty, &in_where);
+        self.require_known_positive_size(ty.result_ty, in_where);
 
         if let Some(param_list) = &ty.param_list {
             for param in param_list {
-                self.require_positive_size(param.param_ty, &in_where);
+                self.require_positive_size(param.param_ty, in_where);
             }
         }
     }

@@ -82,7 +82,6 @@ impl LibraryBuilder {
                 root_items: root_items.into_iter().collect(),
                 ..self.library
             },
-            ..self
         }
     }
 
