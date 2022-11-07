@@ -4,10 +4,10 @@ expression: "type a : int\nprocedure boop(a, b : int, var c : int) end boop\nboo
 ---
 "a"@(FileId(1), 5..6) [Type]: alias[DefId(LibraryId(0), LocalDefId(0))] of int
 "boop"@(FileId(1), 23..27) [Subprogram(Procedure)]: procedure ( pass(value) int, pass(value) int, pass(var ref) int, ) -> void
-"<unnamed>"@(dummy) [Undeclared]: <error>
 "a"@(FileId(1), 28..29) [Param(Value, No)]: int
 "b"@(FileId(1), 31..32) [Param(Value, No)]: int
 "c"@(FileId(1), 44..45) [Param(Reference(Var), No)]: int
+"<unnamed>"@(dummy) [Undeclared]: <error>
 "<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 70..71: cannot pass `a` to this parameter

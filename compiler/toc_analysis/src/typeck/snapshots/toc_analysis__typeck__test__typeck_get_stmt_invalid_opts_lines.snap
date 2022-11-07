@@ -8,11 +8,11 @@ expression: "var i : int\nvar n : nat\nvar r : real\nvar c : char\nvar b: boolea
 "c"@(FileId(1), 41..42) [ConstVar(Var, No)]: char
 "b"@(FileId(1), 54..55) [ConstVar(Var, No)]: boolean
 "cn"@(FileId(1), 69..71) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
-"a"@(FileId(1), 96..97) [EnumVariant]: enum[DefId(LibraryId(0), LocalDefId(8))] ( "a"@(FileId(1), 96..97), "b"@(FileId(1), 99..100), )
-"b"@(FileId(1), 99..100) [EnumVariant]: enum[DefId(LibraryId(0), LocalDefId(8))] ( "a"@(FileId(1), 96..97), "b"@(FileId(1), 99..100), )
+"en"@(FileId(1), 87..89) [Type]: enum[DefId(LibraryId(0), LocalDefId(7))] ( "a"@(FileId(1), 96..97), "b"@(FileId(1), 99..100), )
 "en"@(FileId(1), 91..101) [Enum]: <error>
-"en"@(FileId(1), 87..89) [Type]: enum[DefId(LibraryId(0), LocalDefId(8))] ( "a"@(FileId(1), 96..97), "b"@(FileId(1), 99..100), )
-"ef"@(FileId(1), 106..108) [ConstVar(Var, No)]: enum[DefId(LibraryId(0), LocalDefId(8))] ( "a"@(FileId(1), 96..97), "b"@(FileId(1), 99..100), )
+"a"@(FileId(1), 96..97) [EnumVariant]: enum[DefId(LibraryId(0), LocalDefId(7))] ( "a"@(FileId(1), 96..97), "b"@(FileId(1), 99..100), )
+"b"@(FileId(1), 99..100) [EnumVariant]: enum[DefId(LibraryId(0), LocalDefId(7))] ( "a"@(FileId(1), 96..97), "b"@(FileId(1), 99..100), )
+"ef"@(FileId(1), 106..108) [ConstVar(Var, No)]: enum[DefId(LibraryId(0), LocalDefId(7))] ( "a"@(FileId(1), 96..97), "b"@(FileId(1), 99..100), )
 "<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 119..120: invalid get option used

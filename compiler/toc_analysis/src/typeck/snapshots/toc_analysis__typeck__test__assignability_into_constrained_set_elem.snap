@@ -2,11 +2,11 @@
 source: compiler/toc_analysis/src/typeck/test.rs
 expression: "type cs : set of 1 .. 2\nvar i : int\nvar n : int\nvar _ : boolean\n\nvar s : cs := cs(1, 2)\n_ := 1 in s\n_ := i in s\n_ := n in s\n"
 ---
+"cs"@(FileId(1), 5..7) [Type]: set[DefId(LibraryId(0), LocalDefId(1))] of range of `int` (Unevaluated(LibraryId(0), BodyId(0)) .. Expr(Unevaluated(LibraryId(0), BodyId(1)), No))
 "cs"@(FileId(1), 10..23) [Set]: <error>
-"cs"@(FileId(1), 5..7) [Type]: set[DefId(LibraryId(0), LocalDefId(0))] of range of `int` (Unevaluated(LibraryId(0), BodyId(0)) .. Expr(Unevaluated(LibraryId(0), BodyId(1)), No))
 "i"@(FileId(1), 28..29) [ConstVar(Var, No)]: int
 "n"@(FileId(1), 40..41) [ConstVar(Var, No)]: int
 "_"@(FileId(1), 52..53) [ConstVar(Var, No)]: boolean
-"s"@(FileId(1), 69..70) [ConstVar(Var, No)]: set[DefId(LibraryId(0), LocalDefId(0))] of range of `int` (Unevaluated(LibraryId(0), BodyId(0)) .. Expr(Unevaluated(LibraryId(0), BodyId(1)), No))
+"s"@(FileId(1), 69..70) [ConstVar(Var, No)]: set[DefId(LibraryId(0), LocalDefId(1))] of range of `int` (Unevaluated(LibraryId(0), BodyId(0)) .. Expr(Unevaluated(LibraryId(0), BodyId(1)), No))
 "<root>"@(dummy) [Module(No)]: <error>
 

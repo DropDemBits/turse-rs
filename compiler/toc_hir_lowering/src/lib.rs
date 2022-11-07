@@ -17,6 +17,7 @@
 // FileDB should only care about giving unique file handles corresponding to text sources.
 // Other DBs will deal with what they map to (e.g. a separate DB managing all of the CSTs)
 
+mod collector;
 mod lower;
 mod resolver;
 

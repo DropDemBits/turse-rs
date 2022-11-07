@@ -5,13 +5,13 @@ expression: "module m\n    export opaque t, a, p\n    type t : int\n    proc p(a
 "m"@(FileId(1), 7..8) [Module(No)]: <error>
 "t"@(FileId(1), 44..45) [Type]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
 "p"@(FileId(1), 61..62) [Subprogram(Procedure)]: procedure ( pass(value) opaque[DefId(LibraryId(0), LocalDefId(1))] type to int, ) -> void
-"<unnamed>"@(dummy) [Undeclared]: <error>
 "a"@(FileId(1), 63..64) [Param(Value, No)]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
 "a"@(FileId(1), 84..85) [ConstVar(Var, No)]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
+"a"@(FileId(1), 168..169) [ConstVar(Var, No)]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
+"<unnamed>"@(dummy) [Undeclared]: <error>
 "t"@(FileId(1), 27..28) [Export]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
 "a"@(FileId(1), 30..31) [Export]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
 "p"@(FileId(1), 33..34) [Export]: procedure ( pass(value) opaque[DefId(LibraryId(0), LocalDefId(1))] type to int, ) -> void
-"a"@(FileId(1), 168..169) [ConstVar(Var, No)]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
 "<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 208..209: mismatched types

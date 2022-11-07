@@ -3,7 +3,6 @@ source: compiler/toc_analysis/src/typeck/test.rs
 expression: "function ka(register a : int, b : int, var c : int) r : int\n    bind\n        ra to a, % should fail\n        rb to b,\n        rc to c\n    r := 0 % should fail\nend ka"
 ---
 "ka"@(FileId(1), 9..11) [Subprogram(Function)]: function ( pass(value) register int, pass(value) int, pass(var ref) int, ) -> int
-"<unnamed>"@(dummy) [Undeclared]: <error>
 "a"@(FileId(1), 21..22) [Param(Value, Yes)]: int
 "b"@(FileId(1), 30..31) [Param(Value, No)]: int
 "c"@(FileId(1), 43..44) [Param(Reference(Var), No)]: int
@@ -11,6 +10,7 @@ expression: "function ka(register a : int, b : int, var c : int) r : int\n    bi
 "ra"@(FileId(1), 77..79) [Binding(Const, No)]: int
 "rb"@(FileId(1), 108..110) [Binding(Const, No)]: int
 "rc"@(FileId(1), 125..127) [Binding(Const, No)]: int
+"<unnamed>"@(dummy) [Undeclared]: <error>
 "<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 77..84: cannot bind `ra` to `a`

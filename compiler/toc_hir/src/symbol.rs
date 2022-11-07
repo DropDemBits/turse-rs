@@ -4,7 +4,7 @@
 use std::fmt;
 
 use indexmap::IndexMap;
-use la_arena::ArenaMap;
+use la_arena::{Arena, ArenaMap};
 use toc_span::{SpanId, Spanned};
 
 pub use crate::ids::{DefId, LocalDefId};
@@ -56,7 +56,60 @@ impl From<&str> for Symbol {
     }
 }
 
-// TODO(was doing): Migrating over to the new SymbolKind, replacing BindingTo
+// FIXME: This feels more like an AST or `toc_span` construct, move it elsewhere
+/// The span of a specific AST node in a [`Library`](crate::library::Library)
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct NodeSpan(pub SpanId);
+
+impl NodeSpan {
+    pub fn span(self) -> SpanId {
+        self.0
+    }
+}
+
+/// Table of all [`DefInfo`]s in a [`Library`](crate::library::Library)
+#[derive(Debug, Default, PartialEq, Eq)]
+pub struct DefInfoTable {
+    defs: Arena<DefInfo>,
+}
+
+impl DefInfoTable {
+    /// Helper for declaring a new symbol.
+    ///
+    /// ## Parameters
+    /// - `name`: The name of the symbol to define
+    /// - `span`: The text span of the definition
+    /// - `kind`: The kind of symbol to define, or None if it's undeclared
+    ///
+    /// ## Returns
+    /// The [`LocalDefId`] associated with the definition
+    ///
+    /// [`LocalDefId`]: crate::symbol::LocalDefId
+    pub fn add_def(
+        &mut self,
+        name: Symbol,
+        span: SpanId,
+        kind: Option<SymbolKind>,
+        pervasive: IsPervasive,
+    ) -> LocalDefId {
+        let def = DefInfo {
+            name,
+            def_at: span,
+            kind,
+            pervasive,
+        };
+        let index = self.defs.alloc(def);
+        LocalDefId(index)
+    }
+
+    pub fn get_info(&self, local_def: LocalDefId) -> &DefInfo {
+        &self.defs[local_def.0]
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = (LocalDefId, &'_ DefInfo)> + '_ {
+        self.defs.iter().map(|(id, info)| (LocalDefId(id), info))
+    }
+}
 
 /// Information associated with a `LocalDefId` or `DefId`.
 #[derive(Debug, PartialEq, Eq)]
@@ -315,6 +368,7 @@ pub struct ResolutionMap {
     pub def_resolves: DefMap<DefResolve>,
 }
 
+// FIXME: Replace with a `DefMap<DefOwner>`
 /// Mapping between a [`LocalDefId`] and the corresponding [`DefOwner`]
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct DefTable {

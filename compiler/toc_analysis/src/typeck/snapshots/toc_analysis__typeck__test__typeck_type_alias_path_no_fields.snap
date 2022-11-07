@@ -4,9 +4,9 @@ expression: "module a export b type b : int end a\nvar e : a.b.c := 1\nvar f : a
 ---
 "a"@(FileId(1), 7..8) [Module(No)]: <error>
 "b"@(FileId(1), 23..24) [Type]: alias[DefId(LibraryId(0), LocalDefId(1))] of int
-"b"@(FileId(1), 16..17) [Export]: alias[DefId(LibraryId(0), LocalDefId(1))] of int
 "e"@(FileId(1), 41..42) [ConstVar(Var, No)]: <error>
 "f"@(FileId(1), 60..61) [ConstVar(Var, No)]: <error>
+"b"@(FileId(1), 16..17) [Export]: alias[DefId(LibraryId(0), LocalDefId(1))] of int
 "<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 49..50: no field named `c` in `b`

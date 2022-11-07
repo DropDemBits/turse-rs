@@ -634,12 +634,12 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
                         format!("ex_{idx}_def_id"),
                         self.display_def_id(export.def_id),
                     ),
-                    Layout::NamedPort(format!("ex_{idx}_item_id"), "item_id".into()),
+                    Layout::NamedPort(format!("ex_{idx}_exported_def"), "exported_def".into()),
                 ]));
 
                 self.emit_edge(
-                    format!("{export_table}:ex_{idx}_item_id"),
-                    self.item_id(export.item_id),
+                    format!("{export_table}:ex_{idx}_exported_def"),
+                    self.def_id(export.def_id),
                 );
 
                 v_layout.push(Layout::Hbox(h_layout));

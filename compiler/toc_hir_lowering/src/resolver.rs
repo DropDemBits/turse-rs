@@ -29,12 +29,11 @@ pub(crate) struct UnqualifiedDef {
 pub(crate) fn module_exports(library: &Library) -> DefMap<Vec<UnqualifiedDef>> {
     use std::cell::RefCell;
 
-    struct ExportCollector<'lib> {
-        library: &'lib Library,
+    struct ExportCollector {
         exports: RefCell<DefMap<Vec<UnqualifiedDef>>>,
     }
 
-    impl visitor::HirVisitor for ExportCollector<'_> {
+    impl visitor::HirVisitor for ExportCollector {
         fn visit_module(&self, _id: toc_hir::item::ItemId, item: &toc_hir::item::Module) {
             let def_id = item.def_id;
             let unquali_exports = item
@@ -42,7 +41,7 @@ pub(crate) fn module_exports(library: &Library) -> DefMap<Vec<UnqualifiedDef>> {
                 .iter()
                 .map(|export| UnqualifiedDef {
                     def_id: export.def_id,
-                    export_def: self.library.item(export.item_id).def_id,
+                    export_def: export.exported_def,
                 })
                 .collect();
             self.exports.borrow_mut().insert(def_id, unquali_exports);
@@ -50,7 +49,6 @@ pub(crate) fn module_exports(library: &Library) -> DefMap<Vec<UnqualifiedDef>> {
     }
 
     let visitor = ExportCollector {
-        library,
         exports: Default::default(),
     };
 
@@ -457,13 +455,6 @@ impl<'a> ResolveCtx<'a> {
                 this.introduce_def(item.def_id, DeclareKind::Declared);
 
                 if let Some(param_list) = &item.param_list {
-                    // Make sure there aren't any duplicate names
-                    this.with_scope(ScopeKind::SubprogramHeader, |this| {
-                        for param_def in &param_list.names {
-                            this.introduce_def(*param_def, DeclareKind::Declared);
-                        }
-                    });
-
                     for param in &param_list.tys {
                         this.resolve_type(param.param_ty);
                     }
@@ -481,16 +472,11 @@ impl<'a> ResolveCtx<'a> {
                 this.with_scope(ScopeKind::Subprogram, |this| {
                     this.with_scope(ScopeKind::Block, |this| {
                         // Introduce params
+                        // `AlwaysShadow` takes care of reporting duplicate params,
+                        // while also properly shadowing external names
                         if let Some(param_list) = &item.param_list {
                             for &param_def in &param_list.names {
-                                let def_info = &this.library.local_def(param_def);
-                                let name = def_info.name;
-                                this.scopes.def_sym(
-                                    name,
-                                    param_def,
-                                    DeclareKind::Declared,
-                                    def_info.pervasive.into(),
-                                );
+                                this.introduce_def(param_def, DeclareKind::AlwaysShadow);
                             }
                         }
 
@@ -539,16 +525,14 @@ impl<'a> ResolveCtx<'a> {
                         QualifyAs::Unqualified | QualifyAs::PervasiveUnqualified
                     )
                 }) {
-                    let exported_def = this.library.item(export.item_id).def_id;
-                    this.introduce_def(export.def_id, DeclareKind::ItemExport(exported_def));
+                    this.introduce_def(export.def_id, DeclareKind::ItemExport(export.exported_def));
                 }
 
                 // Map export defs to their corresponding import defs
                 for export in &item.exports {
-                    let exported_def = this.library.item(export.item_id).def_id;
                     this.resolves
                         .def_resolves
-                        .insert(export.def_id, DefResolve::Local(exported_def));
+                        .insert(export.def_id, DefResolve::Local(export.exported_def));
                 }
             }
             ItemKind::Import(item) => {

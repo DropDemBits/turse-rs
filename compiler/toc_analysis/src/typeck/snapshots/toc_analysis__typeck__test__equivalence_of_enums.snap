@@ -2,14 +2,14 @@
 source: compiler/toc_analysis/src/typeck/test.rs
 expression: "type e : enum(v)\nvar a, b : e\n\n% compatible with itself\na := b\n% with its own variants\na := e.v\n\n% incompatible with different defs\ntype f : enum(v)\nvar c : f\na := c\na := f.v\n"
 ---
-"v"@(FileId(1), 14..15) [EnumVariant]: enum[DefId(LibraryId(0), LocalDefId(1))] ( "v"@(FileId(1), 14..15), )
-"e"@(FileId(1), 9..16) [Enum]: <error>
 "e"@(FileId(1), 5..6) [Type]: enum[DefId(LibraryId(0), LocalDefId(1))] ( "v"@(FileId(1), 14..15), )
+"e"@(FileId(1), 9..16) [Enum]: <error>
+"v"@(FileId(1), 14..15) [EnumVariant]: enum[DefId(LibraryId(0), LocalDefId(1))] ( "v"@(FileId(1), 14..15), )
 "a"@(FileId(1), 21..22) [ConstVar(Var, No)]: enum[DefId(LibraryId(0), LocalDefId(1))] ( "v"@(FileId(1), 14..15), )
 "b"@(FileId(1), 24..25) [ConstVar(Var, No)]: enum[DefId(LibraryId(0), LocalDefId(1))] ( "v"@(FileId(1), 14..15), )
-"v"@(FileId(1), 146..147) [EnumVariant]: enum[DefId(LibraryId(0), LocalDefId(6))] ( "v"@(FileId(1), 146..147), )
-"f"@(FileId(1), 141..148) [Enum]: <error>
 "f"@(FileId(1), 137..138) [Type]: enum[DefId(LibraryId(0), LocalDefId(6))] ( "v"@(FileId(1), 146..147), )
+"f"@(FileId(1), 141..148) [Enum]: <error>
+"v"@(FileId(1), 146..147) [EnumVariant]: enum[DefId(LibraryId(0), LocalDefId(6))] ( "v"@(FileId(1), 146..147), )
 "c"@(FileId(1), 153..154) [ConstVar(Var, No)]: enum[DefId(LibraryId(0), LocalDefId(6))] ( "v"@(FileId(1), 146..147), )
 "<root>"@(dummy) [Module(No)]: <error>
 

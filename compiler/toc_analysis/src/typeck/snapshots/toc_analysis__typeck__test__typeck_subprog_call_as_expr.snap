@@ -3,7 +3,7 @@ source: compiler/toc_analysis/src/typeck/test.rs
 expression: "function key() : int end key\nvar res := key()\n"
 ---
 "key"@(FileId(1), 9..12) [Subprogram(Function)]: function ( ) -> int
-"<unnamed>"@(dummy) [Undeclared]: <error>
 "res"@(FileId(1), 33..36) [ConstVar(Var, No)]: int
+"<unnamed>"@(dummy) [Undeclared]: <error>
 "<root>"@(dummy) [Module(No)]: <error>
 

@@ -4,10 +4,10 @@ expression: "var tree : string\nprocedure boop(a, b : int, var c : int) end boop
 ---
 "tree"@(FileId(1), 4..8) [ConstVar(Var, No)]: string
 "boop"@(FileId(1), 28..32) [Subprogram(Procedure)]: procedure ( pass(value) int, pass(value) int, pass(var ref) int, ) -> void
-"<unnamed>"@(dummy) [Undeclared]: <error>
 "a"@(FileId(1), 33..34) [Param(Value, No)]: int
 "b"@(FileId(1), 36..37) [Param(Value, No)]: int
 "c"@(FileId(1), 49..50) [Param(Reference(Var), No)]: int
+"<unnamed>"@(dummy) [Undeclared]: <error>
 "<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 78..82: mismatched types

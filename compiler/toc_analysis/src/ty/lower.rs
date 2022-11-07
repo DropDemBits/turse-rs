@@ -345,7 +345,7 @@ fn type_def_ty(
         module
             .exports_of()
             .iter()
-            .find(|export| export.item_id == item_id.1)
+            .find(|export| export.exported_def == item.def_id)
             .map_or(false, |export| export.is_opaque)
     };
 

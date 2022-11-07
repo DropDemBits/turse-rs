@@ -1,13 +1,9 @@
 //! Helper builders for creating the HIR tree
 
 use la_arena::Arena;
-use toc_span::{FileId, Span, SpanId};
+use toc_span::{FileId, Span, SpanId, SpanTable};
 
-use crate::{
-    body, expr, item, library, stmt,
-    symbol::{self, Symbol},
-    ty,
-};
+use crate::{body, expr, item, library, stmt, symbol, ty};
 
 /// Builder for constructing a [`Library`]
 ///
@@ -17,8 +13,19 @@ pub struct LibraryBuilder {
 }
 
 impl LibraryBuilder {
-    pub fn new() -> Self {
-        Self::default()
+    pub fn new(span_map: SpanTable, defs: symbol::DefInfoTable) -> Self {
+        Self {
+            library: library::Library {
+                span_map,
+                defs,
+
+                root_items: Default::default(),
+                items: Default::default(),
+                bodies: Default::default(),
+                type_map: Default::default(),
+                resolve_map: Default::default(),
+            },
+        }
     }
 
     pub fn add_item(&mut self, item: item::Item) -> item::ItemId {
@@ -39,19 +46,12 @@ impl LibraryBuilder {
     /// [`LocalDefId`]: crate::symbol::LocalDefId
     pub fn add_def(
         &mut self,
-        name: Symbol,
+        name: symbol::Symbol,
         span: SpanId,
         kind: Option<symbol::SymbolKind>,
         pervasive: symbol::IsPervasive,
     ) -> symbol::LocalDefId {
-        let def = symbol::DefInfo {
-            name,
-            def_at: span,
-            kind,
-            pervasive,
-        };
-        let index = self.defs.alloc(def);
-        symbol::LocalDefId(index)
+        self.defs.add_def(name, span, kind, pervasive)
     }
 
     pub fn add_body(&mut self, body: body::Body) -> body::BodyId {
@@ -75,10 +75,6 @@ impl LibraryBuilder {
         self.add_body(body)
     }
 
-    pub fn local_def_mut(&mut self, def_id: symbol::LocalDefId) -> &mut symbol::DefInfo {
-        &mut self.defs[def_id.into()]
-    }
-
     pub fn freeze_root_items(self, root_items: Vec<(FileId, item::ItemId)>) -> Self {
         Self {
             library: library::Library {
@@ -86,31 +82,16 @@ impl LibraryBuilder {
                 root_items: root_items.into_iter().collect(),
                 ..self.library
             },
+            ..self
         }
     }
 
     pub fn finish(self, resolve_map: symbol::ResolutionMap) -> library::Library {
-        let Self { library } = self;
+        let Self { library, .. } = self;
 
         library::Library {
             resolve_map,
             ..library
-        }
-    }
-}
-
-impl Default for LibraryBuilder {
-    fn default() -> Self {
-        Self {
-            library: library::Library {
-                root_items: Default::default(),
-                items: Default::default(),
-                defs: Default::default(),
-                bodies: Default::default(),
-                type_map: Default::default(),
-                span_map: Default::default(),
-                resolve_map: Default::default(),
-            },
         }
     }
 }
