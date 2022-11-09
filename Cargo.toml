@@ -5,6 +5,12 @@ members = ["xtask/", "lsp-server/", "compiler/*", "fuzzers/*"]
 
 default-members = ["xtask/", "compiler/*", "lsp-server/"]
 
+[workspace.dependencies]
+itertools = "0.10.3"
+indexmap = "1.7.0"
+tracing = "0.1.37"
+tracing-subscriber = "0.3.16"
+
 [profile.release]
 debug = true
 

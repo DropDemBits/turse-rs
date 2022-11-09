@@ -7,7 +7,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-indexmap = "1.7.0"
+indexmap = { workspace = true }
 internment = "0.7.0"
 la-arena = "0.2.0"
 lazy_static = "1.4.0"

@@ -40,7 +40,16 @@ struct LowerResult {
     hir_result: CompileResult<LoweredLibrary>,
 }
 
-fn assert_lower(src: &str) -> LowerResult {
+macro_rules! assert_lower {
+    ($src:expr $(,)?) => {{
+        let src: &str = $src;
+        let (s, res) = do_lower(src);
+        insta::assert_snapshot!(insta::internals::AutoName, s, src);
+        res
+    }};
+}
+
+fn do_lower(src: &str) -> (String, LowerResult) {
     use std::fmt::Write;
 
     let mut db = TestHirDb::default();
@@ -60,48 +69,52 @@ fn assert_lower(src: &str) -> LowerResult {
         writeln!(&mut s, "{err}").unwrap();
     }
 
-    insta::assert_snapshot!(insta::internals::AutoName, s, src);
-
-    LowerResult {
-        root_file,
-        hir_result: lowered,
-    }
+    (
+        s,
+        LowerResult {
+            root_file,
+            hir_result: lowered,
+        },
+    )
 }
 
-fn lower_literal_value(expr: &str) -> expr::Literal {
-    let lower_result = assert_lower(&format!("var _ : int _ := {expr}"));
-    let LowerResult {
-        root_file,
-        hir_result,
-    } = &lower_result;
+macro_rules! lower_literal_value {
+    ($e:expr $(,)?) => {{
+        let expr: &str = $e;
+        let lower_result = assert_lower!(&format!("var _ : int _ := {expr}"));
+        let LowerResult {
+            root_file,
+            hir_result,
+        } = &lower_result;
 
-    let library = hir_result.result();
-    let root_item = library.item(library.root_items[root_file]);
+        let library = hir_result.result();
+        let root_item = library.item(library.root_items[root_file]);
 
-    if_chain! {
-        if let item::ItemKind::Module(item::Module { body, .. }) = &root_item.kind;
-        let body = library.body(*body);
-        if let body::BodyKind::Stmts(stmts, ..) = &body.kind;
-        if let Some(second_stmt) = stmts.get(1);
-        if let stmt::StmtKind::Assign(stmt::Assign { rhs, .. }) = &body.stmt(*second_stmt).kind;
-        if let expr::ExprKind::Literal(value) = &body.expr(*rhs).kind;
-        then {
-            value.clone()
-        } else {
-            unreachable!();
+        if_chain! {
+            if let item::ItemKind::Module(item::Module { body, .. }) = &root_item.kind;
+            let body = library.body(*body);
+            if let body::BodyKind::Stmts(stmts, ..) = &body.kind;
+            if let Some(second_stmt) = stmts.get(1);
+            if let stmt::StmtKind::Assign(stmt::Assign { rhs, .. }) = &body.stmt(*second_stmt).kind;
+            if let expr::ExprKind::Literal(value) = &body.expr(*rhs).kind;
+            then {
+                value.clone()
+            } else {
+                unreachable!();
+            }
         }
-    }
+    }};
 }
 
 #[test]
 fn missing_file_root() {
-    assert_lower("%%- removed src/main.t");
+    assert_lower!("%%- removed src/main.t");
 }
 
 #[test]
 fn item_gathering() {
     // Check that item groups are also included in item gathering
-    let res = assert_lower(
+    let res = assert_lower!(
         "
     var a, b, c := 0
     const d := 1
@@ -128,53 +141,53 @@ fn item_gathering() {
 #[test]
 fn lower_var_def() {
     // bare var def
-    assert_lower("var a := b");
+    assert_lower!("var a := b");
     // with type spec
-    assert_lower("var a : int");
+    assert_lower!("var a : int");
     // just var
-    assert_lower("var");
+    assert_lower!("var");
     // check that no def-use cycles are created
-    assert_lower("var a := a");
+    assert_lower!("var a := a");
     // just defs
-    assert_lower("var a");
+    assert_lower!("var a");
     // multiple var defs
-    assert_lower("var a, b, c := 0");
+    assert_lower!("var a, b, c := 0");
 }
 
 #[test]
 fn lower_simple_assignment() {
-    assert_lower("var a, b : int a := b");
+    assert_lower!("var a, b : int a := b");
     // non-reference lhs
-    assert_lower("1 := 2");
+    assert_lower!("1 := 2");
     // no rhs
-    assert_lower("1 := ");
+    assert_lower!("1 := ");
     // no lhs
-    assert_lower(":= 2");
+    assert_lower!(":= 2");
     // neither
-    assert_lower(":=");
+    assert_lower!(":=");
 }
 
 #[test]
 fn lower_compound_add_assignment() {
-    assert_lower("var a, b : int a += b");
+    assert_lower!("var a, b : int a += b");
 }
 
 #[test]
 fn lower_scoping_inner_use_outer_use() {
     // inner & outer uses of `a` and `b` should use the same DefId due to import boundary hoisting
-    assert_lower("begin a := b end a := b");
+    assert_lower!("begin a := b end a := b");
 }
 
 #[test]
 fn lower_scoping_outer_use_inner_use() {
     // inner & outer uses of `a` and `b` should use the same DefId due to import boundary hoisting
-    assert_lower("q := j begin q := k end");
+    assert_lower!("q := j begin q := k end");
 }
 
 #[test]
 fn lower_scoping_redeclare_over_def() {
     // Each of these inner defs should be a redcl error
-    assert_lower(
+    assert_lower!(
         r#"
     var k : int
     begin
@@ -192,25 +205,25 @@ fn lower_scoping_redeclare_over_def() {
 #[test]
 fn lower_scoping_redeclare_use_undef() {
     // should yell about this
-    assert_lower(r#"a := a"#);
+    assert_lower!(r#"a := a"#);
 }
 
 #[test]
 fn lower_scoping_redeclare_over_undef() {
     // no qualms about the definition
-    assert_lower(r#"a := a const a := 1"#);
+    assert_lower!(r#"a := a const a := 1"#);
 }
 
 #[test]
 fn lower_int_literal() {
-    assert_lower("const a := 01234560");
+    assert_lower!("const a := 01234560");
     // Overflow
-    assert_lower("const a := 99999999999999999999");
+    assert_lower!("const a := 99999999999999999999");
 }
 
 #[test]
 fn lower_int_radix_literal() {
-    assert_lower("const a := 16#EABC");
+    assert_lower!("const a := 16#EABC");
 
     let failing_tests = vec![
         // Overflow
@@ -232,7 +245,7 @@ fn lower_int_radix_literal() {
 
     for (num, text) in failing_tests.into_iter().enumerate() {
         eprintln!("On failing test #{}", num + 1);
-        let actual_value = lower_literal_value(text);
+        let actual_value = lower_literal_value!(text);
 
         // All error literal should produce 0
         if let expr::Literal::Integer(actual_value) = actual_value {
@@ -268,7 +281,7 @@ fn lower_real_literal() {
 
     for (num, (text, value)) in tests.into_iter().enumerate() {
         eprintln!("On test #{}", num + 1);
-        let actual_value = lower_literal_value(text);
+        let actual_value = lower_literal_value!(text);
 
         if let expr::Literal::Real(actual_value) = actual_value {
             approx::assert_relative_eq!(actual_value, value);
@@ -306,7 +319,7 @@ fn lower_complex_real_literal() {
 
     for (name, hex_value, text) in tests.into_iter() {
         eprintln!("On test {name}");
-        let actual_value = lower_literal_value(text);
+        let actual_value = lower_literal_value!(text);
         let value = f64::from_ne_bytes(hex_value.to_ne_bytes());
 
         if let expr::Literal::Real(actual_value) = actual_value {
@@ -319,26 +332,26 @@ fn lower_complex_real_literal() {
 
 #[test]
 fn lower_string_literal() {
-    assert_lower(r#"const a := "abcd💖""#);
+    assert_lower!(r#"const a := "abcd💖""#);
 
     // Should handle strings without an ending delimiter
-    assert_lower(r#"const a := "abcd "#);
+    assert_lower!(r#"const a := "abcd "#);
     // ... or mismatched delimiter
-    assert_lower(r#"const a := "abcd'"#);
+    assert_lower!(r#"const a := "abcd'"#);
 }
 
 #[test]
 fn lower_char_literal() {
-    assert_lower(r#"const a := 'abcd💖'"#);
+    assert_lower!(r#"const a := 'abcd💖'"#);
 
     // Should handle character strings without an ending delimiter
-    assert_lower(r#"const a := 'abcd "#);
+    assert_lower!(r#"const a := 'abcd "#);
     // ... or mismatched delimiter
-    assert_lower(r#"const a := 'abcd""#);
+    assert_lower!(r#"const a := 'abcd""#);
     // ... or that are completely empty
-    assert_lower(r#"const a := ''"#);
+    assert_lower!(r#"const a := ''"#);
     // ... or that are completely empty without an ending delimiter
-    assert_lower(r#"const a := '"#);
+    assert_lower!(r#"const a := '"#);
 }
 
 #[test]
@@ -424,7 +437,7 @@ fn lower_char_seq_escapes() {
     for (text, expected_value) in escapes.into_iter() {
         let stringified_test = format!("({text:?}, {expected_value:?}, ..)");
         assert_eq!(
-            lower_literal_value(text),
+            lower_literal_value!(text),
             expr::Literal::String(expected_value.to_string()),
             "At \"{}\"",
             stringified_test
@@ -435,39 +448,39 @@ fn lower_char_seq_escapes() {
 #[test]
 fn lower_multiple_invalid_char_seq_escapes() {
     assert_eq!(
-        lower_literal_value(r#"'\777\ud800\!'"#),
+        lower_literal_value!(r#"'\777\ud800\!'"#),
         expr::Literal::CharSeq("\u{FFFD}\u{FFFD}!".to_string()),
     );
 }
 
 #[test]
 fn lower_paren_expr() {
-    assert_lower("const a := (1)");
+    assert_lower!("const a := (1)");
     // nested
-    assert_lower("const a := (((1)))");
+    assert_lower!("const a := (((1)))");
     // empty
-    assert_lower("const a := ()");
+    assert_lower!("const a := ()");
 }
 
 #[test]
 fn lower_self_expr() {
-    assert_lower("const a := self");
+    assert_lower!("const a := self");
 }
 
 #[test]
 fn lower_binary_expr() {
-    assert_lower("const a := 1 + 1");
+    assert_lower!("const a := 1 + 1");
     // missing operand, should still be present
-    assert_lower("const a := () + ");
+    assert_lower!("const a := () + ");
     // invalid infix, okay to be missing
-    assert_lower("const a := 1 not 1 ");
+    assert_lower!("const a := 1 not 1 ");
 }
 
 #[test]
 fn lower_unary_expr() {
-    assert_lower("const a := + a");
+    assert_lower!("const a := + a");
     // missing operand, should still be present
-    assert_lower("const a := +");
+    assert_lower!("const a := +");
 }
 
 #[test]
@@ -491,70 +504,70 @@ fn lower_prim_type() {
     ];
 
     for ty_text in tys {
-        assert_lower(&format!("var _ : {ty_text}"));
+        assert_lower!(&format!("var _ : {ty_text}"));
     }
 }
 
 #[test]
 fn lower_prim_char_seq_type() {
-    assert_lower("var _ : char(1)");
+    assert_lower!("var _ : char(1)");
 }
 
 #[test]
 fn lower_put_stmt() {
     // single item
-    assert_lower("put a");
+    assert_lower!("put a");
     // many items
-    assert_lower("put skip, a : 1, b : 2 : 3, c : 4 : 5 : 6");
+    assert_lower!("put skip, a : 1, b : 2 : 3, c : 4 : 5 : 6");
     // no item
-    assert_lower("put");
+    assert_lower!("put");
     // missing exprs
-    assert_lower("put 1 : 1 :  : 1");
-    assert_lower("put 1 : 1 :  : ");
-    assert_lower("put 1 :  :  : ");
+    assert_lower!("put 1 : 1 :  : 1");
+    assert_lower!("put 1 : 1 :  : ");
+    assert_lower!("put 1 :  :  : ");
 
     // stream expr
-    assert_lower("put : a");
+    assert_lower!("put : a");
     // no items, but there's a stream expr
-    assert_lower("put : 1");
+    assert_lower!("put : 1");
 }
 
 #[test]
 fn lower_get_stmt() {
     // single item
-    assert_lower("get a");
+    assert_lower!("get a");
     // many items
-    assert_lower("get skip, a, b : 1, c : *");
+    assert_lower!("get skip, a, b : 1, c : *");
     // no items
-    assert_lower("get");
+    assert_lower!("get");
     // not a reference
-    assert_lower("get a*a");
+    assert_lower!("get a*a");
 
     // stream expr
-    assert_lower("get a : a*a");
+    assert_lower!("get a : a*a");
     // no items, but there's a stream expr
-    assert_lower("get : 1");
+    assert_lower!("get : 1");
 }
 
 #[test]
 fn lower_block_stmt_multiple() {
-    assert_lower("begin var _ := 0 _ := 1 _ := 2 _ := 3 end");
+    assert_lower!("begin var _ := 0 _ := 1 _ := 2 _ := 3 end");
 }
 
 #[test]
 fn lower_multiple_stmts() {
-    assert_lower("var _ := 0 _ := 1 _ := 2 _ := 3");
+    assert_lower!("var _ := 0 _ := 1 _ := 2 _ := 3");
 }
 
 #[test]
 fn expression_order() {
-    assert_lower("var _ := 1 + 2 * 3 + 4");
+    assert_lower!("var _ := 1 + 2 * 3 + 4");
 }
 
 #[test]
 fn lower_if_stmt() {
     // if
-    assert_lower(
+    assert_lower!(
         r#"
     if true then
         var a := 1
@@ -562,7 +575,7 @@ fn lower_if_stmt() {
     "#,
     );
     // if else
-    assert_lower(
+    assert_lower!(
         r#"
     if true then
         var a := 1
@@ -572,7 +585,7 @@ fn lower_if_stmt() {
     "#,
     );
     // if elseif
-    assert_lower(
+    assert_lower!(
         r#"
     if true then
         var a := 1
@@ -582,7 +595,7 @@ fn lower_if_stmt() {
     "#,
     );
     // if elseif else
-    assert_lower(
+    assert_lower!(
         r#"
     if true then
         var a := 1
@@ -594,7 +607,7 @@ fn lower_if_stmt() {
     "#,
     );
     // if elseif elseif else
-    assert_lower(
+    assert_lower!(
         r#"
     if true then
         var a := 1
@@ -608,7 +621,7 @@ fn lower_if_stmt() {
     "#,
     );
     // dangling
-    assert_lower(
+    assert_lower!(
         r#"
     elsif true then end if
     elif true then end if
@@ -617,63 +630,63 @@ fn lower_if_stmt() {
     "#,
     );
     // with missing condition
-    assert_lower("if then end if");
+    assert_lower!("if then end if");
 }
 
 #[test]
 fn lower_loop_stmt() {
-    assert_lower("loop end loop");
+    assert_lower!("loop end loop");
 }
 
 #[test]
 fn lower_exit_stmt() {
     // in loop body
-    assert_lower(r#"loop exit end loop"#);
+    assert_lower!(r#"loop exit end loop"#);
     // in for-loop body
-    assert_lower(r#"for i : 1 .. 10 exit end for"#);
+    assert_lower!(r#"for i : 1 .. 10 exit end for"#);
     // outside of a loop body
-    assert_lower("exit");
+    assert_lower!("exit");
     // with optional condition
-    assert_lower("loop exit when true end loop");
+    assert_lower!("loop exit when true end loop");
 }
 
 #[test]
 fn lower_for_stmt() {
     // bare loop
-    assert_lower(r#"for : 1 .. 10 end for"#);
+    assert_lower!(r#"for : 1 .. 10 end for"#);
     // explicit bounds & step
-    assert_lower(r#"for : 1 .. 10 by 3 end for"#);
+    assert_lower!(r#"for : 1 .. 10 by 3 end for"#);
     // implicit bounds
-    assert_lower(r#"var wah : int for : wah end for"#);
+    assert_lower!(r#"var wah : int for : wah end for"#);
     // implicit bounds & step
-    assert_lower(r#"var wah : int for : wah by 1 end for"#);
+    assert_lower!(r#"var wah : int for : wah by 1 end for"#);
     // with counter
-    assert_lower(
+    assert_lower!(
         r#"
     for woo : 1 .. 10 var k := woo end for
     var woo := 1.0
     "#,
     );
     // decreasing explicit bounds
-    assert_lower(r#"for decreasing : 1 .. 10 end for"#);
+    assert_lower!(r#"for decreasing : 1 .. 10 end for"#);
     // decreasing implicit bounds (error)
-    assert_lower(r#"var implied : int for decreasing : implied end for"#);
+    assert_lower!(r#"var implied : int for decreasing : implied end for"#);
     // no bounds
-    assert_lower(r#"for : end for"#);
+    assert_lower!(r#"for : end for"#);
     // decreasing no bounds
-    assert_lower(r#"for decreasing : end for"#);
+    assert_lower!(r#"for decreasing : end for"#);
 }
 
 #[test]
 fn lower_case_stmt() {
     // no arms
-    assert_lower(r#"case s of end case"#);
+    assert_lower!(r#"case s of end case"#);
     // one default arm
-    assert_lower(r#"case s of label: end case"#);
+    assert_lower!(r#"case s of label: end case"#);
     // one arm
-    assert_lower(r#"case s of label 1: end case"#);
+    assert_lower!(r#"case s of label 1: end case"#);
     // many arms
-    assert_lower(
+    assert_lower!(
         r#"
     case s of
     label 1:
@@ -686,7 +699,7 @@ fn lower_case_stmt() {
     "#,
     );
     // many arms, default
-    assert_lower(
+    assert_lower!(
         r#"
     case s of
     label 1:
@@ -701,7 +714,7 @@ fn lower_case_stmt() {
     "#,
     );
     // many arms, default, default arm
-    assert_lower(
+    assert_lower!(
         r#"
     case s of
     label 1:
@@ -718,7 +731,7 @@ fn lower_case_stmt() {
     "#,
     );
     // many arms, default, arms
-    assert_lower(
+    assert_lower!(
         r#"
     case s of
     label 1:
@@ -741,18 +754,18 @@ fn lower_case_stmt() {
 #[test]
 fn lower_type_def() {
     // with type
-    assert_lower("type alias : int");
+    assert_lower!("type alias : int");
     // with forward
-    assert_lower("type alias : forward");
+    assert_lower!("type alias : forward");
     // missing defined
-    assert_lower("type alias : ");
+    assert_lower!("type alias : ");
     // missing name
-    assert_lower("type : forward");
+    assert_lower!("type : forward");
 }
 
 #[test]
 fn lower_type_alias() {
-    assert_lower(
+    assert_lower!(
         "
     type a : int
     type use_it : a
@@ -760,7 +773,7 @@ fn lower_type_alias() {
     ",
     );
     // type aliases also cover general expressions in type position, which are invalid
-    assert_lower(
+    assert_lower!(
         "
     type a : 1 + 1
     ",
@@ -770,7 +783,7 @@ fn lower_type_alias() {
 #[test]
 fn lower_type_path() {
     // Chained type paths
-    assert_lower(
+    assert_lower!(
         "
     type a : int
     type chain: a.b.c.d.e
@@ -778,13 +791,13 @@ fn lower_type_path() {
     );
 
     // Stops at the first non-name
-    assert_lower("type soup: a.b().c");
+    assert_lower!("type soup: a.b().c");
 }
 
 #[test]
 fn lower_type_def_forward() {
     // Normal
-    assert_lower(
+    assert_lower!(
         "
     type a : forward
     type use_it : a
@@ -792,7 +805,7 @@ fn lower_type_def_forward() {
     ",
     );
     // Duplicate forward declare
-    assert_lower(
+    assert_lower!(
         "
     type a : forward
     type a : forward
@@ -801,7 +814,7 @@ fn lower_type_def_forward() {
     ",
     );
     // Must be resolved in the same scope
-    assert_lower(
+    assert_lower!(
         "
     type a : forward
     begin
@@ -811,7 +824,7 @@ fn lower_type_def_forward() {
     ",
     );
     // Different declarations should leave forwards unresolved
-    assert_lower(
+    assert_lower!(
         "
     type a : forward
     type use_it : a % should not be resolved to latter a
@@ -825,7 +838,7 @@ fn lower_type_def_forward() {
 #[test]
 fn lower_binding_def() {
     // Normal
-    assert_lower(
+    assert_lower!(
         "
     begin
     var a : int
@@ -833,7 +846,7 @@ fn lower_binding_def() {
     end",
     );
     // Multiple
-    assert_lower(
+    assert_lower!(
         "
     begin
     var a : int
@@ -842,16 +855,16 @@ fn lower_binding_def() {
     );
     // Binding to non-ref expr
     // Accept here, but rejected in typeck
-    assert_lower("begin bind me to true or false end");
+    assert_lower!("begin bind me to true or false end");
     // Lacking portions
-    assert_lower(
+    assert_lower!(
         "
     begin
     bind to 1, k to
     end",
     );
     // In top-level scope
-    assert_lower(
+    assert_lower!(
         "
     var nothing := 0
     bind me to nothing",
@@ -861,14 +874,14 @@ fn lower_binding_def() {
 #[test]
 fn lower_procedure_def() {
     // Without param list
-    assert_lower(
+    assert_lower!(
         "
     procedure no_params
     end no_params",
     );
 
     // None specified
-    assert_lower(
+    assert_lower!(
         "
     procedure empty_params()
     end empty_params
@@ -876,7 +889,7 @@ fn lower_procedure_def() {
     );
 
     // With params
-    assert_lower(
+    assert_lower!(
         "
     procedure some_params(a, b : int)
         % should be visible
@@ -886,7 +899,7 @@ fn lower_procedure_def() {
     );
 
     // Different passings
-    assert_lower(
+    assert_lower!(
         "
     procedure pass_me(
         by_value : int,
@@ -900,7 +913,7 @@ fn lower_procedure_def() {
 
     // Device spec
     // FIXME: Embed in monitor module to get rid of the errors
-    assert_lower(
+    assert_lower!(
         "
     procedure a : 4 + 4 end a
     procedure b() : 6 + 8 end b
@@ -909,7 +922,7 @@ fn lower_procedure_def() {
     );
 
     // Redecl over params
-    assert_lower(
+    assert_lower!(
         "
     procedure pars(a, a : int, a : int1)
         var a : int2
@@ -917,26 +930,26 @@ fn lower_procedure_def() {
     );
 
     // Missing name (tail doesn't matter right now)
-    assert_lower("proc end bloop");
+    assert_lower!("proc end bloop");
 
     // Missing both names
-    assert_lower("proc end");
+    assert_lower!("proc end");
 
     // Make sure extra is resolved
-    assert_lower("var lmao : int proc uwu : lmao end uwu");
+    assert_lower!("var lmao : int proc uwu : lmao end uwu");
 }
 
 #[test]
 fn lower_function_def() {
     // Without param list
-    assert_lower(
+    assert_lower!(
         "
     function no_params : int
     end no_params",
     );
 
     // None specified
-    assert_lower(
+    assert_lower!(
         "
     function empty_params() : int
     end empty_params
@@ -944,7 +957,7 @@ fn lower_function_def() {
     );
 
     // With params
-    assert_lower(
+    assert_lower!(
         "
     function some_params(a, b : int) : int
         % should be visible
@@ -954,7 +967,7 @@ fn lower_function_def() {
     );
 
     // Different passings
-    assert_lower(
+    assert_lower!(
         "
     function pass_me(
         by_value : int,
@@ -967,7 +980,7 @@ fn lower_function_def() {
     );
 
     // Named result
-    assert_lower(
+    assert_lower!(
         "
     function a shambles : int end a
     function b() quoi : int end b
@@ -976,7 +989,7 @@ fn lower_function_def() {
     );
 
     // Redecl over params
-    assert_lower(
+    assert_lower!(
         "
     function pars(a, a : int, a : int1) : int
         var a : int2
@@ -984,7 +997,7 @@ fn lower_function_def() {
     );
 
     // Redecl over named result
-    assert_lower(
+    assert_lower!(
         "
     function pars() res : int
         var res : int1
@@ -992,7 +1005,7 @@ fn lower_function_def() {
     );
 
     // Not using named result in `post` condition
-    assert_lower(
+    assert_lower!(
         "
     function pars() res : int
         var use := res
@@ -1000,23 +1013,23 @@ fn lower_function_def() {
     );
 
     // Missing name (tail doesn't matter right now)
-    assert_lower("fcn end bloop");
+    assert_lower!("fcn end bloop");
 
     // Missing both names
-    assert_lower("fcn end");
+    assert_lower!("fcn end");
 }
 
 #[test]
 fn lower_process_def() {
     // Without param list
-    assert_lower(
+    assert_lower!(
         "
     process no_params
     end no_params",
     );
 
     // None specified
-    assert_lower(
+    assert_lower!(
         "
     process empty_params()
     end empty_params
@@ -1024,7 +1037,7 @@ fn lower_process_def() {
     );
 
     // With params
-    assert_lower(
+    assert_lower!(
         "
     process some_params(a, b : int)
         % should be visible
@@ -1034,7 +1047,7 @@ fn lower_process_def() {
     );
 
     // Different passings
-    assert_lower(
+    assert_lower!(
         "
     process pass_me(
         by_value : int,
@@ -1047,7 +1060,7 @@ fn lower_process_def() {
     );
 
     // Stack size
-    assert_lower(
+    assert_lower!(
         "
     process a : 4 + 4 end a
     process b() : 6 + 8 end b
@@ -1056,7 +1069,7 @@ fn lower_process_def() {
     );
 
     // Redecl over params
-    assert_lower(
+    assert_lower!(
         "
     process pars(a, a : int, a : int1)
         var a : int2
@@ -1064,20 +1077,20 @@ fn lower_process_def() {
     );
 
     // Missing name (tail doesn't matter right now)
-    assert_lower("process end bloop");
+    assert_lower!("process end bloop");
 
     // Missing both names
-    assert_lower("process end");
+    assert_lower!("process end");
 
     // Make sure extra is resolved
-    assert_lower("var lmao : int process uwu : lmao end uwu");
+    assert_lower!("var lmao : int process uwu : lmao end uwu");
 }
 
 #[test]
 fn lower_subprogram_shadow_external() {
     // Formal names are always allowed to shadow external names (even builtin ones)
     // Names in subprograms are only allowed to shadow non-pervasive names
-    assert_lower(
+    assert_lower!(
         "
     var pervasive pv_formal, pv_inner : int
     var norm_formal, norm_inner : int
@@ -1097,70 +1110,72 @@ fn lower_subprogram_shadow_external() {
 
 #[test]
 fn lower_formals_use_name() {
-    assert_lower("type i : int proc u (j : i) end u");
+    assert_lower!("type i : int proc u (j : i) end u");
 }
 
 #[test]
 fn lower_formals_cheat_attr() {
-    assert_lower("proc u (j : cheat int) end u");
+    assert_lower!("proc u (j : cheat int) end u");
 }
 
 #[test]
 fn lower_formals_intersperse_missing() {
     // Only 1 arg, with trailing comma
-    assert_lower("procedure args(sa, : int) end args");
+    assert_lower!("procedure args(sa, : int) end args");
     // Interspersed 1 arg
-    assert_lower("procedure args(sa, , ba: int) end args");
+    assert_lower!("procedure args(sa, , ba: int) end args");
     // Trailing 3 missing args
-    assert_lower("procedure args(a, , , , : int) end args");
+    assert_lower!("procedure args(a, , , , : int) end args");
     // 5 args, with 3 interspersed
-    assert_lower("procedure args(a, , , , b, : int) end args");
+    assert_lower!("procedure args(a, , , , b, : int) end args");
     // No names
-    assert_lower("procedure args(var : int) end args");
+    assert_lower!("procedure args(var : int) end args");
     // No names, no attrs
-    assert_lower("procedure args( : int) end args");
+    assert_lower!("procedure args( : int) end args");
 
     // Only commas (doesn't work right now due to poor recovery)
     // FIXME: Uncomment when name list recovery gets better
 
     // Missing, 1 arg
-    // assert_lower("procedure args(, : int) end args");
+    // assert_lower!("procedure args(, : int) end args");
     // Missing 4 args
-    // assert_lower("procedure args(, , , , : int) end args");
+    // assert_lower!("procedure args(, , , , : int) end args");
 }
 
 #[test]
 fn lower_procedure_tys() {
     // Taken from the old compiler
-    assert_lower("type _ : procedure nps");
-    assert_lower("type _ : procedure np   ()");
-    assert_lower("type _ : procedure p1   (a : int)");
-    assert_lower("type _ : procedure p2   (a : int, b : string)");
-    assert_lower("type _ : procedure pisp (a : int, b : string, c : procedure _ ())");
+    assert_lower!("type _ : procedure nps");
+    assert_lower!("type _ : procedure np   ()");
+    assert_lower!("type _ : procedure p1   (a : int)");
+    assert_lower!("type _ : procedure p2   (a : int, b : string)");
+    assert_lower!("type _ : procedure pisp (a : int, b : string, c : procedure _ ())");
 
     // Identifier is optional
-    assert_lower("type _ : procedure");
+    assert_lower!("type _ : procedure");
 }
 
 #[test]
 fn lower_function_tys() {
     // Taken from the old compiler
-    assert_lower("type _ : function np   () : real");
-    assert_lower("type _ : function p1   (a : int) : string");
-    assert_lower("type _ : function p2   (a : int, b : string) : addressint");
-    assert_lower("type _ : function pisf (a : int, b : string, c : function _ () : int) : boolean");
+    assert_lower!("type _ : function np   () : real");
+    assert_lower!("type _ : function p1   (a : int) : string");
+    assert_lower!("type _ : function p2   (a : int, b : string) : addressint");
+    assert_lower!(
+        "type _ : function pisf (a : int, b : string, c : function _ () : int) : boolean"
+    );
     // Nesting
-    assert_lower("type _ : function _ (function a (function a : int ) : int, proc b (proc a (proc a( proc a))), proc c) : int");
+    assert_lower!("type _ : function _ (function a (function a : int ) : int, proc b (proc a (proc a( proc a))), proc c) : int");
 
     // Identifier is optional
-    assert_lower("type _ : function () : int");
+    assert_lower!("type _ : function () : int");
 
     // Function type expects `function () : int` instead of `function : int` since it would be uninhabitable
     // (bare reference would always call the function)
     //
     // Treated as a warning, since it's technically valid syntax
     // Emitted from AST validation
-    assert_lower("type _ : function amphy : int");
+    assert_lower!("type _ : function amphy : int");
 }
 
 #[test]
@@ -1168,75 +1183,75 @@ fn lower_call_expr() {
     // Bare
     // (treated as name expr, since we need the type to disambiguate between the actual cases)
     // TODO: Handle parameterless calls
-    assert_lower("proc call end call var _ := call");
+    assert_lower!("proc call end call var _ := call");
     // No params
-    assert_lower("proc call end call var _ := call()");
+    assert_lower!("proc call end call var _ := call()");
     // Some args
-    assert_lower("proc call end call var _ := call(1,2,3)");
+    assert_lower!("proc call end call var _ := call(1,2,3)");
 
     // Missing trailing
-    assert_lower("proc call end call var _ := call(1,,)");
+    assert_lower!("proc call end call var _ := call(1,,)");
     // Missing
-    assert_lower("proc call end call var _ := call(,,)");
+    assert_lower!("proc call end call var _ := call(,,)");
 }
 
 #[test]
 fn lower_all_expr() {
     // In expected position
-    assert_lower("proc call end call var _ := call(all)");
+    assert_lower!("proc call end call var _ := call(all)");
     // Not in expected position
-    assert_lower("var _ := all");
+    assert_lower!("var _ := all");
 }
 
 #[test]
 fn lower_range_expr() {
     // In expected position
     // AtEnd
-    assert_lower("proc call end call var _ := call(*)");
+    assert_lower!("proc call end call var _ := call(*)");
     // FromStart..FromStart
-    assert_lower("proc call end call var _ := call(1..2)");
+    assert_lower!("proc call end call var _ := call(1..2)");
     // FromStart..AtEnd
-    assert_lower("proc call end call var _ := call(1..*)");
+    assert_lower!("proc call end call var _ := call(1..*)");
     // FromStart..FromEnd
-    assert_lower("proc call end call var _ := call(1..*-1)");
+    assert_lower!("proc call end call var _ := call(1..*-1)");
     // AtEnd..FromStart
-    assert_lower("proc call end call var _ := call(*..1)");
+    assert_lower!("proc call end call var _ := call(*..1)");
     // FromEnd..FromStart
-    assert_lower("proc call end call var _ := call(*-1..1)");
+    assert_lower!("proc call end call var _ := call(*-1..1)");
 
     // Not in expected position
-    assert_lower("var _ := *..*");
+    assert_lower!("var _ := *..*");
 }
 
 #[test]
 fn lower_call_stmt() {
     // Just name
-    assert_lower("proc call end call call");
+    assert_lower!("proc call end call call");
     // `Call` is inlined
-    assert_lower("proc call end call call()");
+    assert_lower!("proc call end call call()");
 
     // Arbitrary exprs are treated as calls
-    assert_lower("1");
+    assert_lower!("1");
 }
 
 #[test]
 fn lower_return_stmt() {
-    assert_lower("return");
+    assert_lower!("return");
 }
 
 #[test]
 fn lower_result_stmt() {
-    assert_lower(r#"fcn _ : string result "sus" end _"#);
+    assert_lower!(r#"fcn _ : string result "sus" end _"#);
 }
 
 #[test]
 fn lower_module_def() {
-    assert_lower("module a var c := 2 end a");
+    assert_lower!("module a var c := 2 end a");
 
-    assert_lower("module var c := 2 end a");
+    assert_lower!("module var c := 2 end a");
 
     // Module name should be visible inside of the module itself
-    assert_lower(
+    assert_lower!(
         "
     module pervasive a
         module b
@@ -1249,7 +1264,7 @@ fn lower_module_def() {
     );
 
     // Unqualified (pervasive) exports should be visible in the sibling scopes
-    assert_lower(
+    assert_lower!(
         "
         module z
             export ~.a, ~.b
@@ -1275,7 +1290,7 @@ fn lower_module_def() {
     );
 
     // Report when unqualified exports are occluding others
-    assert_lower(
+    assert_lower!(
         "
         var u, w, U : int
         module a
@@ -1288,7 +1303,7 @@ fn lower_module_def() {
 
 #[test]
 fn lower_module_exports() {
-    assert_lower(
+    assert_lower!(
         "
     module tree
         export a, var b, unqualified c, pervasive unqualified d, opaque e
@@ -1299,7 +1314,7 @@ fn lower_module_exports() {
     );
 
     // pervasive only applicable to unqualified
-    assert_lower(
+    assert_lower!(
         "
     module z
         export *a
@@ -1308,7 +1323,7 @@ fn lower_module_exports() {
     );
 
     // opaque only applicable to types
-    assert_lower(
+    assert_lower!(
         "
         module z
             export opaque a, opaque z
@@ -1317,7 +1332,7 @@ fn lower_module_exports() {
     );
 
     // undeclared export
-    assert_lower(
+    assert_lower!(
         "
         module z
             export a
@@ -1325,7 +1340,7 @@ fn lower_module_exports() {
     );
 
     // only export from inside module
-    assert_lower(
+    assert_lower!(
         "
         var *a : int
         module z
@@ -1333,7 +1348,7 @@ fn lower_module_exports() {
         end z",
     );
 
-    assert_lower(
+    assert_lower!(
         "
     module z
         export var *~. all
@@ -1342,7 +1357,7 @@ fn lower_module_exports() {
     );
 
     // If an all is present, the rest of the exports are ignored
-    assert_lower(
+    assert_lower!(
         "
     module z
         export var *~. all, heres
@@ -1351,7 +1366,7 @@ fn lower_module_exports() {
     );
 
     // `all` opaque restriction only applies to applicable items
-    assert_lower(
+    assert_lower!(
         "
     module z
         export var *~. opaque all
@@ -1361,7 +1376,7 @@ fn lower_module_exports() {
     );
 
     // duplicate export
-    assert_lower(
+    assert_lower!(
         "
     module z
         export a, a, a, a, a
@@ -1370,7 +1385,7 @@ fn lower_module_exports() {
     );
 
     // unapplicable mutability
-    assert_lower(
+    assert_lower!(
         "
     module z
         export var a, var b
@@ -1380,7 +1395,7 @@ fn lower_module_exports() {
     );
 
     // duplicate all
-    assert_lower(
+    assert_lower!(
         "
     module z
         export all, all, all
@@ -1390,7 +1405,7 @@ fn lower_module_exports() {
 
 #[test]
 fn lower_field_expr() {
-    assert_lower(
+    assert_lower!(
         "
     module a end a
     a.b
@@ -1398,7 +1413,7 @@ fn lower_field_expr() {
     );
 
     // Missing field name
-    assert_lower(
+    assert_lower!(
         "
     module a end a
     a.
@@ -1408,119 +1423,119 @@ fn lower_field_expr() {
 
 #[test]
 fn lower_set_ty() {
-    assert_lower("type _ : set of boolean");
+    assert_lower!("type _ : set of boolean");
     // should still be present even with missing type
-    assert_lower("type _ : set of ");
+    assert_lower!("type _ : set of ");
     // in storage position
-    assert_lower("var _ : set of boolean");
+    assert_lower!("var _ : set of boolean");
 }
 
 #[test]
 fn lower_deref_expr() {
-    assert_lower("var a : int var _ := ^a ");
-    assert_lower("var a : int var _ := ^(a) ");
-    assert_lower("var a : int var _ := ^ ");
-    assert_lower("var a : int var _ := ^^^^a ");
-    assert_lower("var a : int ^a()");
+    assert_lower!("var a : int var _ := ^a ");
+    assert_lower!("var a : int var _ := ^(a) ");
+    assert_lower!("var a : int var _ := ^ ");
+    assert_lower!("var a : int var _ := ^^^^a ");
+    assert_lower!("var a : int ^a()");
 }
 
 #[test]
 fn lower_pointer_ty() {
     // Both variations
-    assert_lower("type _ : pointer to int");
-    assert_lower("type _ : ^int");
+    assert_lower!("type _ : pointer to int");
+    assert_lower!("type _ : ^int");
 
     // Both variations of unchecked pointer
-    assert_lower("type _ : unchecked ^int");
-    assert_lower("type _ : unchecked pointer to int");
+    assert_lower!("type _ : unchecked ^int");
+    assert_lower!("type _ : unchecked pointer to int");
 
     // Missing ty
-    assert_lower("type _ : pointer to");
-    assert_lower("type _ : ^");
-    assert_lower("type _ : unchecked ^");
-    assert_lower("type _ : unchecked pointer to");
+    assert_lower!("type _ : pointer to");
+    assert_lower!("type _ : ^");
+    assert_lower!("type _ : unchecked ^");
+    assert_lower!("type _ : unchecked pointer to");
 
     // Missing `to`
-    assert_lower("type _ : pointer int");
-    assert_lower("type _ : unchecked pointer int");
+    assert_lower!("type _ : pointer int");
+    assert_lower!("type _ : unchecked pointer int");
 
     // Just unchecked
-    assert_lower("type _ : unchecked int");
+    assert_lower!("type _ : unchecked int");
 }
 
 #[test]
 fn lower_enum_type() {
     // one variant
-    assert_lower("type _ : enum(a)");
+    assert_lower!("type _ : enum(a)");
     // multiple variants
-    assert_lower("type _ : enum(a, b, c, d)");
+    assert_lower!("type _ : enum(a, b, c, d)");
 
     // missing end
-    assert_lower("type _ : enum(a, )");
+    assert_lower!("type _ : enum(a, )");
     // missing middle
-    assert_lower("type _ : enum(a, , d)");
+    assert_lower!("type _ : enum(a, , d)");
     // missing start
-    assert_lower("type _ : enum(, a)");
+    assert_lower!("type _ : enum(, a)");
 
     // no variants
-    assert_lower("type _ : enum(a)");
+    assert_lower!("type _ : enum(a)");
 }
 
 #[test]
 fn lower_constrained_type_sized() {
     // Full range
-    assert_lower("var _ : 1 .. 2");
+    assert_lower!("var _ : 1 .. 2");
     // Missing bits
     // ???: We could support this syntax in the future
-    assert_lower("var _ : .. 2");
-    assert_lower("var _ : 1 ..");
-    assert_lower("var _ : ..");
+    assert_lower!("var _ : .. 2");
+    assert_lower!("var _ : 1 ..");
+    assert_lower!("var _ : ..");
 }
 
 #[test]
 fn lower_constrained_type_unsized() {
     // Valid everything
-    assert_lower("var _ : array 1 .. * of int := init(1, 2, 3)");
+    assert_lower!("var _ : array 1 .. * of int := init(1, 2, 3)");
     // Invalid initializer
-    assert_lower("var _ : array 1 .. * of int := 2");
+    assert_lower!("var _ : array 1 .. * of int := 2");
     // Missing initializer
-    assert_lower("var _ : array 1 .. * of int");
+    assert_lower!("var _ : array 1 .. * of int");
     // Outside of an array
-    assert_lower("var _ : 1 .. *");
-    assert_lower("type _ : 1 .. *");
+    assert_lower!("var _ : 1 .. *");
+    assert_lower!("type _ : 1 .. *");
 }
 
 #[test]
 fn lower_array_types() {
     // One bound
-    assert_lower("type _ : array char of int");
+    assert_lower!("type _ : array char of int");
     // Multiple bounds
-    assert_lower("type _ : array char, boolean, 1..2 of int");
+    assert_lower!("type _ : array char, boolean, 1..2 of int");
     // No bounds
-    assert_lower("type _ : array of int");
+    assert_lower!("type _ : array of int");
 
     // Maybe dyn
-    assert_lower("var _ : array boolean of int");
+    assert_lower!("var _ : array boolean of int");
 
     // Flexible
-    assert_lower("var _ : flexible array 1 .. 0 of int");
+    assert_lower!("var _ : flexible array 1 .. 0 of int");
 }
 
 #[test]
 fn lower_array_types_init_sized() {
     // Init-sized
-    assert_lower("var _ : array 1 .. * of int := init(1)");
+    assert_lower!("var _ : array 1 .. * of int := init(1)");
     // Only 1 init-sized range allowed
-    assert_lower("var _ : array 1 .. *, 1 .. * of int := init(1)");
+    assert_lower!("var _ : array 1 .. *, 1 .. * of int := init(1)");
     // Init-sized range must be the first
     // ranges before
-    assert_lower("var _ : array 1 .. *, char of int := init(1)");
-    assert_lower("var _ : array 1 .. *, char,,char of int := init(1)");
+    assert_lower!("var _ : array 1 .. *, char of int := init(1)");
+    assert_lower!("var _ : array 1 .. *, char,,char of int := init(1)");
     // ranges after
-    assert_lower("var _ : array char, 1 .. * of int := init(1)");
-    assert_lower("var _ : array char,,char, 1 .. * of int := init(1)");
+    assert_lower!("var _ : array char, 1 .. * of int := init(1)");
+    assert_lower!("var _ : array char,,char, 1 .. * of int := init(1)");
     // both
-    assert_lower("var _ : array char, 1 .. *, char of int := init(1)");
+    assert_lower!("var _ : array char, 1 .. *, char of int := init(1)");
 }
 
 #[test]
@@ -1528,39 +1543,39 @@ fn lower_array_types_any_sized() {
     // Same restrictions as init-sized, just in param decl context
 
     // Any-sized
-    assert_lower("type _ : proc uwu(_ : array 1 .. * of int)");
+    assert_lower!("type _ : proc uwu(_ : array 1 .. * of int)");
     // Only 1 any-sized range allowed
-    assert_lower("type _ : proc uwu(_ : array 1 .. *, 1 .. * of int)");
+    assert_lower!("type _ : proc uwu(_ : array 1 .. *, 1 .. * of int)");
     // Any-sized range must be the first
     // ranges before
-    assert_lower("type _ : proc uwu(_ : array 1 .. *, char of int)");
-    assert_lower("type _ : proc uwu(_ : array 1 .. *, char,,char of int)");
+    assert_lower!("type _ : proc uwu(_ : array 1 .. *, char of int)");
+    assert_lower!("type _ : proc uwu(_ : array 1 .. *, char,,char of int)");
     // ranges after
-    assert_lower("type _ : proc uwu(_ : array char, 1 .. * of int)");
-    assert_lower("type _ : proc uwu(_ : array char,,char, 1 .. * of int)");
+    assert_lower!("type _ : proc uwu(_ : array char, 1 .. * of int)");
+    assert_lower!("type _ : proc uwu(_ : array char,,char, 1 .. * of int)");
     // both
-    assert_lower("type _ : proc uwu(_ : array char, 1 .. *, char of int)");
+    assert_lower!("type _ : proc uwu(_ : array char, 1 .. *, char of int)");
 }
 
 #[test]
 fn lower_init_expr() {
     // Ok with non-aggregate types (check deferred to typeck)
-    assert_lower("var _ : int := init(1, 2, 3, 4)");
+    assert_lower!("var _ : int := init(1, 2, 3, 4)");
     // Type spec required (handled by AST validation)
-    assert_lower("var _ := init(1, 2, 3, 4)");
+    assert_lower!("var _ := init(1, 2, 3, 4)");
     // Can't be used outside of a ConstVar decl (handled by AST validation)
-    assert_lower("var a : int a := init(1, 2, 3, 4)");
+    assert_lower!("var a : int a := init(1, 2, 3, 4)");
 }
 
 #[test]
 fn unsupported_external_import() {
-    assert_lower("import()");
+    assert_lower!("import()");
 }
 
 #[test]
 fn lower_import_stmt() {
     // Only lowering import statements
-    assert_lower(
+    assert_lower!(
         "
     var a, b, c : int
     module _
@@ -1569,7 +1584,7 @@ fn lower_import_stmt() {
     );
 
     // const with var
-    assert_lower(
+    assert_lower!(
         "
     var a : int
     module _
@@ -1578,7 +1593,7 @@ fn lower_import_stmt() {
     );
 
     // forward (unsupported)
-    assert_lower(
+    assert_lower!(
         "
     var a : int
     module _
@@ -1587,7 +1602,7 @@ fn lower_import_stmt() {
     );
 
     // In subprograms
-    assert_lower(
+    assert_lower!(
         "
     var a, b, c : int
     proc _
@@ -1596,7 +1611,7 @@ fn lower_import_stmt() {
     );
 
     // const with var
-    assert_lower(
+    assert_lower!(
         "
     var a : int
     proc _
@@ -1605,7 +1620,7 @@ fn lower_import_stmt() {
     );
 
     // forward (unsupported)
-    assert_lower(
+    assert_lower!(
         "
     var a : int
     proc _
@@ -1614,7 +1629,7 @@ fn lower_import_stmt() {
     );
 
     // Duplicate imports (both)
-    assert_lower(
+    assert_lower!(
         "
     var a : int
     proc _
@@ -1622,7 +1637,7 @@ fn lower_import_stmt() {
     end _",
     );
 
-    assert_lower(
+    assert_lower!(
         "
     var a : int
     proc _
@@ -1631,7 +1646,7 @@ fn lower_import_stmt() {
     );
 
     // Importing over something already visible
-    assert_lower(
+    assert_lower!(
         "
     module _
         import _
@@ -1639,7 +1654,7 @@ fn lower_import_stmt() {
     ",
     );
 
-    assert_lower(
+    assert_lower!(
         "
     module *_
         import _
@@ -1653,7 +1668,7 @@ fn intro_import_defs_module() {
     // Introducing defs, from inside a module
 
     // Undeclared
-    assert_lower(
+    assert_lower!(
         "
     module _
         import nothing
@@ -1661,7 +1676,7 @@ fn intro_import_defs_module() {
     );
 
     // Declared, non-pervasive
-    assert_lower(
+    assert_lower!(
         "
     var a_def : int
     module _
@@ -1670,7 +1685,7 @@ fn intro_import_defs_module() {
     );
 
     // Declared, pervasive (errors)
-    assert_lower(
+    assert_lower!(
         "
     var *p_def : int
     module _
@@ -1684,7 +1699,7 @@ fn intro_import_defs_subprogram() {
     // Introducing defs, from inside a subprogram
 
     // Undeclared
-    assert_lower(
+    assert_lower!(
         "
     proc _
         import nothing
@@ -1692,7 +1707,7 @@ fn intro_import_defs_subprogram() {
     );
 
     // Declared, non-pervasive
-    assert_lower(
+    assert_lower!(
         "
     var a_def : int
     proc _
@@ -1701,7 +1716,7 @@ fn intro_import_defs_subprogram() {
     );
 
     // Declared, pervasive (errors)
-    assert_lower(
+    assert_lower!(
         "
     var *p_def : int
     proc _
@@ -1713,7 +1728,7 @@ fn intro_import_defs_subprogram() {
 #[test]
 fn intro_assoc_unqualifieds_module() {
     // Making sure that it works
-    assert_lower(
+    assert_lower!(
         "
 module _
     export ~. waw
@@ -1732,7 +1747,7 @@ end target
 
     // Making sure that we give good error reporting against
     // - over previous import
-    assert_lower(
+    assert_lower!(
         "
 module wrap
     export ~. unquali
@@ -1750,7 +1765,7 @@ end target
     );
 
     // - over previous unqualified import
-    assert_lower(
+    assert_lower!(
         "
 module wrapA
     export ~.a
@@ -1775,7 +1790,7 @@ end target
     );
 
     // - over pervasive
-    assert_lower(
+    assert_lower!(
         "
 module wrap
     export ~. unquali
@@ -1793,7 +1808,7 @@ end target
     );
 
     // - over previously declared
-    assert_lower(
+    assert_lower!(
         "
 module wrap
     export ~. unquali
@@ -1810,7 +1825,7 @@ end uwu
     );
 
     // In the same import
-    assert_lower(
+    assert_lower!(
         "
 module wrap
     export ~. uwu
@@ -1827,7 +1842,7 @@ end target
     );
 
     // being declared over by the same import
-    assert_lower(
+    assert_lower!(
         "
 module wrap
     export ~. unquali
@@ -1846,7 +1861,7 @@ end target
     );
 
     // being declared over by a new unqualified
-    assert_lower(
+    assert_lower!(
         "
 module wrap
     export ~. unquali

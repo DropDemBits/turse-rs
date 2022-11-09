@@ -5,9 +5,11 @@ use toc_reporting::MessageBundle;
 
 use crate::{db::HirAnalysis, test_db::TestDb, ty};
 
-#[track_caller]
-fn assert_lint(source: &str) {
-    insta::assert_snapshot!(insta::internals::AutoName, do_lint(source), source);
+macro_rules! assert_lint {
+    ($source:expr) => {{
+        let source: &str = $source;
+        insta::assert_snapshot!(insta::internals::AutoName, do_lint(source), source);
+    }};
 }
 
 fn do_lint(source: &str) -> String {
@@ -48,7 +50,7 @@ fn lint_impl_limits_string_length() {
         big_charseq.push('a');
     }
 
-    assert_lint(&format!(r#"const a := "{}""#, big_charseq));
+    assert_lint!(&format!(r#"const a := "{}""#, big_charseq));
 }
 
 #[test]
@@ -68,10 +70,10 @@ fn lint_impl_limits_char_length() {
         big_charseq.push('a');
     }
 
-    assert_lint(&format!(r#"const a := '{}'"#, big_charseq));
+    assert_lint!(&format!(r#"const a := '{}'"#, big_charseq));
 }
 
 #[test]
 fn lint_impl_limits_int_value_greater_than() {
-    assert_lint("var k := 16#100000000");
+    assert_lint!("var k := 16#100000000");
 }

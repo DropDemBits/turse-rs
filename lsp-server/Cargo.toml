@@ -8,11 +8,11 @@ edition = "2018"
 
 [dependencies]
 if_chain = "1.0.1"
-lsp-server = "0.5.1"
-lsp-types = "0.91"
+lsp-server = "0.6.0"
+lsp-types = "0.93.2"
 serde_json = "1.0.64"
-tracing = "0.1.35"
-tracing-subscriber = { version = "0.3.15", features = ["env-filter"] }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true, features = ["env-filter"] }
 
 # Local compiler dependencies
 toc_hir = {path = "../compiler/toc_hir"}

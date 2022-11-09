@@ -16,15 +16,15 @@ pub struct Args {
     pub lint: bool,
 
     /// Optionally dump internal data structure info
-    #[clap(long, arg_enum)]
+    #[clap(long, value_enum)]
     pub dump: Option<DumpMode>,
 
     /// Change the reporting format
-    #[clap(long, arg_enum)]
+    #[clap(long, value_enum)]
     pub report_format: Option<ReportFormat>,
 
     /// Set internal logging level
-    #[clap(long, arg_enum)]
+    #[clap(long, value_enum)]
     pub log_level: Option<LogLevel>,
 
     /// File to start compiling from
@@ -32,7 +32,7 @@ pub struct Args {
 }
 
 /// Which data structure to dump
-#[derive(clap::ArgEnum, Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(clap::ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DumpMode {
     /// AST/CST structures (only for the current file)
     Ast,
@@ -43,7 +43,7 @@ pub enum DumpMode {
 }
 
 /// Format for report output
-#[derive(clap::ArgEnum, Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(clap::ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ReportFormat {
     /// CLI report format, with color. This is the default format.
     Cli,
@@ -55,7 +55,7 @@ impl Default for ReportFormat {
     }
 }
 
-#[derive(clap::ArgEnum, Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(clap::ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LogLevel {
     Trace,
     Debug,

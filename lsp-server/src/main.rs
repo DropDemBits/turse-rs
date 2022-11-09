@@ -9,7 +9,7 @@ use lsp_types::{
     TextDocumentItem, TextDocumentSyncCapability, TextDocumentSyncKind,
     VersionedTextDocumentIdentifier,
 };
-use tracing::{debug, info, trace};
+use tracing::{debug, error, info, trace};
 use tracing_subscriber::EnvFilter;
 
 mod state;
@@ -79,8 +79,12 @@ fn handle_request(
     ) -> Option<(RequestId, Kind::Params)> {
         match req.take().unwrap().extract::<Kind::Params>(Kind::METHOD) {
             Ok(value) => Some(value),
-            Err(owned) => {
+            Err(lsp_server::ExtractError::MethodMismatch(owned)) => {
                 *req = Some(owned);
+                None
+            }
+            Err(err @ lsp_server::ExtractError::JsonError { .. }) => {
+                error!("while handling request: {err}");
                 None
             }
         }
@@ -102,8 +106,12 @@ fn handle_notify(
     ) -> Option<Kind::Params> {
         match notify.take().unwrap().extract::<Kind::Params>(Kind::METHOD) {
             Ok(value) => Some(value),
-            Err(owned) => {
+            Err(lsp_server::ExtractError::MethodMismatch(owned)) => {
                 *notify = Some(owned);
+                None
+            }
+            Err(err @ lsp_server::ExtractError::JsonError { .. }) => {
+                error!("while handling notification: {err}");
                 None
             }
         }

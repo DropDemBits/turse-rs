@@ -8,5 +8,6 @@ edition = "2021"
 
 [dependencies]
 if_chain = "1.0.1"
-indexmap = "1.7.0"
+indexmap = { workspace = true }
+itertools = { workspace = true }
 toc_span = { path =  "../toc_span" }

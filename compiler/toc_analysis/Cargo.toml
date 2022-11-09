@@ -13,7 +13,7 @@ toc_reporting = { path = "../toc_reporting" }
 toc_salsa = { path = "../toc_salsa" }
 toc_span = { path = "../toc_span" }
 
-indexmap = "1.7.0"
+indexmap = { workspace = true }
 thiserror = "1.0.24"
 
 [dev-dependencies]

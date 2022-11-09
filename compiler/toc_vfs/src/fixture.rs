@@ -139,15 +139,11 @@ pub fn generate_vfs<DB: HasVfs>(db: &mut DB, source: &str) -> Result<FixtureFile
             Err(LoadError::new(path, ErrorKind::NotFound))
         } else {
             // Rebuild the source!
-            let mut source_lines = source.iter();
-            let mut source = String::new();
-
-            // this is essentially equivalent to itertools::intersperse
-            source.push_str(source_lines.next().unwrap_or(&""));
-            for line in source_lines {
-                source.push('\n');
-                source.push_str(line);
-            }
+            let source =
+                itertools::intersperse(source.iter(), &"\n").fold(String::new(), |mut a, b| {
+                    a.push_str(b);
+                    a
+                });
 
             Ok(LoadStatus::Modified(source.into()))
         };
