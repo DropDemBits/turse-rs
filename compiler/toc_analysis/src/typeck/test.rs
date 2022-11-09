@@ -10,6 +10,13 @@ use crate::{
     test_db::TestDb,
 };
 
+macro_rules! assert_typecheck {
+    ($source:expr) => {
+        let source: &str = $source;
+        insta::assert_snapshot!(::insta::internals::AutoName, do_typecheck(source), source);
+    };
+}
+
 macro_rules! test_for_each_op {
     ($top_level_name:ident, $([$(($op:literal, $sub_name:ident)),+ $(,)?] => $source:literal),+ $(,)?) => {
         $(::paste::paste! {
@@ -17,7 +24,7 @@ macro_rules! test_for_each_op {
                 #[test]
                 fn [<$top_level_name _ $sub_name>]() {
                     let source = format!($source, $op);
-                    assert_typecheck(&source);
+                    assert_typecheck!(&source);
                 }
             )+
         })+
@@ -30,16 +37,11 @@ macro_rules! test_named_group {
             $(
                 #[test]
                 fn [<$top_level_name _ $sub_name>]() {
-                    assert_typecheck(&::unindent::unindent($source));
+                    assert_typecheck!(&::unindent::unindent($source));
                 }
             )+
         }
     }
-}
-
-#[track_caller]
-fn assert_typecheck(source: &str) {
-    insta::assert_snapshot!(insta::internals::AutoName, do_typecheck(source), source);
 }
 
 fn do_typecheck(source: &str) -> String {
@@ -84,32 +86,32 @@ fn stringify_typeck_results(
 }
 #[test]
 fn var_decl_type_spec() {
-    assert_typecheck(r#"var k : string"#);
+    assert_typecheck!(r#"var k : string"#);
 }
 
 #[test]
 fn var_decl_inference() {
-    assert_typecheck(r#"var k := "oeuf""#);
-    assert_typecheck(r#"var k := 'oe'"#);
-    assert_typecheck(r#"var k := 'o'"#);
+    assert_typecheck!(r#"var k := "oeuf""#);
+    assert_typecheck!(r#"var k := 'oe'"#);
+    assert_typecheck!(r#"var k := 'o'"#);
 }
 
 #[test]
 fn var_decl_init_typecheck() {
-    assert_typecheck(r#"var k : string := "oeuf""#);
+    assert_typecheck!(r#"var k : string := "oeuf""#);
 }
 
 #[test]
 fn bare_var_decl() {
-    assert_typecheck("var k k := 3");
+    assert_typecheck!("var k k := 3");
     // should yell about this
-    assert_typecheck("const k k := 3");
+    assert_typecheck!("const k k := 3");
 }
 
 #[test]
 fn typecheck_error_prop() {
     // Only one error should be reported, propagated error suppresses the rest
-    assert_typecheck(&unindent(
+    assert_typecheck!(&unindent(
         r#"
     var a : int
     var b : string
@@ -122,17 +124,17 @@ fn typecheck_error_prop() {
 #[test]
 fn typecheck_missing_exprs() {
     // Be resilient against missing expressions
-    assert_typecheck("const ke : int := ()");
+    assert_typecheck!("const ke : int := ()");
 
-    assert_typecheck("get ()");
+    assert_typecheck!("get ()");
 
-    assert_typecheck("begin var aaaa : int bind aaaa to end");
+    assert_typecheck!("begin var aaaa : int bind aaaa to end");
 }
 
 #[test]
 fn block_stmt_check() {
     // Check inside block stmts
-    assert_typecheck(r#"begin var k : char := 'baz' end"#);
+    assert_typecheck!(r#"begin var k : char := 'baz' end"#);
 }
 
 // Typecheck basic ops

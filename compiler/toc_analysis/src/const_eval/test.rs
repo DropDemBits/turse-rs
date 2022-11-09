@@ -10,24 +10,28 @@ use unindent::unindent;
 
 use crate::{const_eval::Const, db::ConstEval, test_db::TestDb, ty};
 
-#[track_caller]
-fn assert_const_eval(source: &str) {
-    insta::assert_snapshot!(insta::internals::AutoName, do_const_eval(source), source);
+macro_rules! assert_const_eval {
+    ($source:expr $(,)?) => {{
+        let source: &str = $source;
+        insta::assert_snapshot!(insta::internals::AutoName, do_const_eval(source), source);
+    }};
 }
 
-/// Expr version
-#[track_caller]
-fn assert_const_eval_expr(expr: &str) {
-    let source = format!("const _ := {expr}");
-    insta::assert_snapshot!(insta::internals::AutoName, do_const_eval(&source), expr);
+// Expr version
+macro_rules! assert_const_eval_expr {
+    ($e:expr $(,)?) => {{
+        let expr: &str = $e;
+        let source = format!("const _ := {expr}");
+        insta::assert_snapshot!(insta::internals::AutoName, do_const_eval(&source), expr);
+    }};
 }
 
 macro_rules! for_all_const_exprs {
     (setup: $setup:literal $($src:literal)+) => {
-        $(assert_const_eval(concat!($setup, " const _ := ", $src));)+
+        $(assert_const_eval!(concat!($setup, " const _ := ", $src));)+
     };
     ($($src:literal)+) => {
-        $(assert_const_eval_expr($src);)+
+        $(assert_const_eval_expr!($src);)+
     };
 }
 
@@ -117,7 +121,7 @@ fn stringify_const_eval_results(results: &str, messages: MessageBundle) -> Strin
 
 #[test]
 fn complex_arithmetic_expr() {
-    assert_const_eval_expr("1 + 2 * 3 div 3 - 4 + 5");
+    assert_const_eval_expr!("1 + 2 * 3 div 3 - 4 + 5");
 }
 
 #[test]
@@ -478,7 +482,7 @@ fn real_promotion() {
 
 #[test]
 fn const_local_var_lookup() {
-    assert_const_eval_expr(&unindent(
+    assert_const_eval_expr!(&unindent(
         r#"
     const a := 1
     const b := a + 1
@@ -489,7 +493,7 @@ fn const_local_var_lookup() {
 
 #[test]
 fn const_unqualified_export_var_lookup() {
-    assert_const_eval_expr(&unindent(
+    assert_const_eval_expr!(&unindent(
         "
     module z
         export ~.a
@@ -742,7 +746,7 @@ fn error_equality_wrong_types() {
 #[test]
 fn error_no_const_expr() {
     // Referencing a runtime-evaluated var
-    assert_const_eval(&unindent(
+    assert_const_eval!(&unindent(
         r#"
     var a := 1
     const b := a
@@ -750,7 +754,7 @@ fn error_no_const_expr() {
     ));
 
     // Referencing a runtime-evaluated const
-    assert_const_eval(&unindent(
+    assert_const_eval!(&unindent(
         r#"
     var a := 1
     const b := a
@@ -759,7 +763,7 @@ fn error_no_const_expr() {
     ));
 
     // Referencing a type
-    assert_const_eval(&unindent(
+    assert_const_eval!(&unindent(
         r#"
     type a : int
     const b := a
@@ -767,13 +771,13 @@ fn error_no_const_expr() {
     ));
 
     // Referencing an undeclared def
-    assert_const_eval("const b := a");
+    assert_const_eval!("const b := a");
 
     // Using a missing expression
-    assert_const_eval("const b := ()");
+    assert_const_eval!("const b := ()");
 
     // Referencing an unresolved import
-    assert_const_eval(
+    assert_const_eval!(
         "
     module base
         export ~. tail
@@ -789,7 +793,7 @@ fn error_no_const_expr() {
     // Referencing `self`
     // TODO: Uncomment when `self` is lowered again
     /*
-    assert_const_eval(&unindent(
+    assert_const_eval!(&unindent(
         r#"
     const a := self
     "#,
@@ -801,7 +805,7 @@ fn error_no_const_expr() {
 fn error_outside_range_nat() {
     // FIXME: Uncomment large values once we support 64-bit literals
     // nat1
-    assert_const_eval(&unindent(
+    assert_const_eval!(&unindent(
         "
         const v0 : nat1 := -1
         const v1 : nat1 := 0
@@ -814,7 +818,7 @@ fn error_outside_range_nat() {
     ",
     ));
     // nat2
-    assert_const_eval(&unindent(
+    assert_const_eval!(&unindent(
         "
         const v0 : nat2 := -1
         const v1 : nat2 := 0
@@ -827,7 +831,7 @@ fn error_outside_range_nat() {
     ",
     ));
     // nat4
-    assert_const_eval(&unindent(
+    assert_const_eval!(&unindent(
         "
         const v0 : nat4 := -1
         const v1 : nat4 := 0
@@ -840,7 +844,7 @@ fn error_outside_range_nat() {
     ",
     ));
     // nat
-    assert_const_eval(&unindent(
+    assert_const_eval!(&unindent(
         "
         const v0 : nat := -1
         const v1 : nat := 0
@@ -853,7 +857,7 @@ fn error_outside_range_nat() {
     ",
     ));
     // addrint
-    assert_const_eval(&unindent(
+    assert_const_eval!(&unindent(
         "
         const v0 : addressint := -1
         const v1 : addressint := 0
@@ -871,7 +875,7 @@ fn error_outside_range_nat() {
 fn error_outside_range_int() {
     // FIXME: Uncomment large values once we support 64-bit literals
     // int1
-    assert_const_eval(&unindent(
+    assert_const_eval!(&unindent(
         "
         const v0 : int1 := -16#81
         const v1 : int1 := -16#80
@@ -884,7 +888,7 @@ fn error_outside_range_int() {
     ",
     ));
     // int2
-    assert_const_eval(&unindent(
+    assert_const_eval!(&unindent(
         "
         const v0 : int2 := -16#8001
         const v1 : int2 := -16#8000
@@ -897,7 +901,7 @@ fn error_outside_range_int() {
     ",
     ));
     // int4
-    assert_const_eval(&unindent(
+    assert_const_eval!(&unindent(
         "
         %const v0 : int4 := -16#80000001
         const v1 : int4 := -16#80000000
@@ -910,7 +914,7 @@ fn error_outside_range_int() {
     ",
     ));
     // int
-    assert_const_eval(&unindent(
+    assert_const_eval!(&unindent(
         "
         const v0 : int := -16#80000000
         const v1 : int := -16#7fffffff
@@ -927,32 +931,32 @@ fn error_outside_range_int() {
 #[test]
 fn error_outside_range_constrained() {
     // int
-    assert_const_eval("const a : 1 .. 2 := 1 const _:=a");
-    assert_const_eval("const a : 1 .. 2 := 2 const _:=a");
-    assert_const_eval("const a : 1 .. 2 := 3 const _:=a");
+    assert_const_eval!("const a : 1 .. 2 := 1 const _:=a");
+    assert_const_eval!("const a : 1 .. 2 := 2 const _:=a");
+    assert_const_eval!("const a : 1 .. 2 := 3 const _:=a");
 
     // boolean
-    assert_const_eval("const a : false .. false := false const _:=a");
-    assert_const_eval("const a : false .. false := true  const _:=a");
+    assert_const_eval!("const a : false .. false := false const _:=a");
+    assert_const_eval!("const a : false .. false := true  const _:=a");
 
     // char
-    assert_const_eval("const a : 'a' .. 'b' := 'a' const _:=a");
-    assert_const_eval("const a : 'a' .. 'b' := 'b' const _:=a");
-    assert_const_eval("const a : 'a' .. 'b' := 'c' const _:=a");
+    assert_const_eval!("const a : 'a' .. 'b' := 'a' const _:=a");
+    assert_const_eval!("const a : 'a' .. 'b' := 'b' const _:=a");
+    assert_const_eval!("const a : 'a' .. 'b' := 'c' const _:=a");
     // coerced
-    assert_const_eval(r#"const a : 'a' .. 'b' := "a" const _:=a"#);
-    assert_const_eval(r#"const c : char(1) := 'a' const a : 'a' .. 'b' := c const_:=a"#);
+    assert_const_eval!(r#"const a : 'a' .. 'b' := "a" const _:=a"#);
+    assert_const_eval!(r#"const c : char(1) := 'a' const a : 'a' .. 'b' := c const_:=a"#);
 
     // enum variants
-    assert_const_eval("type e : enum(a, b, c) const a : e.a .. e.b := e.a const _:=a");
-    assert_const_eval("type e : enum(a, b, c) const a : e.a .. e.b := e.b const _:=a");
-    assert_const_eval("type e : enum(a, b, c) const a : e.a .. e.b := e.c const _:=a");
+    assert_const_eval!("type e : enum(a, b, c) const a : e.a .. e.b := e.a const _:=a");
+    assert_const_eval!("type e : enum(a, b, c) const a : e.a .. e.b := e.b const _:=a");
+    assert_const_eval!("type e : enum(a, b, c) const a : e.a .. e.b := e.c const _:=a");
 }
 
 #[test]
 fn error_propagation() {
     // Propagation of errors
-    assert_const_eval(&unindent(
+    assert_const_eval!(&unindent(
         r#"
     const a := 1 div 0
     const b := a
@@ -962,13 +966,13 @@ fn error_propagation() {
 
 #[test]
 fn error_negative_int_exp() {
-    assert_const_eval_expr("2 ** -1");
+    assert_const_eval_expr!("2 ** -1");
 }
 
 #[test]
 fn error_negative_int_shift() {
-    assert_const_eval_expr("2 shl -1");
-    assert_const_eval_expr("2 shr -1");
+    assert_const_eval_expr!("2 shl -1");
+    assert_const_eval_expr!("2 shr -1");
 }
 
 #[test]
@@ -999,12 +1003,12 @@ fn error_charseq_too_big() {
 
     // char, charN
     let almost_slice = &big_charseq[..big_charseq.len() - 1];
-    assert_const_eval_expr(&format!("'a'+'{almost_slice}'"));
+    assert_const_eval_expr!(&format!("'a'+'{almost_slice}'"));
     // charN, char
-    assert_const_eval_expr(&format!("'{almost_slice}'+'a'"));
+    assert_const_eval_expr!(&format!("'{almost_slice}'+'a'"));
     // charN, charN
     let (left, right) = big_charseq.split_at(mid);
-    assert_const_eval_expr(&format!("'{left}'+'{right}'"));
+    assert_const_eval_expr!(&format!("'{left}'+'{right}'"));
 }
 
 #[test]
@@ -1026,9 +1030,9 @@ fn error_string_too_big() {
 
     // char, string
     let almost_slice = &big_charseq[..big_charseq.len() - 1];
-    assert_const_eval_expr(&format!(r#"'a'+"{}""#, almost_slice));
+    assert_const_eval_expr!(&format!(r#"'a'+"{}""#, almost_slice));
     // string, char
-    assert_const_eval_expr(&format!(r#""{}"+'a'"#, almost_slice));
+    assert_const_eval_expr!(&format!(r#""{}"+'a'"#, almost_slice));
 
     let mid = {
         // Skip towards a char
@@ -1040,54 +1044,54 @@ fn error_string_too_big() {
     };
     // string, charN
     let (left, right) = big_charseq.split_at(mid);
-    assert_const_eval_expr(&format!(r#""{}"+'{}'"#, left, right));
+    assert_const_eval_expr!(&format!(r#""{}"+'{}'"#, left, right));
     // charN, string
-    assert_const_eval_expr(&format!(r#"'{}'+"{}""#, left, right));
+    assert_const_eval_expr!(&format!(r#"'{}'+"{}""#, left, right));
     // string, string
-    assert_const_eval_expr(&format!(r#""{}"+"{}""#, left, right));
+    assert_const_eval_expr!(&format!(r#""{}"+"{}""#, left, right));
 }
 
 #[test]
 fn error_no_fields_enum() {
     // At least one variant
-    assert_const_eval("type e : enum(a) const _ := e.o");
+    assert_const_eval!("type e : enum(a) const _ := e.o");
     // No variants
-    assert_const_eval("type e : enum() const _ := e.o");
+    assert_const_eval!("type e : enum() const _ := e.o");
 }
 
 #[test]
 fn error_no_fields_other() {
-    assert_const_eval("const a := 1 const _ := a.o");
+    assert_const_eval!("const a := 1 const _ := a.o");
 }
 
 #[test]
 fn restrict_assign_type() {
     // Assignment type restriction is only checked on const use (for eval only)
     // Boolean is assignable into boolean
-    assert_const_eval(r#"const a : boolean := false const _:=a"#);
+    assert_const_eval!(r#"const a : boolean := false const _:=a"#);
     // Integer is not assignable into boolean
-    assert_const_eval(r#"const a : boolean := 1 const _:=a"#);
+    assert_const_eval!(r#"const a : boolean := 1 const _:=a"#);
     // Real is not assignable into boolean
-    assert_const_eval(r#"const a : boolean := 1.0 const _:=a"#);
+    assert_const_eval!(r#"const a : boolean := 1.0 const _:=a"#);
 
     // Boolean is not assignable into integers
-    assert_const_eval(r#"const a : int := false const _:=a"#);
+    assert_const_eval!(r#"const a : int := false const _:=a"#);
     // Integer is assignable into integer
-    assert_const_eval(r#"const a : int := 1 const _:=a"#);
+    assert_const_eval!(r#"const a : int := 1 const _:=a"#);
     // Real is not assignable into integers
-    assert_const_eval(r#"const a : int := 1.0 const _:=a"#);
+    assert_const_eval!(r#"const a : int := 1.0 const _:=a"#);
 
     // Boolean is not assignable into real
-    assert_const_eval(r#"const a : real := false const _:=a"#);
+    assert_const_eval!(r#"const a : real := false const _:=a"#);
     // Integers are assignable into reals (promoted)
-    assert_const_eval(r#"const a : real := 1 const _:=a"#);
+    assert_const_eval!(r#"const a : real := 1 const _:=a"#);
     // Real is assignable into real
-    assert_const_eval(r#"const a : real := 1.0 const _:=a"#);
+    assert_const_eval!(r#"const a : real := 1.0 const _:=a"#);
 
     // String into char is only allowed for strings of length 1
-    assert_const_eval(r#"const a : char := "a" const _:=a"#);
+    assert_const_eval!(r#"const a : char := "a" const _:=a"#);
     // Not allowed
-    assert_const_eval(r#"const a : char := "aa" const _:=a"#);
+    assert_const_eval!(r#"const a : char := "aa" const _:=a"#);
 }
 
 #[test]
@@ -1101,7 +1105,7 @@ fn supported_values() {
         r#"'fun times'"#
         r#"'e'"#
     ];
-    assert_const_eval(&unindent(
+    assert_const_eval!(&unindent(
         "
     type u : enum(wu)
     const _ := u.wu",
@@ -1119,7 +1123,7 @@ fn unsupported_ops() {
 #[test]
 fn poke_aliases() {
     // Aliases should be poked during evaluation
-    assert_const_eval(&unindent(
+    assert_const_eval!(&unindent(
         "
     type a : int
     type b : int
@@ -1129,7 +1133,7 @@ fn poke_aliases() {
     ",
     ));
 
-    assert_const_eval(&unindent(
+    assert_const_eval!(&unindent(
         "
         type a : 1 .. 2
         const k : a := 3
