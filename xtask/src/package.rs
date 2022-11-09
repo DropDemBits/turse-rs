@@ -3,7 +3,8 @@
 use std::fs;
 
 use super::project_root;
-use xshell::{cmd, pushd};
+use anyhow::Context;
+use xshell::{cmd, Shell};
 
 pub fn do_package() -> anyhow::Result<()> {
     package_server()?;
@@ -13,10 +14,16 @@ pub fn do_package() -> anyhow::Result<()> {
 }
 
 fn package_server() -> anyhow::Result<()> {
+    let sh = Shell::new().context("failed to create the shell")?;
+
     let manifest_path = project_root().join("Cargo.toml");
 
     // Build server binary
-    cmd!("cargo build --release --bin toc-lsp-server --manifest-path {manifest_path}").run()?;
+    cmd!(
+        sh,
+        "cargo build --release --bin toc-lsp-server --manifest-path {manifest_path}"
+    )
+    .run()?;
 
     let binary = project_root()
         .join("target/release")
@@ -31,14 +38,15 @@ fn package_server() -> anyhow::Result<()> {
 }
 
 fn package_client() -> anyhow::Result<()> {
-    let _dir = pushd("./lsp-client/vscode")?;
+    let sh = Shell::new().context("failed to create the shell")?;
+    let _dir = sh.push_dir("./lsp-client/vscode");
 
     if cfg!(target_os = "windows") {
-        cmd!("cmd /c npm ci").run()?;
-        cmd!("cmd /c npx vsce package").run()?;
+        cmd!(sh, "cmd /c npm ci").run()?;
+        cmd!(sh, "cmd /c npx vsce package").run()?;
     } else {
-        cmd!("npm ci").run()?;
-        cmd!("npx vsce package").run()?;
+        cmd!(sh, "npm ci").run()?;
+        cmd!(sh, "npx vsce package").run()?;
     }
 
     Ok(())

@@ -6,7 +6,7 @@ use anyhow::{Context, Result};
 use heck::ToSnakeCase;
 use lowering::LoweredGrammar;
 use quote::{format_ident, quote};
-use xshell::cmd;
+use xshell::{cmd, Shell};
 
 use crate::codegen::lowering::Variant;
 
@@ -14,6 +14,8 @@ use super::project_root;
 use lowering::ChildKind;
 
 pub fn do_codegen() -> Result<()> {
+    let sh = Shell::new().context("failed to create the shell")?;
+
     let grammar = project_root().join("compiler/toc_syntax/parsed_turing.ungram");
     let out_dir = project_root().join("compiler/toc_syntax/src/");
 
@@ -24,15 +26,18 @@ pub fn do_codegen() -> Result<()> {
     let contents = generate_nodes(&lowered);
 
     // check for rustfmt
-    cmd!("rustfmt --version")
-        .echo_cmd(false)
+    cmd!(sh, "rustfmt --version")
+        .quiet()
         .run()
         .context("failed to run rustfmt")?;
 
-    let formatted = cmd!("rustfmt --config fn_single_line=true --config max_width=120")
-        .stdin(contents)
-        .output()?
-        .stdout;
+    let formatted = cmd!(
+        sh,
+        "rustfmt --config fn_single_line=true --config max_width=120"
+    )
+    .stdin(contents)
+    .output()?
+    .stdout;
 
     let header = unindent::unindent_bytes(
         "
