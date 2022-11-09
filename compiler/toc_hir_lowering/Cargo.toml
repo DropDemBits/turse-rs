@@ -13,7 +13,7 @@ toc_hir = { path = "../toc_hir" }
 toc_reporting = { path = "../toc_reporting" }
 toc_span = { path = "../toc_span" }
 
-indexmap = "1"
+indexmap = { workspace = true }
 
 [dev-dependencies]
 toc_salsa = { path = "../toc_salsa" }

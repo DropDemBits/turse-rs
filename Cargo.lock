@@ -1278,6 +1278,7 @@ version = "0.1.0"
 dependencies = [
  "if_chain",
  "indexmap",
+ "itertools",
  "toc_span",
 ]
 

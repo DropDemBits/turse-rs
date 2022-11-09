@@ -8,6 +8,6 @@ edition = "2021"
 [dependencies]
 toc_span = { path = "../toc_span" }
 
-indexmap = "1"
+indexmap = { workspace = true }
 petgraph = { version = "0.6.0", default-features = false, features = ["stable_graph"] }
 
