@@ -6,13 +6,13 @@ use toc_span::{FileId, Span};
 use toc_syntax::{
     ast,
     ast::{AstNode, ExternalItemOwner},
-    SyntaxNode,
+    AstPtr, SyntaxNode,
 };
 
 /// What other file sources a given file depends on
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct FileDepends {
-    depends: Arc<Vec<Dependency>>,
+    depends: Vec<Dependency>,
 }
 
 impl FileDepends {
@@ -21,8 +21,12 @@ impl FileDepends {
     }
 }
 
+pub type ExternalLink = AstPtr<ast::ExternalRef>;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Dependency {
+    pub link_from: ExternalLink,
+
     pub kind: DependencyKind,
     pub relative_path: String,
 }
@@ -37,7 +41,10 @@ pub enum DependencyKind {
     Import,
 }
 
-pub(crate) fn gather_dependencies(file: FileId, syntax: SyntaxNode) -> CompileResult<FileDepends> {
+pub(crate) fn gather_dependencies(
+    file: FileId,
+    syntax: SyntaxNode,
+) -> CompileResult<Arc<FileDepends>> {
     let mut messages = toc_reporting::MessageSink::new();
     let mut dependencies = vec![];
 
@@ -66,17 +73,21 @@ pub(crate) fn gather_dependencies(file: FileId, syntax: SyntaxNode) -> CompileRe
     let external_deps = external_items
         .into_iter()
         .filter_map(|item| {
-            if let Some(path) = item.path() {
+            let path = if let Some(path) = item.path() {
                 // From the given path
-                extract_relative_path(path, file, &mut messages)
+                extract_relative_path(path, file, &mut messages)?
             } else {
                 // From the item name
                 item.name()
                     .and_then(|name| name.identifier_token())
-                    .map(|ident| ident.text().to_string())
-            }
+                    .map(|ident| ident.text().to_string())?
+            };
+
+            let link_from = AstPtr::new(&ast::ExternalRef::ExternalItem(item));
+            Some((path, link_from))
         })
-        .map(|relative_path| Dependency {
+        .map(|(relative_path, link_from)| Dependency {
+            link_from,
             kind: DependencyKind::Import,
             relative_path,
         });
@@ -85,23 +96,27 @@ pub(crate) fn gather_dependencies(file: FileId, syntax: SyntaxNode) -> CompileRe
 
     // Gather include stmts
     for node in root.syntax().descendants() {
-        let include_path = ast::PPInclude::cast(node)
-            .and_then(|node| node.path())
-            .and_then(|path| extract_relative_path(path, file, &mut messages));
+        let Some(include) = ast::PPInclude::cast(node) else { continue; };
+        let Some(path) = include.path()
+            .and_then(|path| extract_relative_path(path, file, &mut messages))
+        else {
+            continue;
+        };
 
-        if let Some(path) = include_path {
-            dependencies.push(Dependency {
-                kind: DependencyKind::Include,
-                relative_path: path,
-            });
-        }
+        let link_from = AstPtr::new(&ast::ExternalRef::PPInclude(include));
+
+        dependencies.push(Dependency {
+            link_from,
+            kind: DependencyKind::Include,
+            relative_path: path,
+        });
     }
 
     let dependencies = FileDepends {
-        depends: Arc::new(dependencies),
+        depends: dependencies,
     };
 
-    CompileResult::new(dependencies, messages.finish())
+    CompileResult::new(Arc::new(dependencies), messages.finish())
 }
 
 fn extract_relative_path(
@@ -110,9 +125,8 @@ fn extract_relative_path(
     messages: &mut MessageSink,
 ) -> Option<String> {
     let (value, errors) = path.literal().unwrap();
-    let relative_path = if let toc_syntax::LiteralValue::String(path) = value {
-        path
-    } else {
+    let toc_syntax::LiteralValue::String(relative_path) = value
+    else {
         // Always defined as a string literal value
         unreachable!()
     };
@@ -141,17 +155,18 @@ fn extract_relative_path(
 mod test {
     use super::*;
 
-    fn get_deps(source: &str) -> CompileResult<FileDepends> {
+    fn get_deps(source: &str) -> CompileResult<(Arc<FileDepends>, SyntaxNode)> {
         let file_id = FileId::new_testing(1).unwrap();
         let parsed = crate::parse(file_id, source);
         gather_dependencies(file_id, parsed.result().syntax())
+            .map(|deps| (deps, parsed.result().syntax()))
     }
 
     #[test]
     fn gather_no_deps() {
         let depend_res = get_deps(r#"moot"#);
-        let dependencies = depend_res.result().dependencies();
-        assert!(dependencies.is_empty());
+        let (file_deps, _) = depend_res.result();
+        assert!(file_deps.dependencies().is_empty());
     }
 
     #[test]
@@ -163,60 +178,67 @@ mod test {
     include 'bad!' % Invalid include stmt
     "#,
         );
-        let dependencies = depend_res.result().dependencies();
+        let (file_deps, root) = depend_res.result();
+        let dependencies = file_deps.dependencies();
 
         assert!(!dependencies.is_empty());
+
+        assert!(matches!(
+            dependencies[0].link_from.to_node(root),
+            ast::ExternalRef::PPInclude(_)
+        ));
+        assert_eq!(dependencies[0].kind, DependencyKind::Include);
         assert_eq!(
-            dependencies[0],
-            Dependency {
-                kind: DependencyKind::Include,
-                relative_path: "\u{D2}\u{77}\u{D3}_whats_this".to_string()
-            }
+            dependencies[0].relative_path,
+            "\u{D2}\u{77}\u{D3}_whats_this"
         );
-        assert_eq!(
-            dependencies[1],
-            Dependency {
-                kind: DependencyKind::Include,
-                relative_path: "me_time".to_string()
-            }
-        );
+
+        assert!(matches!(
+            dependencies[1].link_from.to_node(root),
+            ast::ExternalRef::PPInclude(_)
+        ));
+        assert_eq!(dependencies[1].kind, DependencyKind::Include);
+        assert_eq!(dependencies[1].relative_path, "me_time");
+
         assert_eq!(dependencies.get(2), None);
     }
 
     #[test]
     fn gather_main_imports() {
         let depend_res = get_deps(r#"import "a", name, and_ in "external_place""#);
-        let dependencies = depend_res.result().dependencies();
+        let (file_deps, root) = depend_res.result();
+        let dependencies = file_deps.dependencies();
 
         assert!(!dependencies.is_empty());
-        assert_eq!(
-            dependencies[0],
-            Dependency {
-                kind: DependencyKind::Import,
-                relative_path: "a".to_string()
-            }
-        );
-        assert_eq!(
-            dependencies[1],
-            Dependency {
-                kind: DependencyKind::Import,
-                relative_path: "name".to_string()
-            }
-        );
-        assert_eq!(
-            dependencies[2],
-            Dependency {
-                kind: DependencyKind::Import,
-                relative_path: "external_place".to_string()
-            }
-        );
+
+        assert!(matches!(
+            dependencies[0].link_from.to_node(root),
+            ast::ExternalRef::ExternalItem(_)
+        ));
+        assert_eq!(dependencies[0].kind, DependencyKind::Import);
+        assert_eq!(dependencies[0].relative_path, "a");
+
+        assert!(matches!(
+            dependencies[1].link_from.to_node(root),
+            ast::ExternalRef::ExternalItem(_)
+        ));
+        assert_eq!(dependencies[1].kind, DependencyKind::Import);
+        assert_eq!(dependencies[1].relative_path, "name");
+
+        assert!(matches!(
+            dependencies[2].link_from.to_node(root),
+            ast::ExternalRef::ExternalItem(_)
+        ));
+        assert_eq!(dependencies[2].kind, DependencyKind::Import);
+        assert_eq!(dependencies[2].relative_path, "external_place");
     }
 
     #[test]
     fn gather_no_deps_with_module() {
         // Module is not the root module
         let depend_res = get_deps(r#"module b import c end b"#);
-        let dependencies = depend_res.result().dependencies();
+        let (file_deps, _root) = depend_res.result();
+        let dependencies = file_deps.dependencies();
         assert!(dependencies.is_empty());
     }
 
@@ -233,36 +255,37 @@ mod test {
         export e
     end b"#,
         );
-        let dependencies = depend_res.result().dependencies();
+        let (file_deps, root) = depend_res.result();
+        let dependencies = file_deps.dependencies();
 
-        assert_eq!(
-            dependencies[0],
-            Dependency {
-                kind: DependencyKind::Import,
-                relative_path: "a".to_string()
-            }
-        );
-        assert_eq!(
-            dependencies[1],
-            Dependency {
-                kind: DependencyKind::Import,
-                relative_path: "b".to_string()
-            }
-        );
-        assert_eq!(
-            dependencies[2],
-            Dependency {
-                kind: DependencyKind::Import,
-                relative_path: "c".to_string()
-            }
-        );
-        assert_eq!(
-            dependencies[3],
-            Dependency {
-                kind: DependencyKind::Import,
-                relative_path: "d".to_string()
-            }
-        );
+        assert!(matches!(
+            dependencies[0].link_from.to_node(root),
+            ast::ExternalRef::ExternalItem(_)
+        ));
+        assert_eq!(dependencies[0].kind, DependencyKind::Import);
+        assert_eq!(dependencies[0].relative_path, "a");
+
+        assert!(matches!(
+            dependencies[1].link_from.to_node(root),
+            ast::ExternalRef::ExternalItem(_)
+        ));
+        assert_eq!(dependencies[1].kind, DependencyKind::Import);
+        assert_eq!(dependencies[1].relative_path, "b");
+
+        assert!(matches!(
+            dependencies[2].link_from.to_node(root),
+            ast::ExternalRef::ExternalItem(_)
+        ));
+        assert_eq!(dependencies[2].kind, DependencyKind::Import);
+        assert_eq!(dependencies[2].relative_path, "c");
+
+        assert!(matches!(
+            dependencies[3].link_from.to_node(root),
+            ast::ExternalRef::ExternalItem(_)
+        ));
+        assert_eq!(dependencies[3].kind, DependencyKind::Import);
+        assert_eq!(dependencies[3].relative_path, "d");
+
         assert_eq!(dependencies.get(4), None);
     }
 
@@ -274,37 +297,38 @@ mod test {
     include "bob"
     "#,
         );
-        let dependencies = depend_res.result().dependencies();
+        let (file_deps, root) = depend_res.result();
+        let dependencies = file_deps.dependencies();
 
         assert!(!dependencies.is_empty());
-        assert_eq!(
-            dependencies[0],
-            Dependency {
-                kind: DependencyKind::Import,
-                relative_path: "a".to_string()
-            }
-        );
-        assert_eq!(
-            dependencies[1],
-            Dependency {
-                kind: DependencyKind::Import,
-                relative_path: "name".to_string()
-            }
-        );
-        assert_eq!(
-            dependencies[2],
-            Dependency {
-                kind: DependencyKind::Import,
-                relative_path: "external_place".to_string()
-            }
-        );
-        assert_eq!(
-            dependencies[3],
-            Dependency {
-                kind: DependencyKind::Include,
-                relative_path: "bob".to_string()
-            }
-        );
+
+        assert_eq!(dependencies[0].relative_path, "a");
+        assert!(matches!(
+            dependencies[0].link_from.to_node(root),
+            ast::ExternalRef::ExternalItem(_)
+        ));
+        assert_eq!(dependencies[0].kind, DependencyKind::Import);
+
+        assert_eq!(dependencies[1].relative_path, "name");
+        assert!(matches!(
+            dependencies[1].link_from.to_node(root),
+            ast::ExternalRef::ExternalItem(_)
+        ));
+        assert_eq!(dependencies[1].kind, DependencyKind::Import);
+
+        assert_eq!(dependencies[2].relative_path, "external_place");
+        assert!(matches!(
+            dependencies[2].link_from.to_node(root),
+            ast::ExternalRef::ExternalItem(_)
+        ));
+        assert_eq!(dependencies[2].kind, DependencyKind::Import);
+
+        assert_eq!(dependencies[3].relative_path, "bob");
+        assert!(matches!(
+            dependencies[3].link_from.to_node(root),
+            ast::ExternalRef::PPInclude(_)
+        ));
+        assert_eq!(dependencies[3].kind, DependencyKind::Include);
     }
 
     #[test]
@@ -315,9 +339,10 @@ mod test {
     include "k\!"
     "#,
         );
-        let dependencies = depend_res.result().dependencies();
+        let (file_deps, _) = depend_res.result();
+        let dependencies = file_deps.dependencies();
 
-        assert!(dependencies.is_empty(), "{:?}", dependencies);
+        assert!(dependencies.is_empty(), "{dependencies:?}");
         eprintln!("{:?}", depend_res.messages())
     }
 }

@@ -1099,6 +1099,7 @@ dependencies = [
  "toc_salsa",
  "toc_source_graph",
  "toc_span",
+ "toc_syntax",
  "toc_validate",
  "toc_vfs",
  "toc_vfs_db",
@@ -1239,6 +1240,7 @@ dependencies = [
  "indexmap",
  "petgraph",
  "toc_span",
+ "toc_syntax",
 ]
 
 [[package]]

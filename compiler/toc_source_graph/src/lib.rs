@@ -1,15 +1,39 @@
 use std::collections::HashMap;
 
-use indexmap::IndexSet;
+use indexmap::{IndexMap, IndexSet};
 use petgraph::{
     graph::{DiGraph, EdgeIndex, NodeIndex},
     stable_graph::StableDiGraph,
     visit::{DfsPostOrder, Visitable},
 };
 use toc_span::FileId;
+use toc_syntax::{ast, AstPtr};
 
 #[cfg(test)]
 mod test;
+
+/// What other files each [`ast::ExternalRef`] refers to
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub struct ExternalLinks {
+    links: IndexMap<AstPtr<ast::ExternalRef>, FileId>,
+}
+
+impl ExternalLinks {
+    /// Binds an external link to a file
+    pub fn bind(&mut self, link: AstPtr<ast::ExternalRef>, to: FileId) {
+        self.links.insert(link, to);
+    }
+
+    /// Looks up which file an external link might refer to
+    pub fn links_to(&self, link: AstPtr<ast::ExternalRef>) -> Option<FileId> {
+        self.links.get(&link).copied()
+    }
+
+    /// Iterator over all of the other files each [`ast::ExternalRef`] in a file refers to
+    pub fn all_links(&self) -> impl Iterator<Item = FileId> + '_ {
+        self.links.values().copied()
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SourceDepend {

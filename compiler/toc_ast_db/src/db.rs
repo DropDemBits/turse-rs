@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use toc_reporting::CompileResult;
 use toc_salsa::salsa;
-use toc_source_graph::{DependGraph, SourceGraph, SourceKind};
+use toc_source_graph::{DependGraph, ExternalLinks, SourceGraph, SourceKind};
 use toc_span::FileId;
 use toc_vfs::HasVfs;
 use toc_vfs_db::db::FileSystem;
@@ -24,6 +24,10 @@ pub trait SourceParser: FileSystem {
     #[salsa::input]
     fn depend_graph(&self, library: FileId) -> Arc<DependGraph>;
 
+    /// What other files a given file refers to
+    #[salsa::input]
+    fn file_links(&self, file: FileId) -> Arc<ExternalLinks>;
+
     /// Parses the given file
     #[salsa::invoke(source::parse_file)]
     fn parse_file(&self, file_id: FileId) -> CompileResult<toc_parser::ParseTree>;
@@ -34,7 +38,10 @@ pub trait SourceParser: FileSystem {
 
     /// Parse out the dependencies of a file
     #[salsa::invoke(source::parse_depends)]
-    fn parse_depends(&self, file_id: FileId) -> CompileResult<toc_parser::FileDepends>;
+    fn parse_depends(&self, file_id: FileId) -> CompileResult<Arc<toc_parser::FileDepends>>;
+
+    #[salsa::invoke(source::file_link_of)]
+    fn file_link_of(&self, file: FileId, link: toc_parser::ExternalLink) -> Option<FileId>;
 
     /// Gets the source dependency in a given library from the given file and the relative path
     #[salsa::invoke(source::depend_of)]

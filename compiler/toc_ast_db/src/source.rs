@@ -6,10 +6,10 @@ use std::{
 };
 
 use toc_reporting::CompileResult;
-use toc_source_graph::{DependGraph, SourceDepend, SourceKind};
+use toc_source_graph::{DependGraph, ExternalLinks, SourceDepend, SourceKind};
 use toc_span::FileId;
 use toc_vfs::{HasVfs, PathResolution};
-use toc_vfs_db::db::{self as vfs_db, VfsDatabaseExt};
+use toc_vfs_db::db::VfsDatabaseExt;
 
 use crate::db;
 
@@ -30,9 +30,17 @@ pub(crate) fn validate_file(db: &dyn db::SourceParser, file_id: FileId) -> Compi
 pub(crate) fn parse_depends(
     db: &dyn db::SourceParser,
     file_id: FileId,
-) -> CompileResult<toc_parser::FileDepends> {
+) -> CompileResult<Arc<toc_parser::FileDepends>> {
     let cst = db.parse_file(file_id);
     toc_parser::parse_depends(file_id, cst.result().syntax())
+}
+
+pub(crate) fn file_link_of(
+    db: &dyn db::SourceParser,
+    file_id: FileId,
+    link: toc_parser::ExternalLink,
+) -> Option<FileId> {
+    db.file_links(file_id).links_to(link)
 }
 
 pub(crate) fn depend_of(
@@ -46,12 +54,12 @@ pub(crate) fn depend_of(
 
 impl<T> db::AstDatabaseExt for T
 where
-    T: HasVfs + vfs_db::FileSystem + db::SourceParser,
+    T: HasVfs + db::SourceParser,
 {
     fn invalidate_source_graph(&mut self, loader: &dyn toc_vfs::FileLoader) {
         let db = self;
         let source_graph = db.source_graph();
-        let mut pending_files: VecDeque<_> = vec![].into();
+        let mut pending_files: VecDeque<_> = VecDeque::default();
         let mut visited_files: HashSet<_> = HashSet::default();
 
         for library_root in source_graph.library_roots() {
@@ -70,6 +78,7 @@ where
                 let res = loader.load_file(path);
                 db.update_file(current_file, res);
 
+                let mut links = ExternalLinks::default();
                 let deps = db.parse_depends(current_file);
                 for dep in deps.result().dependencies() {
                     let child = match db
@@ -82,6 +91,8 @@ where
                             db.get_vfs_mut().intern_path(intern_path)
                         }
                     };
+
+                    links.bind(dep.link_from.clone(), child);
 
                     // Update the resolution path
                     let kind = match dep.kind {
@@ -96,6 +107,9 @@ where
                     depend_graph.add_source_dep(current_file, child, info);
                     pending_files.push_back(child);
                 }
+
+                // Update the file links
+                db.set_file_links(current_file, Arc::new(links));
             }
 
             // Update the depend graph
