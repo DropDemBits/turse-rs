@@ -503,7 +503,7 @@ pub(super) fn validate_import_item(item: ast::ImportItem, ctx: &mut ValidateCtx)
         let inside_forward_decl = import_list
             .syntax()
             .parent()
-            .map(|node| ast::ForwardDecl::can_cast(&node))
+            .map(|node| ast::ForwardDecl::can_cast(node.kind()))
             .unwrap_or(false);
 
         if !inside_forward_decl {
@@ -531,7 +531,7 @@ pub(super) fn validate_external_item(item: ast::ExternalItem, ctx: &mut Validate
         let inside_forward_decl = import_list
             .syntax()
             .parent()
-            .map(|node| ast::ForwardDecl::can_cast(&node))
+            .map(|node| ast::ForwardDecl::can_cast(node.kind()))
             .unwrap_or(false);
 
         if inside_forward_decl {

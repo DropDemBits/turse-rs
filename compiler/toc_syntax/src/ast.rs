@@ -18,7 +18,6 @@ macro_rules! match_ast {
 mod nodes;
 mod nodes_ext;
 
-use super::SyntaxNode;
 pub use nodes::*;
 pub use nodes_ext::ExternalItemOwner;
 
@@ -31,19 +30,15 @@ mod helper {
             .find(|tk| tk.kind() == kind)
     }
 
-    pub(super) fn node<N: AstNode>(node: &SyntaxNode) -> Option<N> {
+    pub(super) fn node<N: AstNode<Language = crate::Lang>>(node: &SyntaxNode) -> Option<N> {
         node.children().find_map(N::cast)
     }
 
-    pub(super) fn nodes<'n, N: AstNode + 'n>(node: &'n SyntaxNode) -> impl Iterator<Item = N> + 'n {
+    pub(super) fn nodes<'n, N: AstNode<Language = crate::Lang> + 'n>(
+        node: &'n SyntaxNode,
+    ) -> impl Iterator<Item = N> + 'n {
         node.children().filter_map(N::cast)
     }
 }
 
-pub trait AstNode: Sized {
-    fn cast(syntax: SyntaxNode) -> Option<Self>;
-
-    fn can_cast(syntax: &SyntaxNode) -> bool;
-
-    fn syntax(&self) -> &SyntaxNode;
-}
+pub use rowan::ast::AstNode;

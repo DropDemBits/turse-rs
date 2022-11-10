@@ -878,3 +878,8 @@ EndGroup =
 | 'endfor'
 | 'endif'
 | 'endloop'
+
+// Nodes that can reference other files
+ExternalRef =
+  ExternalItem
+| PPInclude

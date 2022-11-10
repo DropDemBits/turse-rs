@@ -7,14 +7,15 @@ use crate::{
 #[repr(transparent)]
 pub struct Name(SyntaxNode);
 impl AstNode for Name {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::Name => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::Name => true,
             _ => false,
         }
@@ -28,14 +29,15 @@ impl Name {
 #[repr(transparent)]
 pub struct NameList(SyntaxNode);
 impl AstNode for NameList {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::NameList => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::NameList => true,
             _ => false,
         }
@@ -49,14 +51,15 @@ impl NameList {
 #[repr(transparent)]
 pub struct UnqualifiedAttr(SyntaxNode);
 impl AstNode for UnqualifiedAttr {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::UnqualifiedAttr => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::UnqualifiedAttr => true,
             _ => false,
         }
@@ -68,14 +71,15 @@ impl UnqualifiedAttr {}
 #[repr(transparent)]
 pub struct PervasiveAttr(SyntaxNode);
 impl AstNode for PervasiveAttr {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::PervasiveAttr => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::PervasiveAttr => true,
             _ => false,
         }
@@ -87,14 +91,15 @@ impl PervasiveAttr {}
 #[repr(transparent)]
 pub struct RegisterAttr(SyntaxNode);
 impl AstNode for RegisterAttr {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::RegisterAttr => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::RegisterAttr => true,
             _ => false,
         }
@@ -106,14 +111,15 @@ impl RegisterAttr {}
 #[repr(transparent)]
 pub struct ConstAttr(SyntaxNode);
 impl AstNode for ConstAttr {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::ConstAttr => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::ConstAttr => true,
             _ => false,
         }
@@ -125,14 +131,15 @@ impl ConstAttr {}
 #[repr(transparent)]
 pub struct VarAttr(SyntaxNode);
 impl AstNode for VarAttr {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::VarAttr => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::VarAttr => true,
             _ => false,
         }
@@ -144,14 +151,15 @@ impl VarAttr {}
 #[repr(transparent)]
 pub struct CheatAttr(SyntaxNode);
 impl AstNode for CheatAttr {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::CheatAttr => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::CheatAttr => true,
             _ => false,
         }
@@ -163,14 +171,15 @@ impl CheatAttr {}
 #[repr(transparent)]
 pub struct ForwardAttr(SyntaxNode);
 impl AstNode for ForwardAttr {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::ForwardAttr => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::ForwardAttr => true,
             _ => false,
         }
@@ -182,14 +191,15 @@ impl ForwardAttr {}
 #[repr(transparent)]
 pub struct OpaqueAttr(SyntaxNode);
 impl AstNode for OpaqueAttr {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::OpaqueAttr => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::OpaqueAttr => true,
             _ => false,
         }
@@ -201,14 +211,15 @@ impl OpaqueAttr {}
 #[repr(transparent)]
 pub struct Source(SyntaxNode);
 impl AstNode for Source {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::Source => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::Source => true,
             _ => false,
         }
@@ -224,14 +235,15 @@ impl Source {
 #[repr(transparent)]
 pub struct ImportStmt(SyntaxNode);
 impl AstNode for ImportStmt {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::ImportStmt => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::ImportStmt => true,
             _ => false,
         }
@@ -248,14 +260,15 @@ impl ImportStmt {
 #[repr(transparent)]
 pub struct StmtList(SyntaxNode);
 impl AstNode for StmtList {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::StmtList => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::StmtList => true,
             _ => false,
         }
@@ -269,14 +282,15 @@ impl StmtList {
 #[repr(transparent)]
 pub struct PreprocGlob(SyntaxNode);
 impl AstNode for PreprocGlob {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::PreprocGlob => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::PreprocGlob => true,
             _ => false,
         }
@@ -290,14 +304,15 @@ impl PreprocGlob {
 #[repr(transparent)]
 pub struct PPInclude(SyntaxNode);
 impl AstNode for PPInclude {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::PPInclude => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::PPInclude => true,
             _ => false,
         }
@@ -312,14 +327,15 @@ impl PPInclude {
 #[repr(transparent)]
 pub struct PPIf(SyntaxNode);
 impl AstNode for PPIf {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::PPIf => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::PPIf => true,
             _ => false,
         }
@@ -338,14 +354,15 @@ impl PPIf {
 #[repr(transparent)]
 pub struct PPElseif(SyntaxNode);
 impl AstNode for PPElseif {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::PPElseif => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::PPElseif => true,
             _ => false,
         }
@@ -364,14 +381,15 @@ impl PPElseif {
 #[repr(transparent)]
 pub struct PPElse(SyntaxNode);
 impl AstNode for PPElse {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::PPElse => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::PPElse => true,
             _ => false,
         }
@@ -386,14 +404,15 @@ impl PPElse {
 #[repr(transparent)]
 pub struct PPEndIf(SyntaxNode);
 impl AstNode for PPEndIf {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::PPEndIf => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::PPEndIf => true,
             _ => false,
         }
@@ -409,14 +428,15 @@ impl PPEndIf {
 #[repr(transparent)]
 pub struct LiteralExpr(SyntaxNode);
 impl AstNode for LiteralExpr {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::LiteralExpr => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::LiteralExpr => true,
             _ => false,
         }
@@ -428,14 +448,15 @@ impl LiteralExpr {}
 #[repr(transparent)]
 pub struct PPTokenBody(SyntaxNode);
 impl AstNode for PPTokenBody {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::PPTokenBody => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::PPTokenBody => true,
             _ => false,
         }
@@ -449,14 +470,15 @@ impl PPTokenBody {
 #[repr(transparent)]
 pub struct PPBinaryExpr(SyntaxNode);
 impl AstNode for PPBinaryExpr {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::PPBinaryExpr => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::PPBinaryExpr => true,
             _ => false,
         }
@@ -468,14 +490,15 @@ impl PPBinaryExpr {}
 #[repr(transparent)]
 pub struct PPUnaryExpr(SyntaxNode);
 impl AstNode for PPUnaryExpr {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::PPUnaryExpr => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::PPUnaryExpr => true,
             _ => false,
         }
@@ -487,14 +510,15 @@ impl PPUnaryExpr {}
 #[repr(transparent)]
 pub struct PPNameExpr(SyntaxNode);
 impl AstNode for PPNameExpr {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::PPNameExpr => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::PPNameExpr => true,
             _ => false,
         }
@@ -508,14 +532,15 @@ impl PPNameExpr {
 #[repr(transparent)]
 pub struct PPParenExpr(SyntaxNode);
 impl AstNode for PPParenExpr {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::PPParenExpr => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::PPParenExpr => true,
             _ => false,
         }
@@ -531,14 +556,15 @@ impl PPParenExpr {
 #[repr(transparent)]
 pub struct ConstVarDecl(SyntaxNode);
 impl AstNode for ConstVarDecl {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::ConstVarDecl => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::ConstVarDecl => true,
             _ => false,
         }
@@ -560,14 +586,15 @@ impl ConstVarDecl {
 #[repr(transparent)]
 pub struct TypeDecl(SyntaxNode);
 impl AstNode for TypeDecl {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::TypeDecl => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::TypeDecl => true,
             _ => false,
         }
@@ -586,14 +613,15 @@ impl TypeDecl {
 #[repr(transparent)]
 pub struct BindDecl(SyntaxNode);
 impl AstNode for BindDecl {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::BindDecl => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::BindDecl => true,
             _ => false,
         }
@@ -608,14 +636,15 @@ impl BindDecl {
 #[repr(transparent)]
 pub struct ProcDecl(SyntaxNode);
 impl AstNode for ProcDecl {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::ProcDecl => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::ProcDecl => true,
             _ => false,
         }
@@ -631,14 +660,15 @@ impl ProcDecl {
 #[repr(transparent)]
 pub struct FcnDecl(SyntaxNode);
 impl AstNode for FcnDecl {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::FcnDecl => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::FcnDecl => true,
             _ => false,
         }
@@ -654,14 +684,15 @@ impl FcnDecl {
 #[repr(transparent)]
 pub struct ProcessDecl(SyntaxNode);
 impl AstNode for ProcessDecl {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::ProcessDecl => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::ProcessDecl => true,
             _ => false,
         }
@@ -677,14 +708,15 @@ impl ProcessDecl {
 #[repr(transparent)]
 pub struct ExternalDecl(SyntaxNode);
 impl AstNode for ExternalDecl {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::ExternalDecl => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::ExternalDecl => true,
             _ => false,
         }
@@ -700,14 +732,15 @@ impl ExternalDecl {
 #[repr(transparent)]
 pub struct ForwardDecl(SyntaxNode);
 impl AstNode for ForwardDecl {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::ForwardDecl => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::ForwardDecl => true,
             _ => false,
         }
@@ -724,14 +757,15 @@ impl ForwardDecl {
 #[repr(transparent)]
 pub struct DeferredDecl(SyntaxNode);
 impl AstNode for DeferredDecl {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::DeferredDecl => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::DeferredDecl => true,
             _ => false,
         }
@@ -746,14 +780,15 @@ impl DeferredDecl {
 #[repr(transparent)]
 pub struct BodyDecl(SyntaxNode);
 impl AstNode for BodyDecl {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::BodyDecl => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::BodyDecl => true,
             _ => false,
         }
@@ -770,14 +805,15 @@ impl BodyDecl {
 #[repr(transparent)]
 pub struct ModuleDecl(SyntaxNode);
 impl AstNode for ModuleDecl {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::ModuleDecl => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::ModuleDecl => true,
             _ => false,
         }
@@ -801,14 +837,15 @@ impl ModuleDecl {
 #[repr(transparent)]
 pub struct ClassDecl(SyntaxNode);
 impl AstNode for ClassDecl {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::ClassDecl => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::ClassDecl => true,
             _ => false,
         }
@@ -835,14 +872,15 @@ impl ClassDecl {
 #[repr(transparent)]
 pub struct MonitorDecl(SyntaxNode);
 impl AstNode for MonitorDecl {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::MonitorDecl => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::MonitorDecl => true,
             _ => false,
         }
@@ -867,14 +905,15 @@ impl MonitorDecl {
 #[repr(transparent)]
 pub struct AssignStmt(SyntaxNode);
 impl AstNode for AssignStmt {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::AssignStmt => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::AssignStmt => true,
             _ => false,
         }
@@ -888,14 +927,15 @@ impl AssignStmt {
 #[repr(transparent)]
 pub struct OpenStmt(SyntaxNode);
 impl AstNode for OpenStmt {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::OpenStmt => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::OpenStmt => true,
             _ => false,
         }
@@ -910,14 +950,15 @@ impl OpenStmt {
 #[repr(transparent)]
 pub struct CloseStmt(SyntaxNode);
 impl AstNode for CloseStmt {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::CloseStmt => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::CloseStmt => true,
             _ => false,
         }
@@ -932,14 +973,15 @@ impl CloseStmt {
 #[repr(transparent)]
 pub struct PutStmt(SyntaxNode);
 impl AstNode for PutStmt {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::PutStmt => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::PutStmt => true,
             _ => false,
         }
@@ -957,14 +999,15 @@ impl PutStmt {
 #[repr(transparent)]
 pub struct GetStmt(SyntaxNode);
 impl AstNode for GetStmt {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::GetStmt => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::GetStmt => true,
             _ => false,
         }
@@ -981,14 +1024,15 @@ impl GetStmt {
 #[repr(transparent)]
 pub struct ReadStmt(SyntaxNode);
 impl AstNode for ReadStmt {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::ReadStmt => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::ReadStmt => true,
             _ => false,
         }
@@ -1003,14 +1047,15 @@ impl ReadStmt {
 #[repr(transparent)]
 pub struct WriteStmt(SyntaxNode);
 impl AstNode for WriteStmt {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::WriteStmt => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::WriteStmt => true,
             _ => false,
         }
@@ -1025,14 +1070,15 @@ impl WriteStmt {
 #[repr(transparent)]
 pub struct SeekStmt(SyntaxNode);
 impl AstNode for SeekStmt {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::SeekStmt => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::SeekStmt => true,
             _ => false,
         }
@@ -1050,14 +1096,15 @@ impl SeekStmt {
 #[repr(transparent)]
 pub struct TellStmt(SyntaxNode);
 impl AstNode for TellStmt {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::TellStmt => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::TellStmt => true,
             _ => false,
         }
@@ -1074,14 +1121,15 @@ impl TellStmt {
 #[repr(transparent)]
 pub struct ForStmt(SyntaxNode);
 impl AstNode for ForStmt {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::ForStmt => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::ForStmt => true,
             _ => false,
         }
@@ -1102,14 +1150,15 @@ impl ForStmt {
 #[repr(transparent)]
 pub struct LoopStmt(SyntaxNode);
 impl AstNode for LoopStmt {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::LoopStmt => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::LoopStmt => true,
             _ => false,
         }
@@ -1125,14 +1174,15 @@ impl LoopStmt {
 #[repr(transparent)]
 pub struct ExitStmt(SyntaxNode);
 impl AstNode for ExitStmt {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::ExitStmt => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::ExitStmt => true,
             _ => false,
         }
@@ -1148,14 +1198,15 @@ impl ExitStmt {
 #[repr(transparent)]
 pub struct IfStmt(SyntaxNode);
 impl AstNode for IfStmt {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::IfStmt => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::IfStmt => true,
             _ => false,
         }
@@ -1171,14 +1222,15 @@ impl IfStmt {
 #[repr(transparent)]
 pub struct CaseStmt(SyntaxNode);
 impl AstNode for CaseStmt {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::CaseStmt => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::CaseStmt => true,
             _ => false,
         }
@@ -1196,14 +1248,15 @@ impl CaseStmt {
 #[repr(transparent)]
 pub struct BlockStmt(SyntaxNode);
 impl AstNode for BlockStmt {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::BlockStmt => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::BlockStmt => true,
             _ => false,
         }
@@ -1219,14 +1272,15 @@ impl BlockStmt {
 #[repr(transparent)]
 pub struct InvariantStmt(SyntaxNode);
 impl AstNode for InvariantStmt {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::InvariantStmt => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::InvariantStmt => true,
             _ => false,
         }
@@ -1241,14 +1295,15 @@ impl InvariantStmt {
 #[repr(transparent)]
 pub struct AssertStmt(SyntaxNode);
 impl AstNode for AssertStmt {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::AssertStmt => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::AssertStmt => true,
             _ => false,
         }
@@ -1263,14 +1318,15 @@ impl AssertStmt {
 #[repr(transparent)]
 pub struct CallStmt(SyntaxNode);
 impl AstNode for CallStmt {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::CallStmt => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::CallStmt => true,
             _ => false,
         }
@@ -1284,14 +1340,15 @@ impl CallStmt {
 #[repr(transparent)]
 pub struct ReturnStmt(SyntaxNode);
 impl AstNode for ReturnStmt {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::ReturnStmt => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::ReturnStmt => true,
             _ => false,
         }
@@ -1305,14 +1362,15 @@ impl ReturnStmt {
 #[repr(transparent)]
 pub struct ResultStmt(SyntaxNode);
 impl AstNode for ResultStmt {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::ResultStmt => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::ResultStmt => true,
             _ => false,
         }
@@ -1327,14 +1385,15 @@ impl ResultStmt {
 #[repr(transparent)]
 pub struct NewStmt(SyntaxNode);
 impl AstNode for NewStmt {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::NewStmt => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::NewStmt => true,
             _ => false,
         }
@@ -1349,14 +1408,15 @@ impl NewStmt {
 #[repr(transparent)]
 pub struct FreeStmt(SyntaxNode);
 impl AstNode for FreeStmt {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::FreeStmt => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::FreeStmt => true,
             _ => false,
         }
@@ -1371,14 +1431,15 @@ impl FreeStmt {
 #[repr(transparent)]
 pub struct TagStmt(SyntaxNode);
 impl AstNode for TagStmt {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::TagStmt => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::TagStmt => true,
             _ => false,
         }
@@ -1393,14 +1454,15 @@ impl TagStmt {
 #[repr(transparent)]
 pub struct ForkStmt(SyntaxNode);
 impl AstNode for ForkStmt {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::ForkStmt => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::ForkStmt => true,
             _ => false,
         }
@@ -1419,14 +1481,15 @@ impl ForkStmt {
 #[repr(transparent)]
 pub struct SignalStmt(SyntaxNode);
 impl AstNode for SignalStmt {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::SignalStmt => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::SignalStmt => true,
             _ => false,
         }
@@ -1441,14 +1504,15 @@ impl SignalStmt {
 #[repr(transparent)]
 pub struct PauseStmt(SyntaxNode);
 impl AstNode for PauseStmt {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::PauseStmt => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::PauseStmt => true,
             _ => false,
         }
@@ -1463,14 +1527,15 @@ impl PauseStmt {
 #[repr(transparent)]
 pub struct QuitStmt(SyntaxNode);
 impl AstNode for QuitStmt {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::QuitStmt => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::QuitStmt => true,
             _ => false,
         }
@@ -1487,14 +1552,15 @@ impl QuitStmt {
 #[repr(transparent)]
 pub struct BreakStmt(SyntaxNode);
 impl AstNode for BreakStmt {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::BreakStmt => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::BreakStmt => true,
             _ => false,
         }
@@ -1508,14 +1574,15 @@ impl BreakStmt {
 #[repr(transparent)]
 pub struct CheckednessStmt(SyntaxNode);
 impl AstNode for CheckednessStmt {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::CheckednessStmt => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::CheckednessStmt => true,
             _ => false,
         }
@@ -1529,14 +1596,15 @@ impl CheckednessStmt {
 #[repr(transparent)]
 pub struct PreStmt(SyntaxNode);
 impl AstNode for PreStmt {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::PreStmt => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::PreStmt => true,
             _ => false,
         }
@@ -1551,14 +1619,15 @@ impl PreStmt {
 #[repr(transparent)]
 pub struct InitStmt(SyntaxNode);
 impl AstNode for InitStmt {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::InitStmt => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::InitStmt => true,
             _ => false,
         }
@@ -1573,14 +1642,15 @@ impl InitStmt {
 #[repr(transparent)]
 pub struct PostStmt(SyntaxNode);
 impl AstNode for PostStmt {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::PostStmt => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::PostStmt => true,
             _ => false,
         }
@@ -1595,14 +1665,15 @@ impl PostStmt {
 #[repr(transparent)]
 pub struct HandlerStmt(SyntaxNode);
 impl AstNode for HandlerStmt {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::HandlerStmt => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::HandlerStmt => true,
             _ => false,
         }
@@ -1621,14 +1692,15 @@ impl HandlerStmt {
 #[repr(transparent)]
 pub struct InheritStmt(SyntaxNode);
 impl AstNode for InheritStmt {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::InheritStmt => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::InheritStmt => true,
             _ => false,
         }
@@ -1645,14 +1717,15 @@ impl InheritStmt {
 #[repr(transparent)]
 pub struct ImplementStmt(SyntaxNode);
 impl AstNode for ImplementStmt {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::ImplementStmt => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::ImplementStmt => true,
             _ => false,
         }
@@ -1669,14 +1742,15 @@ impl ImplementStmt {
 #[repr(transparent)]
 pub struct ImplementByStmt(SyntaxNode);
 impl AstNode for ImplementByStmt {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::ImplementByStmt => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::ImplementByStmt => true,
             _ => false,
         }
@@ -1694,14 +1768,15 @@ impl ImplementByStmt {
 #[repr(transparent)]
 pub struct ExportStmt(SyntaxNode);
 impl AstNode for ExportStmt {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::ExportStmt => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::ExportStmt => true,
             _ => false,
         }
@@ -1718,14 +1793,15 @@ impl ExportStmt {
 #[repr(transparent)]
 pub struct BindItem(SyntaxNode);
 impl AstNode for BindItem {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::BindItem => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::BindItem => true,
             _ => false,
         }
@@ -1743,14 +1819,15 @@ impl BindItem {
 #[repr(transparent)]
 pub struct ProcHeader(SyntaxNode);
 impl AstNode for ProcHeader {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::ProcHeader => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::ProcHeader => true,
             _ => false,
         }
@@ -1768,14 +1845,15 @@ impl ProcHeader {
 #[repr(transparent)]
 pub struct SubprogBody(SyntaxNode);
 impl AstNode for SubprogBody {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::SubprogBody => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::SubprogBody => true,
             _ => false,
         }
@@ -1794,14 +1872,15 @@ impl SubprogBody {
 #[repr(transparent)]
 pub struct EndGroup(SyntaxNode);
 impl AstNode for EndGroup {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::EndGroup => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::EndGroup => true,
             _ => false,
         }
@@ -1827,14 +1906,15 @@ impl EndGroup {
 #[repr(transparent)]
 pub struct ParamSpec(SyntaxNode);
 impl AstNode for ParamSpec {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::ParamSpec => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::ParamSpec => true,
             _ => false,
         }
@@ -1848,14 +1928,15 @@ impl ParamSpec {
 #[repr(transparent)]
 pub struct DeviceSpec(SyntaxNode);
 impl AstNode for DeviceSpec {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::DeviceSpec => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::DeviceSpec => true,
             _ => false,
         }
@@ -1870,14 +1951,15 @@ impl DeviceSpec {
 #[repr(transparent)]
 pub struct FcnHeader(SyntaxNode);
 impl AstNode for FcnHeader {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::FcnHeader => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::FcnHeader => true,
             _ => false,
         }
@@ -1895,14 +1977,15 @@ impl FcnHeader {
 #[repr(transparent)]
 pub struct FcnResult(SyntaxNode);
 impl AstNode for FcnResult {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::FcnResult => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::FcnResult => true,
             _ => false,
         }
@@ -1918,14 +2001,15 @@ impl FcnResult {
 #[repr(transparent)]
 pub struct ImportList(SyntaxNode);
 impl AstNode for ImportList {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::ImportList => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::ImportList => true,
             _ => false,
         }
@@ -1939,14 +2023,15 @@ impl ImportList {
 #[repr(transparent)]
 pub struct PlainHeader(SyntaxNode);
 impl AstNode for PlainHeader {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::PlainHeader => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::PlainHeader => true,
             _ => false,
         }
@@ -1962,14 +2047,15 @@ impl PlainHeader {
 #[repr(transparent)]
 pub struct ProcessHeader(SyntaxNode);
 impl AstNode for ProcessHeader {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::ProcessHeader => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::ProcessHeader => true,
             _ => false,
         }
@@ -1988,14 +2074,15 @@ impl ProcessHeader {
 #[repr(transparent)]
 pub struct ExternalVar(SyntaxNode);
 impl AstNode for ExternalVar {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::ExternalVar => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::ExternalVar => true,
             _ => false,
         }
@@ -2014,14 +2101,15 @@ impl ExternalVar {
 #[repr(transparent)]
 pub struct AsnOp(SyntaxNode);
 impl AstNode for AsnOp {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::AsnOp => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::AsnOp => true,
             _ => false,
         }
@@ -2033,14 +2121,15 @@ impl AsnOp {}
 #[repr(transparent)]
 pub struct OldOpen(SyntaxNode);
 impl AstNode for OldOpen {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::OldOpen => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::OldOpen => true,
             _ => false,
         }
@@ -2059,14 +2148,15 @@ impl OldOpen {
 #[repr(transparent)]
 pub struct NewOpen(SyntaxNode);
 impl AstNode for NewOpen {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::NewOpen => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::NewOpen => true,
             _ => false,
         }
@@ -2084,14 +2174,15 @@ impl NewOpen {
 #[repr(transparent)]
 pub struct OpenPath(SyntaxNode);
 impl AstNode for OpenPath {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::OpenPath => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::OpenPath => true,
             _ => false,
         }
@@ -2105,14 +2196,15 @@ impl OpenPath {
 #[repr(transparent)]
 pub struct OpenMode(SyntaxNode);
 impl AstNode for OpenMode {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::OpenMode => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::OpenMode => true,
             _ => false,
         }
@@ -2126,14 +2218,15 @@ impl OpenMode {
 #[repr(transparent)]
 pub struct IoCap(SyntaxNode);
 impl AstNode for IoCap {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::IoCap => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::IoCap => true,
             _ => false,
         }
@@ -2145,14 +2238,15 @@ impl IoCap {}
 #[repr(transparent)]
 pub struct OldClose(SyntaxNode);
 impl AstNode for OldClose {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::OldClose => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::OldClose => true,
             _ => false,
         }
@@ -2168,14 +2262,15 @@ impl OldClose {
 #[repr(transparent)]
 pub struct NewClose(SyntaxNode);
 impl AstNode for NewClose {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::NewClose => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::NewClose => true,
             _ => false,
         }
@@ -2190,14 +2285,15 @@ impl NewClose {
 #[repr(transparent)]
 pub struct StreamNum(SyntaxNode);
 impl AstNode for StreamNum {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::StreamNum => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::StreamNum => true,
             _ => false,
         }
@@ -2212,14 +2308,15 @@ impl StreamNum {
 #[repr(transparent)]
 pub struct PutItem(SyntaxNode);
 impl AstNode for PutItem {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::PutItem => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::PutItem => true,
             _ => false,
         }
@@ -2234,14 +2331,15 @@ impl PutItem {
 #[repr(transparent)]
 pub struct PutOpt(SyntaxNode);
 impl AstNode for PutOpt {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::PutOpt => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::PutOpt => true,
             _ => false,
         }
@@ -2256,14 +2354,15 @@ impl PutOpt {
 #[repr(transparent)]
 pub struct GetItem(SyntaxNode);
 impl AstNode for GetItem {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::GetItem => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::GetItem => true,
             _ => false,
         }
@@ -2279,14 +2378,15 @@ impl GetItem {
 #[repr(transparent)]
 pub struct GetWidth(SyntaxNode);
 impl AstNode for GetWidth {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::GetWidth => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::GetWidth => true,
             _ => false,
         }
@@ -2302,14 +2402,15 @@ impl GetWidth {
 #[repr(transparent)]
 pub struct BinaryIO(SyntaxNode);
 impl AstNode for BinaryIO {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::BinaryIO => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::BinaryIO => true,
             _ => false,
         }
@@ -2327,14 +2428,15 @@ impl BinaryIO {
 #[repr(transparent)]
 pub struct BinaryItem(SyntaxNode);
 impl AstNode for BinaryItem {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::BinaryItem => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::BinaryItem => true,
             _ => false,
         }
@@ -2350,14 +2452,15 @@ impl BinaryItem {
 #[repr(transparent)]
 pub struct RequestSize(SyntaxNode);
 impl AstNode for RequestSize {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::RequestSize => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::RequestSize => true,
             _ => false,
         }
@@ -2372,14 +2475,15 @@ impl RequestSize {
 #[repr(transparent)]
 pub struct ActualSize(SyntaxNode);
 impl AstNode for ActualSize {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::ActualSize => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::ActualSize => true,
             _ => false,
         }
@@ -2394,14 +2498,15 @@ impl ActualSize {
 #[repr(transparent)]
 pub struct ForBounds(SyntaxNode);
 impl AstNode for ForBounds {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::ForBounds => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::ForBounds => true,
             _ => false,
         }
@@ -2415,14 +2520,15 @@ impl ForBounds {
 #[repr(transparent)]
 pub struct StepBy(SyntaxNode);
 impl AstNode for StepBy {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::StepBy => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::StepBy => true,
             _ => false,
         }
@@ -2437,14 +2543,15 @@ impl StepBy {
 #[repr(transparent)]
 pub struct IfBody(SyntaxNode);
 impl AstNode for IfBody {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::IfBody => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::IfBody => true,
             _ => false,
         }
@@ -2461,14 +2568,15 @@ impl IfBody {
 #[repr(transparent)]
 pub struct ElseifStmt(SyntaxNode);
 impl AstNode for ElseifStmt {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::ElseifStmt => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::ElseifStmt => true,
             _ => false,
         }
@@ -2485,14 +2593,15 @@ impl ElseifStmt {
 #[repr(transparent)]
 pub struct ElseStmt(SyntaxNode);
 impl AstNode for ElseStmt {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::ElseStmt => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::ElseStmt => true,
             _ => false,
         }
@@ -2508,14 +2617,15 @@ impl ElseStmt {
 #[repr(transparent)]
 pub struct CaseArm(SyntaxNode);
 impl AstNode for CaseArm {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::CaseArm => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::CaseArm => true,
             _ => false,
         }
@@ -2532,14 +2642,15 @@ impl CaseArm {
 #[repr(transparent)]
 pub struct ExprList(SyntaxNode);
 impl AstNode for ExprList {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::ExprList => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::ExprList => true,
             _ => false,
         }
@@ -2553,14 +2664,15 @@ impl ExprList {
 #[repr(transparent)]
 pub struct ParamList(SyntaxNode);
 impl AstNode for ParamList {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::ParamList => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::ParamList => true,
             _ => false,
         }
@@ -2576,14 +2688,15 @@ impl ParamList {
 #[repr(transparent)]
 pub struct ForkStatus(SyntaxNode);
 impl AstNode for ForkStatus {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::ForkStatus => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::ForkStatus => true,
             _ => false,
         }
@@ -2598,14 +2711,15 @@ impl ForkStatus {
 #[repr(transparent)]
 pub struct StackSize(SyntaxNode);
 impl AstNode for StackSize {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::StackSize => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::StackSize => true,
             _ => false,
         }
@@ -2620,14 +2734,15 @@ impl StackSize {
 #[repr(transparent)]
 pub struct ProcessDesc(SyntaxNode);
 impl AstNode for ProcessDesc {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::ProcessDesc => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::ProcessDesc => true,
             _ => false,
         }
@@ -2642,14 +2757,15 @@ impl ProcessDesc {
 #[repr(transparent)]
 pub struct WaitStmt(SyntaxNode);
 impl AstNode for WaitStmt {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::WaitStmt => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::WaitStmt => true,
             _ => false,
         }
@@ -2664,14 +2780,15 @@ impl WaitStmt {
 #[repr(transparent)]
 pub struct QuitCause(SyntaxNode);
 impl AstNode for QuitCause {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::QuitCause => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::QuitCause => true,
             _ => false,
         }
@@ -2686,14 +2803,15 @@ impl QuitCause {
 #[repr(transparent)]
 pub struct Checkedness(SyntaxNode);
 impl AstNode for Checkedness {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::Checkedness => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::Checkedness => true,
             _ => false,
         }
@@ -2708,14 +2826,15 @@ impl Checkedness {
 #[repr(transparent)]
 pub struct InitVar(SyntaxNode);
 impl AstNode for InitVar {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::InitVar => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::InitVar => true,
             _ => false,
         }
@@ -2731,14 +2850,15 @@ impl InitVar {
 #[repr(transparent)]
 pub struct ImportItem(SyntaxNode);
 impl AstNode for ImportItem {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::ImportItem => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::ImportItem => true,
             _ => false,
         }
@@ -2753,14 +2873,15 @@ impl ImportItem {
 #[repr(transparent)]
 pub struct ExternalItem(SyntaxNode);
 impl AstNode for ExternalItem {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::ExternalItem => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::ExternalItem => true,
             _ => false,
         }
@@ -2776,14 +2897,15 @@ impl ExternalItem {
 #[repr(transparent)]
 pub struct ExportItem(SyntaxNode);
 impl AstNode for ExportItem {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::ExportItem => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::ExportItem => true,
             _ => false,
         }
@@ -2799,14 +2921,15 @@ impl ExportItem {
 #[repr(transparent)]
 pub struct ObjClassExpr(SyntaxNode);
 impl AstNode for ObjClassExpr {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::ObjClassExpr => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::ObjClassExpr => true,
             _ => false,
         }
@@ -2823,14 +2946,15 @@ impl ObjClassExpr {
 #[repr(transparent)]
 pub struct InitExpr(SyntaxNode);
 impl AstNode for InitExpr {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::InitExpr => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::InitExpr => true,
             _ => false,
         }
@@ -2847,14 +2971,15 @@ impl InitExpr {
 #[repr(transparent)]
 pub struct NilExpr(SyntaxNode);
 impl AstNode for NilExpr {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::NilExpr => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::NilExpr => true,
             _ => false,
         }
@@ -2871,14 +2996,15 @@ impl NilExpr {
 #[repr(transparent)]
 pub struct SizeOfExpr(SyntaxNode);
 impl AstNode for SizeOfExpr {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::SizeOfExpr => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::SizeOfExpr => true,
             _ => false,
         }
@@ -2896,14 +3022,15 @@ impl SizeOfExpr {
 #[repr(transparent)]
 pub struct BinaryExpr(SyntaxNode);
 impl AstNode for BinaryExpr {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::BinaryExpr => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::BinaryExpr => true,
             _ => false,
         }
@@ -2915,14 +3042,15 @@ impl BinaryExpr {}
 #[repr(transparent)]
 pub struct UnaryExpr(SyntaxNode);
 impl AstNode for UnaryExpr {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::UnaryExpr => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::UnaryExpr => true,
             _ => false,
         }
@@ -2934,14 +3062,15 @@ impl UnaryExpr {}
 #[repr(transparent)]
 pub struct ParenExpr(SyntaxNode);
 impl AstNode for ParenExpr {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::ParenExpr => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::ParenExpr => true,
             _ => false,
         }
@@ -2957,14 +3086,15 @@ impl ParenExpr {
 #[repr(transparent)]
 pub struct NameExpr(SyntaxNode);
 impl AstNode for NameExpr {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::NameExpr => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::NameExpr => true,
             _ => false,
         }
@@ -2978,14 +3108,15 @@ impl NameExpr {
 #[repr(transparent)]
 pub struct SelfExpr(SyntaxNode);
 impl AstNode for SelfExpr {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::SelfExpr => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::SelfExpr => true,
             _ => false,
         }
@@ -2999,14 +3130,15 @@ impl SelfExpr {
 #[repr(transparent)]
 pub struct FieldExpr(SyntaxNode);
 impl AstNode for FieldExpr {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::FieldExpr => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::FieldExpr => true,
             _ => false,
         }
@@ -3022,14 +3154,15 @@ impl FieldExpr {
 #[repr(transparent)]
 pub struct DerefExpr(SyntaxNode);
 impl AstNode for DerefExpr {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::DerefExpr => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::DerefExpr => true,
             _ => false,
         }
@@ -3044,14 +3177,15 @@ impl DerefExpr {
 #[repr(transparent)]
 pub struct CheatExpr(SyntaxNode);
 impl AstNode for CheatExpr {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::CheatExpr => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::CheatExpr => true,
             _ => false,
         }
@@ -3071,14 +3205,15 @@ impl CheatExpr {
 #[repr(transparent)]
 pub struct NatCheatExpr(SyntaxNode);
 impl AstNode for NatCheatExpr {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::NatCheatExpr => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::NatCheatExpr => true,
             _ => false,
         }
@@ -3093,14 +3228,15 @@ impl NatCheatExpr {
 #[repr(transparent)]
 pub struct ArrowExpr(SyntaxNode);
 impl AstNode for ArrowExpr {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::ArrowExpr => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::ArrowExpr => true,
             _ => false,
         }
@@ -3116,14 +3252,15 @@ impl ArrowExpr {
 #[repr(transparent)]
 pub struct IndirectExpr(SyntaxNode);
 impl AstNode for IndirectExpr {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::IndirectExpr => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::IndirectExpr => true,
             _ => false,
         }
@@ -3141,14 +3278,15 @@ impl IndirectExpr {
 #[repr(transparent)]
 pub struct BitsExpr(SyntaxNode);
 impl AstNode for BitsExpr {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::BitsExpr => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::BitsExpr => true,
             _ => false,
         }
@@ -3163,14 +3301,15 @@ impl BitsExpr {
 #[repr(transparent)]
 pub struct CallExpr(SyntaxNode);
 impl AstNode for CallExpr {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::CallExpr => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::CallExpr => true,
             _ => false,
         }
@@ -3185,14 +3324,15 @@ impl CallExpr {
 #[repr(transparent)]
 pub struct NotEq(SyntaxNode);
 impl AstNode for NotEq {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::NotEq => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::NotEq => true,
             _ => false,
         }
@@ -3208,14 +3348,15 @@ impl NotEq {
 #[repr(transparent)]
 pub struct NotIn(SyntaxNode);
 impl AstNode for NotIn {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::NotIn => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::NotIn => true,
             _ => false,
         }
@@ -3231,14 +3372,15 @@ impl NotIn {
 #[repr(transparent)]
 pub struct SizeSpec(SyntaxNode);
 impl AstNode for SizeSpec {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::SizeSpec => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::SizeSpec => true,
             _ => false,
         }
@@ -3253,14 +3395,15 @@ impl SizeSpec {
 #[repr(transparent)]
 pub struct PrimType(SyntaxNode);
 impl AstNode for PrimType {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::PrimType => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::PrimType => true,
             _ => false,
         }
@@ -3272,14 +3415,15 @@ impl PrimType {}
 #[repr(transparent)]
 pub struct NameType(SyntaxNode);
 impl AstNode for NameType {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::NameType => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::NameType => true,
             _ => false,
         }
@@ -3293,14 +3437,15 @@ impl NameType {
 #[repr(transparent)]
 pub struct Param(SyntaxNode);
 impl AstNode for Param {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::Param => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::Param => true,
             _ => false,
         }
@@ -3315,14 +3460,15 @@ impl Param {
 #[repr(transparent)]
 pub struct AllItem(SyntaxNode);
 impl AstNode for AllItem {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::AllItem => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::AllItem => true,
             _ => false,
         }
@@ -3336,14 +3482,15 @@ impl AllItem {
 #[repr(transparent)]
 pub struct RangeItem(SyntaxNode);
 impl AstNode for RangeItem {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::RangeItem => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::RangeItem => true,
             _ => false,
         }
@@ -3357,14 +3504,15 @@ impl RangeItem {
 #[repr(transparent)]
 pub struct RelativeBound(SyntaxNode);
 impl AstNode for RelativeBound {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::RelativeBound => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::RelativeBound => true,
             _ => false,
         }
@@ -3380,14 +3528,15 @@ impl RelativeBound {
 #[repr(transparent)]
 pub struct RangeType(SyntaxNode);
 impl AstNode for RangeType {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::RangeType => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::RangeType => true,
             _ => false,
         }
@@ -3403,14 +3552,15 @@ impl RangeType {
 #[repr(transparent)]
 pub struct EnumType(SyntaxNode);
 impl AstNode for EnumType {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::EnumType => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::EnumType => true,
             _ => false,
         }
@@ -3429,14 +3579,15 @@ impl EnumType {
 #[repr(transparent)]
 pub struct ArrayType(SyntaxNode);
 impl AstNode for ArrayType {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::ArrayType => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::ArrayType => true,
             _ => false,
         }
@@ -3455,14 +3606,15 @@ impl ArrayType {
 #[repr(transparent)]
 pub struct SetType(SyntaxNode);
 impl AstNode for SetType {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::SetType => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::SetType => true,
             _ => false,
         }
@@ -3480,14 +3632,15 @@ impl SetType {
 #[repr(transparent)]
 pub struct RecordType(SyntaxNode);
 impl AstNode for RecordType {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::RecordType => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::RecordType => true,
             _ => false,
         }
@@ -3504,14 +3657,15 @@ impl RecordType {
 #[repr(transparent)]
 pub struct UnionType(SyntaxNode);
 impl AstNode for UnionType {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::UnionType => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::UnionType => true,
             _ => false,
         }
@@ -3532,14 +3686,15 @@ impl UnionType {
 #[repr(transparent)]
 pub struct PointerType(SyntaxNode);
 impl AstNode for PointerType {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::PointerType => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::PointerType => true,
             _ => false,
         }
@@ -3557,14 +3712,15 @@ impl PointerType {
 #[repr(transparent)]
 pub struct FcnType(SyntaxNode);
 impl AstNode for FcnType {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::FcnType => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::FcnType => true,
             _ => false,
         }
@@ -3582,14 +3738,15 @@ impl FcnType {
 #[repr(transparent)]
 pub struct ProcType(SyntaxNode);
 impl AstNode for ProcType {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::ProcType => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::ProcType => true,
             _ => false,
         }
@@ -3605,14 +3762,15 @@ impl ProcType {
 #[repr(transparent)]
 pub struct CollectionType(SyntaxNode);
 impl AstNode for CollectionType {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::CollectionType => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::CollectionType => true,
             _ => false,
         }
@@ -3630,14 +3788,15 @@ impl CollectionType {
 #[repr(transparent)]
 pub struct ConditionType(SyntaxNode);
 impl AstNode for ConditionType {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::ConditionType => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::ConditionType => true,
             _ => false,
         }
@@ -3652,14 +3811,15 @@ impl ConditionType {
 #[repr(transparent)]
 pub struct SizedCharType(SyntaxNode);
 impl AstNode for SizedCharType {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::SizedCharType => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::SizedCharType => true,
             _ => false,
         }
@@ -3676,14 +3836,15 @@ impl SizedCharType {
 #[repr(transparent)]
 pub struct SizedStringType(SyntaxNode);
 impl AstNode for SizedStringType {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::SizedStringType => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::SizedStringType => true,
             _ => false,
         }
@@ -3700,14 +3861,15 @@ impl SizedStringType {
 #[repr(transparent)]
 pub struct SeqLength(SyntaxNode);
 impl AstNode for SeqLength {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::SeqLength => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::SeqLength => true,
             _ => false,
         }
@@ -3722,14 +3884,15 @@ impl SeqLength {
 #[repr(transparent)]
 pub struct UnsizedBound(SyntaxNode);
 impl AstNode for UnsizedBound {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::UnsizedBound => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::UnsizedBound => true,
             _ => false,
         }
@@ -3743,14 +3906,15 @@ impl UnsizedBound {
 #[repr(transparent)]
 pub struct RangeList(SyntaxNode);
 impl AstNode for RangeList {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::RangeList => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::RangeList => true,
             _ => false,
         }
@@ -3764,14 +3928,15 @@ impl RangeList {
 #[repr(transparent)]
 pub struct RecordField(SyntaxNode);
 impl AstNode for RecordField {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::RecordField => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::RecordField => true,
             _ => false,
         }
@@ -3788,14 +3953,15 @@ impl RecordField {
 #[repr(transparent)]
 pub struct UnionVariant(SyntaxNode);
 impl AstNode for UnionVariant {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::UnionVariant => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::UnionVariant => true,
             _ => false,
         }
@@ -3812,14 +3978,15 @@ impl UnionVariant {
 #[repr(transparent)]
 pub struct ConstVarParam(SyntaxNode);
 impl AstNode for ConstVarParam {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::ConstVarParam => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::ConstVarParam => true,
             _ => false,
         }
@@ -3838,14 +4005,15 @@ impl ConstVarParam {
 #[repr(transparent)]
 pub struct ConditionKind(SyntaxNode);
 impl AstNode for ConditionKind {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::ConditionKind => Some(Self(syntax)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::ConditionKind => true,
             _ => false,
         }
@@ -3866,6 +4034,7 @@ pub enum PreprocKind {
     PPEndIf(PPEndIf),
 }
 impl AstNode for PreprocKind {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::PPInclude => Some(Self::PPInclude(AstNode::cast(syntax)?)),
@@ -3876,8 +4045,8 @@ impl AstNode for PreprocKind {
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::PPInclude => true,
             SyntaxKind::PPIf => true,
             SyntaxKind::PPElseif => true,
@@ -3904,6 +4073,7 @@ pub enum PPExpr {
     PPParenExpr(PPParenExpr),
 }
 impl AstNode for PPExpr {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::PPBinaryExpr => Some(Self::PPBinaryExpr(AstNode::cast(syntax)?)),
@@ -3913,8 +4083,8 @@ impl AstNode for PPExpr {
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::PPBinaryExpr => true,
             SyntaxKind::PPUnaryExpr => true,
             SyntaxKind::PPNameExpr => true,
@@ -3937,6 +4107,7 @@ pub enum PPFalseBranch {
     PPElse(PPElse),
 }
 impl AstNode for PPFalseBranch {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::PPElseif => Some(Self::PPElseif(AstNode::cast(syntax)?)),
@@ -3944,8 +4115,8 @@ impl AstNode for PPFalseBranch {
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::PPElseif => true,
             SyntaxKind::PPElse => true,
             _ => false,
@@ -4014,6 +4185,7 @@ pub enum Stmt {
     PreprocGlob(PreprocGlob),
 }
 impl AstNode for Stmt {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::ConstVarDecl => Some(Self::ConstVarDecl(AstNode::cast(syntax)?)),
@@ -4071,8 +4243,8 @@ impl AstNode for Stmt {
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::ConstVarDecl => true,
             SyntaxKind::TypeDecl => true,
             SyntaxKind::BindDecl => true,
@@ -4202,6 +4374,7 @@ pub enum Type {
     ConditionType(ConditionType),
 }
 impl AstNode for Type {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::PrimType => Some(Self::PrimType(AstNode::cast(syntax)?)),
@@ -4220,8 +4393,8 @@ impl AstNode for Type {
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::PrimType => true,
             SyntaxKind::NameType => true,
             SyntaxKind::RangeType => true,
@@ -4278,6 +4451,7 @@ pub enum Expr {
     CallExpr(CallExpr),
 }
 impl AstNode for Expr {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::LiteralExpr => Some(Self::LiteralExpr(AstNode::cast(syntax)?)),
@@ -4301,8 +4475,8 @@ impl AstNode for Expr {
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::LiteralExpr => true,
             SyntaxKind::ObjClassExpr => true,
             SyntaxKind::InitExpr => true,
@@ -4353,6 +4527,7 @@ pub enum SubprogHeader {
     FcnHeader(FcnHeader),
 }
 impl AstNode for SubprogHeader {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::ProcHeader => Some(Self::ProcHeader(AstNode::cast(syntax)?)),
@@ -4360,8 +4535,8 @@ impl AstNode for SubprogHeader {
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::ProcHeader => true,
             SyntaxKind::FcnHeader => true,
             _ => false,
@@ -4381,6 +4556,7 @@ pub enum BodyKind {
     FcnHeader(FcnHeader),
 }
 impl AstNode for BodyKind {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::PlainHeader => Some(Self::PlainHeader(AstNode::cast(syntax)?)),
@@ -4389,8 +4565,8 @@ impl AstNode for BodyKind {
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::PlainHeader => true,
             SyntaxKind::ProcHeader => true,
             SyntaxKind::FcnHeader => true,
@@ -4412,6 +4588,7 @@ pub enum ExternalKind {
     ExternalVar(ExternalVar),
 }
 impl AstNode for ExternalKind {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::FcnHeader => Some(Self::ExternalFcn(AstNode::cast(syntax)?)),
@@ -4420,8 +4597,8 @@ impl AstNode for ExternalKind {
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::FcnHeader => true,
             SyntaxKind::ProcHeader => true,
             SyntaxKind::ExternalVar => true,
@@ -4442,6 +4619,7 @@ pub enum OpenKind {
     NewOpen(NewOpen),
 }
 impl AstNode for OpenKind {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::OldOpen => Some(Self::OldOpen(AstNode::cast(syntax)?)),
@@ -4449,8 +4627,8 @@ impl AstNode for OpenKind {
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::OldOpen => true,
             SyntaxKind::NewOpen => true,
             _ => false,
@@ -4469,6 +4647,7 @@ pub enum CloseKind {
     NewClose(NewClose),
 }
 impl AstNode for CloseKind {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::OldClose => Some(Self::OldClose(AstNode::cast(syntax)?)),
@@ -4476,8 +4655,8 @@ impl AstNode for CloseKind {
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::OldClose => true,
             SyntaxKind::NewClose => true,
             _ => false,
@@ -4496,6 +4675,7 @@ pub enum FalseBranch {
     ElseStmt(ElseStmt),
 }
 impl AstNode for FalseBranch {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::ElseifStmt => Some(Self::ElseifStmt(AstNode::cast(syntax)?)),
@@ -4503,8 +4683,8 @@ impl AstNode for FalseBranch {
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::ElseifStmt => true,
             SyntaxKind::ElseStmt => true,
             _ => false,
@@ -4524,6 +4704,7 @@ pub enum ImportAttr {
     ForwardAttr(ForwardAttr),
 }
 impl AstNode for ImportAttr {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::VarAttr => Some(Self::VarAttr(AstNode::cast(syntax)?)),
@@ -4532,8 +4713,8 @@ impl AstNode for ImportAttr {
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::VarAttr => true,
             SyntaxKind::ConstAttr => true,
             SyntaxKind::ForwardAttr => true,
@@ -4556,6 +4737,7 @@ pub enum ExportAttr {
     OpaqueAttr(OpaqueAttr),
 }
 impl AstNode for ExportAttr {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::VarAttr => Some(Self::VarAttr(AstNode::cast(syntax)?)),
@@ -4565,8 +4747,8 @@ impl AstNode for ExportAttr {
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::VarAttr => true,
             SyntaxKind::UnqualifiedAttr => true,
             SyntaxKind::PervasiveAttr => true,
@@ -4589,6 +4771,7 @@ pub enum IndirectTy {
     NameType(NameType),
 }
 impl AstNode for IndirectTy {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::PrimType => Some(Self::PrimType(AstNode::cast(syntax)?)),
@@ -4596,8 +4779,8 @@ impl AstNode for IndirectTy {
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::PrimType => true,
             SyntaxKind::NameType => true,
             _ => false,
@@ -4617,19 +4800,20 @@ pub enum ParamKind {
     Expr(Expr),
 }
 impl AstNode for ParamKind {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::AllItem => Some(Self::AllItem(AstNode::cast(syntax)?)),
             SyntaxKind::RangeItem => Some(Self::RangeItem(AstNode::cast(syntax)?)),
-            _ if Expr::can_cast(&syntax) => Some(Self::Expr(AstNode::cast(syntax)?)),
+            _ if Expr::can_cast(syntax.kind()) => Some(Self::Expr(AstNode::cast(syntax)?)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::AllItem => true,
             SyntaxKind::RangeItem => true,
-            _ if Expr::can_cast(syntax) => true,
+            _ if Expr::can_cast(kind) => true,
             _ => false,
         }
     }
@@ -4647,17 +4831,18 @@ pub enum RangeBound {
     Expr(Expr),
 }
 impl AstNode for RangeBound {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::RelativeBound => Some(Self::RelativeBound(AstNode::cast(syntax)?)),
-            _ if Expr::can_cast(&syntax) => Some(Self::Expr(AstNode::cast(syntax)?)),
+            _ if Expr::can_cast(syntax.kind()) => Some(Self::Expr(AstNode::cast(syntax)?)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::RelativeBound => true,
-            _ if Expr::can_cast(syntax) => true,
+            _ if Expr::can_cast(kind) => true,
             _ => false,
         }
     }
@@ -4674,17 +4859,18 @@ pub enum EndBound {
     Expr(Expr),
 }
 impl AstNode for EndBound {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::UnsizedBound => Some(Self::UnsizedBound(AstNode::cast(syntax)?)),
-            _ if Expr::can_cast(&syntax) => Some(Self::Expr(AstNode::cast(syntax)?)),
+            _ if Expr::can_cast(syntax.kind()) => Some(Self::Expr(AstNode::cast(syntax)?)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::UnsizedBound => true,
-            _ if Expr::can_cast(syntax) => true,
+            _ if Expr::can_cast(kind) => true,
             _ => false,
         }
     }
@@ -4701,6 +4887,7 @@ pub enum SubprogType {
     ProcType(ProcType),
 }
 impl AstNode for SubprogType {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::FcnType => Some(Self::FcnType(AstNode::cast(syntax)?)),
@@ -4708,8 +4895,8 @@ impl AstNode for SubprogType {
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::FcnType => true,
             SyntaxKind::ProcType => true,
             _ => false,
@@ -4728,17 +4915,18 @@ pub enum ParamDecl {
     SubprogType(SubprogType),
 }
 impl AstNode for ParamDecl {
+    type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::ConstVarParam => Some(Self::ConstVarParam(AstNode::cast(syntax)?)),
-            _ if SubprogType::can_cast(&syntax) => Some(Self::SubprogType(AstNode::cast(syntax)?)),
+            _ if SubprogType::can_cast(syntax.kind()) => Some(Self::SubprogType(AstNode::cast(syntax)?)),
             _ => None,
         }
     }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
             SyntaxKind::ConstVarParam => true,
-            _ if SubprogType::can_cast(syntax) => true,
+            _ if SubprogType::can_cast(kind) => true,
             _ => false,
         }
     }
@@ -4746,6 +4934,34 @@ impl AstNode for ParamDecl {
         match self {
             Self::ConstVarParam(node) => node.syntax(),
             Self::SubprogType(node) => node.syntax(),
+        }
+    }
+}
+#[derive(Debug, PartialEq, Eq, Hash)]
+pub enum ExternalRef {
+    ExternalItem(ExternalItem),
+    PPInclude(PPInclude),
+}
+impl AstNode for ExternalRef {
+    type Language = crate::Lang;
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        match syntax.kind() {
+            SyntaxKind::ExternalItem => Some(Self::ExternalItem(AstNode::cast(syntax)?)),
+            SyntaxKind::PPInclude => Some(Self::PPInclude(AstNode::cast(syntax)?)),
+            _ => None,
+        }
+    }
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
+            SyntaxKind::ExternalItem => true,
+            SyntaxKind::PPInclude => true,
+            _ => false,
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        match self {
+            Self::ExternalItem(node) => node.syntax(),
+            Self::PPInclude(node) => node.syntax(),
         }
     }
 }

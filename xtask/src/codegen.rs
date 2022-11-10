@@ -86,16 +86,16 @@ fn generate_nodes(lowered: &LoweredGrammar) -> String {
             })
             .collect();
 
-        let make_match_kinds = |as_ref: bool| {
+        let make_match_kinds = |from_node: bool| {
             move |child: &Variant| {
                 let variant = format_ident!("{}", child.variant);
 
                 if lowered.is_group(&child.variant) {
                     // match using a guard
-                    if as_ref {
-                        quote! { _ if #variant::can_cast(&syntax)}
+                    if from_node {
+                        quote! { _ if #variant::can_cast(syntax.kind())}
                     } else {
-                        quote! { _ if #variant::can_cast(syntax)}
+                        quote! { _ if #variant::can_cast(kind)}
                     }
                 } else {
                     quote! { SyntaxKind::#variant }
@@ -103,7 +103,7 @@ fn generate_nodes(lowered: &LoweredGrammar) -> String {
             }
         };
 
-        let kinds_as_ref = group.variants.iter().map(make_match_kinds(true));
+        let kinds_from_node = group.variants.iter().map(make_match_kinds(true));
         let kinds = group.variants.iter().map(make_match_kinds(false));
 
         quote! {
@@ -112,15 +112,17 @@ fn generate_nodes(lowered: &LoweredGrammar) -> String {
                 #(#variants(#nodes)),*
             }
             impl AstNode for #name {
+                type Language = crate::Lang;
+
                 fn cast(syntax: SyntaxNode) -> Option<Self> {
                     match syntax.kind() {
-                        #(#kinds_as_ref => Some(Self::#variants(AstNode::cast(syntax)?)),)*
+                        #(#kinds_from_node => Some(Self::#variants(AstNode::cast(syntax)?)),)*
                         _ => None
                     }
                 }
 
-                fn can_cast(syntax: &SyntaxNode) -> bool {
-                    match syntax.kind() {
+                fn can_cast(kind: SyntaxKind) -> bool {
+                    match kind {
                         #(#kinds => true,)*
                         _ => false
                     }
@@ -193,6 +195,8 @@ fn generate_nodes(lowered: &LoweredGrammar) -> String {
             pub struct #name(SyntaxNode);
 
             impl AstNode for #name {
+                type Language = crate::Lang;
+
                 fn cast(syntax: SyntaxNode) -> Option<Self> {
                     match syntax.kind() {
                         SyntaxKind::#kind_variant => Some(Self(syntax)),
@@ -200,8 +204,8 @@ fn generate_nodes(lowered: &LoweredGrammar) -> String {
                     }
                 }
 
-                fn can_cast(syntax: &SyntaxNode) -> bool {
-                    match syntax.kind() {
+                fn can_cast(kind: SyntaxKind) -> bool {
+                    match kind {
                         SyntaxKind::#kind_variant => true,
                         _ => false
                     }
