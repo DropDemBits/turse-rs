@@ -56,6 +56,9 @@ where
         // Report if the root file is missing
         if let (_, Some(err)) = self.file_source(library_root) {
             // Report the missing file
+            // Note: we can't lookup the path directly because we don't
+            // have access to the file info table from just a source file
+            // without having to import toc_vfs_db
             let mut report = MessageSink::new();
             report
                 .error_detailed(
@@ -66,7 +69,20 @@ where
             messages.aggregate(&report.finish());
         }
 
-        let reachable_files: Vec<_> = self.depend_graph(library_root).unit_sources().collect();
+        // Reachable files isn't the way to go
+        // Unfortunately, we can't quite precollect defs since that also depends on expansion
+        //
+        // Note that unit files (i.e. files linked from by import) serve as expansion roots
+        // we could probably do precollection again by recording what items are bound to
+        // which scopes, and then expanding from there (since once we've gone through
+        // expanding, the scopes are final)
+        //
+        // for now though, this just replicates the old behavior
+        let reachable_files = self
+            .reachable_imported_files(library_root)
+            .iter()
+            .copied()
+            .collect::<Vec<_>>();
 
         // Collect all the defs in the library
         let (collect_res, msgs) = crate::collector::collect_defs(db, &reachable_files).take();

@@ -5,4 +5,4 @@ pub mod span;
 
 mod source;
 
-pub use toc_source_graph::{DependGraph, SourceGraph};
+pub use toc_source_graph::SourceGraph;

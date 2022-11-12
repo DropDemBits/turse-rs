@@ -27,18 +27,7 @@ pub type ExternalLink = AstPtr<ast::ExternalRef>;
 pub struct Dependency {
     pub link_from: ExternalLink,
 
-    pub kind: DependencyKind,
     pub relative_path: String,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum DependencyKind {
-    /// The dependency is to an include file, and should not be added to the unit tree
-    Include,
-    /// The dependency is to a child unit, and should be added to the unit tree
-    ///
-    /// `import`, `inherit`, `implement` and `implement by` counts as import dependencies
-    Import,
 }
 
 pub(crate) fn gather_dependencies(
@@ -88,7 +77,6 @@ pub(crate) fn gather_dependencies(
         })
         .map(|(relative_path, link_from)| Dependency {
             link_from,
-            kind: DependencyKind::Import,
             relative_path,
         });
 
@@ -107,7 +95,6 @@ pub(crate) fn gather_dependencies(
 
         dependencies.push(Dependency {
             link_from,
-            kind: DependencyKind::Include,
             relative_path: path,
         });
     }
@@ -187,7 +174,6 @@ mod test {
             dependencies[0].link_from.to_node(root),
             ast::ExternalRef::PPInclude(_)
         ));
-        assert_eq!(dependencies[0].kind, DependencyKind::Include);
         assert_eq!(
             dependencies[0].relative_path,
             "\u{D2}\u{77}\u{D3}_whats_this"
@@ -197,7 +183,6 @@ mod test {
             dependencies[1].link_from.to_node(root),
             ast::ExternalRef::PPInclude(_)
         ));
-        assert_eq!(dependencies[1].kind, DependencyKind::Include);
         assert_eq!(dependencies[1].relative_path, "me_time");
 
         assert_eq!(dependencies.get(2), None);
@@ -215,21 +200,18 @@ mod test {
             dependencies[0].link_from.to_node(root),
             ast::ExternalRef::ExternalItem(_)
         ));
-        assert_eq!(dependencies[0].kind, DependencyKind::Import);
         assert_eq!(dependencies[0].relative_path, "a");
 
         assert!(matches!(
             dependencies[1].link_from.to_node(root),
             ast::ExternalRef::ExternalItem(_)
         ));
-        assert_eq!(dependencies[1].kind, DependencyKind::Import);
         assert_eq!(dependencies[1].relative_path, "name");
 
         assert!(matches!(
             dependencies[2].link_from.to_node(root),
             ast::ExternalRef::ExternalItem(_)
         ));
-        assert_eq!(dependencies[2].kind, DependencyKind::Import);
         assert_eq!(dependencies[2].relative_path, "external_place");
     }
 
@@ -262,28 +244,24 @@ mod test {
             dependencies[0].link_from.to_node(root),
             ast::ExternalRef::ExternalItem(_)
         ));
-        assert_eq!(dependencies[0].kind, DependencyKind::Import);
         assert_eq!(dependencies[0].relative_path, "a");
 
         assert!(matches!(
             dependencies[1].link_from.to_node(root),
             ast::ExternalRef::ExternalItem(_)
         ));
-        assert_eq!(dependencies[1].kind, DependencyKind::Import);
         assert_eq!(dependencies[1].relative_path, "b");
 
         assert!(matches!(
             dependencies[2].link_from.to_node(root),
             ast::ExternalRef::ExternalItem(_)
         ));
-        assert_eq!(dependencies[2].kind, DependencyKind::Import);
         assert_eq!(dependencies[2].relative_path, "c");
 
         assert!(matches!(
             dependencies[3].link_from.to_node(root),
             ast::ExternalRef::ExternalItem(_)
         ));
-        assert_eq!(dependencies[3].kind, DependencyKind::Import);
         assert_eq!(dependencies[3].relative_path, "d");
 
         assert_eq!(dependencies.get(4), None);
@@ -307,28 +285,24 @@ mod test {
             dependencies[0].link_from.to_node(root),
             ast::ExternalRef::ExternalItem(_)
         ));
-        assert_eq!(dependencies[0].kind, DependencyKind::Import);
 
         assert_eq!(dependencies[1].relative_path, "name");
         assert!(matches!(
             dependencies[1].link_from.to_node(root),
             ast::ExternalRef::ExternalItem(_)
         ));
-        assert_eq!(dependencies[1].kind, DependencyKind::Import);
 
         assert_eq!(dependencies[2].relative_path, "external_place");
         assert!(matches!(
             dependencies[2].link_from.to_node(root),
             ast::ExternalRef::ExternalItem(_)
         ));
-        assert_eq!(dependencies[2].kind, DependencyKind::Import);
 
         assert_eq!(dependencies[3].relative_path, "bob");
         assert!(matches!(
             dependencies[3].link_from.to_node(root),
             ast::ExternalRef::PPInclude(_)
         ));
-        assert_eq!(dependencies[3].kind, DependencyKind::Include);
     }
 
     #[test]

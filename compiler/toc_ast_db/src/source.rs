@@ -1,12 +1,12 @@
 //! Source file interpretation queries
 
 use std::{
-    collections::{HashSet, VecDeque},
+    collections::{BTreeSet, HashSet, VecDeque},
     sync::Arc,
 };
 
 use toc_reporting::CompileResult;
-use toc_source_graph::{DependGraph, ExternalLinks, SourceDepend, SourceKind};
+use toc_source_graph::ExternalLinks;
 use toc_span::FileId;
 use toc_vfs::{HasVfs, PathResolution};
 use toc_vfs_db::db::VfsDatabaseExt;
@@ -43,13 +43,47 @@ pub(crate) fn file_link_of(
     db.file_links(file_id).links_to(link)
 }
 
-pub(crate) fn depend_of(
+pub(crate) fn reachable_files(db: &dyn db::SourceParser, root: FileId) -> Arc<BTreeSet<FileId>> {
+    let mut files = BTreeSet::default();
+    let mut pending_queue = VecDeque::default();
+
+    pending_queue.push_back(root);
+
+    while let Some(current_file) = pending_queue.pop_front() {
+        // Skip if we've already explored this file
+        if files.contains(&current_file) {
+            continue;
+        }
+        files.insert(current_file);
+
+        // add all of this file's linked bits to the queue
+        pending_queue.extend(db.file_links(current_file).all_links());
+    }
+
+    Arc::new(files)
+}
+
+pub(crate) fn reachable_imported_files(
     db: &dyn db::SourceParser,
-    library: FileId,
-    from: FileId,
-    relative_path: String,
-) -> (FileId, SourceKind) {
-    db.depend_graph(library).depend_of(from, relative_path)
+    root: FileId,
+) -> Arc<BTreeSet<FileId>> {
+    let mut files = BTreeSet::default();
+    let mut pending_queue = VecDeque::default();
+
+    pending_queue.push_back(root);
+
+    while let Some(current_file) = pending_queue.pop_front() {
+        // Skip if we've already explored this file
+        if files.contains(&current_file) {
+            continue;
+        }
+        files.insert(current_file);
+
+        // add all of this file's linked bits to the queue
+        pending_queue.extend(db.file_links(current_file).import_links());
+    }
+
+    Arc::new(files)
 }
 
 impl<T> db::AstDatabaseExt for T
@@ -63,7 +97,6 @@ where
         let mut visited_files: HashSet<_> = HashSet::default();
 
         for library_root in source_graph.library_roots() {
-            let mut depend_graph = DependGraph::new(library_root);
             pending_files.push_back(library_root);
 
             while let Some(current_file) = pending_files.pop_front() {
@@ -81,6 +114,7 @@ where
                 let mut links = ExternalLinks::default();
                 let deps = db.parse_depends(current_file);
                 for dep in deps.result().dependencies() {
+                    // Get the target file
                     let child = match db
                         .get_vfs()
                         .resolve_path(Some(current_file), &dep.relative_path)
@@ -92,28 +126,15 @@ where
                         }
                     };
 
-                    links.bind(dep.link_from.clone(), child);
-
-                    // Update the resolution path
-                    let kind = match dep.kind {
-                        toc_parser::DependencyKind::Include => SourceKind::Include,
-                        toc_parser::DependencyKind::Import => SourceKind::Unit,
-                    };
-
-                    let info = SourceDepend {
-                        relative_path: dep.relative_path.clone(),
-                        kind,
-                    };
-                    depend_graph.add_source_dep(current_file, child, info);
+                    // Explore later
                     pending_files.push_back(child);
+
+                    links.bind(dep.link_from.clone(), child);
                 }
 
                 // Update the file links
                 db.set_file_links(current_file, Arc::new(links));
             }
-
-            // Update the depend graph
-            db.set_depend_graph(library_root, Arc::new(depend_graph));
         }
     }
 }
