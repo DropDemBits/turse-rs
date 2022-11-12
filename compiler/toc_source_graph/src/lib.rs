@@ -1,3 +1,5 @@
+use std::fmt;
+
 use petgraph::{
     graph::NodeIndex,
     stable_graph::StableDiGraph,
@@ -33,9 +35,15 @@ struct LibraryDep();
 type LibraryGraph = StableDiGraph<Library, LibraryDep>;
 
 /// A reference to a library in the [`SourceGraph`]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(transparent)]
 pub struct LibraryId(NodeIndex);
+
+impl fmt::Debug for LibraryId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_tuple("LibraryId").field(&self.0.index()).finish()
+    }
+}
 
 /// Library source graph
 #[derive(Debug, Clone, Default)]
