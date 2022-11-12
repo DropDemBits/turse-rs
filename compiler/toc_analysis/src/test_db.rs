@@ -7,7 +7,6 @@ use toc_ast_db::{
     SourceGraph,
 };
 use toc_hir::library::LibraryId;
-use toc_hir_db::db::HirDatabase;
 use toc_salsa::salsa;
 use toc_vfs_db::db::VfsDatabaseExt;
 
@@ -38,11 +37,13 @@ impl TestDb {
 
         let root_file = db.vfs.intern_path("src/main.t".into());
         let mut source_graph = SourceGraph::default();
-        source_graph.add_root(root_file);
+        let library_id = source_graph.add_library(toc_hir::library_graph::Library {
+            name: "main".into(),
+            root: root_file,
+            artifact: toc_hir::library_graph::ArtifactKind::Binary,
+        });
         db.set_source_graph(Arc::new(source_graph));
         db.invalidate_source_graph(&toc_vfs::DummyFileLoader);
-
-        let library_id = db.library_graph().library_of(root_file);
 
         (db, library_id)
     }

@@ -27,13 +27,13 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use toc_ast_db::db::SourceParser;
+use toc_hir::library::LibraryId;
 use toc_hir::symbol::{syms, IsMonitor, IsPervasive, NodeSpan, SymbolKind};
 use toc_hir::{
     body,
     builder::{self, BodyBuilder},
     expr::{Expr, ExprKind},
     item,
-    library_graph::{GraphBuilder, LibraryGraph},
     stmt::{Stmt, StmtId, StmtKind},
     symbol::LocalDefId,
 };
@@ -48,10 +48,12 @@ impl<T> LoweringDb for T
 where
     T: SourceParser,
 {
-    fn lower_library(&self, library_root: FileId) -> CompileResult<LoweredLibrary> {
+    fn lower_library(&self, library: LibraryId) -> CompileResult<LoweredLibrary> {
         let db = self;
-
         let mut messages = MessageBundle::default();
+
+        // take the library from the source graph
+        let library_root = db.source_graph().library(library).root;
 
         // Report if the root file is missing
         if let (_, Some(err)) = self.file_source(library_root) {
@@ -111,17 +113,16 @@ where
         CompileResult::new(Arc::new(lib), messages)
     }
 
-    fn lower_library_graph(&self) -> CompileResult<LibraryGraph> {
+    fn lower_source_graph(&self) -> CompileResult<()> {
         let mut messages = MessageBundle::default();
         let source_graph = self.source_graph();
-        let mut graph = GraphBuilder::new();
 
-        for root in source_graph.library_roots() {
-            graph.add_library(root);
-            self.lower_library(root).bundle_messages(&mut messages);
+        for (library_id, _) in source_graph.all_libraries() {
+            self.lower_library(library_id)
+                .bundle_messages(&mut messages);
         }
 
-        CompileResult::new(graph.finish(), messages)
+        CompileResult::new((), messages)
     }
 }
 

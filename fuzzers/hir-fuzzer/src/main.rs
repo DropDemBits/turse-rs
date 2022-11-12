@@ -54,7 +54,11 @@ fn run(source: &str) {
 
     let root_file = db.vfs.intern_path("src/main.t".into());
     let mut source_graph = SourceGraph::default();
-    source_graph.add_root(root_file);
+    source_graph.add_library(toc_hir::library_graph::Library {
+        name: "main".into(),
+        root: root_file,
+        artifact: toc_hir::library_graph::ArtifactKind::Binary,
+    });
     db.set_source_graph(Arc::new(source_graph));
     db.invalidate_source_graph(&toc_vfs::DummyFileLoader);
 

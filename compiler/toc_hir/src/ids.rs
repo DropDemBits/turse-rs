@@ -4,11 +4,8 @@ use std::fmt;
 
 use crate::{body, expr, item, stmt, symbol};
 
-/// A reference to a library in the library graph
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[repr(transparent)]
-pub struct LibraryId(pub(crate) LibraryIndex);
-pub(crate) type LibraryIndex = u32;
+// Pass through the source graph id
+pub use toc_source_graph::LibraryId;
 
 crate::arena_id_wrapper!(
     /// A library local reference to a definition.

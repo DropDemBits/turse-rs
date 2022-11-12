@@ -5,7 +5,6 @@ use toc_hir::{
     expr,
     item::{self, ModuleTree},
     library::{InLibrary, LibraryId, LoweredLibrary},
-    library_graph::LibraryGraph,
     stmt,
     symbol::{DefId, DefOwner, DefTable, SymbolKind},
     ty::{self, TypeOwners},
@@ -20,10 +19,6 @@ pub trait HirDatabase: toc_hir_lowering::LoweringDb {
     /// Get the library associated with the given id
     #[salsa::invoke(query::library_query)]
     fn library(&self, library: LibraryId) -> LoweredLibrary;
-
-    /// Graph of all libraries
-    #[salsa::invoke(query::library_graph_query)]
-    fn library_graph(&self) -> LibraryGraph;
 
     /// Gets all of the definitions in the library,
     /// providing a mapping between definitions and definition owners.

@@ -7,6 +7,7 @@ use toc_ast_db::{
     db::{AstDatabaseExt, SourceParser, SpanMapping},
     SourceGraph,
 };
+use toc_hir::library_graph::Library;
 use toc_hir_db::db::HirDatabase;
 use toc_salsa::salsa;
 use toc_span::{FileId, Span};
@@ -31,6 +32,10 @@ fn main() {
 
     let loader = MainFileLoader::default();
     let path = std::path::Path::new(&args.source_file);
+    let maybe_name = path
+        .file_name()
+        .map(|name| name.to_string_lossy().to_string())
+        .unwrap_or_else(|| "main".to_string());
     let path = loader.normalize_path(path).unwrap_or_else(|| path.into());
     let output_path = path.with_extension("tbc");
     let mut db = MainDatabase::default();
@@ -40,7 +45,11 @@ fn main() {
 
     // Set the source root
     let mut source_graph = SourceGraph::default();
-    source_graph.add_root(root_file);
+    let _lib_id = source_graph.add_library(Library {
+        artifact: toc_hir::library_graph::ArtifactKind::Binary,
+        name: maybe_name,
+        root: root_file,
+    });
     db.set_source_graph(Arc::new(source_graph));
     db.invalidate_source_graph(&loader);
 
@@ -59,17 +68,18 @@ fn main() {
             config::DumpMode::Hir => {
                 // Dump library graph
                 println!("Libraries:");
-                let library_graph = db.library_graph();
+                let library_graph = db.source_graph();
 
-                for (file, lib) in library_graph.library_roots() {
+                for (lib_id, lib) in library_graph.all_libraries() {
+                    let file = lib.root;
                     println!(
                         "{file:?}: {tree}",
-                        tree = toc_hir_pretty::tree::pretty_print_tree(&db.library(lib))
+                        tree = toc_hir_pretty::tree::pretty_print_tree(&db.library(lib_id))
                     );
                 }
             }
             config::DumpMode::HirGraph => {
-                let out = toc_hir_pretty::graph::pretty_print_graph(db.library_graph(), |lib_id| {
+                let out = toc_hir_pretty::graph::pretty_print_graph(&db.source_graph(), |lib_id| {
                     db.library(lib_id)
                 });
                 println!("{out}");

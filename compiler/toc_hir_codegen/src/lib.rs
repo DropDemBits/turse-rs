@@ -281,10 +281,12 @@ pub fn generate_code(db: &dyn CodeGenDB) -> CompileResult<Option<CodeBlob>> {
 
     // Start producing blobs for each library
     // Only deal with one library right now
-    let lib_graph = db.library_graph();
+    let lib_graph = db.source_graph();
     let mut blob = CodeBlob::default();
 
-    if let Some((root_file, library_id)) = lib_graph.library_roots().next() {
+    if let Some((library_id, library)) = lib_graph.all_libraries().next() {
+        let root_file = library.root;
+
         // This library will act as the main file
         let library = db.library(library_id);
         let main_body = {

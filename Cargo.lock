@@ -1135,6 +1135,7 @@ dependencies = [
  "internment",
  "la-arena",
  "lazy_static",
+ "toc_source_graph",
  "toc_span",
 ]
 

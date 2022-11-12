@@ -96,8 +96,8 @@ where
         let mut pending_files: VecDeque<_> = VecDeque::default();
         let mut visited_files: HashSet<_> = HashSet::default();
 
-        for library_root in source_graph.library_roots() {
-            pending_files.push_back(library_root);
+        for (_, library) in source_graph.all_libraries() {
+            pending_files.push_back(library.root);
 
             while let Some(current_file) = pending_files.pop_front() {
                 // Don't visit files we've already encountered
@@ -145,7 +145,7 @@ mod test {
 
     use std::sync::Arc;
     use toc_salsa::salsa;
-    use toc_source_graph::SourceGraph;
+    use toc_source_graph::{ArtifactKind, Library, SourceGraph};
 
     use crate::db::{AstDatabaseExt, SourceParser};
 
@@ -168,7 +168,11 @@ mod test {
 
             let root_file = db.vfs.intern_path("src/main.t".into());
             let mut source_graph = SourceGraph::default();
-            source_graph.add_root(root_file);
+            let _lib = source_graph.add_library(Library {
+                artifact: ArtifactKind::Binary,
+                name: "main".into(),
+                root: root_file,
+            });
             db.set_source_graph(Arc::new(source_graph));
             db.invalidate_source_graph(&toc_vfs::DummyFileLoader);
 

@@ -1,6 +1,3 @@
-use std::collections::HashMap;
-
-use indexmap::IndexSet;
 use petgraph::{
     graph::NodeIndex,
     stable_graph::StableDiGraph,
@@ -11,15 +8,39 @@ use toc_span::FileId;
 #[cfg(test)]
 mod test;
 
-type LibraryGraph = StableDiGraph<FileId, ()>;
+#[derive(Debug, Clone)]
+pub struct Library {
+    /// Name of the library
+    pub name: String,
+    /// The main file of the library where all of the other files are discovered from
+    pub root: FileId,
+    /// What kind of build artifact this is
+    pub artifact: ArtifactKind,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ArtifactKind {
+    /// A runnable package. Only one of these can be selected as runnable.
+    Binary,
+    /// A library package.
+    Library,
+}
+
+/// Information about a library depdendency
+#[derive(Debug, Clone)]
+struct LibraryDep();
+
+type LibraryGraph = StableDiGraph<Library, LibraryDep>;
+
+/// A reference to a library in the [`SourceGraph`]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[repr(transparent)]
+pub struct LibraryId(NodeIndex);
 
 /// Library source graph
 #[derive(Debug, Clone, Default)]
 pub struct SourceGraph {
-    /// Dependencies between library roots
     libraries: LibraryGraph,
-    library_roots: IndexSet<NodeIndex>,
-    library_to_node: HashMap<FileId, NodeIndex>,
 }
 
 impl SourceGraph {
@@ -27,76 +48,54 @@ impl SourceGraph {
         Self::default()
     }
 
-    /// Adds a library to the source graph, marking it as a library graph root.
-    /// Does nothing if it's already a library graph root.
-    pub fn add_root(&mut self, library: FileId) {
-        let root = self.get_or_insert_library(library);
-        self.library_roots.insert(root);
+    /// Adds a library to the graph
+    pub fn add_library(&mut self, library: Library) -> LibraryId {
+        LibraryId(self.libraries.add_node(library))
     }
 
-    /// Removes a library from the source graph
-    pub fn remove_root(&mut self, library: FileId) {
-        let root = self
-            .library_to_node
-            .remove(&library)
-            .expect("file was never added to the source graph");
-        self.libraries.remove_node(root);
-        self.library_roots.retain(|node| *node != root);
+    /// Removes the specified library from the graph
+    pub fn remove_library(&mut self, library_id: LibraryId) {
+        self.libraries.remove_node(library_id.0);
     }
 
-    /// Adds a library dependency between library roots
-    ///
-    /// Automatically adds library nodes to the source graph
-    pub fn add_library_dep(&mut self, from: FileId, to: FileId) {
-        let from = self.get_or_insert_library(from);
-        let to = self.get_or_insert_library(to);
-        self.libraries.update_edge(from, to, ());
+    /// Adds a dependency between libraries
+    pub fn add_library_dep(&mut self, from: LibraryId, to: LibraryId) {
+        self.libraries.update_edge(from.0, to.0, LibraryDep());
     }
 
-    /// Traverses the library roots and their dependencies in DFS post-order
-    pub fn library_roots(&self) -> LibraryRoots<'_, '_> {
-        LibraryRoots {
+    /// Gets the corresponding [`Library`] for a [`LibraryId`]
+    pub fn library(&self, library_id: LibraryId) -> &Library {
+        &self.libraries[library_id.0]
+    }
+
+    /// Traverses the library and its dependencies in DFS order
+    pub fn library_deps(&self, from_library: LibraryId) -> LibraryDeps<'_> {
+        LibraryDeps {
             graph: &self.libraries,
-            roots: self.library_roots.iter(),
-            visitor: None,
+            visitor: DfsPostOrder::new(&self.libraries, from_library.0),
         }
     }
 
-    fn get_or_insert_library(&mut self, library: FileId) -> NodeIndex {
-        *self
-            .library_to_node
-            .entry(library)
-            .or_insert_with(|| self.libraries.add_node(library))
+    /// Iterates over all libraries in the graph
+    pub fn all_libraries(&self) -> impl Iterator<Item = (LibraryId, &'_ Library)> + '_ {
+        self.libraries
+            .node_indices()
+            .map(|idx| (LibraryId(idx), &self.libraries[idx]))
     }
 }
 
 #[derive(Debug, Clone)]
-pub struct LibraryRoots<'g, 'r> {
+pub struct LibraryDeps<'g> {
     graph: &'g LibraryGraph,
-    roots: indexmap::set::Iter<'r, NodeIndex>,
-    visitor: Option<DfsPostOrder<NodeIndex, <LibraryGraph as Visitable>::Map>>,
+    visitor: DfsPostOrder<NodeIndex, <LibraryGraph as Visitable>::Map>,
 }
 
-impl Iterator for LibraryRoots<'_, '_> {
-    type Item = FileId;
+impl<'g> Iterator for LibraryDeps<'g> {
+    type Item = (LibraryId, &'g Library);
 
     fn next(&mut self) -> Option<Self::Item> {
-        loop {
-            let node = {
-                self.visitor
-                    .as_mut()
-                    .and_then(|visitor| visitor.next(self.graph))
-            };
-
-            if let Some(node) = node {
-                let file = self.graph.node_weight(node).copied().unwrap();
-
-                break Some(file);
-            }
-
-            // Move to next (or first) root
-            let root = *self.roots.next()?;
-            self.visitor = Some(DfsPostOrder::new(self.graph, root));
-        }
+        self.visitor
+            .next(self.graph)
+            .map(|lib_id| (LibraryId(lib_id), &self.graph[lib_id]))
     }
 }
