@@ -4,7 +4,7 @@ use std::{collections::BTreeSet, sync::Arc};
 
 use toc_reporting::CompileResult;
 use toc_salsa::salsa;
-use toc_source_graph::{ExternalLinks, SourceGraph};
+use toc_source_graph::SourceGraph;
 use toc_span::FileId;
 use toc_vfs::HasVfs;
 use toc_vfs_db::db::FileSystem;
@@ -22,7 +22,7 @@ pub trait SourceParser: FileSystem {
 
     /// What other files a given file refers to
     #[salsa::input]
-    fn file_links(&self, file: FileId) -> Arc<ExternalLinks>;
+    fn file_links(&self, file: FileId) -> Arc<toc_parser::ExternalLinks>;
 
     /// Parses the given file
     #[salsa::invoke(source::parse_file)]

@@ -5,8 +5,8 @@ use std::{
     sync::Arc,
 };
 
+use toc_parser::ExternalLinks;
 use toc_reporting::CompileResult;
-use toc_source_graph::ExternalLinks;
 use toc_span::FileId;
 use toc_vfs::{HasVfs, PathResolution};
 use toc_vfs_db::db::VfsDatabaseExt;

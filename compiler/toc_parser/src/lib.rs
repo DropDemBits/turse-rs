@@ -18,7 +18,7 @@ use rowan::GreenNode;
 
 use crate::sink::Sink;
 
-pub use depends::{Dependency, ExternalLink, FileDepends};
+pub use depends::{Dependency, ExternalLink, ExternalLinks, FileDepends};
 
 /// Parse a regular file into a [`ParseTree`]
 pub fn parse(file: FileId, source: &str) -> CompileResult<ParseTree> {

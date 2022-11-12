@@ -1201,6 +1201,7 @@ version = "0.1.0"
 dependencies = [
  "drop_bomb",
  "expect-test",
+ "indexmap",
  "rowan",
  "toc_reporting",
  "toc_scanner",
@@ -1240,7 +1241,6 @@ dependencies = [
  "indexmap",
  "petgraph",
  "toc_span",
- "toc_syntax",
 ]
 
 [[package]]

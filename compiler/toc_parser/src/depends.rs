@@ -1,6 +1,7 @@
 //! File dependencies extracted from a file
 use std::sync::Arc;
 
+use indexmap::IndexMap;
 use toc_reporting::{CompileResult, MessageSink};
 use toc_span::{FileId, Span};
 use toc_syntax::{
@@ -22,6 +23,36 @@ impl FileDepends {
 }
 
 pub type ExternalLink = AstPtr<ast::ExternalRef>;
+
+/// What other files each [`ast::ExternalRef`] refers to
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub struct ExternalLinks {
+    links: IndexMap<ExternalLink, FileId>,
+}
+
+impl ExternalLinks {
+    /// Binds an external link to a file
+    pub fn bind(&mut self, link: ExternalLink, to: FileId) {
+        self.links.insert(link, to);
+    }
+
+    /// Looks up which file an external link might refer to
+    pub fn links_to(&self, link: ExternalLink) -> Option<FileId> {
+        self.links.get(&link).copied()
+    }
+
+    /// Iterator over all of the other files each [`ast::ExternalRef`] in a file refers to
+    pub fn all_links(&self) -> impl Iterator<Item = FileId> + '_ {
+        self.links.values().copied()
+    }
+
+    /// Iterator over all of the other files each importable [`ast::ExternalRef`] in a file refers to
+    pub fn import_links(&self) -> impl Iterator<Item = FileId> + '_ {
+        self.links.iter().flat_map(|(k, v)| {
+            (k.syntax_node_ptr().kind() == toc_syntax::SyntaxKind::ExternalItem).then_some(*v)
+        })
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Dependency {
