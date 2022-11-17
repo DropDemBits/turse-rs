@@ -7,11 +7,16 @@ use std::{
 
 use toc_parser::ExternalLinks;
 use toc_reporting::CompileResult;
+use toc_source_graph::{LibraryId, LibraryRef};
 use toc_span::FileId;
 use toc_vfs::{HasVfs, PathResolution};
 use toc_vfs_db::db::VfsDatabaseExt;
 
 use crate::db;
+
+pub(crate) fn source_library(db: &dyn db::SourceParser, library_id: LibraryId) -> LibraryRef {
+    LibraryRef::new(db.source_graph(), library_id)
+}
 
 pub(crate) fn parse_file(
     db: &dyn db::SourceParser,

@@ -4,7 +4,7 @@ use std::{collections::BTreeSet, sync::Arc};
 
 use toc_reporting::CompileResult;
 use toc_salsa::salsa;
-use toc_source_graph::SourceGraph;
+use toc_source_graph::{LibraryId, LibraryRef, SourceGraph};
 use toc_span::FileId;
 use toc_vfs::HasVfs;
 use toc_vfs_db::db::FileSystem;
@@ -47,6 +47,10 @@ pub trait SourceParser: FileSystem {
     /// Gets the set of all the transient file imports of `file`
     #[salsa::invoke(source::reachable_imported_files)]
     fn reachable_imported_files(&self, file: FileId) -> Arc<BTreeSet<FileId>>;
+
+    /// The corresponding [`Library`] for a given [`LibraryId`]
+    #[salsa::invoke(source::source_library)]
+    fn source_library(&self, library_id: LibraryId) -> LibraryRef;
 }
 
 #[salsa::query_group(SpanMappingStorage)]

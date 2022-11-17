@@ -53,7 +53,7 @@ where
         let mut messages = MessageBundle::default();
 
         // take the library from the source graph
-        let library_root = db.source_graph().library(library).root;
+        let library_root = db.source_library(library).root;
 
         // Report if the root file is missing
         if let (_, Some(err)) = self.file_source(library_root) {

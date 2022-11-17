@@ -34,7 +34,7 @@ pub trait LoweringDb: toc_ast_db::db::SourceParser {
     ///
     /// ## Returns
     ///
-    /// Returns the [`Library`] of the newly lowered HIR tree.
+    /// Returns the [`LoweredLibrary`] of the newly lowered HIR tree.
     fn lower_library(&self, library_id: LibraryId) -> CompileResult<LoweredLibrary>;
 
     /// Lowers the entire source graph

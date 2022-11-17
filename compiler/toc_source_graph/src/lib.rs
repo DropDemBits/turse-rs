@@ -1,4 +1,4 @@
-use std::fmt;
+use std::{fmt, ops::Deref, sync::Arc};
 
 use petgraph::{
     graph::NodeIndex,
@@ -32,23 +32,45 @@ pub enum ArtifactKind {
 #[derive(Debug, Clone)]
 struct LibraryDep();
 
-type LibraryGraph = StableDiGraph<Library, LibraryDep>;
-
 /// A reference to a library in the [`SourceGraph`]
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(transparent)]
 pub struct LibraryId(NodeIndex);
 
-impl fmt::Debug for LibraryId {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_tuple("LibraryId").field(&self.0.index()).finish()
-    }
-}
-
 /// Library source graph
 #[derive(Debug, Clone, Default)]
 pub struct SourceGraph {
     libraries: LibraryGraph,
+}
+
+#[derive(Debug, Clone)]
+pub struct LibraryDeps<'g> {
+    graph: &'g LibraryGraph,
+    visitor: DfsPostOrder<NodeIndex, <LibraryGraph as Visitable>::Map>,
+}
+
+/// Wrapper reference to a specific [`Library`].
+/// Workaround for the salsa version we use not being able to return references
+#[derive(Debug, Clone)]
+pub struct LibraryRef {
+    source_graph: Arc<SourceGraph>,
+    library_id: LibraryId,
+}
+
+impl Eq for LibraryRef {}
+
+impl PartialEq for LibraryRef {
+    fn eq(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.source_graph, &other.source_graph) && self.library_id == other.library_id
+    }
+}
+
+type LibraryGraph = StableDiGraph<Library, LibraryDep>;
+
+impl fmt::Debug for LibraryId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_tuple("LibraryId").field(&self.0.index()).finish()
+    }
 }
 
 impl SourceGraph {
@@ -92,10 +114,21 @@ impl SourceGraph {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct LibraryDeps<'g> {
-    graph: &'g LibraryGraph,
-    visitor: DfsPostOrder<NodeIndex, <LibraryGraph as Visitable>::Map>,
+impl LibraryRef {
+    pub fn new(source_graph: Arc<SourceGraph>, library_id: LibraryId) -> Self {
+        Self {
+            source_graph,
+            library_id,
+        }
+    }
+}
+
+impl Deref for LibraryRef {
+    type Target = Library;
+
+    fn deref(&self) -> &Self::Target {
+        self.source_graph.library(self.library_id)
+    }
 }
 
 impl<'g> Iterator for LibraryDeps<'g> {
