@@ -150,7 +150,7 @@ mod test {
 
     use std::sync::Arc;
     use toc_salsa::salsa;
-    use toc_source_graph::{ArtifactKind, Library, SourceGraph};
+    use toc_source_graph::{ArtifactKind, SourceGraph, SourceLibrary};
 
     use crate::db::{AstDatabaseExt, SourceParser};
 
@@ -173,7 +173,7 @@ mod test {
 
             let root_file = db.vfs.intern_path("src/main.t".into());
             let mut source_graph = SourceGraph::default();
-            let _lib = source_graph.add_library(Library {
+            let _lib = source_graph.add_library(SourceLibrary {
                 artifact: ArtifactKind::Binary,
                 name: "main".into(),
                 root: root_file,

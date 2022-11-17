@@ -11,7 +11,7 @@ use toc_ast_db::{
     db::{AstDatabaseExt, SourceParser, SpanMapping},
     SourceGraph,
 };
-use toc_hir::{library::LibraryId, library_graph::Library};
+use toc_hir::{library::LibraryId, library_graph::SourceLibrary};
 use toc_salsa::salsa;
 use toc_span::FileId;
 use toc_vfs::{LoadError, LoadStatus};
@@ -94,7 +94,7 @@ impl ServerState {
                         return;
                     };
 
-                    let library_id = self.source_graph.add_library(Library {
+                    let library_id = self.source_graph.add_library(SourceLibrary {
                         artifact: toc_hir::library_graph::ArtifactKind::Binary,
                         name: file_name.to_string_lossy().to_string(),
                         root: root_file,

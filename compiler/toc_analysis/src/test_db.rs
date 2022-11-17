@@ -37,7 +37,7 @@ impl TestDb {
 
         let root_file = db.vfs.intern_path("src/main.t".into());
         let mut source_graph = SourceGraph::default();
-        let library_id = source_graph.add_library(toc_hir::library_graph::Library {
+        let library_id = source_graph.add_library(toc_hir::library_graph::SourceLibrary {
             name: "main".into(),
             root: root_file,
             artifact: toc_hir::library_graph::ArtifactKind::Binary,

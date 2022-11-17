@@ -4,8 +4,7 @@ use std::fmt;
 
 use crate::{body, expr, item, stmt, symbol};
 
-// Pass through the source graph id
-pub use toc_source_graph::LibraryId;
+use crate::library_graph::LibraryId;
 
 crate::arena_id_wrapper!(
     /// A library local reference to a definition.

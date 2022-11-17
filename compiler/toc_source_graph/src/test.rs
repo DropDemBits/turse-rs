@@ -1,26 +1,26 @@
 use toc_span::FileId;
 
-use crate::{ArtifactKind, Library, SourceGraph};
+use crate::{ArtifactKind, SourceGraph, SourceLibrary};
 
 #[test]
 fn no_dedup_source_roots() {
     let mut source_graph = SourceGraph::new();
-    source_graph.add_library(Library {
+    source_graph.add_library(SourceLibrary {
         artifact: ArtifactKind::Binary,
         name: "a".into(),
         root: FileId::new_testing(3).unwrap(),
     });
-    source_graph.add_library(Library {
+    source_graph.add_library(SourceLibrary {
         artifact: ArtifactKind::Binary,
         name: "a".into(),
         root: FileId::new_testing(2).unwrap(),
     });
-    source_graph.add_library(Library {
+    source_graph.add_library(SourceLibrary {
         artifact: ArtifactKind::Binary,
         name: "a".into(),
         root: FileId::new_testing(2).unwrap(),
     });
-    source_graph.add_library(Library {
+    source_graph.add_library(SourceLibrary {
         artifact: ArtifactKind::Binary,
         name: "a".into(),
         root: FileId::new_testing(1).unwrap(),

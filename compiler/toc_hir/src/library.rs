@@ -12,7 +12,7 @@ use crate::{
     ty,
 };
 
-pub use crate::ids::LibraryId;
+pub use crate::library_graph::LibraryId;
 
 /// A reference to a library node in a specific library
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

@@ -7,7 +7,7 @@ use toc_ast_db::{
     db::{AstDatabaseExt, SourceParser, SpanMapping},
     SourceGraph,
 };
-use toc_hir::library_graph::Library;
+use toc_hir::library_graph::SourceLibrary;
 use toc_hir_db::db::HirDatabase;
 use toc_salsa::salsa;
 use toc_span::{FileId, Span};
@@ -45,7 +45,7 @@ fn main() {
 
     // Set the source root
     let mut source_graph = SourceGraph::default();
-    let _lib_id = source_graph.add_library(Library {
+    let _lib_id = source_graph.add_library(SourceLibrary {
         artifact: toc_hir::library_graph::ArtifactKind::Binary,
         name: maybe_name,
         root: root_file,

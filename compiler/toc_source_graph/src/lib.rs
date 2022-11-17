@@ -10,8 +10,9 @@ use toc_span::FileId;
 #[cfg(test)]
 mod test;
 
+/// Source information about a library
 #[derive(Debug, Clone)]
-pub struct Library {
+pub struct SourceLibrary {
     /// Name of the library
     pub name: String,
     /// The main file of the library where all of the other files are discovered from
@@ -20,6 +21,7 @@ pub struct Library {
     pub artifact: ArtifactKind,
 }
 
+/// What kind of build artifact this is
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ArtifactKind {
     /// A runnable package. Only one of these can be selected as runnable.
@@ -65,7 +67,7 @@ impl PartialEq for LibraryRef {
     }
 }
 
-type LibraryGraph = StableDiGraph<Library, LibraryDep>;
+type LibraryGraph = StableDiGraph<SourceLibrary, LibraryDep>;
 
 impl fmt::Debug for LibraryId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -79,7 +81,7 @@ impl SourceGraph {
     }
 
     /// Adds a library to the graph
-    pub fn add_library(&mut self, library: Library) -> LibraryId {
+    pub fn add_library(&mut self, library: SourceLibrary) -> LibraryId {
         LibraryId(self.libraries.add_node(library))
     }
 
@@ -94,7 +96,7 @@ impl SourceGraph {
     }
 
     /// Gets the corresponding [`Library`] for a [`LibraryId`]
-    pub fn library(&self, library_id: LibraryId) -> &Library {
+    pub fn library(&self, library_id: LibraryId) -> &SourceLibrary {
         &self.libraries[library_id.0]
     }
 
@@ -107,7 +109,7 @@ impl SourceGraph {
     }
 
     /// Iterates over all libraries in the graph
-    pub fn all_libraries(&self) -> impl Iterator<Item = (LibraryId, &'_ Library)> + '_ {
+    pub fn all_libraries(&self) -> impl Iterator<Item = (LibraryId, &'_ SourceLibrary)> + '_ {
         self.libraries
             .node_indices()
             .map(|idx| (LibraryId(idx), &self.libraries[idx]))
@@ -124,7 +126,7 @@ impl LibraryRef {
 }
 
 impl Deref for LibraryRef {
-    type Target = Library;
+    type Target = SourceLibrary;
 
     fn deref(&self) -> &Self::Target {
         self.source_graph.library(self.library_id)
@@ -132,7 +134,7 @@ impl Deref for LibraryRef {
 }
 
 impl<'g> Iterator for LibraryDeps<'g> {
-    type Item = (LibraryId, &'g Library);
+    type Item = (LibraryId, &'g SourceLibrary);
 
     fn next(&mut self) -> Option<Self::Item> {
         self.visitor
