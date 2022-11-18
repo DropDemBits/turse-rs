@@ -1,6 +1,6 @@
 use std::{
     borrow::Cow,
-    collections::HashMap,
+    collections::{BTreeMap, HashMap},
     path::{Path, PathBuf},
     sync::Arc,
 };
@@ -11,16 +11,19 @@ use toc_ast_db::{
     db::{AstDatabaseExt, SourceParser, SpanMapping},
     SourceGraph,
 };
+use toc_hir::{library::LibraryId, library_graph::SourceLibrary};
 use toc_salsa::salsa;
+use toc_span::FileId;
 use toc_vfs::{LoadError, LoadStatus};
 use toc_vfs_db::db::VfsDatabaseExt;
-use tracing::error;
+use tracing::{error, trace};
 
 #[derive(Default)]
 pub(crate) struct ServerState {
     db: LspDatabase,
     files: FileStore,
     source_graph: SourceGraph,
+    existing_libraries: BTreeMap<FileId, LibraryId>,
 }
 
 impl ServerState {
@@ -84,9 +87,35 @@ impl ServerState {
 
         // Setup source graph
         if !removed {
-            self.source_graph.add_root(root_file);
+            match self.existing_libraries.entry(root_file) {
+                std::collections::btree_map::Entry::Vacant(ent) => {
+                    let Some(file_name) = path.file_name() else {
+                        error!("trying to update folder (from path {})", path.display());
+                        return;
+                    };
+
+                    let library_id = self.source_graph.add_library(SourceLibrary {
+                        artifact: toc_hir::library_graph::ArtifactKind::Binary,
+                        name: file_name.to_string_lossy().to_string(),
+                        root: root_file,
+                    });
+
+                    ent.insert(library_id);
+                }
+                std::collections::btree_map::Entry::Occupied(ent) => {
+                    trace!("reusing {ent:?} for {root_file:?}");
+                }
+            }
         } else {
-            self.source_graph.remove_root(root_file)
+            match self.existing_libraries.entry(root_file) {
+                std::collections::btree_map::Entry::Vacant(_) => {
+                    error!("{root_file:?} already was removed")
+                }
+                std::collections::btree_map::Entry::Occupied(ent) => {
+                    trace!("closing library {ent:?}");
+                    ent.remove();
+                }
+            }
         }
         // oeuf, this is not pretty!
         // ???: Can we avoid the clone here?
@@ -95,7 +124,7 @@ impl ServerState {
         // TODO: Recursively load in files, respecting already loaded files
         // TODO: Deal with adding source roots that depend on files that are already source roots
         let file_loader = LspFileLoader::new(&self.files);
-        db.invalidate_source_graph(&file_loader);
+        db.rebuild_file_links(&file_loader);
     }
 
     /// Collect diagnostics for all libraries

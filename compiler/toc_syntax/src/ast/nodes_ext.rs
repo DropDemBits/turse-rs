@@ -11,7 +11,7 @@ use crate::{
 
 // Extension Traits //
 
-pub trait ExternalItemOwner: AstNode {
+pub trait ExternalItemOwner: AstNode<Language = crate::Lang> {
     fn external_items(&self) -> Vec<ExternalItem> {
         self.syntax()
             .descendants()

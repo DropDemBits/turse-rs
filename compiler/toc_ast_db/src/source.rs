@@ -1,17 +1,22 @@
 //! Source file interpretation queries
 
 use std::{
-    collections::{HashSet, VecDeque},
+    collections::{BTreeSet, HashSet, VecDeque},
     sync::Arc,
 };
 
+use toc_parser::ExternalLinks;
 use toc_reporting::CompileResult;
-use toc_source_graph::{DependGraph, SourceDepend, SourceKind};
+use toc_source_graph::{LibraryId, LibraryRef};
 use toc_span::FileId;
 use toc_vfs::{HasVfs, PathResolution};
-use toc_vfs_db::db::{self as vfs_db, VfsDatabaseExt};
+use toc_vfs_db::db::VfsDatabaseExt;
 
 use crate::db;
+
+pub(crate) fn source_library(db: &dyn db::SourceParser, library_id: LibraryId) -> LibraryRef {
+    LibraryRef::new(db.source_graph(), library_id)
+}
 
 pub(crate) fn parse_file(
     db: &dyn db::SourceParser,
@@ -30,33 +35,74 @@ pub(crate) fn validate_file(db: &dyn db::SourceParser, file_id: FileId) -> Compi
 pub(crate) fn parse_depends(
     db: &dyn db::SourceParser,
     file_id: FileId,
-) -> CompileResult<toc_parser::FileDepends> {
+) -> CompileResult<Arc<toc_parser::FileDepends>> {
     let cst = db.parse_file(file_id);
     toc_parser::parse_depends(file_id, cst.result().syntax())
 }
 
-pub(crate) fn depend_of(
+pub(crate) fn file_link_of(
     db: &dyn db::SourceParser,
-    library: FileId,
-    from: FileId,
-    relative_path: String,
-) -> (FileId, SourceKind) {
-    db.depend_graph(library).depend_of(from, relative_path)
+    file_id: FileId,
+    link: toc_parser::ExternalLink,
+) -> Option<FileId> {
+    db.file_links(file_id).links_to(link)
+}
+
+pub(crate) fn reachable_files(db: &dyn db::SourceParser, root: FileId) -> Arc<BTreeSet<FileId>> {
+    let mut files = BTreeSet::default();
+    let mut pending_queue = VecDeque::default();
+
+    pending_queue.push_back(root);
+
+    while let Some(current_file) = pending_queue.pop_front() {
+        // Skip if we've already explored this file
+        if files.contains(&current_file) {
+            continue;
+        }
+        files.insert(current_file);
+
+        // add all of this file's linked bits to the queue
+        pending_queue.extend(db.file_links(current_file).all_links());
+    }
+
+    Arc::new(files)
+}
+
+pub(crate) fn reachable_imported_files(
+    db: &dyn db::SourceParser,
+    root: FileId,
+) -> Arc<BTreeSet<FileId>> {
+    let mut files = BTreeSet::default();
+    let mut pending_queue = VecDeque::default();
+
+    pending_queue.push_back(root);
+
+    while let Some(current_file) = pending_queue.pop_front() {
+        // Skip if we've already explored this file
+        if files.contains(&current_file) {
+            continue;
+        }
+        files.insert(current_file);
+
+        // add all of this file's linked bits to the queue
+        pending_queue.extend(db.file_links(current_file).import_links());
+    }
+
+    Arc::new(files)
 }
 
 impl<T> db::AstDatabaseExt for T
 where
-    T: HasVfs + vfs_db::FileSystem + db::SourceParser,
+    T: HasVfs + db::SourceParser,
 {
-    fn invalidate_source_graph(&mut self, loader: &dyn toc_vfs::FileLoader) {
+    fn rebuild_file_links(&mut self, loader: &dyn toc_vfs::FileLoader) {
         let db = self;
         let source_graph = db.source_graph();
-        let mut pending_files: VecDeque<_> = vec![].into();
+        let mut pending_files: VecDeque<_> = VecDeque::default();
         let mut visited_files: HashSet<_> = HashSet::default();
 
-        for library_root in source_graph.library_roots() {
-            let mut depend_graph = DependGraph::new(library_root);
-            pending_files.push_back(library_root);
+        for (_, library) in source_graph.all_libraries() {
+            pending_files.push_back(library.root);
 
             while let Some(current_file) = pending_files.pop_front() {
                 // Don't visit files we've already encountered
@@ -70,8 +116,10 @@ where
                 let res = loader.load_file(path);
                 db.update_file(current_file, res);
 
+                let mut links = ExternalLinks::default();
                 let deps = db.parse_depends(current_file);
                 for dep in deps.result().dependencies() {
+                    // Get the target file
                     let child = match db
                         .get_vfs()
                         .resolve_path(Some(current_file), &dep.relative_path)
@@ -83,23 +131,15 @@ where
                         }
                     };
 
-                    // Update the resolution path
-                    let kind = match dep.kind {
-                        toc_parser::DependencyKind::Include => SourceKind::Include,
-                        toc_parser::DependencyKind::Import => SourceKind::Unit,
-                    };
-
-                    let info = SourceDepend {
-                        relative_path: dep.relative_path.clone(),
-                        kind,
-                    };
-                    depend_graph.add_source_dep(current_file, child, info);
+                    // Explore later
                     pending_files.push_back(child);
-                }
-            }
 
-            // Update the depend graph
-            db.set_depend_graph(library_root, Arc::new(depend_graph));
+                    links.bind(dep.link_from.clone(), child);
+                }
+
+                // Update the file links
+                db.set_file_links(current_file, Arc::new(links));
+            }
         }
     }
 }
@@ -110,7 +150,7 @@ mod test {
 
     use std::sync::Arc;
     use toc_salsa::salsa;
-    use toc_source_graph::SourceGraph;
+    use toc_source_graph::{ArtifactKind, SourceGraph, SourceLibrary};
 
     use crate::db::{AstDatabaseExt, SourceParser};
 
@@ -133,9 +173,13 @@ mod test {
 
             let root_file = db.vfs.intern_path("src/main.t".into());
             let mut source_graph = SourceGraph::default();
-            source_graph.add_root(root_file);
+            let _lib = source_graph.add_library(SourceLibrary {
+                artifact: ArtifactKind::Binary,
+                name: "main".into(),
+                root: root_file,
+            });
             db.set_source_graph(Arc::new(source_graph));
-            db.invalidate_source_graph(&toc_vfs::DummyFileLoader);
+            db.rebuild_file_links(&toc_vfs::DummyFileLoader);
 
             db
         }

@@ -58,11 +58,15 @@ fn do_lower(src: &str) -> (String, LowerResult) {
 
     let root_file = db.vfs.intern_path("src/main.t".into());
     let mut source_graph = SourceGraph::new();
-    source_graph.add_root(root_file);
+    let lib = source_graph.add_library(toc_hir::library_graph::SourceLibrary {
+        name: "main".into(),
+        root: root_file,
+        artifact: toc_hir::library_graph::ArtifactKind::Binary,
+    });
     db.set_source_graph(Arc::new(source_graph));
-    db.invalidate_source_graph(&toc_vfs::DummyFileLoader);
+    db.rebuild_file_links(&toc_vfs::DummyFileLoader);
 
-    let lowered = db.lower_library(root_file);
+    let lowered = db.lower_library(lib);
 
     let mut s = toc_hir_pretty::tree::pretty_print_tree(lowered.result());
     for err in lowered.messages().iter() {

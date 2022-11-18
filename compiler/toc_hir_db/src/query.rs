@@ -7,7 +7,6 @@ use toc_hir::{
     expr,
     item::{self, ModuleId, ModuleTree},
     library::{InLibrary, Library, LibraryId, LoweredLibrary},
-    library_graph::LibraryGraph,
     stmt,
     symbol::{DefId, DefOwner, DefResolve, DefTable, LocalDefId, SymbolKind},
     ty::{self, TypeOwner, TypeOwners},
@@ -17,12 +16,7 @@ use toc_hir::{
 use crate::db::{HirDatabase, InsideModule};
 
 pub fn library_query(db: &dyn HirDatabase, library: LibraryId) -> LoweredLibrary {
-    let file = db.library_graph().file_of(library);
-    db.lower_library(file).result().clone()
-}
-
-pub fn library_graph_query(db: &dyn HirDatabase) -> LibraryGraph {
-    db.lower_library_graph().result().clone()
+    db.lower_library(library).result().clone()
 }
 
 pub fn collect_defs(db: &dyn HirDatabase, library_id: LibraryId) -> Arc<DefTable> {

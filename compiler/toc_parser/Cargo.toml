@@ -14,6 +14,7 @@ toc_span = { path = "../toc_span" }
 
 rowan = "0.15"
 drop_bomb = "0.1.5"
+indexmap = { workspace = true }
 
 [dev-dependencies]
 expect-test = "1.1"

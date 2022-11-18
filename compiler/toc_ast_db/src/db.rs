@@ -1,10 +1,10 @@
 //! AST Query system definitions
 
-use std::sync::Arc;
+use std::{collections::BTreeSet, sync::Arc};
 
 use toc_reporting::CompileResult;
 use toc_salsa::salsa;
-use toc_source_graph::{DependGraph, SourceGraph, SourceKind};
+use toc_source_graph::{LibraryId, LibraryRef, SourceGraph};
 use toc_span::FileId;
 use toc_vfs::HasVfs;
 use toc_vfs_db::db::FileSystem;
@@ -20,9 +20,9 @@ pub trait SourceParser: FileSystem {
     #[salsa::input]
     fn source_graph(&self) -> Arc<SourceGraph>;
 
-    /// Source dependency graph of a given library
+    /// What other files a given file refers to
     #[salsa::input]
-    fn depend_graph(&self, library: FileId) -> Arc<DependGraph>;
+    fn file_links(&self, file: FileId) -> Arc<toc_parser::ExternalLinks>;
 
     /// Parses the given file
     #[salsa::invoke(source::parse_file)]
@@ -34,16 +34,23 @@ pub trait SourceParser: FileSystem {
 
     /// Parse out the dependencies of a file
     #[salsa::invoke(source::parse_depends)]
-    fn parse_depends(&self, file_id: FileId) -> CompileResult<toc_parser::FileDepends>;
+    fn parse_depends(&self, file_id: FileId) -> CompileResult<Arc<toc_parser::FileDepends>>;
 
-    /// Gets the source dependency in a given library from the given file and the relative path
-    #[salsa::invoke(source::depend_of)]
-    fn depend_of(
-        &self,
-        library: FileId,
-        from: FileId,
-        relative_path: String,
-    ) -> (FileId, SourceKind);
+    /// Gets the [`ExternalLink`](toc_parser::ExternalLink)'s corresponding file
+    #[salsa::invoke(source::file_link_of)]
+    fn file_link_of(&self, file: FileId, link: toc_parser::ExternalLink) -> Option<FileId>;
+
+    /// Gets the set of all the transient file dependencies of `file`
+    #[salsa::invoke(source::reachable_files)]
+    fn reachable_files(&self, file: FileId) -> Arc<BTreeSet<FileId>>;
+
+    /// Gets the set of all the transient file imports of `file`
+    #[salsa::invoke(source::reachable_imported_files)]
+    fn reachable_imported_files(&self, file: FileId) -> Arc<BTreeSet<FileId>>;
+
+    /// The corresponding [`SourceLibrary`](toc_source_graph::SourceLibrary) for a given [`LibraryId`]
+    #[salsa::invoke(source::source_library)]
+    fn source_library(&self, library_id: LibraryId) -> LibraryRef;
 }
 
 #[salsa::query_group(SpanMappingStorage)]
@@ -69,8 +76,7 @@ pub trait SpanMapping: FileSystem + HasVfs {
 }
 
 pub trait AstDatabaseExt: FileSystem + SourceParser {
-    /// Reloads all files accessible from the source roots using the given file loader
-    ///
-    /// Also rebuilds all dependency graphs
-    fn invalidate_source_graph(&mut self, loader: &dyn toc_vfs::FileLoader);
+    /// Rebuilds the mapping of which files refer to which other files,
+    /// loading new files  using the given file loader.
+    fn rebuild_file_links(&mut self, loader: &dyn toc_vfs::FileLoader);
 }

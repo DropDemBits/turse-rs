@@ -50,13 +50,17 @@ fn run(source: &str) {
 
     // Error out any escaped files so that we don't get false-positive crashes
     db.insert_fixture(fixture);
-    db.invalidate_source_graph(&file_loader);
+    db.rebuild_file_links(&file_loader);
 
     let root_file = db.vfs.intern_path("src/main.t".into());
     let mut source_graph = SourceGraph::default();
-    source_graph.add_root(root_file);
+    source_graph.add_library(toc_hir::library_graph::SourceLibrary {
+        name: "main".into(),
+        root: root_file,
+        artifact: toc_hir::library_graph::ArtifactKind::Binary,
+    });
     db.set_source_graph(Arc::new(source_graph));
-    db.invalidate_source_graph(&toc_vfs::DummyFileLoader);
+    db.rebuild_file_links(&toc_vfs::DummyFileLoader);
 
     // Run full analysis
     db.analyze_libraries();

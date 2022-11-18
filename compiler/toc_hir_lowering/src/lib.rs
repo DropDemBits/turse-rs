@@ -21,9 +21,8 @@ mod collector;
 mod lower;
 mod resolver;
 
-use toc_hir::{library::LoweredLibrary, library_graph::LibraryGraph};
+use toc_hir::library::{LibraryId, LoweredLibrary};
 use toc_reporting::CompileResult;
-use toc_span::FileId;
 
 /// Trait representing a database that can store a lowered HIR tree
 //
@@ -31,17 +30,13 @@ use toc_span::FileId;
 // with a trait we defined here, as that would require a foreign blanket impl on a foreign trait.
 // (this is why symbol interning is handled by the `internment` crate.)
 pub trait LoweringDb: toc_ast_db::db::SourceParser {
-    /// Lowers the given file as the root of a HIR library.
+    /// Lowers the given library into a HIR library.
     ///
     /// ## Returns
     ///
-    /// Returns the [`Library`] of the newly lowered HIR tree, along with a
-    /// [`SpanTable`] containing the interned spans.
-    ///
-    /// [`Library`]: toc_hir::library::Library
-    /// [`SpanTable`]: toc_span::SpanTable
-    fn lower_library(&self, file: FileId) -> CompileResult<LoweredLibrary>;
+    /// Returns the [`LoweredLibrary`] of the newly lowered HIR tree.
+    fn lower_library(&self, library_id: LibraryId) -> CompileResult<LoweredLibrary>;
 
-    /// Lowers the entire library graph
-    fn lower_library_graph(&self) -> CompileResult<LibraryGraph>;
+    /// Lowers the entire source graph
+    fn lower_source_graph(&self) -> CompileResult<()>;
 }

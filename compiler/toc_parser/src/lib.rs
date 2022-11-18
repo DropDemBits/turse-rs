@@ -6,6 +6,8 @@ mod parser;
 mod sink;
 mod source;
 
+use std::sync::Arc;
+
 use source::Source;
 use toc_reporting::CompileResult;
 use toc_scanner::Scanner;
@@ -16,7 +18,7 @@ use rowan::GreenNode;
 
 use crate::sink::Sink;
 
-pub use depends::{Dependency, DependencyKind, FileDepends};
+pub use depends::{Dependency, ExternalLink, ExternalLinks, FileDepends};
 
 /// Parse a regular file into a [`ParseTree`]
 pub fn parse(file: FileId, source: &str) -> CompileResult<ParseTree> {
@@ -31,7 +33,7 @@ pub fn parse(file: FileId, source: &str) -> CompileResult<ParseTree> {
 }
 
 /// Parse the dependencies of a file
-pub fn parse_depends(file: FileId, syntax: SyntaxNode) -> CompileResult<FileDepends> {
+pub fn parse_depends(file: FileId, syntax: SyntaxNode) -> CompileResult<Arc<FileDepends>> {
     depends::gather_dependencies(file, syntax)
 }
 

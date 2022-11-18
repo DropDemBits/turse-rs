@@ -422,6 +422,7 @@ impl SyntaxKind {
     }
 }
 
+// NOTE: If this is changed, go look at xtask::codegen and rename the appropriate idents
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Lang {}
 impl Language for Lang {
@@ -442,6 +443,8 @@ pub type SyntaxNode = rowan::SyntaxNode<Lang>;
 pub type SyntaxToken = rowan::SyntaxToken<Lang>;
 #[allow(unused)]
 pub type SyntaxElement = rowan::NodeOrToken<SyntaxNode, SyntaxToken>;
+pub type SyntaxNodePtr = rowan::ast::SyntaxNodePtr<Lang>;
+pub type AstPtr<N> = rowan::ast::AstPtr<N>;
 
 // Other rowan re-exports
 pub use rowan::WalkEvent;

@@ -1099,6 +1099,7 @@ dependencies = [
  "toc_salsa",
  "toc_source_graph",
  "toc_span",
+ "toc_syntax",
  "toc_validate",
  "toc_vfs",
  "toc_vfs_db",
@@ -1134,6 +1135,7 @@ dependencies = [
  "internment",
  "la-arena",
  "lazy_static",
+ "toc_source_graph",
  "toc_span",
 ]
 
@@ -1200,6 +1202,7 @@ version = "0.1.0"
 dependencies = [
  "drop_bomb",
  "expect-test",
+ "indexmap",
  "rowan",
  "toc_reporting",
  "toc_scanner",

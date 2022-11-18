@@ -27,13 +27,13 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use toc_ast_db::db::SourceParser;
+use toc_hir::library::LibraryId;
 use toc_hir::symbol::{syms, IsMonitor, IsPervasive, NodeSpan, SymbolKind};
 use toc_hir::{
     body,
     builder::{self, BodyBuilder},
     expr::{Expr, ExprKind},
     item,
-    library_graph::{GraphBuilder, LibraryGraph},
     stmt::{Stmt, StmtId, StmtKind},
     symbol::LocalDefId,
 };
@@ -48,14 +48,19 @@ impl<T> LoweringDb for T
 where
     T: SourceParser,
 {
-    fn lower_library(&self, library_root: FileId) -> CompileResult<LoweredLibrary> {
+    fn lower_library(&self, library: LibraryId) -> CompileResult<LoweredLibrary> {
         let db = self;
-
         let mut messages = MessageBundle::default();
+
+        // take the library from the source graph
+        let library_root = db.source_library(library).root;
 
         // Report if the root file is missing
         if let (_, Some(err)) = self.file_source(library_root) {
             // Report the missing file
+            // Note: we can't lookup the path directly because we don't
+            // have access to the file info table from just a source file
+            // without having to import toc_vfs_db
             let mut report = MessageSink::new();
             report
                 .error_detailed(
@@ -66,7 +71,20 @@ where
             messages.aggregate(&report.finish());
         }
 
-        let reachable_files: Vec<_> = self.depend_graph(library_root).unit_sources().collect();
+        // Reachable files isn't the way to go
+        // Unfortunately, we can't quite precollect defs since that also depends on expansion
+        //
+        // Note that unit files (i.e. files linked from by import) serve as expansion roots
+        // we could probably do precollection again by recording what items are bound to
+        // which scopes, and then expanding from there (since once we've gone through
+        // expanding, the scopes are final)
+        //
+        // for now though, this just replicates the old behavior
+        let reachable_files = self
+            .reachable_imported_files(library_root)
+            .iter()
+            .copied()
+            .collect::<Vec<_>>();
 
         // Collect all the defs in the library
         let (collect_res, msgs) = crate::collector::collect_defs(db, &reachable_files).take();
@@ -95,17 +113,16 @@ where
         CompileResult::new(Arc::new(lib), messages)
     }
 
-    fn lower_library_graph(&self) -> CompileResult<LibraryGraph> {
+    fn lower_source_graph(&self) -> CompileResult<()> {
         let mut messages = MessageBundle::default();
         let source_graph = self.source_graph();
-        let mut graph = GraphBuilder::new();
 
-        for root in source_graph.library_roots() {
-            graph.add_library(root);
-            self.lower_library(root).bundle_messages(&mut messages);
+        for (library_id, _) in source_graph.all_libraries() {
+            self.lower_library(library_id)
+                .bundle_messages(&mut messages);
         }
 
-        CompileResult::new(graph.finish(), messages)
+        CompileResult::new((), messages)
     }
 }
 
