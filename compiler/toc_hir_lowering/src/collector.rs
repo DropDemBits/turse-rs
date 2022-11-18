@@ -358,7 +358,7 @@ impl FileCollector<'_> {
     }
 }
 
-/// Gets the name from the enclosing `type` decl, or the [`Anonymous`](syms::Anonymous) symbol
+/// Gets the name from the enclosing `type` decl, or the [`Anonymous`](struct@syms::Anonymous) symbol
 fn type_decl_name(ty: &impl ast::AstNode<Language = toc_syntax::Lang>) -> Symbol {
     ty.syntax()
         .parent()

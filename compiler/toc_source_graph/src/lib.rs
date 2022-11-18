@@ -51,7 +51,7 @@ pub struct LibraryDeps<'g> {
     visitor: DfsPostOrder<NodeIndex, <LibraryGraph as Visitable>::Map>,
 }
 
-/// Wrapper reference to a specific [`Library`].
+/// Wrapper reference to a specific [`SourceLibrary`].
 /// Workaround for the salsa version we use not being able to return references
 #[derive(Debug, Clone)]
 pub struct LibraryRef {
@@ -95,7 +95,7 @@ impl SourceGraph {
         self.libraries.update_edge(from.0, to.0, LibraryDep());
     }
 
-    /// Gets the corresponding [`Library`] for a [`LibraryId`]
+    /// Gets the corresponding [`SourceLibrary`] for a [`LibraryId`]
     pub fn library(&self, library_id: LibraryId) -> &SourceLibrary {
         &self.libraries[library_id.0]
     }

@@ -48,7 +48,7 @@ pub trait SourceParser: FileSystem {
     #[salsa::invoke(source::reachable_imported_files)]
     fn reachable_imported_files(&self, file: FileId) -> Arc<BTreeSet<FileId>>;
 
-    /// The corresponding [`SourceLibrary`] for a given [`LibraryId`]
+    /// The corresponding [`SourceLibrary`](toc_source_graph::SourceLibrary) for a given [`LibraryId`]
     #[salsa::invoke(source::source_library)]
     fn source_library(&self, library_id: LibraryId) -> LibraryRef;
 }
