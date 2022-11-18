@@ -95,7 +95,7 @@ impl<T> db::AstDatabaseExt for T
 where
     T: HasVfs + db::SourceParser,
 {
-    fn invalidate_source_graph(&mut self, loader: &dyn toc_vfs::FileLoader) {
+    fn rebuild_file_links(&mut self, loader: &dyn toc_vfs::FileLoader) {
         let db = self;
         let source_graph = db.source_graph();
         let mut pending_files: VecDeque<_> = VecDeque::default();
@@ -179,7 +179,7 @@ mod test {
                 root: root_file,
             });
             db.set_source_graph(Arc::new(source_graph));
-            db.invalidate_source_graph(&toc_vfs::DummyFileLoader);
+            db.rebuild_file_links(&toc_vfs::DummyFileLoader);
 
             db
         }

@@ -51,7 +51,7 @@ fn main() {
         root: root_file,
     });
     db.set_source_graph(Arc::new(source_graph));
-    db.invalidate_source_graph(&loader);
+    db.rebuild_file_links(&loader);
 
     // Dump requested information
     if let Some(dump_mode) = args.dump {

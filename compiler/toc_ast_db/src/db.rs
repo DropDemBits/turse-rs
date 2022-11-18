@@ -48,7 +48,7 @@ pub trait SourceParser: FileSystem {
     #[salsa::invoke(source::reachable_imported_files)]
     fn reachable_imported_files(&self, file: FileId) -> Arc<BTreeSet<FileId>>;
 
-    /// The corresponding [`Library`] for a given [`LibraryId`]
+    /// The corresponding [`SourceLibrary`] for a given [`LibraryId`]
     #[salsa::invoke(source::source_library)]
     fn source_library(&self, library_id: LibraryId) -> LibraryRef;
 }
@@ -76,8 +76,7 @@ pub trait SpanMapping: FileSystem + HasVfs {
 }
 
 pub trait AstDatabaseExt: FileSystem + SourceParser {
-    /// Reloads all files accessible from the source roots using the given file loader
-    ///
-    /// Also rebuilds all dependency graphs
-    fn invalidate_source_graph(&mut self, loader: &dyn toc_vfs::FileLoader);
+    /// Rebuilds the mapping of which files refer to which other files,
+    /// loading new files  using the given file loader.
+    fn rebuild_file_links(&mut self, loader: &dyn toc_vfs::FileLoader);
 }

@@ -124,7 +124,7 @@ impl ServerState {
         // TODO: Recursively load in files, respecting already loaded files
         // TODO: Deal with adding source roots that depend on files that are already source roots
         let file_loader = LspFileLoader::new(&self.files);
-        db.invalidate_source_graph(&file_loader);
+        db.rebuild_file_links(&file_loader);
     }
 
     /// Collect diagnostics for all libraries

@@ -43,7 +43,7 @@ impl TestDb {
             artifact: toc_hir::library_graph::ArtifactKind::Binary,
         });
         db.set_source_graph(Arc::new(source_graph));
-        db.invalidate_source_graph(&toc_vfs::DummyFileLoader);
+        db.rebuild_file_links(&toc_vfs::DummyFileLoader);
 
         (db, library_id)
     }
