@@ -19,7 +19,7 @@ use toc_vfs_db::db::VfsDatabaseExt;
 use tracing::{error, trace};
 
 #[derive(Default)]
-pub(crate) struct ServerState {
+pub struct ServerState {
     db: LspDatabase,
     files: FileStore,
     source_graph: SourceGraph,
@@ -27,7 +27,7 @@ pub(crate) struct ServerState {
 }
 
 impl ServerState {
-    pub(crate) fn open_file(&mut self, uri: &lsp_types::Url, version: i32, text: String) {
+    pub fn open_file(&mut self, uri: &lsp_types::Url, version: i32, text: String) {
         // This is where we update the source graph, as well as the file sources, and the file store
         let Ok(path) = uri.to_file_path() else {
             error!("BUG: Encountered bad path during file open: {uri:?}");
@@ -41,7 +41,7 @@ impl ServerState {
         self.update_file(&path, false);
     }
 
-    pub(crate) fn close_file(&mut self, uri: &lsp_types::Url) {
+    pub fn close_file(&mut self, uri: &lsp_types::Url) {
         // This is where we remove files from the source graph (if applicable / non-root) and from the file store
         let Ok(path) = uri.to_file_path() else {
             error!("BUG: Encountered bad path during file close: {uri:?}");
@@ -55,7 +55,7 @@ impl ServerState {
         self.update_file(&path, true);
     }
 
-    pub(crate) fn apply_changes(
+    pub fn apply_changes(
         &mut self,
         uri: &lsp_types::Url,
         version: i32,
@@ -128,7 +128,7 @@ impl ServerState {
     }
 
     /// Collect diagnostics for all libraries
-    pub(crate) fn collect_diagnostics(&self) -> Vec<(PathBuf, Vec<Diagnostic>)> {
+    pub fn collect_diagnostics(&self) -> Vec<(PathBuf, Vec<Diagnostic>)> {
         let analyze_res = self.db.analyze_libraries();
         let msgs = analyze_res.messages();
 

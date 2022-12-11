@@ -14,13 +14,4 @@ serde_json = "1.0.64"
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true, features = ["env-filter"] }
 
-# Local compiler dependencies
-toc_hir = {path = "../../compiler/toc_hir"}
-toc_hir_db = {path = "../../compiler/toc_hir_db"}
-toc_analysis = {path = "../../compiler/toc_analysis"}
-toc_ast_db = {path = "../../compiler/toc_ast_db"}
-toc_reporting = {path = "../../compiler/toc_reporting"}
-toc_span = {path = "../../compiler/toc_span"}
-toc_vfs = {path = "../../compiler/toc_vfs"}
-toc_vfs_db = {path = "../../compiler/toc_vfs_db"}
-toc_salsa = { path = "../../compiler/toc_salsa" }
+toc-ide-db = { path = "../toc-ide-db" }

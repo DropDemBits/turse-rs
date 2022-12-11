@@ -1051,11 +1051,9 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cda74da7e1a664f795bb1f8a87ec406fb89a02522cf6e50620d016add6dbbf5c"
 
 [[package]]
-name = "toc-lsp-server"
+name = "toc-ide-db"
 version = "0.1.0"
 dependencies = [
- "if_chain",
- "lsp-server",
  "lsp-types",
  "serde_json",
  "toc_analysis",
@@ -1067,6 +1065,18 @@ dependencies = [
  "toc_span",
  "toc_vfs",
  "toc_vfs_db",
+ "tracing",
+]
+
+[[package]]
+name = "toc-lsp-server"
+version = "0.1.0"
+dependencies = [
+ "if_chain",
+ "lsp-server",
+ "lsp-types",
+ "serde_json",
+ "toc-ide-db",
  "tracing",
  "tracing-subscriber",
 ]

@@ -12,8 +12,6 @@ use lsp_types::{
 use tracing::{debug, error, info, trace};
 use tracing_subscriber::EnvFilter;
 
-mod state;
-
 type DynError = Box<dyn Error + Sync + Send>;
 
 fn main() -> Result<(), DynError> {
@@ -47,7 +45,7 @@ fn main_loop(
     connection: &Connection,
     params: serde_json::Value,
 ) -> Result<(), Box<dyn Error + Send + Sync>> {
-    let mut state = state::ServerState::default();
+    let mut state = toc_ide_db::ServerState::default();
     let _params: InitializeParams = serde_json::from_value(params).unwrap();
     debug!("listening for messages");
 
@@ -70,7 +68,7 @@ fn main_loop(
 }
 
 fn handle_request(
-    _state: &mut state::ServerState,
+    _state: &mut toc_ide_db::ServerState,
     _connection: &Connection,
     req: Request,
 ) -> Result<(), DynError> {
@@ -97,7 +95,7 @@ fn handle_request(
 }
 
 fn handle_notify(
-    state: &mut state::ServerState,
+    state: &mut toc_ide_db::ServerState,
     connection: &Connection,
     notify: Notification,
 ) -> Result<(), DynError> {
@@ -151,7 +149,7 @@ fn handle_notify(
 }
 
 fn check_document(
-    state: &mut state::ServerState,
+    state: &mut toc_ide_db::ServerState,
     connection: &Connection,
     uri: lsp_types::Url,
 ) -> Result<(), DynError> {
