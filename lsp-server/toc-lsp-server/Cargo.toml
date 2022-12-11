@@ -8,10 +8,11 @@ edition = "2018"
 
 [dependencies]
 if_chain = "1.0.1"
-lsp-server = "0.6.0"
 lsp-types = "0.93.2"
 serde_json = "1.0.64"
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true, features = ["env-filter"] }
 
 toc-ide-db = { path = "../toc-ide-db" }
+tokio = { version = "1.23.0", features = ["full"] }
+tower-lsp = "0.17.0"

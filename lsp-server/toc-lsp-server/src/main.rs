@@ -1,179 +1,135 @@
-use std::error::Error;
+use std::sync::Arc;
 
-use lsp_server::{Connection, Message, Notification, Request, RequestId};
 use lsp_types::{
-    notification::{
-        DidChangeTextDocument, DidCloseTextDocument, DidOpenTextDocument, PublishDiagnostics,
-    },
-    InitializeParams, PublishDiagnosticsParams, ServerCapabilities, TextDocumentIdentifier,
-    TextDocumentItem, TextDocumentSyncCapability, TextDocumentSyncKind,
-    VersionedTextDocumentIdentifier,
+    notification::PublishDiagnostics, DidChangeTextDocumentParams, DidCloseTextDocumentParams,
+    DidOpenTextDocumentParams, InitializeParams, InitializeResult, InitializedParams,
+    PublishDiagnosticsParams, ServerCapabilities, TextDocumentIdentifier, TextDocumentItem,
+    TextDocumentSyncCapability, TextDocumentSyncKind, Url, VersionedTextDocumentIdentifier,
 };
-use tracing::{debug, error, info, trace};
+use toc_ide_db::ServerState;
+use tokio::{sync::Mutex, task::block_in_place};
+use tower_lsp::{jsonrpc, Client, LanguageServer, LspService, Server};
+use tracing::{debug, info, trace};
 use tracing_subscriber::EnvFilter;
 
-type DynError = Box<dyn Error + Sync + Send>;
+struct Backend {
+    client: Client,
+    state: Arc<Mutex<ServerState>>,
+}
 
-fn main() -> Result<(), DynError> {
+impl Backend {
+    fn new(client: Client) -> Self {
+        Self {
+            client,
+            state: Default::default(),
+        }
+    }
+
+    async fn check_document(&self, url: &Url) {
+        debug!("starting analysis @ {:?}", url.as_str());
+
+        // Collect diagnostics
+        let diagnostics = block_in_place(|| {
+            let state = self.state.blocking_lock();
+            state.collect_diagnostics()
+        });
+
+        debug!("finished analysis @ {:?}", url.as_str());
+        trace!("gathered diagnostics: {diagnostics:#?}");
+
+        for (path, bundle) in diagnostics {
+            let uri =
+                lsp_types::Url::from_file_path(path).expect("path wasn't absolute or a valid url");
+
+            self.client
+                .send_notification::<PublishDiagnostics>(PublishDiagnosticsParams {
+                    uri,
+                    diagnostics: bundle,
+                    version: None,
+                })
+                .await;
+        }
+    }
+}
+
+#[tower_lsp::async_trait]
+impl LanguageServer for Backend {
+    async fn initialize(&self, _params: InitializeParams) -> jsonrpc::Result<InitializeResult> {
+        Ok(InitializeResult {
+            server_info: None,
+            capabilities: ServerCapabilities {
+                text_document_sync: Some(TextDocumentSyncCapability::Kind(
+                    TextDocumentSyncKind::FULL,
+                )),
+                ..Default::default()
+            },
+        })
+    }
+
+    async fn initialized(&self, _params: InitializedParams) {}
+
+    async fn shutdown(&self) -> jsonrpc::Result<()> {
+        info!("Shutting down LSP server");
+        Ok(())
+    }
+
+    async fn did_open(&self, params: DidOpenTextDocumentParams) {
+        let TextDocumentItem {
+            text, uri, version, ..
+        } = params.text_document;
+
+        // update file store representation first
+        {
+            debug!("open, updating file store @ {:?}", uri.as_str());
+            let mut state = self.state.lock().await;
+            state.open_file(&uri, version, text);
+        }
+
+        // pub diagnostics
+        // TODO: use db snapshot
+        debug!("post-open, sending diagnostics @ {:?}", uri.as_str());
+        self.check_document(&uri).await;
+    }
+
+    async fn did_change(&self, params: DidChangeTextDocumentParams) {
+        let VersionedTextDocumentIdentifier { uri, version } = params.text_document;
+
+        {
+            let mut state = self.state.lock().await;
+            state.apply_changes(&uri, version, params.content_changes);
+        }
+
+        // pub diagnostics
+        debug!("change, sending diagnostics @ {:?}", uri.as_str());
+        self.check_document(&uri).await;
+    }
+
+    async fn did_close(&self, params: DidCloseTextDocumentParams) {
+        let TextDocumentIdentifier { uri } = params.text_document;
+
+        {
+            debug!("open, updating file store @ {:?}", uri.as_str());
+            let mut state = self.state.lock().await;
+            state.close_file(&uri);
+        }
+    }
+}
+
+#[tokio::main]
+async fn main() {
     // logging on stderr
     let subscriber = tracing_subscriber::FmtSubscriber::builder()
         .with_env_filter(EnvFilter::from_default_env())
         .with_writer(std::io::stderr)
         .with_ansi(false)
         .finish();
-    tracing::subscriber::set_global_default(subscriber)?;
+    tracing::subscriber::set_global_default(subscriber).expect("failed to setup global logger");
 
     info!("Starting LSP server");
 
-    let (connection, io_threads) = Connection::stdio();
+    let stdin = tokio::io::stdin();
+    let stdout = tokio::io::stdout();
 
-    let server_caps = serde_json::to_value(&ServerCapabilities {
-        text_document_sync: Some(TextDocumentSyncCapability::Kind(TextDocumentSyncKind::FULL)),
-        ..ServerCapabilities::default()
-    })
-    .unwrap();
-    let init_params = connection.initialize(server_caps)?;
-
-    main_loop(&connection, init_params)?;
-    io_threads.join()?;
-
-    info!("Shutting down LSP server");
-    Ok(())
-}
-
-fn main_loop(
-    connection: &Connection,
-    params: serde_json::Value,
-) -> Result<(), Box<dyn Error + Send + Sync>> {
-    let mut state = toc_ide_db::ServerState::default();
-    let _params: InitializeParams = serde_json::from_value(params).unwrap();
-    debug!("listening for messages");
-
-    for msg in &connection.receiver {
-        trace!("recv {msg:?}");
-
-        match msg {
-            Message::Request(req) => {
-                if connection.handle_shutdown(&req)? {
-                    return Ok(());
-                }
-                handle_request(&mut state, connection, req)?;
-            }
-            Message::Response(_resp) => {}
-            Message::Notification(notify) => handle_notify(&mut state, connection, notify)?,
-        }
-    }
-
-    Ok(())
-}
-
-fn handle_request(
-    _state: &mut toc_ide_db::ServerState,
-    _connection: &Connection,
-    req: Request,
-) -> Result<(), DynError> {
-    fn _cast<Kind: lsp_types::request::Request>(
-        req: &mut Option<Request>,
-    ) -> Option<(RequestId, Kind::Params)> {
-        match req.take().unwrap().extract::<Kind::Params>(Kind::METHOD) {
-            Ok(value) => Some(value),
-            Err(lsp_server::ExtractError::MethodMismatch(owned)) => {
-                *req = Some(owned);
-                None
-            }
-            Err(err @ lsp_server::ExtractError::JsonError { .. }) => {
-                error!("while handling request: {err}");
-                None
-            }
-        }
-    }
-    let req = Some(req);
-
-    debug!("recv req {req:?}");
-
-    Ok(())
-}
-
-fn handle_notify(
-    state: &mut toc_ide_db::ServerState,
-    connection: &Connection,
-    notify: Notification,
-) -> Result<(), DynError> {
-    fn cast<Kind: lsp_types::notification::Notification>(
-        notify: &mut Option<Notification>,
-    ) -> Option<Kind::Params> {
-        match notify.take().unwrap().extract::<Kind::Params>(Kind::METHOD) {
-            Ok(value) => Some(value),
-            Err(lsp_server::ExtractError::MethodMismatch(owned)) => {
-                *notify = Some(owned);
-                None
-            }
-            Err(err @ lsp_server::ExtractError::JsonError { .. }) => {
-                error!("while handling notification: {err}");
-                None
-            }
-        }
-    }
-    let mut notify = Some(notify);
-
-    trace!("recv notify {notify:?}");
-
-    if let Some(params) = cast::<DidOpenTextDocument>(&mut notify) {
-        let TextDocumentItem {
-            text, uri, version, ..
-        } = params.text_document;
-
-        // update file store representation first
-        debug!("open, updating file store @ {:?}", uri.as_str());
-        state.open_file(&uri, version, text);
-
-        // pub diagnostics
-        debug!("post-open, sending diagnostics @ {:?}", uri.as_str());
-        check_document(state, connection, uri)?;
-    } else if let Some(params) = cast::<DidChangeTextDocument>(&mut notify) {
-        let VersionedTextDocumentIdentifier { uri, version } = params.text_document;
-
-        state.apply_changes(&uri, version, params.content_changes);
-
-        // pub diagnostics
-        debug!("change, sending diagnostics @ {:?}", uri.as_str());
-        check_document(state, connection, uri)?;
-    } else if let Some(params) = cast::<DidCloseTextDocument>(&mut notify) {
-        let TextDocumentIdentifier { uri } = params.text_document;
-
-        debug!("closing, updating file store");
-        state.close_file(&uri);
-    }
-
-    Ok(())
-}
-
-fn check_document(
-    state: &mut toc_ide_db::ServerState,
-    connection: &Connection,
-    uri: lsp_types::Url,
-) -> Result<(), DynError> {
-    use lsp_types::notification::Notification as NotificationTrait;
-    // Collect diagnostics
-    let diagnostics = state.collect_diagnostics();
-    debug!("finished analysis @ {:?}", uri.as_str());
-    debug!("gathered diagnostics: {diagnostics:#?}");
-
-    for (path, bundle) in diagnostics {
-        let uri =
-            lsp_types::Url::from_file_path(path).expect("path wasn't absolute or a valid url");
-
-        connection
-            .sender
-            .send(Message::Notification(Notification::new(
-                PublishDiagnostics::METHOD.into(),
-                PublishDiagnosticsParams {
-                    uri,
-                    diagnostics: bundle,
-                    version: None,
-                },
-            )))?;
-    }
-
-    Ok(())
+    let (service, socket) = LspService::build(Backend::new).finish();
+    Server::new(stdin, stdout, socket).serve(service).await;
 }
