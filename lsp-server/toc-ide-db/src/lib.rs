@@ -19,6 +19,8 @@ use toc_vfs::{LoadError, LoadStatus};
 use toc_vfs_db::db::VfsDatabaseExt;
 use tracing::{error, trace};
 
+pub type Cancellable<T = ()> = Result<T, salsa::Cancelled>;
+
 #[derive(Default)]
 pub struct ServerState {
     db: LspDatabase,
@@ -129,7 +131,7 @@ impl ServerState {
     }
 
     /// Collect diagnostics for all libraries
-    pub fn collect_diagnostics(&self) -> Vec<(PathBuf, Vec<Diagnostic>)> {
+    pub fn collect_diagnostics(&self) -> Cancellable<Vec<(PathBuf, Vec<Diagnostic>)>> {
         let analyze_res = self.db.analyze_libraries();
         let msgs = analyze_res.messages();
 
@@ -220,10 +222,10 @@ impl ServerState {
         }
 
         // Convert FileIds into paths
-        bundles
+        Ok(bundles
             .into_iter()
             .map(|(file, bundle)| (self.db.vfs.lookup_path(file).to_path_buf(), bundle))
-            .collect()
+            .collect())
     }
 
     fn map_span_to_location(&self, span: toc_span::Span) -> Option<Location> {
@@ -272,6 +274,7 @@ struct LspDatabase {
 
 impl salsa::Database for LspDatabase {}
 
+// FIXME: Can't use ParallelDb since we need a &Vfs
 toc_vfs::impl_has_vfs!(LspDatabase, vfs);
 
 /// File store tracks the state of all files currently used by the LSP.

@@ -29,10 +29,13 @@ impl Backend {
         debug!("starting analysis @ {:?}", url.as_str());
 
         // Collect diagnostics
-        let diagnostics = block_in_place(|| {
+        let Ok(diagnostics) = block_in_place(|| {
             let state = self.state.blocking_lock();
             state.collect_diagnostics()
-        });
+        }) else {
+            debug!("cancelled analysis @ {:?}", url.as_str());
+            return;
+        };
 
         debug!("finished analysis @ {:?}", url.as_str());
         trace!("gathered diagnostics: {diagnostics:#?}");
