@@ -6,6 +6,7 @@ use std::{
 };
 
 use lsp_types::{Diagnostic, DiagnosticRelatedInformation, DiagnosticSeverity, Location, Position};
+use ropey::Rope;
 use toc_analysis::db::HirAnalysis;
 use toc_ast_db::{
     db::{AstDatabaseExt, SourceParser, SpanMapping},
@@ -313,7 +314,7 @@ impl FileStore {
             path.into(),
             FileInfo {
                 version,
-                source: text,
+                source: Rope::from(text),
             },
         );
 
@@ -337,13 +338,34 @@ impl FileStore {
 
         // Apply the changes
         for change in changes {
-            // We're assuming that we're only getting full text changes only
-            assert!(
-                change.range.is_none(),
-                "found incremental change, which is not handled yet"
-            );
+            match change.range {
+                Some(part) => {
+                    // Incremental change, replace slice of text
+                    fn position_to_char(rope: &Rope, pos: Position) -> Option<usize> {
+                        let line = usize::try_from(pos.line).ok()?;
+                        let chr = usize::try_from(pos.character).ok()?;
+                        let base = rope.line_to_char(line);
+                        let col = rope.line(line).utf16_cu_to_char(chr);
+                        Some(base + col)
+                    }
 
-            file_info.source = change.text;
+                    let Some(start) = position_to_char(&file_info.source, part.start) else {
+                        error!("bad start position {:#?}", part.start);
+                        return;
+                    };
+                    let Some(end) = position_to_char(&file_info.source, part.end) else {
+                        error!("bad start position {:#?}", part.end);
+                        return;
+                    };
+
+                    file_info.source.remove(start..end);
+                    file_info.source.insert(start, &change.text);
+                }
+                None => {
+                    // Full replacement, build a new slice
+                    file_info.source = Rope::from(change.text);
+                }
+            }
         }
 
         // Update version
@@ -368,7 +390,7 @@ impl FileStore {
 
 struct FileInfo {
     version: i32,
-    source: String,
+    source: Rope,
 }
 
 struct LspFileLoader<'a> {
