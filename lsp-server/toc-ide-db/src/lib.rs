@@ -6,6 +6,7 @@ use std::{
 };
 
 use lsp_types::{Diagnostic, DiagnosticRelatedInformation, DiagnosticSeverity, Location, Position};
+use ropey::Rope;
 use toc_analysis::db::HirAnalysis;
 use toc_ast_db::{
     db::{AstDatabaseExt, SourceParser, SpanMapping},
@@ -18,8 +19,10 @@ use toc_vfs::{LoadError, LoadStatus};
 use toc_vfs_db::db::VfsDatabaseExt;
 use tracing::{error, trace};
 
+pub type Cancellable<T = ()> = Result<T, salsa::Cancelled>;
+
 #[derive(Default)]
-pub(crate) struct ServerState {
+pub struct ServerState {
     db: LspDatabase,
     files: FileStore,
     source_graph: SourceGraph,
@@ -27,7 +30,7 @@ pub(crate) struct ServerState {
 }
 
 impl ServerState {
-    pub(crate) fn open_file(&mut self, uri: &lsp_types::Url, version: i32, text: String) {
+    pub fn open_file(&mut self, uri: &lsp_types::Url, version: i32, text: String) {
         // This is where we update the source graph, as well as the file sources, and the file store
         let Ok(path) = uri.to_file_path() else {
             error!("BUG: Encountered bad path during file open: {uri:?}");
@@ -41,7 +44,7 @@ impl ServerState {
         self.update_file(&path, false);
     }
 
-    pub(crate) fn close_file(&mut self, uri: &lsp_types::Url) {
+    pub fn close_file(&mut self, uri: &lsp_types::Url) {
         // This is where we remove files from the source graph (if applicable / non-root) and from the file store
         let Ok(path) = uri.to_file_path() else {
             error!("BUG: Encountered bad path during file close: {uri:?}");
@@ -55,7 +58,7 @@ impl ServerState {
         self.update_file(&path, true);
     }
 
-    pub(crate) fn apply_changes(
+    pub fn apply_changes(
         &mut self,
         uri: &lsp_types::Url,
         version: i32,
@@ -128,7 +131,7 @@ impl ServerState {
     }
 
     /// Collect diagnostics for all libraries
-    pub(crate) fn collect_diagnostics(&self) -> Vec<(PathBuf, Vec<Diagnostic>)> {
+    pub fn collect_diagnostics(&self) -> Cancellable<Vec<(PathBuf, Vec<Diagnostic>)>> {
         let analyze_res = self.db.analyze_libraries();
         let msgs = analyze_res.messages();
 
@@ -219,10 +222,10 @@ impl ServerState {
         }
 
         // Convert FileIds into paths
-        bundles
+        Ok(bundles
             .into_iter()
             .map(|(file, bundle)| (self.db.vfs.lookup_path(file).to_path_buf(), bundle))
-            .collect()
+            .collect())
     }
 
     fn map_span_to_location(&self, span: toc_span::Span) -> Option<Location> {
@@ -271,6 +274,7 @@ struct LspDatabase {
 
 impl salsa::Database for LspDatabase {}
 
+// FIXME: Can't use ParallelDb since we need a &Vfs
 toc_vfs::impl_has_vfs!(LspDatabase, vfs);
 
 /// File store tracks the state of all files currently used by the LSP.
@@ -313,7 +317,7 @@ impl FileStore {
             path.into(),
             FileInfo {
                 version,
-                source: text,
+                source: Rope::from(text),
             },
         );
 
@@ -337,13 +341,34 @@ impl FileStore {
 
         // Apply the changes
         for change in changes {
-            // We're assuming that we're only getting full text changes only
-            assert!(
-                change.range.is_none(),
-                "found incremental change, which is not handled yet"
-            );
+            match change.range {
+                Some(part) => {
+                    // Incremental change, replace slice of text
+                    fn position_to_char(rope: &Rope, pos: Position) -> Option<usize> {
+                        let line = usize::try_from(pos.line).ok()?;
+                        let chr = usize::try_from(pos.character).ok()?;
+                        let base = rope.line_to_char(line);
+                        let col = rope.line(line).utf16_cu_to_char(chr);
+                        Some(base + col)
+                    }
 
-            file_info.source = change.text;
+                    let Some(start) = position_to_char(&file_info.source, part.start) else {
+                        error!("bad start position {:#?}", part.start);
+                        return;
+                    };
+                    let Some(end) = position_to_char(&file_info.source, part.end) else {
+                        error!("bad start position {:#?}", part.end);
+                        return;
+                    };
+
+                    file_info.source.remove(start..end);
+                    file_info.source.insert(start, &change.text);
+                }
+                None => {
+                    // Full replacement, build a new slice
+                    file_info.source = Rope::from(change.text);
+                }
+            }
         }
 
         // Update version
@@ -368,7 +393,7 @@ impl FileStore {
 
 struct FileInfo {
     version: i32,
-    source: String,
+    source: Rope,
 }
 
 struct LspFileLoader<'a> {

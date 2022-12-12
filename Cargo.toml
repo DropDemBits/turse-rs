@@ -1,9 +1,9 @@
 [workspace]
 resolver = "2"
 
-members = ["xtask/", "lsp-server/", "compiler/*", "fuzzers/*"]
+members = ["xtask/", "lsp-server/*", "compiler/*", "fuzzers/*"]
 
-default-members = ["xtask/", "compiler/*", "lsp-server/"]
+default-members = ["xtask/", "compiler/*", "lsp-server/*"]
 
 [workspace.dependencies]
 itertools = "0.10.3"
