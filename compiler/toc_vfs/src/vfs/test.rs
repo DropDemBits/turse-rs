@@ -1,3 +1,5 @@
+use crate::DummyFileLoader;
+
 use super::*;
 
 #[test]
@@ -7,7 +9,11 @@ fn resolve_dedots_expansion() {
     vfs.set_prefix_expansion(BuiltinPrefix::Oot, "/path/to/oot");
     let help = vfs.intern_path("/path/to/some/help".into());
 
-    let resolve = vfs.resolve_path(None, "%oot/../other/.././oot/../some/help");
+    let resolve = vfs.resolve_path(
+        None,
+        "%oot/../other/.././oot/../some/help",
+        &DummyFileLoader,
+    );
     assert_eq!(resolve, PathResolution::Interned(help));
 }
 
@@ -18,7 +24,7 @@ fn resolve_dedots_relative() {
     let child = vfs.intern_path("/src/subdir/child".into());
     let main = vfs.intern_path("/src/main.t".into());
 
-    let resolve = vfs.resolve_path(Some(child), "../././././main.t");
+    let resolve = vfs.resolve_path(Some(child), "../././././main.t", &DummyFileLoader);
     assert_eq!(resolve, PathResolution::Interned(main));
 }
 

@@ -120,15 +120,13 @@ where
                 let deps = db.parse_depends(current_file);
                 for dep in deps.result().dependencies() {
                     // Get the target file
-                    let child = match db
-                        .get_vfs()
-                        .resolve_path(Some(current_file), &dep.relative_path)
-                    {
+                    let child = match db.get_vfs().resolve_path(
+                        Some(current_file),
+                        &dep.relative_path,
+                        loader,
+                    ) {
                         PathResolution::Interned(id) => id,
-                        PathResolution::NewPath(path) => {
-                            let intern_path = loader.normalize_path(&path).unwrap_or(path);
-                            db.get_vfs_mut().intern_path(intern_path)
-                        }
+                        PathResolution::NewPath(path) => db.get_vfs_mut().intern_path(path),
                     };
 
                     // Explore later

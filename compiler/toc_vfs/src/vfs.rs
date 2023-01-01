@@ -13,7 +13,7 @@ use toc_span::FileId;
 
 use crate::{
     intern::{PathInterner, PathResolution},
-    BuiltinPrefix,
+    BuiltinPrefix, FileLoader,
 };
 
 // TODO: Unify path slashes to the platform preferred separator
@@ -40,10 +40,15 @@ impl Vfs {
 
     /// Resolves a path relative to a given file.
     ///
-    /// If `path` expands into an absolute path, then `relative_to` is ignored
+    /// If `path` expands into an absolute path, then `relative_to` is ignored.
     ///
     /// If `relative_to` is [`None`], then the expanded path will be treated as an absolute one.
-    pub fn resolve_path(&self, relative_to: Option<FileId>, path: &str) -> PathResolution {
+    pub fn resolve_path(
+        &self,
+        relative_to: Option<FileId>,
+        path: &str,
+        loader: &dyn FileLoader,
+    ) -> PathResolution {
         // Convert `path` into an absolute one
         let expanded_path = self.expand_path(path);
 
@@ -68,8 +73,10 @@ impl Vfs {
             expanded_path
         };
 
-        // FIXME: Apply path normalization
-        // Use a provided path normalizer to guarantee that we have a uniform form of path
+        // Use the provided path normalizer to guarantee that we have a uniform form of path
+        let full_path = loader
+            .normalize_path(full_path.as_path())
+            .unwrap_or(full_path);
 
         match self.path_interner.lookup_id(full_path.as_path()) {
             Some(id) => PathResolution::Interned(id),

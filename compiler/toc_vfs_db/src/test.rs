@@ -1,7 +1,7 @@
 use std::ops::Deref;
 
 use toc_salsa::salsa;
-use toc_vfs::{impl_has_vfs, BuiltinPrefix, LoadError, LoadStatus, Vfs};
+use toc_vfs::{impl_has_vfs, BuiltinPrefix, DummyFileLoader, LoadError, LoadStatus, Vfs};
 
 use crate::db::{FileSystem, FileSystemStorage, VfsDatabaseExt};
 
@@ -72,7 +72,7 @@ fn relative_path_resolve() {
     let bar_t = {
         let bar_t = db
             .vfs
-            .resolve_path(Some(root_file), "foo/bar.t")
+            .resolve_path(Some(root_file), "foo/bar.t", &DummyFileLoader)
             .into_file_id();
         let res = db.file_source(bar_t);
         let (source, _load_error) = res;
@@ -83,7 +83,10 @@ fn relative_path_resolve() {
 
     // Lookup bap.t from bar.t
     {
-        let bap_t = db.vfs.resolve_path(Some(bar_t), "bap.t").into_file_id();
+        let bap_t = db
+            .vfs
+            .resolve_path(Some(bar_t), "bap.t", &DummyFileLoader)
+            .into_file_id();
         let res = db.file_source(bap_t);
         let (source, _load_error) = res;
 
@@ -125,7 +128,11 @@ fn path_expansion() {
     let predefs_list = {
         let predefs_list = db
             .vfs
-            .resolve_path(Some(root_file), "%oot/support/Predefs.lst")
+            .resolve_path(
+                Some(root_file),
+                "%oot/support/Predefs.lst",
+                &DummyFileLoader,
+            )
             .into_file_id();
         let res = db.file_source(predefs_list);
         assert_eq!((res.0.as_str(), res.1), (FILE_SOURCES[1], None));
@@ -136,7 +143,7 @@ fn path_expansion() {
     {
         let net_tu = db
             .vfs
-            .resolve_path(Some(predefs_list), "Net.tu")
+            .resolve_path(Some(predefs_list), "Net.tu", &DummyFileLoader)
             .into_file_id();
         let res = db.file_source(net_tu);
         assert_eq!((res.0.as_str(), res.1), (FILE_SOURCES[2], None));
@@ -145,7 +152,11 @@ fn path_expansion() {
     {
         let file = db
             .vfs
-            .resolve_path(Some(root_file), "%help/Keyword Lookup.txt")
+            .resolve_path(
+                Some(root_file),
+                "%help/Keyword Lookup.txt",
+                &DummyFileLoader,
+            )
             .into_file_id();
         let res = db.file_source(file);
         assert_eq!((res.0.as_str(), res.1), (FILE_SOURCES[3], None));
@@ -154,7 +165,7 @@ fn path_expansion() {
     {
         let file = db
             .vfs
-            .resolve_path(Some(root_file), "%home/special_file.t")
+            .resolve_path(Some(root_file), "%home/special_file.t", &DummyFileLoader)
             .into_file_id();
         let res = db.file_source(file);
         assert_eq!((res.0.as_str(), res.1), (FILE_SOURCES[0], None));
@@ -163,7 +174,11 @@ fn path_expansion() {
     {
         let file = db
             .vfs
-            .resolve_path(Some(root_file), "%tmp/pre/made/some-temp-item")
+            .resolve_path(
+                Some(root_file),
+                "%tmp/pre/made/some-temp-item",
+                &DummyFileLoader,
+            )
             .into_file_id();
         let res = db.file_source(file);
         assert_eq!((res.0.as_str(), res.1), (FILE_SOURCES[0], None));
@@ -172,7 +187,7 @@ fn path_expansion() {
     {
         let file = db
             .vfs
-            .resolve_path(Some(root_file), "%job/to/make/job-item")
+            .resolve_path(Some(root_file), "%job/to/make/job-item", &DummyFileLoader)
             .into_file_id();
         let res = db.file_source(file);
         assert_eq!((res.0.as_str(), res.1), (FILE_SOURCES[0], None));

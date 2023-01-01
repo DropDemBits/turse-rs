@@ -200,7 +200,7 @@ impl std::error::Error for ParseError {}
 
 #[cfg(test)]
 mod test {
-    use crate::{impl_has_vfs, Vfs};
+    use crate::{impl_has_vfs, DummyFileLoader, Vfs};
 
     use super::*;
 
@@ -216,7 +216,10 @@ mod test {
         let mut db = VfsTestDB::default();
         let srcs = generate_vfs(&mut db, "single file, yay").unwrap();
 
-        let root_file = db.vfs.resolve_path(None, "src/main.t").into_file_id();
+        let root_file = db
+            .vfs
+            .resolve_path(None, "src/main.t", &DummyFileLoader)
+            .into_file_id();
         let source = srcs.file_source(root_file).0;
         assert_eq!(source.as_str(), "single file, yay");
     }
@@ -226,7 +229,10 @@ mod test {
         let mut db = VfsTestDB::default();
         let srcs = generate_vfs(&mut db, "").unwrap();
 
-        let root_file = db.vfs.resolve_path(None, "src/main.t").into_file_id();
+        let root_file = db
+            .vfs
+            .resolve_path(None, "src/main.t", &DummyFileLoader)
+            .into_file_id();
         let res = srcs.file_source(root_file);
         assert_eq!((res.0.as_str(), res.1), ("", None));
     }
@@ -236,7 +242,10 @@ mod test {
         let mut db = VfsTestDB::default();
         let srcs = generate_vfs(&mut db, "single file\nbut multiple lines").unwrap();
 
-        let root_file = db.vfs.resolve_path(None, "src/main.t").into_file_id();
+        let root_file = db
+            .vfs
+            .resolve_path(None, "src/main.t", &DummyFileLoader)
+            .into_file_id();
         let source = srcs.file_source(root_file).0;
         assert_eq!(source.as_str(), "single file\nbut multiple lines");
     }
@@ -259,13 +268,25 @@ mod test {
             ),
         ).unwrap();
 
-        let file = db.vfs.resolve_path(None, "src/main.t").into_file_id();
+        let file = db
+            .vfs
+            .resolve_path(None, "src/main.t", &DummyFileLoader)
+            .into_file_id();
         assert_eq!(srcs.file_source(file).0.as_str(), FILE_SOURCES[0]);
-        let file = db.vfs.resolve_path(None, "src/file1.t").into_file_id();
+        let file = db
+            .vfs
+            .resolve_path(None, "src/file1.t", &DummyFileLoader)
+            .into_file_id();
         assert_eq!(srcs.file_source(file).0.as_str(), FILE_SOURCES[1]);
-        let file = db.vfs.resolve_path(None, "src/file2.t").into_file_id();
+        let file = db
+            .vfs
+            .resolve_path(None, "src/file2.t", &DummyFileLoader)
+            .into_file_id();
         assert_eq!(srcs.file_source(file).0.as_str(), FILE_SOURCES[2]);
-        let file = db.vfs.resolve_path(None, "removed/ya.t").into_file_id();
+        let file = db
+            .vfs
+            .resolve_path(None, "removed/ya.t", &DummyFileLoader)
+            .into_file_id();
         let res = srcs.file_source(file);
         assert_eq!(
             (res.0.as_str(), res.1.unwrap().kind()),
@@ -279,7 +300,10 @@ mod test {
         let mut db = VfsTestDB::default();
         let srcs = generate_vfs(&mut db, &format!("%%- one/file.t\n{0}", FILE_SOURCES[0])).unwrap();
 
-        let file = db.vfs.resolve_path(None, "one/file.t").into_file_id();
+        let file = db
+            .vfs
+            .resolve_path(None, "one/file.t", &DummyFileLoader)
+            .into_file_id();
         assert_eq!(srcs.file_source(file).0.as_str(), FILE_SOURCES[0]);
     }
 
@@ -290,7 +314,10 @@ mod test {
         let srcs =
             generate_vfs(&mut db, &format!("%%- removed/ya.t\n{0}", FILE_SOURCES[0])).unwrap();
 
-        let file = db.vfs.resolve_path(None, "removed/ya.t").into_file_id();
+        let file = db
+            .vfs
+            .resolve_path(None, "removed/ya.t", &DummyFileLoader)
+            .into_file_id();
         let res = srcs.file_source(file);
         assert_eq!((res.0.as_str(), res.1), (FILE_SOURCES[0], None));
     }
@@ -305,11 +332,20 @@ mod test {
         )
         .unwrap();
 
-        let file = db.vfs.resolve_path(None, "empty/file0.t").into_file_id();
+        let file = db
+            .vfs
+            .resolve_path(None, "empty/file0.t", &DummyFileLoader)
+            .into_file_id();
         assert_eq!(srcs.file_source(file).0.as_str(), "");
-        let file = db.vfs.resolve_path(None, "empty/file1.t").into_file_id();
+        let file = db
+            .vfs
+            .resolve_path(None, "empty/file1.t", &DummyFileLoader)
+            .into_file_id();
         assert_eq!(srcs.file_source(file).0.as_str(), "");
-        let file = db.vfs.resolve_path(None, "empty/file2.t").into_file_id();
+        let file = db
+            .vfs
+            .resolve_path(None, "empty/file2.t", &DummyFileLoader)
+            .into_file_id();
         assert_eq!(srcs.file_source(file).0.as_str(), "");
     }
 
