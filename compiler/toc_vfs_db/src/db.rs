@@ -51,9 +51,7 @@ pub trait FilesystemExt: PathIntern + FileSystem {
     fn expand_path(&self, path: &Utf8Path) -> Utf8PathBuf;
 }
 
-/// Helper extension trait for databases with [`Vfs`]'s
-///
-/// [`Vfs`]: toc_vfs::Vfs
+/// Helper extension trait for inserting & updating files
 pub trait VfsDatabaseExt {
     /// Inserts a file into the database, producing a [`FileId`]
     ///
