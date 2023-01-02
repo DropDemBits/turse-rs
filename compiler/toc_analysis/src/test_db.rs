@@ -12,6 +12,7 @@ use toc_vfs_db::db::VfsDatabaseExt;
 
 #[salsa::database(
     toc_vfs_db::db::FileSystemStorage,
+    toc_vfs_db::db::PathInternStorage,
     toc_ast_db::db::SourceParserStorage,
     toc_hir_db::db::HirDatabaseStorage,
     crate::db::TypeInternStorage,
@@ -32,7 +33,7 @@ toc_vfs::impl_has_vfs!(TestDb, vfs);
 impl TestDb {
     pub(crate) fn from_source(source: &str) -> (Self, LibraryId) {
         let mut db = TestDb::default();
-        let fixture = toc_vfs::generate_vfs(&mut db, source).unwrap();
+        let fixture = toc_vfs::generate_vfs(source).unwrap();
         db.insert_fixture(fixture);
 
         let root_file = db.vfs.intern_path("src/main.t".into());

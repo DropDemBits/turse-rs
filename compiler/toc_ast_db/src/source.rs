@@ -9,8 +9,7 @@ use toc_parser::ExternalLinks;
 use toc_reporting::CompileResult;
 use toc_source_graph::{LibraryId, LibraryRef};
 use toc_span::FileId;
-use toc_vfs::{HasVfs, PathResolution};
-use toc_vfs_db::db::VfsDatabaseExt;
+use toc_vfs_db::db::{FilesystemExt, PathIntern, VfsDatabaseExt};
 
 use crate::db;
 
@@ -93,7 +92,7 @@ pub(crate) fn reachable_imported_files(
 
 impl<T> db::AstDatabaseExt for T
 where
-    T: HasVfs + db::SourceParser,
+    T: db::SourceParser + PathIntern,
 {
     fn rebuild_file_links(&mut self, loader: &dyn toc_vfs::FileLoader) {
         let db = self;
@@ -112,22 +111,15 @@ where
                 }
 
                 // Load in the file source
-                let path = db.get_vfs().lookup_path(current_file);
-                let res = loader.load_file(path);
+                let path = db.lookup_intern_path(current_file);
+                let res = loader.load_file(path.as_std_path());
                 db.update_file(current_file, res);
 
                 let mut links = ExternalLinks::default();
                 let deps = db.parse_depends(current_file);
                 for dep in deps.result().dependencies() {
                     // Get the target file
-                    let child = match db.get_vfs().resolve_path(
-                        Some(current_file),
-                        &dep.relative_path,
-                        loader,
-                    ) {
-                        PathResolution::Interned(id) => id,
-                        PathResolution::NewPath(path) => db.get_vfs_mut().intern_path(path),
-                    };
+                    let child = db.resolve_path(Some(current_file), &dep.relative_path, loader);
 
                     // Explore later
                     pending_files.push_back(child);
@@ -149,10 +141,11 @@ mod test {
     use std::sync::Arc;
     use toc_salsa::salsa;
     use toc_source_graph::{ArtifactKind, SourceGraph, SourceLibrary};
+    use toc_vfs_db::db::{FileSystemStorage, PathInternStorage};
 
     use crate::db::{AstDatabaseExt, SourceParser};
 
-    #[salsa::database(toc_vfs_db::db::FileSystemStorage, crate::db::SourceParserStorage)]
+    #[salsa::database(FileSystemStorage, PathInternStorage, crate::db::SourceParserStorage)]
     #[derive(Default)]
     struct TestDb {
         storage: salsa::Storage<Self>,
@@ -166,7 +159,7 @@ mod test {
     impl TestDb {
         fn from_source(source: &str) -> Self {
             let mut db = TestDb::default();
-            let fixture = toc_vfs::generate_vfs(&mut db, source).unwrap();
+            let fixture = toc_vfs::generate_vfs(source).unwrap();
             db.insert_fixture(fixture);
 
             let root_file = db.vfs.intern_path("src/main.t".into());

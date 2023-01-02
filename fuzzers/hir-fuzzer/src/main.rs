@@ -37,14 +37,14 @@ fn main() {
 #[allow(dead_code)]
 fn run(source: &str) {
     let mut db = FuzzDb::default();
-    let fixture = match toc_vfs::generate_vfs(&mut db, source) {
+    let fixture = match toc_vfs::generate_vfs(source) {
         Ok(v) => v,
         Err(_) => return, // Don't care about invalid fixture files
     };
     let valid_files = fixture
         .files
         .iter()
-        .map(|(id, _)| db.vfs.lookup_path(*id).to_owned())
+        .map(|(path, _)| path.clone())
         .collect::<HashSet<_>>();
     let file_loader = ValidFileLoader(valid_files);
 
@@ -68,6 +68,7 @@ fn run(source: &str) {
 
 #[salsa::database(
     toc_vfs_db::db::FileSystemStorage,
+    toc_vfs_db::db::PathInternStorage,
     toc_ast_db::db::SourceParserStorage,
     toc_hir_db::db::HirDatabaseStorage,
     toc_analysis::db::TypeInternStorage,

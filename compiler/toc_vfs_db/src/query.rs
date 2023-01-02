@@ -6,7 +6,7 @@ use camino::{Utf8Component, Utf8PathBuf};
 use toc_span::FileId;
 
 use crate::db::{FileSystem, FilesystemExt, PathIntern, VfsDatabaseExt};
-use toc_vfs::{ErrorKind, HasVfs, LoadError, LoadResult, LoadStatus};
+use toc_vfs::{BuiltinPrefix, ErrorKind, LoadError, LoadResult, LoadStatus};
 
 // Non query stuff //
 
@@ -83,17 +83,24 @@ where
 
 impl<T> VfsDatabaseExt for T
 where
-    T: HasVfs + FileSystem + salsa::Database,
+    T: FileSystem + PathIntern,
 {
     fn insert_file<P: AsRef<Path>>(&mut self, path: P, source: &str) -> FileId {
         // Intern the path, then add it to the db
-        let file_id = self.get_vfs_mut().intern_path(path.as_ref().into());
+        let file_id = self.intern_path(Utf8PathBuf::try_from(path.as_ref().to_owned()).unwrap());
         self.set_file_source(file_id, (Arc::new(source.into()), None));
         file_id
     }
 
     fn insert_fixture(&mut self, fixture: toc_vfs::FixtureFiles) {
-        for (file, source) in fixture.files {
+        // Collect all of the interned paths first
+        let files = fixture
+            .files
+            .into_iter()
+            .map(|(path, src)| (self.intern_path(path.try_into().unwrap()), src))
+            .collect::<Vec<_>>();
+
+        for (file, source) in files {
             self.update_file(file, source);
         }
     }
@@ -118,7 +125,7 @@ where
                         (
                             invalid,
                             Some(LoadError::new(
-                                self.get_vfs().lookup_path(file_id),
+                                self.lookup_intern_path(file_id).as_std_path(),
                                 ErrorKind::InvalidEncoding,
                             )),
                         )

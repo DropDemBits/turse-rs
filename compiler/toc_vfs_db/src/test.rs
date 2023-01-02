@@ -3,9 +3,9 @@ use std::ops::Deref;
 use toc_salsa::salsa;
 use toc_vfs::{impl_has_vfs, BuiltinPrefix, DummyFileLoader, LoadError, LoadStatus, Vfs};
 
-use crate::db::{FileSystem, FileSystemStorage, VfsDatabaseExt};
+use crate::db::{FileSystem, FileSystemStorage, PathInternStorage, VfsDatabaseExt};
 
-#[salsa::database(FileSystemStorage)]
+#[salsa::database(FileSystemStorage, PathInternStorage)]
 struct VfsTestDB {
     storage: salsa::Storage<Self>,
     vfs: Vfs,

@@ -16,6 +16,7 @@ use toc_vfs_db::db::VfsDatabaseExt;
 #[salsa::database(
     InternedTypeStorage,
     toc_vfs_db::db::FileSystemStorage,
+    toc_vfs_db::db::PathInternStorage,
     toc_ast_db::db::SourceParserStorage
 )]
 #[derive(Default)]
@@ -53,7 +54,7 @@ fn do_lower(src: &str) -> (String, LowerResult) {
     use std::fmt::Write;
 
     let mut db = TestHirDb::default();
-    let fixture = toc_vfs::generate_vfs(&mut db, src).unwrap();
+    let fixture = toc_vfs::generate_vfs(src).unwrap();
     db.insert_fixture(fixture);
 
     let root_file = db.vfs.intern_path("src/main.t".into());
