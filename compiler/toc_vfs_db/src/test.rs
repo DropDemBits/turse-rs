@@ -1,39 +1,33 @@
 use std::ops::Deref;
 
 use toc_salsa::salsa;
-use toc_vfs::{impl_has_vfs, BuiltinPrefix, LoadError, LoadStatus, Vfs};
+use toc_vfs::{BuiltinPrefix, DummyFileLoader, LoadError, LoadStatus};
 
-use crate::db::{FileSystem, FileSystemStorage, VfsDatabaseExt};
+use crate::db::{FileSystem, FileSystemStorage, FilesystemExt, PathInternStorage, VfsDatabaseExt};
 
-#[salsa::database(FileSystemStorage)]
+#[salsa::database(FileSystemStorage, PathInternStorage)]
+#[derive(Default)]
 struct VfsTestDB {
     storage: salsa::Storage<Self>,
-    vfs: Vfs,
 }
 
 impl salsa::Database for VfsTestDB {}
 
-impl_has_vfs!(VfsTestDB, vfs);
-
 impl VfsTestDB {
     fn new() -> Self {
-        Self {
-            storage: Default::default(),
-            vfs: Default::default(),
-        }
+        Self::default()
     }
 }
 
 fn make_test_db() -> VfsTestDB {
     let mut db = VfsTestDB::new();
-    let vfs = &mut db.vfs;
 
     // Setup the builtin prefixes to reasonable defaults
-    vfs.set_prefix_expansion(BuiltinPrefix::Oot, "/oot/");
-    vfs.set_prefix_expansion(BuiltinPrefix::Help, "/help/");
-    vfs.set_prefix_expansion(BuiltinPrefix::UserHome, "/home/");
-    vfs.set_prefix_expansion(BuiltinPrefix::Job, "/temp/");
-    vfs.set_prefix_expansion(BuiltinPrefix::Temp, "/temp/");
+    db.set_prefix_expansion(BuiltinPrefix::Oot, "/oot/".into());
+    db.set_prefix_expansion(BuiltinPrefix::Help, "/help/".into());
+    db.set_prefix_expansion(BuiltinPrefix::UserHome, "/home/".into());
+    db.set_prefix_expansion(BuiltinPrefix::Job, "/temp/".into());
+    db.set_prefix_expansion(BuiltinPrefix::Temp, "/temp/".into());
 
     db
 }
@@ -70,10 +64,7 @@ fn relative_path_resolve() {
 
     // Lookup bar.t file source
     let bar_t = {
-        let bar_t = db
-            .vfs
-            .resolve_path(Some(root_file), "foo/bar.t")
-            .into_file_id();
+        let bar_t = db.resolve_path(Some(root_file), "foo/bar.t", &DummyFileLoader);
         let res = db.file_source(bar_t);
         let (source, _load_error) = res;
 
@@ -83,7 +74,7 @@ fn relative_path_resolve() {
 
     // Lookup bap.t from bar.t
     {
-        let bap_t = db.vfs.resolve_path(Some(bar_t), "bap.t").into_file_id();
+        let bap_t = db.resolve_path(Some(bar_t), "bap.t", &DummyFileLoader);
         let res = db.file_source(bap_t);
         let (source, _load_error) = res;
 
@@ -111,22 +102,22 @@ fn path_expansion() {
         db.insert_file("/job/to/make/job-item", FILE_SOURCES[0]);
 
         // Ensure that we are using the correct dirs
-        let vfs = &mut db.vfs;
-        vfs.set_prefix_expansion(BuiltinPrefix::Oot, "/oot/");
-        vfs.set_prefix_expansion(BuiltinPrefix::Help, "/oot/support/help");
-        vfs.set_prefix_expansion(BuiltinPrefix::UserHome, "/home/");
-        vfs.set_prefix_expansion(BuiltinPrefix::Job, "/job/");
-        vfs.set_prefix_expansion(BuiltinPrefix::Temp, "/temp/");
+        db.set_prefix_expansion(BuiltinPrefix::Oot, "/oot/".into());
+        db.set_prefix_expansion(BuiltinPrefix::Help, "/oot/support/help".into());
+        db.set_prefix_expansion(BuiltinPrefix::UserHome, "/home/".into());
+        db.set_prefix_expansion(BuiltinPrefix::Job, "/job/".into());
+        db.set_prefix_expansion(BuiltinPrefix::Temp, "/temp/".into());
 
         root_file
     };
 
     // Lookup Predefs.lst file source
     let predefs_list = {
-        let predefs_list = db
-            .vfs
-            .resolve_path(Some(root_file), "%oot/support/Predefs.lst")
-            .into_file_id();
+        let predefs_list = db.resolve_path(
+            Some(root_file),
+            "%oot/support/Predefs.lst",
+            &DummyFileLoader,
+        );
         let res = db.file_source(predefs_list);
         assert_eq!((res.0.as_str(), res.1), (FILE_SOURCES[1], None));
         predefs_list
@@ -134,46 +125,39 @@ fn path_expansion() {
 
     // Lookup Net.tu from Predefs.lst
     {
-        let net_tu = db
-            .vfs
-            .resolve_path(Some(predefs_list), "Net.tu")
-            .into_file_id();
+        let net_tu = db.resolve_path(Some(predefs_list), "Net.tu", &DummyFileLoader);
         let res = db.file_source(net_tu);
         assert_eq!((res.0.as_str(), res.1), (FILE_SOURCES[2], None));
     };
 
     {
-        let file = db
-            .vfs
-            .resolve_path(Some(root_file), "%help/Keyword Lookup.txt")
-            .into_file_id();
+        let file = db.resolve_path(
+            Some(root_file),
+            "%help/Keyword Lookup.txt",
+            &DummyFileLoader,
+        );
         let res = db.file_source(file);
         assert_eq!((res.0.as_str(), res.1), (FILE_SOURCES[3], None));
     };
 
     {
-        let file = db
-            .vfs
-            .resolve_path(Some(root_file), "%home/special_file.t")
-            .into_file_id();
+        let file = db.resolve_path(Some(root_file), "%home/special_file.t", &DummyFileLoader);
         let res = db.file_source(file);
         assert_eq!((res.0.as_str(), res.1), (FILE_SOURCES[0], None));
     };
 
     {
-        let file = db
-            .vfs
-            .resolve_path(Some(root_file), "%tmp/pre/made/some-temp-item")
-            .into_file_id();
+        let file = db.resolve_path(
+            Some(root_file),
+            "%tmp/pre/made/some-temp-item",
+            &DummyFileLoader,
+        );
         let res = db.file_source(file);
         assert_eq!((res.0.as_str(), res.1), (FILE_SOURCES[0], None));
     };
 
     {
-        let file = db
-            .vfs
-            .resolve_path(Some(root_file), "%job/to/make/job-item")
-            .into_file_id();
+        let file = db.resolve_path(Some(root_file), "%job/to/make/job-item", &DummyFileLoader);
         let res = db.file_source(file);
         assert_eq!((res.0.as_str(), res.1), (FILE_SOURCES[0], None));
     };

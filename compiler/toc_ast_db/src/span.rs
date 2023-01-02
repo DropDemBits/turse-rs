@@ -118,7 +118,7 @@ pub(crate) mod query {
     }
 
     pub(crate) fn file_path(db: &dyn db::SpanMapping, file_id: toc_span::FileId) -> Arc<String> {
-        Arc::new(db.get_vfs().lookup_path(file_id).display().to_string())
+        Arc::new(db.lookup_intern_path(file_id).to_string())
     }
 
     pub(crate) fn map_byte_index(

@@ -8,10 +8,11 @@ use toc_ast_db::{
 };
 use toc_hir::library::LibraryId;
 use toc_salsa::salsa;
-use toc_vfs_db::db::VfsDatabaseExt;
+use toc_vfs_db::db::{PathIntern, VfsDatabaseExt};
 
 #[salsa::database(
     toc_vfs_db::db::FileSystemStorage,
+    toc_vfs_db::db::PathInternStorage,
     toc_ast_db::db::SourceParserStorage,
     toc_hir_db::db::HirDatabaseStorage,
     crate::db::TypeInternStorage,
@@ -22,20 +23,17 @@ use toc_vfs_db::db::VfsDatabaseExt;
 #[derive(Default)]
 pub(crate) struct TestDb {
     storage: salsa::Storage<Self>,
-    vfs: toc_vfs::Vfs,
 }
 
 impl salsa::Database for TestDb {}
 
-toc_vfs::impl_has_vfs!(TestDb, vfs);
-
 impl TestDb {
     pub(crate) fn from_source(source: &str) -> (Self, LibraryId) {
         let mut db = TestDb::default();
-        let fixture = toc_vfs::generate_vfs(&mut db, source).unwrap();
+        let fixture = toc_vfs::generate_vfs(source).unwrap();
         db.insert_fixture(fixture);
 
-        let root_file = db.vfs.intern_path("src/main.t".into());
+        let root_file = db.intern_path("src/main.t".into());
         let mut source_graph = SourceGraph::default();
         let library_id = source_graph.add_library(toc_hir::library_graph::SourceLibrary {
             name: "main".into(),

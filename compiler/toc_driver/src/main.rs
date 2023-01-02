@@ -12,7 +12,7 @@ use toc_hir_db::db::HirDatabase;
 use toc_salsa::salsa;
 use toc_span::{FileId, Span};
 use toc_vfs::FileLoader;
-use toc_vfs_db::db::FileSystem;
+use toc_vfs_db::db::{FileSystem, PathIntern};
 
 mod config;
 
@@ -41,7 +41,7 @@ fn main() {
     let mut db = MainDatabase::default();
 
     // Add the root path to the db
-    let root_file = db.vfs.intern_path(path);
+    let root_file = db.intern_path(path.try_into().unwrap());
 
     // Set the source root
     let mut source_graph = SourceGraph::default();
@@ -218,6 +218,7 @@ impl ariadne::Cache<FileId> for VfsCache<'_> {
 
 #[salsa::database(
     toc_vfs_db::db::FileSystemStorage,
+    toc_vfs_db::db::PathInternStorage,
     toc_ast_db::db::SpanMappingStorage,
     toc_ast_db::db::SourceParserStorage,
     toc_hir_db::db::HirDatabaseStorage,
@@ -229,12 +230,9 @@ impl ariadne::Cache<FileId> for VfsCache<'_> {
 #[derive(Default)]
 struct MainDatabase {
     storage: salsa::Storage<Self>,
-    vfs: toc_vfs::Vfs,
 }
 
 impl salsa::Database for MainDatabase {}
-
-toc_vfs::impl_has_vfs!(MainDatabase, vfs);
 
 #[derive(Default)]
 struct MainFileLoader {}

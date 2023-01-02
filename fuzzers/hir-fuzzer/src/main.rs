@@ -6,7 +6,7 @@ use toc_ast_db::{
     SourceGraph,
 };
 use toc_salsa::salsa;
-use toc_vfs_db::db::VfsDatabaseExt;
+use toc_vfs_db::db::{PathIntern, VfsDatabaseExt};
 
 // Workaround for the `afl` crate depending on `xdg`, which isn't compilable on platforms other than linux/unix
 // Running cargo [build/run] [--release] isn't affected because this is never touched, but it still trips up
@@ -37,14 +37,14 @@ fn main() {
 #[allow(dead_code)]
 fn run(source: &str) {
     let mut db = FuzzDb::default();
-    let fixture = match toc_vfs::generate_vfs(&mut db, source) {
+    let fixture = match toc_vfs::generate_vfs(source) {
         Ok(v) => v,
         Err(_) => return, // Don't care about invalid fixture files
     };
     let valid_files = fixture
         .files
         .iter()
-        .map(|(id, _)| db.vfs.lookup_path(*id).to_owned())
+        .map(|(path, _)| path.clone())
         .collect::<HashSet<_>>();
     let file_loader = ValidFileLoader(valid_files);
 
@@ -52,7 +52,7 @@ fn run(source: &str) {
     db.insert_fixture(fixture);
     db.rebuild_file_links(&file_loader);
 
-    let root_file = db.vfs.intern_path("src/main.t".into());
+    let root_file = db.intern_path("src/main.t".into());
     let mut source_graph = SourceGraph::default();
     source_graph.add_library(toc_hir::library_graph::SourceLibrary {
         name: "main".into(),
@@ -68,6 +68,7 @@ fn run(source: &str) {
 
 #[salsa::database(
     toc_vfs_db::db::FileSystemStorage,
+    toc_vfs_db::db::PathInternStorage,
     toc_ast_db::db::SourceParserStorage,
     toc_hir_db::db::HirDatabaseStorage,
     toc_analysis::db::TypeInternStorage,
@@ -78,12 +79,9 @@ fn run(source: &str) {
 #[derive(Default)]
 struct FuzzDb {
     storage: salsa::Storage<Self>,
-    vfs: toc_vfs::Vfs,
 }
 
 impl salsa::Database for FuzzDb {}
-
-toc_vfs::impl_has_vfs!(FuzzDb, vfs);
 
 #[derive(Default)]
 struct ValidFileLoader(HashSet<PathBuf>);

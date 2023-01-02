@@ -6,8 +6,7 @@ use toc_reporting::CompileResult;
 use toc_salsa::salsa;
 use toc_source_graph::{LibraryId, LibraryRef, SourceGraph};
 use toc_span::FileId;
-use toc_vfs::HasVfs;
-use toc_vfs_db::db::FileSystem;
+use toc_vfs_db::db::{FileSystem, PathIntern};
 
 use crate::{
     source, span,
@@ -54,7 +53,7 @@ pub trait SourceParser: FileSystem {
 }
 
 #[salsa::query_group(SpanMappingStorage)]
-pub trait SpanMapping: FileSystem + HasVfs {
+pub trait SpanMapping: FileSystem + PathIntern {
     #[salsa::invoke(span::query::line_mapping)]
     fn line_mapping(&self, file_id: toc_span::FileId) -> Arc<LineMapping>;
 

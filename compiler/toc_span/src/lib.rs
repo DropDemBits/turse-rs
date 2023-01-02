@@ -5,6 +5,7 @@ use std::{fmt, num::NonZeroU32};
 
 use indexmap::IndexSet;
 pub use text_size::{TextRange, TextSize};
+use toc_salsa::salsa::{InternId, InternKey};
 
 /// A unique file id
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -27,6 +28,16 @@ impl FileId {
     /// Constructs a new file id, for testing purposes
     pub fn new_testing(id: u32) -> Option<Self> {
         NonZeroU32::new(id).map(Self::new)
+    }
+}
+
+impl InternKey for FileId {
+    fn from_intern_id(v: InternId) -> Self {
+        Self(NonZeroU32::new(v.as_u32() + 1).unwrap())
+    }
+
+    fn as_intern_id(&self) -> InternId {
+        (self.0.get() - 1).into()
     }
 }
 

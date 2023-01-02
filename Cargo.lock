@@ -117,6 +117,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dfb24e866b15a1af2a1b663f10c6b6b8f397a84aadb828f12e5b289ec23a3a3c"
 
 [[package]]
+name = "camino"
+version = "1.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "88ad0e1e3e88dd237a156ab9f571021b8a158caa0ae44b1968a241efb5144c1e"
+
+[[package]]
 name = "cfg-if"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1255,6 +1261,7 @@ checksum = "cda74da7e1a664f795bb1f8a87ec406fb89a02522cf6e50620d016add6dbbf5c"
 name = "toc-ide-db"
 version = "0.1.0"
 dependencies = [
+ "camino",
  "lsp-types",
  "ropey",
  "serde_json",
@@ -1463,6 +1470,7 @@ version = "0.1.0"
 dependencies = [
  "indexmap",
  "text-size",
+ "toc_salsa",
 ]
 
 [[package]]
@@ -1492,8 +1500,6 @@ dependencies = [
 name = "toc_vfs"
 version = "0.1.0"
 dependencies = [
- "if_chain",
- "indexmap",
  "itertools",
  "toc_span",
 ]
@@ -1502,6 +1508,7 @@ dependencies = [
 name = "toc_vfs_db"
 version = "0.1.0"
 dependencies = [
+ "camino",
  "toc_salsa",
  "toc_span",
  "toc_vfs",
