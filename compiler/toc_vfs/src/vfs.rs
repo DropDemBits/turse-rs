@@ -152,15 +152,6 @@ impl Vfs {
     }
 }
 
-/// Trait providing indirect access to the virtual file system
-pub trait HasVfs {
-    // Get access to the underlying virtual file system
-    fn get_vfs(&self) -> &Vfs;
-
-    // Get mutable access to the underlying virtual file system
-    fn get_vfs_mut(&mut self) -> &mut Vfs;
-}
-
 /// Joins two paths together, applying `ParentDir` and `CurrentDir` components
 ///
 /// `append` must be a path that needs joining

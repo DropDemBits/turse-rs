@@ -1,7 +1,7 @@
 use std::ops::Deref;
 
 use toc_salsa::salsa;
-use toc_vfs::{impl_has_vfs, BuiltinPrefix, DummyFileLoader, LoadError, LoadStatus, Vfs};
+use toc_vfs::{BuiltinPrefix, DummyFileLoader, LoadError, LoadStatus, Vfs};
 
 use crate::db::{FileSystem, FileSystemStorage, PathInternStorage, VfsDatabaseExt};
 
@@ -12,8 +12,6 @@ struct VfsTestDB {
 }
 
 impl salsa::Database for VfsTestDB {}
-
-impl_has_vfs!(VfsTestDB, vfs);
 
 impl VfsTestDB {
     fn new() -> Self {

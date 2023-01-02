@@ -28,8 +28,6 @@ pub(crate) struct TestDb {
 
 impl salsa::Database for TestDb {}
 
-toc_vfs::impl_has_vfs!(TestDb, vfs);
-
 impl TestDb {
     pub(crate) fn from_source(source: &str) -> (Self, LibraryId) {
         let mut db = TestDb::default();

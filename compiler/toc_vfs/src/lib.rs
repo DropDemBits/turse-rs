@@ -33,23 +33,7 @@ use std::{
 
 pub use fixture::{generate_vfs, FixtureFiles, ParseError};
 pub use intern::PathResolution;
-pub use vfs::{HasVfs, Vfs};
-
-/// Helper for implementing the [`HasVfs`] trait.
-#[macro_export]
-macro_rules! impl_has_vfs {
-    ($db:path, $vfs:ident) => {
-        impl $crate::HasVfs for $db {
-            fn get_vfs(&self) -> &$crate::Vfs {
-                &self.$vfs
-            }
-
-            fn get_vfs_mut(&mut self) -> &mut $crate::Vfs {
-                &mut self.$vfs
-            }
-        }
-    };
-}
+pub use vfs::Vfs;
 
 /// Built-in prefixes for paths.
 ///

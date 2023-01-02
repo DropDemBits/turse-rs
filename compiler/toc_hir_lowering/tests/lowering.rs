@@ -27,8 +27,6 @@ struct TestHirDb {
 
 impl salsa::Database for TestHirDb {}
 
-toc_vfs::impl_has_vfs!(TestHirDb, vfs);
-
 /// Salsa-backed type interner
 #[salsa::query_group(InternedTypeStorage)]
 trait InternedType {

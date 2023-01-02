@@ -275,8 +275,7 @@ struct LspDatabase {
 
 impl salsa::Database for LspDatabase {}
 
-// FIXME: Can't use ParallelDb since we need a &Vfs
-toc_vfs::impl_has_vfs!(LspDatabase, vfs);
+// FIXME: Impl ParallelDb now  that path interning is in the db
 
 /// File store tracks the state of all files currently used by the LSP.
 /// Files sources can come from two primary locations:
@@ -437,7 +436,7 @@ mod tests {
 
         // Make an absolute path for making a url from
         let path = Path::new("/").canonicalize().unwrap().join("test.yee");
-        let uri = Url::from_file_path(&path).unwrap();
+        let uri = Url::from_file_path(path).unwrap();
 
         // Survive opening & closing a file
         state.open_file(&uri, 0, "% blah".into());

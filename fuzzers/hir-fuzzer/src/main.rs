@@ -84,8 +84,6 @@ struct FuzzDb {
 
 impl salsa::Database for FuzzDb {}
 
-toc_vfs::impl_has_vfs!(FuzzDb, vfs);
-
 #[derive(Default)]
 struct ValidFileLoader(HashSet<PathBuf>);
 

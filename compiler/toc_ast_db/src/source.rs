@@ -154,8 +154,6 @@ mod test {
 
     impl salsa::Database for TestDb {}
 
-    toc_vfs::impl_has_vfs!(TestDb, vfs);
-
     impl TestDb {
         fn from_source(source: &str) -> Self {
             let mut db = TestDb::default();

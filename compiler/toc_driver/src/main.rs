@@ -235,8 +235,6 @@ struct MainDatabase {
 
 impl salsa::Database for MainDatabase {}
 
-toc_vfs::impl_has_vfs!(MainDatabase, vfs);
-
 #[derive(Default)]
 struct MainFileLoader {}
 
