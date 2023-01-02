@@ -19,10 +19,8 @@ pub use fixture::{generate_vfs, FixtureFiles, ParseError};
 
 /// Built-in prefixes for paths.
 ///
-/// The [`FileSystem::set_prefix_expansion`][set_prefix_expansion] query
+/// The `FileSystem::set_prefix_expansion` query
 /// should be used to set the corresponding path the path expands into.
-///
-/// [set_prefix_expansion]: toc_vfs_db::db::FileSystem::set_prefix_expansion
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum BuiltinPrefix {
     /// %oot, should point to the Turing home directory
