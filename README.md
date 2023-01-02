@@ -53,4 +53,6 @@ cargo run --bin toc_driver
 
 ## License
 
-Turse is licensed under the MIT license (see [LICENSE](LICENSE) or <http://opensource.org/licenses/MIT>)
+Turse is licensed under the MIT license (see [LICENSE](LICENSE) or <http://opensource.org/licenses/MIT>).
+
+Portions of the VSCode extension incorporate code from other repositories, see [NOTICE](lsp-client/vscode/NOTICE.md) for details.
