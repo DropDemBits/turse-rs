@@ -7,7 +7,5 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-if_chain = "1.0.1"
-indexmap = { workspace = true }
 itertools = { workspace = true }
 toc_span = { path =  "../toc_span" }

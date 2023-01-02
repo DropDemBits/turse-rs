@@ -7,8 +7,6 @@
 //! not be a useful distinction in the future).
 
 mod fixture;
-mod intern;
-mod vfs;
 
 use std::{
     convert::TryFrom,
@@ -18,15 +16,13 @@ use std::{
 };
 
 pub use fixture::{generate_vfs, FixtureFiles, ParseError};
-// pub use intern::PathResolution;
-// pub use vfs::Vfs;
 
 /// Built-in prefixes for paths.
 ///
-/// The [`Vfs::set_prefix_expansion`][set_prefix_expansion] method
+/// The [`FileSystem::set_prefix_expansion`][set_prefix_expansion] query
 /// should be used to set the corresponding path the path expands into.
 ///
-/// [set_prefix_expansion]: crate::Vfs::set_prefix_expansion
+/// [set_prefix_expansion]: toc_vfs_db::db::FileSystem::set_prefix_expansion
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum BuiltinPrefix {
     /// %oot, should point to the Turing home directory

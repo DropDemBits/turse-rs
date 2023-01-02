@@ -27,13 +27,13 @@ pub const FILE_DELIMITER_START: &str = "%%-";
 /// Single file source:
 ///
 /// ```rust,compile_fail
-/// generate_vfs(db, r#"i := "i am in a single file""#);
+/// generate_vfs(r#"i := "i am in a single file""#);
 /// ```
 ///
 /// Multiple file source:
 ///
 /// ```rust,compile_fail
-/// generate_vfs(db, r#"
+/// generate_vfs( r#"
 /// %%- /src/main.t
 /// put "i am in one file"
 /// %%- /src/test.t
