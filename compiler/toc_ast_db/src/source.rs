@@ -149,7 +149,6 @@ mod test {
     #[derive(Default)]
     struct TestDb {
         storage: salsa::Storage<Self>,
-        vfs: toc_vfs::Vfs,
     }
 
     impl salsa::Database for TestDb {}
@@ -160,7 +159,7 @@ mod test {
             let fixture = toc_vfs::generate_vfs(source).unwrap();
             db.insert_fixture(fixture);
 
-            let root_file = db.vfs.intern_path("src/main.t".into());
+            let root_file = db.intern_path("src/main.t".into());
             let mut source_graph = SourceGraph::default();
             let _lib = source_graph.add_library(SourceLibrary {
                 artifact: ArtifactKind::Binary,

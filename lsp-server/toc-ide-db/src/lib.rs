@@ -5,6 +5,7 @@ use std::{
     sync::Arc,
 };
 
+use camino::Utf8PathBuf;
 use lsp_types::{Diagnostic, DiagnosticRelatedInformation, DiagnosticSeverity, Location, Position};
 use ropey::Rope;
 use toc_analysis::db::HirAnalysis;
@@ -16,7 +17,7 @@ use toc_hir::{library::LibraryId, library_graph::SourceLibrary};
 use toc_salsa::salsa;
 use toc_span::FileId;
 use toc_vfs::{LoadError, LoadStatus};
-use toc_vfs_db::db::VfsDatabaseExt;
+use toc_vfs_db::db::{PathIntern, VfsDatabaseExt};
 use tracing::{error, trace};
 
 pub type Cancellable<T = ()> = Result<T, salsa::Cancelled>;
@@ -79,7 +80,8 @@ impl ServerState {
         let db = &mut self.db;
 
         // Add the root path to the file db
-        let root_file = db.vfs.intern_path(path.into());
+        // FIXME: Remove unwrap by using Utf8Path{Buf}
+        let root_file = db.intern_path(Utf8PathBuf::from_path_buf(path.to_owned()).unwrap());
         let load_status = if !removed {
             let contents = self.files.source(path).into_owned();
             Ok(LoadStatus::Modified(contents.into()))
@@ -213,18 +215,17 @@ impl ServerState {
         // Add empty bundles for files that are tracked, but don't have any diagnostics
         // This is done to remove any diagnostics from files which previously had some
         for (path, _) in self.files.file_map.iter() {
+            // FIXME: Remove unwrap by using Utf8Path{Buf}
             let file_id = self
                 .db
-                .vfs
-                .lookup_id(path)
-                .expect("all paths should be interned already");
+                .intern_path(Utf8PathBuf::from_path_buf(path.to_owned()).unwrap());
             bundles.entry(file_id).or_insert_with(Vec::new);
         }
 
         // Convert FileIds into paths
         Ok(bundles
             .into_iter()
-            .map(|(file, bundle)| (self.db.vfs.lookup_path(file).to_path_buf(), bundle))
+            .map(|(file, bundle)| (self.db.lookup_intern_path(file).into_std_path_buf(), bundle))
             .collect())
     }
 
@@ -270,7 +271,6 @@ impl IntoPosition for toc_ast_db::span::LspPosition {
 #[derive(Default)]
 struct LspDatabase {
     storage: salsa::Storage<Self>,
-    vfs: toc_vfs::Vfs,
 }
 
 impl salsa::Database for LspDatabase {}
@@ -305,6 +305,7 @@ impl salsa::Database for LspDatabase {}
 //      - Could set status of frontier files to indicate that results from using them are invalid...
 #[derive(Default)]
 struct FileStore {
+    // FIXME: Use Utf8PathBuf
     file_map: HashMap<PathBuf, FileInfo>,
 }
 

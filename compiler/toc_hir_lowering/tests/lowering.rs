@@ -6,15 +6,14 @@ use toc_ast_db::{
     db::{AstDatabaseExt, SourceParser},
     SourceGraph,
 };
-use toc_hir::{body, expr, item, library::LoweredLibrary, stmt, ty};
+use toc_hir::{body, expr, item, library::LoweredLibrary, stmt};
 use toc_hir_lowering::LoweringDb;
 use toc_reporting::CompileResult;
 use toc_salsa::salsa;
 use toc_span::FileId;
-use toc_vfs_db::db::VfsDatabaseExt;
+use toc_vfs_db::db::{PathIntern, VfsDatabaseExt};
 
 #[salsa::database(
-    InternedTypeStorage,
     toc_vfs_db::db::FileSystemStorage,
     toc_vfs_db::db::PathInternStorage,
     toc_ast_db::db::SourceParserStorage
@@ -22,17 +21,9 @@ use toc_vfs_db::db::VfsDatabaseExt;
 #[derive(Default)]
 struct TestHirDb {
     storage: salsa::Storage<Self>,
-    vfs: toc_vfs::Vfs,
 }
 
 impl salsa::Database for TestHirDb {}
-
-/// Salsa-backed type interner
-#[salsa::query_group(InternedTypeStorage)]
-trait InternedType {
-    #[salsa::interned]
-    fn intern_type(&self, ty: Arc<ty::Type>) -> salsa::InternId;
-}
 
 struct LowerResult {
     root_file: FileId,
@@ -55,7 +46,7 @@ fn do_lower(src: &str) -> (String, LowerResult) {
     let fixture = toc_vfs::generate_vfs(src).unwrap();
     db.insert_fixture(fixture);
 
-    let root_file = db.vfs.intern_path("src/main.t".into());
+    let root_file = db.intern_path("src/main.t".into());
     let mut source_graph = SourceGraph::new();
     let lib = source_graph.add_library(toc_hir::library_graph::SourceLibrary {
         name: "main".into(),

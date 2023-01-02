@@ -32,8 +32,8 @@ use std::{
 };
 
 pub use fixture::{generate_vfs, FixtureFiles, ParseError};
-pub use intern::PathResolution;
-pub use vfs::Vfs;
+// pub use intern::PathResolution;
+// pub use vfs::Vfs;
 
 /// Built-in prefixes for paths.
 ///
@@ -90,6 +90,8 @@ impl fmt::Display for BuiltinPrefix {
 }
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct LoadError {
+    // FIXME: remove this hack now that we can fetch paths from the db's path interner
+    // basically undo https://github.com/DropDemBits/turse-rs/pull/51/commits/49cdbfd
     path: Arc<String>,
     kind: ErrorKind,
 }

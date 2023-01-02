@@ -6,7 +6,7 @@ use toc_ast_db::{
     SourceGraph,
 };
 use toc_salsa::salsa;
-use toc_vfs_db::db::VfsDatabaseExt;
+use toc_vfs_db::db::{PathIntern, VfsDatabaseExt};
 
 // Workaround for the `afl` crate depending on `xdg`, which isn't compilable on platforms other than linux/unix
 // Running cargo [build/run] [--release] isn't affected because this is never touched, but it still trips up
@@ -52,7 +52,7 @@ fn run(source: &str) {
     db.insert_fixture(fixture);
     db.rebuild_file_links(&file_loader);
 
-    let root_file = db.vfs.intern_path("src/main.t".into());
+    let root_file = db.intern_path("src/main.t".into());
     let mut source_graph = SourceGraph::default();
     source_graph.add_library(toc_hir::library_graph::SourceLibrary {
         name: "main".into(),
@@ -79,7 +79,6 @@ fn run(source: &str) {
 #[derive(Default)]
 struct FuzzDb {
     storage: salsa::Storage<Self>,
-    vfs: toc_vfs::Vfs,
 }
 
 impl salsa::Database for FuzzDb {}

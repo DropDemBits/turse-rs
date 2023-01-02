@@ -1,8 +1,5 @@
 //! Query interface for the VFS system
 //!
-#[cfg(test)]
-mod test;
-
 use std::{borrow::Cow, path::Path, sync::Arc};
 
 use camino::{Utf8Component, Utf8PathBuf};
