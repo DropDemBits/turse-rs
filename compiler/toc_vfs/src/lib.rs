@@ -1,24 +1,10 @@
-//! Abstraction over interfacing the native filesystem
+//! VFS-related data structures that don't require the database.
 //!
-//! Path expansion operations, path interning, and intermediate file storage
-//! are held in the concrete [`Vfs`] type.
-//!
-//! Resolving paths into [`FileId`]s via the [`Vfs::resolve_path`]
-//! method is required during lowering the concrete syntax tree into HIR,
-//! specifically during:
-//!
-//! - Include file expansion in order to get the file id for getting the parse tree
-//! - Import dependency resolution for generating dependencies between units
-//!
-//! However, path resolution in the actual compilation process should use the
-//! `depend_of` query in `toc_ast_db`,since we cache a source dependency graph in
-//! there.
-//!
-//! [`Vfs`]: crate::Vfs
-//! [`Vfs::resolve_path`]: crate::Vfs::resolve_path
-//! [`FileId`]: toc_span::FileId
-
-// TODO: Flesh out documentation using VFS Interface.md
+//! This is mostly a leftover from when the path interning was stored
+//! separately from the rest of datebase storage. Most crates still depend on
+//! both `toc_vfs` and `toc_vfs_db`, so it's not much of a separation. However,
+//! it's still nice to separate the non-db components (even though it'll likely
+//! not be a useful distinction in the future).
 
 mod fixture;
 mod intern;
