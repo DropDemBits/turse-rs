@@ -9,3 +9,4 @@ edition = "2021"
 toc_span = { path = "../toc_span" }
 toc_salsa = { path = "../toc_salsa" }
 toc_vfs = { path = "../toc_vfs" }
+camino = { workspace = true }
