@@ -6,7 +6,6 @@ expression: "% dyn arrays aren't allowed, since the range is expected to be know
 "a"@(FileId(1), 101..102) [ConstVar(Var, No)]: array ( range of `int` (Unevaluated(LibraryId(0), BodyId(0)) .. Expr(Unevaluated(LibraryId(0), BodyId(1)), Yes)), ) of char
 "p"@(FileId(1), 129..130) [Subprogram(Procedure)]: procedure ( pass(value) array ( range of `int` (Unevaluated(LibraryId(0), BodyId(2)) .. Expr(Unevaluated(LibraryId(0), BodyId(3)), No)), ) of char_n Any, ) -> void
 "_"@(FileId(1), 131..132) [Param(Value, No)]: array ( range of `int` (Unevaluated(LibraryId(0), BodyId(2)) .. Expr(Unevaluated(LibraryId(0), BodyId(3)), No)), ) of char_n Any
-"<unnamed>"@(dummy) [Undeclared]: <error>
 "<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 167..168: mismatched types

@@ -7,6 +7,5 @@ expression: "type tp: proc(_ : array 1..2 of char(*))\nvar a : array 1..2 of cha
 "a"@(FileId(1), 45..46) [ConstVar(Var, No)]: array ( range of `int` (Unevaluated(LibraryId(0), BodyId(2)) .. Expr(Unevaluated(LibraryId(0), BodyId(3)), Yes)), ) of char
 "b"@(FileId(1), 72..73) [ConstVar(Var, No)]: array ( range of `int` (Unevaluated(LibraryId(0), BodyId(4)) .. Expr(Unevaluated(LibraryId(0), BodyId(5)), Yes)), ) of char_n Fixed(Unevaluated(LibraryId(0), BodyId(6)))
 "p"@(FileId(1), 103..104) [ConstVar(Var, No)]: alias[DefId(LibraryId(0), LocalDefId(0))] of procedure ( pass(value) array ( range of `int` (Unevaluated(LibraryId(0), BodyId(0)) .. Expr(Unevaluated(LibraryId(0), BodyId(1)), No)), ) of char_n Any, ) -> void
-"<unnamed>"@(dummy) [Undeclared]: <error>
 "<root>"@(dummy) [Module(No)]: <error>
 

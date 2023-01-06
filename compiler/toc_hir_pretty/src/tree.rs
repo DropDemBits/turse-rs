@@ -287,13 +287,19 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
 
             if let Some(first) = params.next() {
                 write!(extra, "{}", self.display_param_info(first.1)).unwrap();
-                write!(extra, "{}", self.display_def(*first.0)).unwrap();
+                match first.0 {
+                    Some(def) => write!(extra, "{}", self.display_def(*def)).unwrap(),
+                    None => write!(extra, "<missing>").unwrap(),
+                }
             }
             for rest in params {
                 writeln!(extra, ",").unwrap();
                 self.emit_indent(&mut extra).unwrap();
                 write!(extra, "{}", self.display_param_info(rest.1)).unwrap();
-                write!(extra, "{}", self.display_def(*rest.0)).unwrap();
+                match rest.0 {
+                    Some(def) => write!(extra, "{}", self.display_def(*def)).unwrap(),
+                    None => write!(extra, "<missing>").unwrap(),
+                }
             }
 
             if param_count > 1 {

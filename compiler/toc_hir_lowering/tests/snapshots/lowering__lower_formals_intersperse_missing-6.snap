@@ -7,10 +7,10 @@ Library@(dummy)
     Module@(FileId(1), 0..31): "<root>"@(dummy)
       StmtBody@(FileId(1), 0..31): []
         StmtItem@(FileId(1), 0..31): ItemId(0)
-          Subprogram@(FileId(1), 0..31): "args"@(FileId(1), 10..14) ["<unnamed>"@(dummy)]
+          Subprogram@(FileId(1), 0..31): "args"@(FileId(1), 10..14) [<missing>]
             Primitive@(FileId(1), 18..21): Int
             Void@(FileId(1), 0..22)
-            StmtBody@(FileId(1), 23..23): ["<unnamed>"@(dummy)]
+            StmtBody@(FileId(1), 23..23): []
 error in file FileId(1) at 16..17: unexpected token
 | error in file FileId(1) for 16..17: expected `)`, `function`, `procedure`, `var`, `register` or identifier, but found `:`
 

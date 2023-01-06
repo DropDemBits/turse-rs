@@ -7,7 +7,6 @@ expression: "type tp : proc(var _ : array 1 .. * of int)\nvar a : array 1 .. 3 o
 "a"@(FileId(1), 48..49) [ConstVar(Var, No)]: array ( range of `int` (Unevaluated(LibraryId(0), BodyId(1)) .. Expr(Unevaluated(LibraryId(0), BodyId(2)), Yes)), ) of int
 "b"@(FileId(1), 76..77) [ConstVar(Var, No)]: array ( range of `int` (Unevaluated(LibraryId(0), BodyId(3)) .. Expr(Unevaluated(LibraryId(0), BodyId(4)), Yes)), ) of int
 "p"@(FileId(1), 104..105) [ConstVar(Var, No)]: alias[DefId(LibraryId(0), LocalDefId(0))] of procedure ( pass(var ref) array ( range of `int` (Unevaluated(LibraryId(0), BodyId(0)) .. Any), ) of int, ) -> void
-"<unnamed>"@(dummy) [Undeclared]: <error>
 "<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 173..174: mismatched types

@@ -12,8 +12,6 @@ expression: "module z\n    export unqualified opaque ty, unwrap, make\n\n    typ
 "b"@(FileId(1), 260..261) [ConstVar(Var, No)]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
 "c"@(FileId(1), 271..272) [ConstVar(Var, No)]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
 "i"@(FileId(1), 358..359) [ConstVar(Var, No)]: int
-"<unnamed>"@(dummy) [Undeclared]: <error>
-"<unnamed>"@(dummy) [Undeclared]: <error>
 "ty"@(FileId(1), 39..41) [Export]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
 "unwrap"@(FileId(1), 43..49) [Export]: function ( pass(value) opaque[DefId(LibraryId(0), LocalDefId(1))] type to int, ) -> int
 "make"@(FileId(1), 51..55) [Export]: function ( pass(value) int, ) -> opaque[DefId(LibraryId(0), LocalDefId(1))] type to int

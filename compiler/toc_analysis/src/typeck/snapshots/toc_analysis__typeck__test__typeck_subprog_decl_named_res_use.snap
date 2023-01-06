@@ -4,7 +4,6 @@ expression: "function sha() wa : int wa end sha"
 ---
 "sha"@(FileId(1), 9..12) [Subprogram(Function)]: function ( ) -> int
 "wa"@(FileId(1), 15..17) [Param(Value, No)]: int
-"<unnamed>"@(dummy) [Undeclared]: <error>
 "<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 24..26: cannot use `wa` as a statement

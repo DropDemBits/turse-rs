@@ -12,8 +12,6 @@ expression: "type t_p : procedure(a, b : int, var c : string)\nprocedure p(a, b,
 "k"@(FileId(1), 67..68) [Param(Value, No)]: int
 "c"@(FileId(1), 80..81) [Param(Reference(Var), No)]: string
 "_"@(FileId(1), 103..104) [ConstVar(Var, No)]: alias[DefId(LibraryId(0), LocalDefId(0))] of procedure ( pass(value) int, pass(value) int, pass(var ref) string, ) -> void
-"<unnamed>"@(dummy) [Undeclared]: <error>
-"<unnamed>"@(dummy) [Undeclared]: <error>
 "<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 114..115: mismatched types

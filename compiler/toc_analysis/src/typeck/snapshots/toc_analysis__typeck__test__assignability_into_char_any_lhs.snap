@@ -21,6 +21,5 @@ expression: "proc __(var c_any : char(*), var s_any : string(*), var _v00, _v01,
 "s"@(FileId(1), 214..215) [ConstVar(Var, No)]: string
 "s1"@(FileId(1), 229..231) [ConstVar(Var, No)]: string_n Fixed(Unevaluated(LibraryId(0), BodyId(3)))
 "s5"@(FileId(1), 248..250) [ConstVar(Var, No)]: string_n Fixed(Unevaluated(LibraryId(0), BodyId(4)))
-"<unnamed>"@(dummy) [Undeclared]: <error>
 "<root>"@(dummy) [Module(No)]: <error>
 

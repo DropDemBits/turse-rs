@@ -324,19 +324,15 @@ impl<'ctx> FileLowering<'ctx> {
     fn collect_name_defs_with_missing(
         &mut self,
         name_list: ast::NameList,
-        fill_with: LocalDefId,
-    ) -> Vec<LocalDefId> {
+    ) -> Vec<Option<LocalDefId>> {
         let mut names = name_list
             .names_with_missing()
-            .map(|name| match name {
-                Some(name) => self.collect_required_name(name),
-                None => fill_with,
-            })
+            .map(|name| name.map(|name| self.collect_required_name(name)))
             .collect::<Vec<_>>();
 
         if names.is_empty() {
-            // maintain invariant that there's at least one name
-            names.push(fill_with)
+            // maintain invariant that there's at least one item
+            names.push(None)
         }
 
         names

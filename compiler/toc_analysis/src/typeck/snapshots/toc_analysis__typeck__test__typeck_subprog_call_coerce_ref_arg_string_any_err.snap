@@ -5,7 +5,6 @@ expression: "procedure p(var a : string(*)) end p\nvar c : char\np(c)\n"
 "p"@(FileId(1), 10..11) [Subprogram(Procedure)]: procedure ( pass(var ref) string_n Any, ) -> void
 "a"@(FileId(1), 16..17) [Param(Reference(Var), No)]: string_n Any
 "c"@(FileId(1), 41..42) [ConstVar(Var, No)]: char
-"<unnamed>"@(dummy) [Undeclared]: <error>
 "<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 52..53: mismatched types

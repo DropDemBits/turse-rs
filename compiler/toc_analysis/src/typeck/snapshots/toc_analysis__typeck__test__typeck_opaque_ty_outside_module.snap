@@ -8,7 +8,6 @@ expression: "module k\n    export opaque ~.* t, f\n\n    type t : int\n\n    fcn
 "a"@(FileId(1), 102..103) [ConstVar(Var, No)]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
 "b"@(FileId(1), 112..113) [ConstVar(Var, No)]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
 "c"@(FileId(1), 127..128) [ConstVar(Var, No)]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
-"<unnamed>"@(dummy) [Undeclared]: <error>
 "t"@(FileId(1), 31..32) [Export]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
 "f"@(FileId(1), 34..35) [Export]: function ( ) -> opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
 "<root>"@(dummy) [Module(No)]: <error>

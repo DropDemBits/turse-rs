@@ -4,7 +4,6 @@ expression: "procedure lime() end lime\nvar res := lime()\n"
 ---
 "lime"@(FileId(1), 10..14) [Subprogram(Procedure)]: procedure ( ) -> void
 "res"@(FileId(1), 30..33) [ConstVar(Var, No)]: <error>
-"<unnamed>"@(dummy) [Undeclared]: <error>
 "<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 37..41: cannot call procedure here

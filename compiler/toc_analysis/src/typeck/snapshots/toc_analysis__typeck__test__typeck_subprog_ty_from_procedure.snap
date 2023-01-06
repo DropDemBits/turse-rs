@@ -5,6 +5,5 @@ expression: "procedure sha(a : int, b : char) end sha"
 "sha"@(FileId(1), 10..13) [Subprogram(Procedure)]: procedure ( pass(value) int, pass(value) char, ) -> void
 "a"@(FileId(1), 14..15) [Param(Value, No)]: int
 "b"@(FileId(1), 23..24) [Param(Value, No)]: char
-"<unnamed>"@(dummy) [Undeclared]: <error>
 "<root>"@(dummy) [Module(No)]: <error>
 

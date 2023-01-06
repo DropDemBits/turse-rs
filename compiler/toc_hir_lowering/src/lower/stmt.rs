@@ -327,14 +327,6 @@ impl super::BodyLowering<'_, '_> {
         let mut param_names = vec![];
         let mut tys = vec![];
 
-        // Prevent duplication of param names
-        let missing_name = self.ctx.library.add_def(
-            *syms::Unnamed,
-            self.ctx.library.span_table().dummy_span(),
-            None,
-            IsPervasive::No,
-        );
-
         for param_def in formals.param_decl() {
             match param_def {
                 ast::ParamDecl::ConstVarParam(param) => {
@@ -348,7 +340,7 @@ impl super::BodyLowering<'_, '_> {
 
                     let names = self
                         .ctx
-                        .collect_name_defs_with_missing(param.param_names().unwrap(), missing_name);
+                        .collect_name_defs_with_missing(param.param_names().unwrap());
 
                     for name in names {
                         param_names.push(name);
@@ -379,7 +371,7 @@ impl super::BodyLowering<'_, '_> {
                         }
                     };
 
-                    let name = self.ctx.collect_optional_name(name).unwrap_or(missing_name);
+                    let name = self.ctx.collect_optional_name(name);
                     param_names.push(name);
 
                     tys.push(Parameter {
@@ -434,9 +426,9 @@ impl super::BodyLowering<'_, '_> {
         self.unsupported_node(decl.post_stmt());
         self.unsupported_node(decl.handler_stmt());
 
-        let param_defs = param_list
-            .as_ref()
-            .map_or(vec![], |params| params.names.clone());
+        let param_defs = param_list.as_ref().map_or(vec![], |params| {
+            params.names.iter().flat_map(|param| *param).collect()
+        });
 
         let imports = self.lower_import_list(decl.import_stmt());
 

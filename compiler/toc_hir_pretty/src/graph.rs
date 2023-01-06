@@ -519,23 +519,47 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
                 v_layout.push(Layout::Port("params".into()));
 
                 for (name, param) in param_list.names.iter().zip(&param_list.tys) {
-                    let def_info = self.library.local_def(*name);
-                    let param_node = derived_id(self.item_id(id), &format!("param_{name:?}"));
-                    self.emit_node(
-                        &param_node,
-                        "SubprogParam",
-                        def_info.def_at,
-                        Layout::Vbox(vec![
-                            self.layout_param_info(param),
-                            Layout::Node(self.display_def_id(*name)),
-                            Layout::Port("type".into()),
-                        ]),
-                    );
+                    match name {
+                        Some(name) => {
+                            // Real param
+                            let def_info = self.library.local_def(*name);
+                            let param_node =
+                                derived_id(self.item_id(id), &format!("param_{name:?}"));
+                            self.emit_node(
+                                &param_node,
+                                "SubprogParam",
+                                def_info.def_at,
+                                Layout::Vbox(vec![
+                                    self.layout_param_info(param),
+                                    Layout::Node(self.display_def_id(*name)),
+                                    Layout::Port("type".into()),
+                                ]),
+                            );
 
-                    self.emit_edge(format!("{param_node}:type"), self.type_id(param.param_ty));
+                            self.emit_edge(
+                                format!("{param_node}:type"),
+                                self.type_id(param.param_ty),
+                            );
 
-                    // Link to main list
-                    self.emit_edge(format!("{node_id}:params"), param_node);
+                            // Link to main list
+                            self.emit_edge(format!("{node_id}:params"), param_node);
+                        }
+                        None => {
+                            // Placeholder param
+                            let param_node =
+                                derived_id(self.item_id(id), &format!("param_{name:?}"));
+                            self.emit_node(
+                                &param_node,
+                                "UnnamedParam",
+                                self.library.span_table().dummy_span(),
+                                Layout::Vbox(vec![
+                                    self.layout_param_info(param),
+                                    Layout::Node("<unnamed>".into()),
+                                ]),
+                            );
+                            self.emit_edge(format!("{node_id}:params"), param_node);
+                        }
+                    }
                 }
             } else {
                 v_layout.push(Layout::Node("".into()));

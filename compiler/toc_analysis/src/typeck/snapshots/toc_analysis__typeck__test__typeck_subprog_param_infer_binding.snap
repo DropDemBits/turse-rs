@@ -10,7 +10,6 @@ expression: "function ka(register a : int, b : int, var c : int) r : int\n    bi
 "ra"@(FileId(1), 77..79) [Binding(Const, No)]: int
 "rb"@(FileId(1), 108..110) [Binding(Const, No)]: int
 "rc"@(FileId(1), 125..127) [Binding(Const, No)]: int
-"<unnamed>"@(dummy) [Undeclared]: <error>
 "<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 77..84: cannot bind `ra` to `a`

@@ -1,8 +1,6 @@
 ---
 source: compiler/toc_hir_lowering/tests/lowering.rs
-assertion_line: 59
 expression: "procedure args(a, , , , b, : int) end args"
-
 ---
 Library@(dummy)
   Root@(dummy): FileId(1) -> ItemId(1)
@@ -11,9 +9,9 @@ Library@(dummy)
         StmtItem@(FileId(1), 0..42): ItemId(0)
           Subprogram@(FileId(1), 0..42): "args"@(FileId(1), 10..14) [
             "a"@(FileId(1), 15..16),
-            "<unnamed>"@(dummy),
-            "<unnamed>"@(dummy),
-            "<unnamed>"@(dummy),
+            <missing>,
+            <missing>,
+            <missing>,
             "b"@(FileId(1), 24..25)
           ]
             Primitive@(FileId(1), 29..32): Int
@@ -22,7 +20,7 @@ Library@(dummy)
             Primitive@(FileId(1), 29..32): Int
             Primitive@(FileId(1), 29..32): Int
             Void@(FileId(1), 0..33)
-            StmtBody@(FileId(1), 34..34): ["a"@(FileId(1), 15..16), "<unnamed>"@(dummy), "<unnamed>"@(dummy), "<unnamed>"@(dummy), "b"@(FileId(1), 24..25)]
+            StmtBody@(FileId(1), 34..34): ["a"@(FileId(1), 15..16), "b"@(FileId(1), 24..25)]
 error in file FileId(1) at 18..19: unexpected token
 | error in file FileId(1) for 18..19: expected identifier, but found `,`
 error in file FileId(1) at 20..21: unexpected token

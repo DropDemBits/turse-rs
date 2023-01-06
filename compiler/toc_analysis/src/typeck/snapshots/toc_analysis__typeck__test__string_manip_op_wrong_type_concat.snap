@@ -22,7 +22,6 @@ expression: "\n    proc __ (var c_any : char(*), var s_any : string(*))\n    var
 "_e13"@(FileId(1), 387..391) [ConstVar(Var, No)]: <error>
 "_e14"@(FileId(1), 409..413) [ConstVar(Var, No)]: <error>
 "_e15"@(FileId(1), 435..439) [ConstVar(Var, No)]: <error>
-"<unnamed>"@(dummy) [Undeclared]: <error>
 "<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 177..178: mismatched types for string concatenation

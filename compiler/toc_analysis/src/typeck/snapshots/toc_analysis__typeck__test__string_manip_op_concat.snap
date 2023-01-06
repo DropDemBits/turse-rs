@@ -45,6 +45,5 @@ expression: "\n    proc __ (var c_any : char(*), var s_any : string(*))\n    var
 "_t45"@(FileId(1), 1117..1121) [ConstVar(Var, No)]: string
 "_t54"@(FileId(1), 1147..1151) [ConstVar(Var, No)]: string
 "_t55"@(FileId(1), 1177..1181) [ConstVar(Var, No)]: string
-"<unnamed>"@(dummy) [Undeclared]: <error>
 "<root>"@(dummy) [Module(No)]: <error>
 

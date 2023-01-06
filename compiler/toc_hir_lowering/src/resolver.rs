@@ -476,6 +476,7 @@ impl<'a> ResolveCtx<'a> {
                         // while also properly shadowing external names
                         if let Some(param_list) = &item.param_list {
                             for &param_def in &param_list.names {
+                                let Some(param_def) = param_def else { continue };
                                 this.introduce_def(param_def, DeclareKind::AlwaysShadow);
                             }
                         }

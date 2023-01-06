@@ -291,9 +291,7 @@ impl HirVisitor for DefCollector<'_> {
             for name in &params.names {
                 // Skip the filler args
                 // They are placeholders, and can't be named anyways
-                if self.library.local_def(*name).kind.is_none() {
-                    continue;
-                }
+                let Some(name) = name else { continue };
 
                 self.add_owner(*name, DefOwner::ItemParam(id, *name));
             }

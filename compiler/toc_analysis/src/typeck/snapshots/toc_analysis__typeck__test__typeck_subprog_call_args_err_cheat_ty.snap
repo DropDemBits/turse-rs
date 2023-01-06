@@ -7,6 +7,5 @@ expression: "var tree : string\nprocedure boop(a, b : cheat int, var c : cheat i
 "a"@(FileId(1), 33..34) [Param(Value, No)]: int
 "b"@(FileId(1), 36..37) [Param(Value, No)]: int
 "c"@(FileId(1), 55..56) [Param(Reference(Var), No)]: int
-"<unnamed>"@(dummy) [Undeclared]: <error>
 "<root>"@(dummy) [Module(No)]: <error>
 

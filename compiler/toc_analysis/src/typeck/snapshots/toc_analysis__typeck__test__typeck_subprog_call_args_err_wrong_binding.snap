@@ -6,7 +6,6 @@ expression: "procedure boop(a, b : int, var c : int) end boop\nboop(1, 2, 3)\n"
 "a"@(FileId(1), 15..16) [Param(Value, No)]: int
 "b"@(FileId(1), 18..19) [Param(Value, No)]: int
 "c"@(FileId(1), 31..32) [Param(Reference(Var), No)]: int
-"<unnamed>"@(dummy) [Undeclared]: <error>
 "<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 60..61: cannot pass expression to this parameter

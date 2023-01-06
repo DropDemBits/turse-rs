@@ -15,6 +15,5 @@ expression: "% all runtime checked\nproc __(var s_any, _v09 : string(*), var c_a
 "_v06"@(FileId(1), 246..250) [ConstVar(Var, No)]: string
 "_v07"@(FileId(1), 273..277) [ConstVar(Var, No)]: string_n Fixed(Unevaluated(LibraryId(0), BodyId(10)))
 "_v08"@(FileId(1), 303..307) [ConstVar(Var, No)]: string_n Fixed(Unevaluated(LibraryId(0), BodyId(12)))
-"<unnamed>"@(dummy) [Undeclared]: <error>
 "<root>"@(dummy) [Module(No)]: <error>
 

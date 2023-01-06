@@ -12,7 +12,5 @@ expression: "type t_f : function(a, b : int, var c : string) : int\ntype t_fc : 
 "c"@(FileId(1), 97..98) [Param(Reference(Var), No)]: <error>
 "f"@(FileId(1), 125..126) [ConstVar(Var, No)]: alias[DefId(LibraryId(0), LocalDefId(0))] of function ( pass(value) int, pass(value) int, pass(var ref) string, ) -> int
 "fc"@(FileId(1), 137..139) [ConstVar(Var, No)]: alias[DefId(LibraryId(0), LocalDefId(4))] of function ( pass(value) cheat int, pass(value) cheat int, pass(var ref) cheat string, ) -> int
-"<unnamed>"@(dummy) [Undeclared]: <error>
-"<unnamed>"@(dummy) [Undeclared]: <error>
 "<root>"@(dummy) [Module(No)]: <error>
 

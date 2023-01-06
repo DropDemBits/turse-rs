@@ -7,7 +7,6 @@ expression: "type a : int\nprocedure boop(a, b : int, var c : int) end boop\nboo
 "a"@(FileId(1), 28..29) [Param(Value, No)]: int
 "b"@(FileId(1), 31..32) [Param(Value, No)]: int
 "c"@(FileId(1), 44..45) [Param(Reference(Var), No)]: int
-"<unnamed>"@(dummy) [Undeclared]: <error>
 "<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 70..71: cannot pass `a` to this parameter

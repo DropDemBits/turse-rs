@@ -132,7 +132,7 @@ impl Subprogram {
             .as_ref()
             .and_then(|param_list| {
                 param_list.names.iter().enumerate().find_map(|(idx, name)| {
-                    (*name == param_def).then(|| ParameterInfo::Param(&param_list.tys[idx]))
+                    (*name == Some(param_def)).then(|| ParameterInfo::Param(&param_list.tys[idx]))
                 })
             })
             .unwrap_or_else(|| {
@@ -156,7 +156,7 @@ pub enum ParameterInfo<'a> {
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct ParamList {
-    pub names: Vec<symbol::LocalDefId>,
+    pub names: Vec<Option<symbol::LocalDefId>>,
     pub tys: Vec<ty::Parameter>,
 }
 

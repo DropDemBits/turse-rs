@@ -4,8 +4,6 @@ expression: "function key() : int end key\nprocedure lime() end lime\n% can't be
 ---
 "key"@(FileId(1), 9..12) [Subprogram(Function)]: function ( ) -> int
 "lime"@(FileId(1), 39..43) [Subprogram(Procedure)]: procedure ( ) -> void
-"<unnamed>"@(dummy) [Undeclared]: <error>
-"<unnamed>"@(dummy) [Undeclared]: <error>
 "<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 93..96: cannot use `key` as a statement

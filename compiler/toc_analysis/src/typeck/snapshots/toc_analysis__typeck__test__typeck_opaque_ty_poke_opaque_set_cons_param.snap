@@ -10,7 +10,6 @@ expression: "module m\n    export opaque t, ~.* s, make\n    type t : char\n    
 "c"@(FileId(1), 96..97) [Param(Value, No)]: char
 "a"@(FileId(1), 173..174) [ConstVar(Var, No)]: set[DefId(LibraryId(0), LocalDefId(3))] of opaque[DefId(LibraryId(0), LocalDefId(1))] type to char
 "vs"@(FileId(1), 241..243) [ConstVar(Var, No)]: set[DefId(LibraryId(0), LocalDefId(3))] of opaque[DefId(LibraryId(0), LocalDefId(1))] type to char
-"<unnamed>"@(dummy) [Undeclared]: <error>
 "t"@(FileId(1), 27..28) [Export]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to char
 "s"@(FileId(1), 34..35) [Export]: set[DefId(LibraryId(0), LocalDefId(3))] of opaque[DefId(LibraryId(0), LocalDefId(1))] type to char
 "make"@(FileId(1), 37..41) [Export]: function ( pass(value) char, ) -> opaque[DefId(LibraryId(0), LocalDefId(1))] type to char

@@ -7,7 +7,6 @@ expression: "var tree : string\nprocedure boop(a, b : int, var c : int) end boop
 "a"@(FileId(1), 33..34) [Param(Value, No)]: int
 "b"@(FileId(1), 36..37) [Param(Value, No)]: int
 "c"@(FileId(1), 49..50) [Param(Reference(Var), No)]: int
-"<unnamed>"@(dummy) [Undeclared]: <error>
 "<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 78..82: mismatched types

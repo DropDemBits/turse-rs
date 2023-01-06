@@ -6,9 +6,7 @@ expression: "module m\n    export opaque ~.* t\n    type t : int\n\n    % should
 "t"@(FileId(1), 42..43) [Type]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
 "f"@(FileId(1), 86..87) [Subprogram(Function)]: function ( ) -> opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
 "k"@(FileId(1), 134..135) [Subprogram(Function)]: function ( ) -> opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
-"<unnamed>"@(dummy) [Undeclared]: <error>
 "t"@(FileId(1), 31..32) [Export]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
-"<unnamed>"@(dummy) [Undeclared]: <error>
 "<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 149..150: mismatched types

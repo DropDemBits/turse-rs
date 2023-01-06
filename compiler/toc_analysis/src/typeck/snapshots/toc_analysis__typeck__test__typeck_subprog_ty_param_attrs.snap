@@ -11,6 +11,5 @@ expression: "type _ : procedure (\n    ki : int,\n    var v : int,\n    register
 "vci"@(FileId(1), 129..132) [Param(Reference(Var), No)]: <error>
 "rci"@(FileId(1), 159..162) [Param(Value, Yes)]: <error>
 "vrci"@(FileId(1), 193..197) [Param(Reference(Var), Yes)]: <error>
-"<unnamed>"@(dummy) [Undeclared]: <error>
 "<root>"@(dummy) [Module(No)]: <error>
 

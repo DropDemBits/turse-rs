@@ -5,8 +5,6 @@ expression: "type fa : function () : int1\nfunction fb () : int end fb\n\nvar _ 
 "fa"@(FileId(1), 5..7) [Type]: alias[DefId(LibraryId(0), LocalDefId(0))] of function ( ) -> int1
 "fb"@(FileId(1), 38..40) [Subprogram(Function)]: function ( ) -> int
 "_"@(FileId(1), 62..63) [ConstVar(Var, No)]: alias[DefId(LibraryId(0), LocalDefId(0))] of function ( ) -> int1
-"<unnamed>"@(dummy) [Undeclared]: <error>
-"<unnamed>"@(dummy) [Undeclared]: <error>
 "<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 72..74: mismatched types
