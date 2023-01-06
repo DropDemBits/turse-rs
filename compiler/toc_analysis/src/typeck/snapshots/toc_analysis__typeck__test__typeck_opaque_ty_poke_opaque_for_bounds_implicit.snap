@@ -5,8 +5,8 @@ expression: "module m\n    export opaque t\n    type t : 1 .. 2\n    for _ : t e
 "m"@(FileId(1), 7..8) [Module(No)]: <error>
 "t"@(FileId(1), 38..39) [Type]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to range of `int` (Unevaluated(LibraryId(0), BodyId(0)) .. Expr(Unevaluated(LibraryId(0), BodyId(1)), No))
 "_"@(FileId(1), 57..58) [ConstVar(Const, No)]: alias[DefId(LibraryId(0), LocalDefId(1))] of range of `int` (Unevaluated(LibraryId(0), BodyId(0)) .. Expr(Unevaluated(LibraryId(0), BodyId(1)), No))
-"_"@(FileId(1), 82..83) [ConstVar(Const, No)]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to range of `int` (Unevaluated(LibraryId(0), BodyId(0)) .. Expr(Unevaluated(LibraryId(0), BodyId(1)), No))
 "t"@(FileId(1), 27..28) [Export]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to range of `int` (Unevaluated(LibraryId(0), BodyId(0)) .. Expr(Unevaluated(LibraryId(0), BodyId(1)), No))
+"_"@(FileId(1), 82..83) [ConstVar(Const, No)]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to range of `int` (Unevaluated(LibraryId(0), BodyId(0)) .. Expr(Unevaluated(LibraryId(0), BodyId(1)), No))
 "<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 86..89: mismatched types

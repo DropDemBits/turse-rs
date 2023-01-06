@@ -8,13 +8,13 @@ expression: "module m\n    export opaque ~.* t, ~.* s, make\n    type t : char\n
 "s"@(FileId(1), 77..85) [Set]: <error>
 "make"@(FileId(1), 94..98) [Subprogram(Function)]: function ( pass(value) char, ) -> opaque[DefId(LibraryId(0), LocalDefId(1))] type to char
 "c"@(FileId(1), 99..100) [Param(Value, No)]: char
-"xs"@(FileId(1), 182..184) [Type]: set[DefId(LibraryId(0), LocalDefId(7))] of opaque[DefId(LibraryId(0), LocalDefId(1))] type to char
-"xs"@(FileId(1), 187..195) [Set]: <error>
-"vs"@(FileId(1), 200..202) [ConstVar(Var, No)]: set[DefId(LibraryId(0), LocalDefId(3))] of opaque[DefId(LibraryId(0), LocalDefId(1))] type to char
-"_"@(FileId(1), 239..240) [ConstVar(Var, No)]: boolean
 "t"@(FileId(1), 31..32) [Export]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to char
 "s"@(FileId(1), 38..39) [Export]: set[DefId(LibraryId(0), LocalDefId(3))] of opaque[DefId(LibraryId(0), LocalDefId(1))] type to char
 "make"@(FileId(1), 41..45) [Export]: function ( pass(value) char, ) -> opaque[DefId(LibraryId(0), LocalDefId(1))] type to char
+"xs"@(FileId(1), 182..184) [Type]: set[DefId(LibraryId(0), LocalDefId(10))] of opaque[DefId(LibraryId(0), LocalDefId(1))] type to char
+"xs"@(FileId(1), 187..195) [Set]: <error>
+"vs"@(FileId(1), 200..202) [ConstVar(Var, No)]: set[DefId(LibraryId(0), LocalDefId(3))] of opaque[DefId(LibraryId(0), LocalDefId(1))] type to char
+"_"@(FileId(1), 239..240) [ConstVar(Var, No)]: boolean
 "<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 194..195: mismatched types

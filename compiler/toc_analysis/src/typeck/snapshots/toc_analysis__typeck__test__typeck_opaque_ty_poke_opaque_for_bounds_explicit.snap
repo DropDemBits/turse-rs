@@ -6,9 +6,9 @@ expression: "module m\n    export opaque t, v\n    type t : int\n    var v : t\n
 "t"@(FileId(1), 41..42) [Type]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
 "v"@(FileId(1), 57..58) [ConstVar(Var, No)]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
 "_"@(FileId(1), 71..72) [ConstVar(Const, No)]: alias[DefId(LibraryId(0), LocalDefId(1))] of int
-"_"@(FileId(1), 101..102) [ConstVar(Const, No)]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
 "t"@(FileId(1), 27..28) [Export]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
 "v"@(FileId(1), 30..31) [Export]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
+"_"@(FileId(1), 101..102) [ConstVar(Const, No)]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
 "<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 105..115: mismatched types

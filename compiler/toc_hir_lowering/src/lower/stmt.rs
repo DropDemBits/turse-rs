@@ -2,7 +2,7 @@
 use std::collections::HashMap;
 
 use indexmap::IndexMap;
-use toc_hir::symbol::{syms, IsPervasive, SymbolKind};
+use toc_hir::symbol::{IsMonitor, IsPervasive, IsRegister, SubprogramKind, SymbolKind};
 use toc_hir::ty::PassBy;
 use toc_hir::{
     expr, item,
@@ -10,7 +10,7 @@ use toc_hir::{
     symbol::{self, Mutability, Symbol},
     ty,
 };
-use toc_span::{HasSpanTable, Span, SpanId, Spanned};
+use toc_span::{Span, SpanId, Spanned};
 use toc_syntax::ast::{self, AstNode};
 
 use crate::lower::LoweredStmt;
@@ -123,7 +123,14 @@ impl super::BodyLowering<'_, '_> {
         let is_var = decl.var_token().is_some();
         let mutability = Mutability::from_is_mutable(is_var);
 
-        let names = self.ctx.collect_name_defs(decl.decl_list().unwrap(), span);
+        let is_pervasive = decl.pervasive_attr().is_some();
+        let names = self.ctx.add_defs(
+            decl.decl_list().unwrap(),
+            span,
+            SymbolKind::ConstVar(mutability, is_register.into()),
+            is_pervasive.into(),
+        );
+
         let type_spec = decl.type_spec().and_then(|ty| self.lower_type(ty));
         let init_expr = decl.init().map(|expr| self.ctx.lower_expr_body(expr));
 
@@ -171,7 +178,13 @@ impl super::BodyLowering<'_, '_> {
         //     - Forward -> Must resolve in the same scope
         let span = self.ctx.intern_range(decl.syntax().text_range());
 
-        let def_id = self.ctx.collect_name(decl.decl_name(), span);
+        let is_pervasive = decl.pervasive_attr().is_some();
+        let def_id = self.ctx.add_def(
+            decl.decl_name().ok_or(span),
+            SymbolKind::Type,
+            is_pervasive.into(),
+        );
+
         let type_def = if let Some(forward) = decl.forward_token() {
             let token_span = self.ctx.intern_range(forward.text_range());
             item::DefinedType::Forward(token_span)
@@ -198,7 +211,13 @@ impl super::BodyLowering<'_, '_> {
                 let mutability = Mutability::from_is_mutable(binding.as_var().is_some());
                 let is_register = binding.to_register().is_some();
 
-                let def_id = self.ctx.collect_name(binding.bind_as(), span);
+                // Bindings are never pervasive, since they aren't meant to escape
+                // the local scope
+                let def_id = self.ctx.add_def(
+                    binding.bind_as().ok_or(span),
+                    SymbolKind::Binding(mutability, is_register.into()),
+                    IsPervasive::No,
+                );
                 let bind_to = self.lower_required_expr_body(binding.expr());
 
                 let binding = item::Binding {
@@ -233,7 +252,13 @@ impl super::BodyLowering<'_, '_> {
         let span = self.ctx.intern_range(decl.syntax().text_range());
         let subprog_header = decl.proc_header().unwrap();
 
-        let def_id = self.ctx.collect_name(subprog_header.name(), span);
+        let is_pervasive = subprog_header.pervasive_attr().is_some();
+        let def_id = self.ctx.add_def(
+            subprog_header.name().ok_or(span),
+            SymbolKind::Subprogram(SubprogramKind::Procedure),
+            is_pervasive.into(),
+        );
+
         let param_list = self.lower_formals_spec(subprog_header.params());
         let result = self.none_subprog_result(subprog_header.syntax().text_range());
         let extra = match subprog_header.device_spec().and_then(|spec| spec.expr()) {
@@ -263,7 +288,13 @@ impl super::BodyLowering<'_, '_> {
         let span = self.ctx.intern_range(decl.syntax().text_range());
         let subprog_header = decl.fcn_header().unwrap();
 
-        let def_id = self.ctx.collect_name(subprog_header.name(), span);
+        let is_pervasive = subprog_header.pervasive_attr().is_some();
+        let def_id = self.ctx.add_def(
+            subprog_header.name().ok_or(span),
+            SymbolKind::Subprogram(SubprogramKind::Function),
+            is_pervasive.into(),
+        );
+
         let param_list = self.lower_formals_spec(subprog_header.params());
         let result = self.lower_subprog_result(subprog_header.fcn_result());
         let extra = item::SubprogramExtra::None;
@@ -290,7 +321,13 @@ impl super::BodyLowering<'_, '_> {
         let span = self.ctx.intern_range(decl.syntax().text_range());
         let subprog_header = decl.process_header().unwrap();
 
-        let def_id = self.ctx.collect_name(subprog_header.name(), span);
+        let is_pervasive = subprog_header.pervasive_attr().is_some();
+        let def_id = self.ctx.add_def(
+            subprog_header.name().ok_or(span),
+            SymbolKind::Subprogram(SubprogramKind::Process),
+            is_pervasive.into(),
+        );
+
         let param_list = self.lower_formals_spec(subprog_header.params());
         let result = self.none_subprog_result(subprog_header.syntax().text_range());
         let extra = match subprog_header.stack_size() {
@@ -338,9 +375,11 @@ impl super::BodyLowering<'_, '_> {
                     let coerced_type = param.coerce_type().is_some();
                     let param_ty = self.lower_required_type(param.param_ty());
 
-                    let names = self
-                        .ctx
-                        .collect_name_defs_with_missing(param.param_names().unwrap());
+                    let names = self.ctx.add_defs_with_missing(
+                        param.param_names().unwrap(),
+                        SymbolKind::Param(pass_by, is_register.into()),
+                        IsPervasive::No,
+                    );
 
                     for name in names {
                         param_names.push(name);
@@ -371,7 +410,13 @@ impl super::BodyLowering<'_, '_> {
                         }
                     };
 
-                    let name = self.ctx.collect_optional_name(name);
+                    let name = name.map(|name| {
+                        self.ctx.add_def(
+                            Ok(name),
+                            SymbolKind::Param(PassBy::Value, IsRegister::No),
+                            IsPervasive::No,
+                        )
+                    });
                     param_names.push(name);
 
                     tys.push(Parameter {
@@ -405,7 +450,17 @@ impl super::BodyLowering<'_, '_> {
 
     fn lower_subprog_result(&mut self, result: Option<ast::FcnResult>) -> item::SubprogramResult {
         let (name, ty) = match result {
-            Some(result) => (self.ctx.collect_optional_name(result.name()), result.ty()),
+            Some(result) => (
+                result.name().map(|name| {
+                    // ???: Does this need to be pass by value? (can it be pass by const ref?)
+                    self.ctx.add_def(
+                        Ok(name),
+                        SymbolKind::Param(PassBy::Value, IsRegister::No),
+                        IsPervasive::No,
+                    )
+                }),
+                result.ty(),
+            ),
             None => (None, None),
         };
 
@@ -441,7 +496,12 @@ impl super::BodyLowering<'_, '_> {
 
     fn lower_module_decl(&mut self, decl: ast::ModuleDecl) -> stmt::StmtKind {
         let span = self.ctx.intern_range(decl.syntax().text_range());
-        let def_id = self.ctx.collect_name(decl.name(), span);
+        let is_pervasive = decl.pervasive_attr().is_some();
+        let def_id = self.ctx.add_def(
+            decl.name().ok_or(span),
+            SymbolKind::Module(IsMonitor::No),
+            is_pervasive.into(),
+        );
 
         self.unsupported_node(decl.implement_stmt());
         self.unsupported_node(decl.implement_by_stmt());
@@ -600,7 +660,9 @@ impl super::BodyLowering<'_, '_> {
             }
 
             let span = self.ctx.intern_range(import.syntax().text_range());
-            let def_id = self.ctx.collect_required_name(name);
+            let def_id = self
+                .ctx
+                .add_def(Ok(name), SymbolKind::Import, IsPervasive::No);
 
             let item_id = self.ctx.library.add_item(item::Item {
                 def_id,
@@ -1038,7 +1100,14 @@ impl super::BodyLowering<'_, '_> {
     fn lower_for_stmt(&mut self, stmt: ast::ForStmt) -> stmt::StmtKind {
         let is_decreasing = stmt.decreasing_token().is_some();
 
-        let counter_def = self.ctx.collect_optional_name(stmt.name());
+        let counter_def = stmt.name().map(|name| {
+            self.ctx.add_def(
+                Ok(name),
+                SymbolKind::ConstVar(Mutability::Const, IsRegister::No),
+                IsPervasive::No,
+            )
+        });
+
         let for_bounds = {
             let for_bounds = stmt.for_bounds().unwrap();
 

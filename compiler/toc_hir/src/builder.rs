@@ -1,7 +1,7 @@
 //! Helper builders for creating the HIR tree
 
 use la_arena::Arena;
-use toc_span::{FileId, Span, SpanId, SpanTable};
+use toc_span::{FileId, Span, SpanId};
 
 use crate::{body, expr, item, library, stmt, symbol, ty};
 
@@ -13,11 +13,11 @@ pub struct LibraryBuilder {
 }
 
 impl LibraryBuilder {
-    pub fn new(span_map: SpanTable, defs: symbol::DefInfoTable) -> Self {
+    pub fn new() -> Self {
         Self {
             library: library::Library {
-                span_map,
-                defs,
+                span_map: Default::default(),
+                defs: Default::default(),
 
                 root_items: Default::default(),
                 items: Default::default(),
@@ -92,6 +92,12 @@ impl LibraryBuilder {
             resolve_map,
             ..library
         }
+    }
+}
+
+impl Default for LibraryBuilder {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

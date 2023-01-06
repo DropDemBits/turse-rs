@@ -1,5 +1,8 @@
 //! Lowering into `Type` HIR nodes
-use toc_hir::{symbol, ty};
+use toc_hir::{
+    symbol::{self, syms, IsPervasive, Symbol, SymbolKind},
+    ty,
+};
 use toc_span::{HasSpanTable, Span, Spanned};
 use toc_syntax::ast::{self, AstNode};
 
@@ -269,9 +272,18 @@ impl super::BodyLowering<'_, '_> {
     }
 
     fn lower_enum_type(&mut self, ty: ast::EnumType) -> Option<ty::TypeKind> {
-        let node_span = self.ctx.node_span(ty.syntax().text_range());
-        let def_id = self.ctx.node_def(node_span);
-        let variants = self.ctx.collect_optional_name_defs(ty.fields().unwrap());
+        let span = self.ctx.intern_range(ty.syntax().text_range());
+        let def_id = self.ctx.library.add_def(
+            type_decl_name(&ty),
+            span,
+            Some(SymbolKind::Enum),
+            IsPervasive::No,
+        );
+        let variants = self.ctx.add_optional_defs(
+            ty.fields().unwrap(),
+            SymbolKind::EnumVariant,
+            IsPervasive::No,
+        );
 
         Some(ty::TypeKind::Enum(ty::Enum { def_id, variants }))
     }
@@ -388,8 +400,13 @@ impl super::BodyLowering<'_, '_> {
     }
 
     fn lower_set_type(&mut self, ty: ast::SetType) -> Option<ty::TypeKind> {
-        let node_span = self.ctx.node_span(ty.syntax().text_range());
-        let def_id = self.ctx.node_def(node_span);
+        let span = self.ctx.intern_range(ty.syntax().text_range());
+        let def_id = self.ctx.library.add_def(
+            type_decl_name(&ty),
+            span,
+            Some(SymbolKind::Set),
+            IsPervasive::No,
+        );
         let elem = self.lower_required_type(ty.elem_ty());
 
         Some(ty::TypeKind::Set(ty::Set {
@@ -445,4 +462,15 @@ impl super::BodyLowering<'_, '_> {
             result_ty: return_ty,
         }))
     }
+}
+
+/// Gets the name from the enclosing `type` decl, or the [`Anonymous`](struct@syms::Anonymous) symbol
+fn type_decl_name(ty: &impl ast::AstNode<Language = toc_syntax::Lang>) -> Symbol {
+    ty.syntax()
+        .parent()
+        .and_then(ast::TypeDecl::cast)
+        .and_then(|node| node.decl_name())
+        .map_or(*syms::Anonymous, |name| {
+            name.identifier_token().unwrap().text().into()
+        })
 }

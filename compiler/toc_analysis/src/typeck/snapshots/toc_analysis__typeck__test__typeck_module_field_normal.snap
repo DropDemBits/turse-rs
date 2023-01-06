@@ -4,7 +4,7 @@ expression: "module a\n    export b\n    var b : int\nend a\nvar c := a.b"
 ---
 "a"@(FileId(1), 7..8) [Module(No)]: <error>
 "b"@(FileId(1), 30..31) [ConstVar(Var, No)]: int
-"c"@(FileId(1), 48..49) [ConstVar(Var, No)]: int
 "b"@(FileId(1), 20..21) [Export]: int
+"c"@(FileId(1), 48..49) [ConstVar(Var, No)]: int
 "<root>"@(dummy) [Module(No)]: <error>
 

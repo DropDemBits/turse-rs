@@ -23,12 +23,11 @@ mod expr;
 mod stmt;
 mod ty;
 
-use std::collections::HashMap;
 use std::sync::Arc;
 
 use toc_ast_db::db::SourceParser;
 use toc_hir::library::LibraryId;
-use toc_hir::symbol::{syms, IsMonitor, IsPervasive, NodeSpan, SymbolKind};
+use toc_hir::symbol::{syms, IsMonitor, IsPervasive, SymbolKind};
 use toc_hir::{
     body,
     builder::{self, BodyBuilder},
@@ -86,17 +85,12 @@ where
             .copied()
             .collect::<Vec<_>>();
 
-        // Collect all the defs in the library
-        let (collect_res, msgs) = crate::collector::collect_defs(db, &reachable_files).take();
-        messages = messages.combine(msgs);
-
         let mut root_items = vec![];
-        let mut library = builder::LibraryBuilder::new(collect_res.spans, collect_res.defs);
+        let mut library = builder::LibraryBuilder::new();
 
         // Lower all files reachable from the library root
         for file in reachable_files {
-            let (item, msgs) =
-                FileLowering::lower_file(db, file, &mut library, &collect_res.node_defs).take();
+            let (item, msgs) = FileLowering::lower_file(db, file, &mut library).take();
             messages = messages.combine(msgs);
             root_items.push((file, item));
         }
@@ -129,20 +123,14 @@ where
 struct FileLowering<'ctx> {
     file: FileId,
     library: &'ctx mut builder::LibraryBuilder,
-    node_defs: &'ctx HashMap<NodeSpan, LocalDefId>,
     messages: MessageSink,
 }
 
 impl<'ctx> FileLowering<'ctx> {
-    fn new(
-        file: FileId,
-        library: &'ctx mut builder::LibraryBuilder,
-        node_defs: &'ctx HashMap<NodeSpan, LocalDefId>,
-    ) -> Self {
+    fn new(file: FileId, library: &'ctx mut builder::LibraryBuilder) -> Self {
         Self {
             file,
             library,
-            node_defs,
             messages: MessageSink::new(),
         }
     }
@@ -151,14 +139,13 @@ impl<'ctx> FileLowering<'ctx> {
         db: &dyn LoweringDb,
         file: FileId,
         library: &'ctx mut builder::LibraryBuilder,
-        node_defs: &'ctx HashMap<NodeSpan, LocalDefId>,
     ) -> CompileResult<item::ItemId> {
         // Parse & validate file
         let parse_res = db.parse_file(file);
         let validate_res = db.validate_file(file);
 
         // Enter the actual lowering
-        let mut ctx = Self::new(file, library, node_defs);
+        let mut ctx = Self::new(file, library);
         let root = ast::Source::cast(parse_res.result().syntax()).unwrap();
         let root_item = ctx.lower_root(root);
 
@@ -286,27 +273,59 @@ impl<'ctx> FileLowering<'ctx> {
         self.library.intern_span(span)
     }
 
-    /// Constructs a [`NodeSpan`] from an AST node's [`TextRange`]
-    fn node_span(&mut self, range: toc_span::TextRange) -> NodeSpan {
-        NodeSpan(self.intern_range(range))
-    }
+    fn add_def(
+        &mut self,
+        name: Result<ast::Name, SpanId>,
+        kind: SymbolKind,
+        pervasive: IsPervasive,
+    ) -> LocalDefId {
+        match name {
+            Ok(name) => {
+                let name_tok = name.identifier_token().unwrap();
+                let name_span = self.intern_range(name_tok.text_range());
 
-    /// Finds the def bound to a specific AST node.
-    /// Assumes that there is a def at the given `node_span`
-    pub fn node_def(&self, node_span: NodeSpan) -> LocalDefId {
-        self.node_defs[&node_span]
+                self.library
+                    .add_def(name_tok.text().into(), name_span, Some(kind), pervasive)
+            }
+            Err(span) => self
+                .library
+                .add_def(*syms::Unnamed, span, None, IsPervasive::No),
+        }
     }
 
     /// Gathers the defs associated with `name_list`,
+    /// filling empty name places with `fill_with`
+    fn add_defs_with_missing(
+        &mut self,
+        name_list: ast::NameList,
+        kind: SymbolKind,
+        pervasive: IsPervasive,
+    ) -> Vec<Option<LocalDefId>> {
+        let mut names = name_list
+            .names_with_missing()
+            .map(|name| name.map(|name| self.add_def(Ok(name), kind, pervasive)))
+            .collect::<Vec<_>>();
+
+        if names.is_empty() {
+            // maintain invariant that there's at least one item
+            names.push(None)
+        }
+
+        names
+    }
+
+    /// Creates defs from the given `name_list`,
     /// holding up the invariant that it always contains at least one identifier.
     ///
     /// `no_name_span` is used if there isn't any names in `name_list`
-    fn collect_name_defs(
+    fn add_defs(
         &mut self,
         name_list: ast::NameList,
         no_name_span: SpanId,
+        kind: SymbolKind,
+        pervasive: IsPervasive,
     ) -> Vec<LocalDefId> {
-        let mut names = self.collect_optional_name_defs(name_list);
+        let mut names = self.add_optional_defs(name_list, kind, pervasive);
 
         if names.is_empty() {
             // maintain invariant that there's at least one name
@@ -319,53 +338,20 @@ impl<'ctx> FileLowering<'ctx> {
         names
     }
 
-    /// Gathers the defs associated with `name_list`,
-    /// filling empty name places with `fill_with`
-    fn collect_name_defs_with_missing(
+    /// Adds the defs associated with `name_list`, but allows
+    /// no names to be present
+    fn add_optional_defs(
         &mut self,
         name_list: ast::NameList,
-    ) -> Vec<Option<LocalDefId>> {
-        let mut names = name_list
-            .names_with_missing()
-            .map(|name| name.map(|name| self.collect_required_name(name)))
-            .collect::<Vec<_>>();
-
-        if names.is_empty() {
-            // maintain invariant that there's at least one item
-            names.push(None)
-        }
-
-        names
-    }
-
-    /// Gathers the defs associated with `name_list`, but allows
-    /// no names to be present
-    fn collect_optional_name_defs(&mut self, name_list: ast::NameList) -> Vec<LocalDefId> {
+        kind: SymbolKind,
+        pervasive: IsPervasive,
+    ) -> Vec<LocalDefId> {
         let names = name_list
             .names()
-            .map(|name| self.collect_required_name(name))
+            .map(|name| self.add_def(Ok(name), kind, pervasive))
             .collect::<Vec<_>>();
 
         names
-    }
-
-    fn collect_name(&mut self, name: Option<ast::Name>, no_name_span: SpanId) -> LocalDefId {
-        match name {
-            Some(name) => self.collect_required_name(name),
-            None => self
-                .library
-                .add_def(*syms::Unnamed, no_name_span, None, IsPervasive::No),
-        }
-    }
-
-    fn collect_required_name(&mut self, name: ast::Name) -> LocalDefId {
-        let name_tok = name.identifier_token().unwrap();
-        let node_span = self.node_span(name_tok.text_range());
-        self.node_def(node_span)
-    }
-
-    fn collect_optional_name(&mut self, name: Option<ast::Name>) -> Option<LocalDefId> {
-        Some(self.collect_required_name(name?))
     }
 }
 

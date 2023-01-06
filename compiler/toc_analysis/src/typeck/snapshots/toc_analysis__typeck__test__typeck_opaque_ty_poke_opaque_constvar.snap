@@ -5,9 +5,9 @@ expression: "module m\n    export opaque t, ~.* a\n    type t : char\n\n    var 
 "m"@(FileId(1), 7..8) [Module(No)]: <error>
 "t"@(FileId(1), 45..46) [Type]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to char
 "a"@(FileId(1), 63..64) [ConstVar(Var, No)]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to char
-"b"@(FileId(1), 121..122) [ConstVar(Var, No)]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to char
 "t"@(FileId(1), 27..28) [Export]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to char
 "a"@(FileId(1), 34..35) [Export]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to char
+"b"@(FileId(1), 121..122) [ConstVar(Var, No)]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to char
 "<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 130..132: mismatched types

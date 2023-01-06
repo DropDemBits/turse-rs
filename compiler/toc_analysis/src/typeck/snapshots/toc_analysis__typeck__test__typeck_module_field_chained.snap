@@ -6,9 +6,9 @@ expression: "module a export b module b export c module c export d\n    var d : 
 "b"@(FileId(1), 25..26) [Module(No)]: <error>
 "c"@(FileId(1), 43..44) [Module(No)]: <error>
 "d"@(FileId(1), 62..63) [ConstVar(Var, No)]: int
-"k"@(FileId(1), 92..93) [ConstVar(Var, No)]: int
 "d"@(FileId(1), 52..53) [Export]: int
 "c"@(FileId(1), 34..35) [Export]: <error>
 "b"@(FileId(1), 16..17) [Export]: <error>
+"k"@(FileId(1), 92..93) [ConstVar(Var, No)]: int
 "<root>"@(dummy) [Module(No)]: <error>
 

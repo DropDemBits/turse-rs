@@ -6,9 +6,9 @@ expression: "module m\n    export ~.* n\n    module n\n        export o, p\n    
 "n"@(FileId(1), 37..38) [Module(No)]: <error>
 "o"@(FileId(1), 71..72) [ConstVar(Var, No)]: int
 "p"@(FileId(1), 92..93) [Type]: alias[DefId(LibraryId(0), LocalDefId(3))] of int
-"c"@(FileId(1), 129..130) [ConstVar(Var, No)]: alias[DefId(LibraryId(0), LocalDefId(3))] of int
 "o"@(FileId(1), 54..55) [Export]: int
 "p"@(FileId(1), 57..58) [Export]: alias[DefId(LibraryId(0), LocalDefId(3))] of int
 "n"@(FileId(1), 24..25) [Export]: <error>
+"c"@(FileId(1), 129..130) [ConstVar(Var, No)]: alias[DefId(LibraryId(0), LocalDefId(3))] of int
 "<root>"@(dummy) [Module(No)]: <error>
 
