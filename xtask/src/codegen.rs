@@ -19,7 +19,7 @@ pub fn do_codegen() -> Result<()> {
     let grammar = project_root().join("compiler/toc_syntax/parsed_turing.ungram");
     let out_dir = project_root().join("compiler/toc_syntax/src/");
 
-    let grammar = fs::read_to_string(&grammar)?.parse()?;
+    let grammar = fs::read_to_string(grammar)?.parse()?;
     let lowered = lowering::lower_grammar(&grammar);
 
     let generated_nodes = out_dir.join("ast/nodes.rs");
