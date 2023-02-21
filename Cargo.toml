@@ -5,6 +5,11 @@ members = ["xtask/", "lsp-server/*", "compiler/*", "fuzzers/*"]
 
 default-members = ["xtask/", "compiler/*", "lsp-server/*"]
 
+[workspace.package]
+authors = ["DropDemBits"]
+license = "MIT"
+edition = "2021"
+
 [workspace.dependencies]
 itertools = "0.10.3"
 indexmap = "1.7.0"

@@ -1,8 +1,10 @@
 [package]
 name = "toc-reporting"
 version = "0.1.0"
-authors = ["DropDemBits <r3usrlnd@gmail.com>"]
-edition = "2021"
+
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
