@@ -1,14 +1,16 @@
 [package]
 name = "parser_fuzz"
 version = "0.1.0"
-authors = ["DropDemBits <r3usrlnd@gmail.com>"]
-edition = "2018"
+
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-toc_parser = { path = "../../compiler/toc_parser" }
-toc_span = { path = "../../compiler/toc_span" }
+toc-parser = { workspace = true }
+toc-span = { workspace = true }
 
 [target.'cfg(target_os = "linux")'.dependencies.afl]
 package = "afl"

@@ -1,25 +1,27 @@
 [package]
-name = "toc_hir_lowering"
+name = "toc-hir-lowering"
 version = "0.1.0"
-authors = ["DropDemBits <r3usrlnd@gmail.com>"]
-edition = "2021"
+
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-toc_ast_db = { path = "../toc_ast_db" }
-toc_syntax = { path = "../toc_syntax" }
-toc_hir = { path = "../toc_hir" }
-toc_reporting = { path = "../toc_reporting" }
-toc_span = { path = "../toc_span" }
+toc-ast-db = { workspace = true }
+toc-syntax = { workspace = true }
+toc-hir = { workspace = true }
+toc-reporting = { workspace = true }
+toc-span = { workspace = true }
 
 indexmap = { workspace = true }
 
 [dev-dependencies]
-toc_salsa = { path = "../toc_salsa" }
-toc_vfs = { path = "../toc_vfs" }
-toc_vfs_db = { path = "../toc_vfs_db" }
-toc_hir_pretty = { path = "../toc_hir_pretty" }
+toc-salsa = { workspace = true }
+toc-vfs = { workspace = true }
+toc-vfs-db = { workspace = true }
+toc-hir-pretty = { workspace = true }
 if_chain = "1.0"
 approx = "0.5"
 

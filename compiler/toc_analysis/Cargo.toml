@@ -1,25 +1,27 @@
 [package]
-name = "toc_analysis"
+name = "toc-analysis"
 version = "0.1.0"
-authors = ["DropDemBits <r3usrlnd@gmail.com>"]
-edition = "2021"
+
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-toc_hir = { path = "../toc_hir" }
-toc_hir_db = { path = "../toc_hir_db" }
-toc_reporting = { path = "../toc_reporting" }
-toc_salsa = { path = "../toc_salsa" }
-toc_span = { path = "../toc_span" }
+toc-hir = { workspace = true }
+toc-hir-db = { workspace = true }
+toc-reporting = { workspace = true }
+toc-salsa = { workspace = true }
+toc-span = { workspace = true }
 
 indexmap = { workspace = true }
 thiserror = "1.0.24"
 
 [dev-dependencies]
-toc_ast_db = { path = "../toc_ast_db" }
-toc_vfs = { path = "../toc_vfs" }
-toc_vfs_db = { path = "../toc_vfs_db" }
+toc-ast-db = { workspace = true }
+toc-vfs = { workspace = true }
+toc-vfs-db = { workspace = true }
 
 insta = "1.7"
 unindent = "0.1.7"

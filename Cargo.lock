@@ -437,15 +437,15 @@ name = "hir-fuzzer"
 version = "0.1.0"
 dependencies = [
  "afl",
- "toc_analysis",
- "toc_ast_db",
- "toc_hir",
- "toc_hir_db",
- "toc_reporting",
- "toc_salsa",
- "toc_span",
- "toc_vfs",
- "toc_vfs_db",
+ "toc-analysis",
+ "toc-ast-db",
+ "toc-hir",
+ "toc-hir-db",
+ "toc-reporting",
+ "toc-salsa",
+ "toc-span",
+ "toc-vfs",
+ "toc-vfs-db",
 ]
 
 [[package]]
@@ -859,8 +859,8 @@ name = "parser_fuzz"
 version = "0.1.0"
 dependencies = [
  "afl",
- "toc_parser",
- "toc_span",
+ "toc-parser",
+ "toc-span",
 ]
 
 [[package]]
@@ -1305,6 +1305,131 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cda74da7e1a664f795bb1f8a87ec406fb89a02522cf6e50620d016add6dbbf5c"
 
 [[package]]
+name = "toc-analysis"
+version = "0.1.0"
+dependencies = [
+ "indexmap",
+ "insta",
+ "paste",
+ "thiserror",
+ "toc-ast-db",
+ "toc-hir",
+ "toc-hir-db",
+ "toc-reporting",
+ "toc-salsa",
+ "toc-span",
+ "toc-vfs",
+ "toc-vfs-db",
+ "unindent",
+]
+
+[[package]]
+name = "toc-ast-db"
+version = "0.1.0"
+dependencies = [
+ "toc-parser",
+ "toc-reporting",
+ "toc-salsa",
+ "toc-source-graph",
+ "toc-span",
+ "toc-syntax",
+ "toc-validate",
+ "toc-vfs",
+ "toc-vfs-db",
+]
+
+[[package]]
+name = "toc-driver"
+version = "0.1.0"
+dependencies = [
+ "ariadne",
+ "clap",
+ "toc-analysis",
+ "toc-ast-db",
+ "toc-hir",
+ "toc-hir-codegen",
+ "toc-hir-db",
+ "toc-hir-pretty",
+ "toc-reporting",
+ "toc-salsa",
+ "toc-span",
+ "toc-syntax",
+ "toc-vfs",
+ "toc-vfs-db",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
+name = "toc-hir"
+version = "0.1.0"
+dependencies = [
+ "indexmap",
+ "internment",
+ "la-arena",
+ "lazy_static",
+ "toc-source-graph",
+ "toc-span",
+]
+
+[[package]]
+name = "toc-hir-codegen"
+version = "0.1.0"
+dependencies = [
+ "byteorder",
+ "indexmap",
+ "toc-analysis",
+ "toc-ast-db",
+ "toc-hir",
+ "toc-hir-db",
+ "toc-reporting",
+ "toc-span",
+]
+
+[[package]]
+name = "toc-hir-db"
+version = "0.1.0"
+dependencies = [
+ "toc-ast-db",
+ "toc-hir",
+ "toc-hir-lowering",
+ "toc-reporting",
+ "toc-salsa",
+ "toc-span",
+ "toc-vfs",
+]
+
+[[package]]
+name = "toc-hir-lowering"
+version = "0.1.0"
+dependencies = [
+ "approx",
+ "if_chain",
+ "indexmap",
+ "insta",
+ "paste",
+ "toc-ast-db",
+ "toc-hir",
+ "toc-hir-pretty",
+ "toc-reporting",
+ "toc-salsa",
+ "toc-span",
+ "toc-syntax",
+ "toc-vfs",
+ "toc-vfs-db",
+ "unindent",
+]
+
+[[package]]
+name = "toc-hir-pretty"
+version = "0.1.0"
+dependencies = [
+ "itertools",
+ "toc-hir",
+ "toc-span",
+]
+
+[[package]]
 name = "toc-ide-db"
 version = "0.1.0"
 dependencies = [
@@ -1312,15 +1437,15 @@ dependencies = [
  "lsp-types",
  "ropey",
  "serde_json",
- "toc_analysis",
- "toc_ast_db",
- "toc_hir",
- "toc_hir_db",
- "toc_reporting",
- "toc_salsa",
- "toc_span",
- "toc_vfs",
- "toc_vfs_db",
+ "toc-analysis",
+ "toc-ast-db",
+ "toc-hir",
+ "toc-hir-db",
+ "toc-reporting",
+ "toc-salsa",
+ "toc-span",
+ "toc-vfs",
+ "toc-vfs-db",
  "tracing",
 ]
 
@@ -1339,189 +1464,64 @@ dependencies = [
 ]
 
 [[package]]
-name = "toc_analysis"
-version = "0.1.0"
-dependencies = [
- "indexmap",
- "insta",
- "paste",
- "thiserror",
- "toc_ast_db",
- "toc_hir",
- "toc_hir_db",
- "toc_reporting",
- "toc_salsa",
- "toc_span",
- "toc_vfs",
- "toc_vfs_db",
- "unindent",
-]
-
-[[package]]
-name = "toc_ast_db"
-version = "0.1.0"
-dependencies = [
- "toc_parser",
- "toc_reporting",
- "toc_salsa",
- "toc_source_graph",
- "toc_span",
- "toc_syntax",
- "toc_validate",
- "toc_vfs",
- "toc_vfs_db",
-]
-
-[[package]]
-name = "toc_driver"
-version = "0.1.0"
-dependencies = [
- "ariadne",
- "clap",
- "toc_analysis",
- "toc_ast_db",
- "toc_hir",
- "toc_hir_codegen",
- "toc_hir_db",
- "toc_hir_pretty",
- "toc_reporting",
- "toc_salsa",
- "toc_span",
- "toc_syntax",
- "toc_vfs",
- "toc_vfs_db",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
-name = "toc_hir"
-version = "0.1.0"
-dependencies = [
- "indexmap",
- "internment",
- "la-arena",
- "lazy_static",
- "toc_source_graph",
- "toc_span",
-]
-
-[[package]]
-name = "toc_hir_codegen"
-version = "0.1.0"
-dependencies = [
- "byteorder",
- "indexmap",
- "toc_analysis",
- "toc_ast_db",
- "toc_hir",
- "toc_hir_db",
- "toc_reporting",
- "toc_span",
-]
-
-[[package]]
-name = "toc_hir_db"
-version = "0.1.0"
-dependencies = [
- "toc_ast_db",
- "toc_hir",
- "toc_hir_lowering",
- "toc_reporting",
- "toc_salsa",
- "toc_span",
- "toc_vfs",
-]
-
-[[package]]
-name = "toc_hir_lowering"
-version = "0.1.0"
-dependencies = [
- "approx",
- "if_chain",
- "indexmap",
- "insta",
- "paste",
- "toc_ast_db",
- "toc_hir",
- "toc_hir_pretty",
- "toc_reporting",
- "toc_salsa",
- "toc_span",
- "toc_syntax",
- "toc_vfs",
- "toc_vfs_db",
- "unindent",
-]
-
-[[package]]
-name = "toc_hir_pretty"
-version = "0.1.0"
-dependencies = [
- "itertools",
- "toc_hir",
- "toc_span",
-]
-
-[[package]]
-name = "toc_parser"
+name = "toc-parser"
 version = "0.1.0"
 dependencies = [
  "drop_bomb",
  "expect-test",
  "indexmap",
  "rowan",
- "toc_reporting",
- "toc_scanner",
- "toc_span",
- "toc_syntax",
+ "toc-reporting",
+ "toc-scanner",
+ "toc-span",
+ "toc-syntax",
 ]
 
 [[package]]
-name = "toc_reporting"
+name = "toc-reporting"
 version = "0.1.0"
 dependencies = [
  "drop_bomb",
- "toc_span",
+ "toc-span",
 ]
 
 [[package]]
-name = "toc_salsa"
+name = "toc-salsa"
 version = "0.1.0"
 dependencies = [
  "salsa",
 ]
 
 [[package]]
-name = "toc_scanner"
+name = "toc-scanner"
 version = "0.1.0"
 dependencies = [
  "expect-test",
  "logos",
- "toc_reporting",
- "toc_span",
+ "toc-reporting",
+ "toc-span",
 ]
 
 [[package]]
-name = "toc_source_graph"
+name = "toc-source-graph"
 version = "0.1.0"
 dependencies = [
  "indexmap",
  "petgraph",
- "toc_span",
+ "toc-span",
 ]
 
 [[package]]
-name = "toc_span"
+name = "toc-span"
 version = "0.1.0"
 dependencies = [
  "indexmap",
  "text-size",
- "toc_salsa",
+ "toc-salsa",
 ]
 
 [[package]]
-name = "toc_syntax"
+name = "toc-syntax"
 version = "0.1.0"
 dependencies = [
  "lexical",
@@ -1529,36 +1529,36 @@ dependencies = [
  "num-traits",
  "rowan",
  "thiserror",
- "toc_span",
+ "toc-span",
 ]
 
 [[package]]
-name = "toc_validate"
+name = "toc-validate"
 version = "0.1.0"
 dependencies = [
  "expect-test",
- "toc_parser",
- "toc_reporting",
- "toc_span",
- "toc_syntax",
+ "toc-parser",
+ "toc-reporting",
+ "toc-span",
+ "toc-syntax",
 ]
 
 [[package]]
-name = "toc_vfs"
+name = "toc-vfs"
 version = "0.1.0"
 dependencies = [
  "itertools",
- "toc_span",
+ "toc-span",
 ]
 
 [[package]]
-name = "toc_vfs_db"
+name = "toc-vfs-db"
 version = "0.1.0"
 dependencies = [
  "camino",
- "toc_salsa",
- "toc_span",
- "toc_vfs",
+ "toc-salsa",
+ "toc-span",
+ "toc-vfs",
 ]
 
 [[package]]

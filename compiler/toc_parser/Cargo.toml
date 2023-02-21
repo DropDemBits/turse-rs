@@ -1,16 +1,18 @@
 [package]
-name = "toc_parser"
+name = "toc-parser"
 version = "0.1.0"
-authors = ["DropDemBits <r3usrlnd@gmail.com>"]
-edition = "2021"
+
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-toc_reporting = { path = "../toc_reporting" }
-toc_scanner = { path = "../toc_scanner" }
-toc_syntax = { path = "../toc_syntax" }
-toc_span = { path = "../toc_span" }
+toc-reporting = { workspace = true }
+toc-scanner = { workspace = true }
+toc-syntax = { workspace = true }
+toc-span = { workspace = true }
 
 rowan = "0.15"
 drop_bomb = "0.1.5"

@@ -1,24 +1,26 @@
 [package]
-name = "toc_driver"
+name = "toc-driver"
 version = "0.1.0"
-authors = ["DropDemBits"]
-edition = "2021"
+
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-toc_analysis = { path = "../toc_analysis" }
-toc_ast_db = { path = "../toc_ast_db" }
-toc_hir = { path = "../toc_hir" }
-toc_hir_codegen = { path = "../toc_hir_codegen" }
-toc_hir_db = { path = "../toc_hir_db" }
-toc_hir_pretty = { path = "../toc_hir_pretty" }
-toc_reporting = { path = "../toc_reporting" }
-toc_salsa = { path = "../toc_salsa" }
-toc_span = { path = "../toc_span" }
-toc_syntax = { path = "../toc_syntax" }
-toc_vfs = { path = "../toc_vfs" }
-toc_vfs_db = { path = "../toc_vfs_db" }
+toc-analysis = { workspace = true }
+toc-ast-db = { workspace = true }
+toc-hir = { workspace = true }
+toc-hir-codegen = { workspace = true }
+toc-hir-db = { workspace = true }
+toc-hir-pretty = { workspace = true }
+toc-reporting = { workspace = true }
+toc-salsa = { workspace = true }
+toc-span = { workspace = true }
+toc-syntax = { workspace = true }
+toc-vfs = { workspace = true }
+toc-vfs-db = { workspace = true }
 
 ariadne = { version = "0.1" }
 clap = { version = "4.0.22", features = ["derive"] }

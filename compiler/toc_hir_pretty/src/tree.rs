@@ -54,16 +54,16 @@ impl<'out, 'hir> PrettyVisitor<'out, 'hir> {
         }
     }
 
-    fn emit_node<'a>(&self, name: &str, span: SpanId, extra: Option<fmt::Arguments<'a>>) {
+    fn emit_node(&self, name: &str, span: SpanId, extra: Option<fmt::Arguments<'_>>) {
         self.try_emit_node(name, span, extra)
             .expect("failed to emit node");
     }
 
-    fn try_emit_node<'a>(
+    fn try_emit_node(
         &self,
         name: &str,
         span: SpanId,
-        extra: Option<fmt::Arguments<'a>>,
+        extra: Option<fmt::Arguments<'_>>,
     ) -> fmt::Result {
         let mut out = self.out.borrow_mut();
 

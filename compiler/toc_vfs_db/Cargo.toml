@@ -1,12 +1,15 @@
 [package]
-name = "toc_vfs_db"
+name = "toc-vfs-db"
 version = "0.1.0"
-edition = "2021"
+
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-toc_span = { path = "../toc_span" }
-toc_salsa = { path = "../toc_salsa" }
-toc_vfs = { path = "../toc_vfs" }
+toc-span = { workspace = true }
+toc-salsa = { workspace = true }
+toc-vfs = { workspace = true }
 camino = { workspace = true }
