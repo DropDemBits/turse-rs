@@ -1,5 +1,5 @@
 [package]
-name = "toc_syntax"
+name = "toc-syntax"
 version = "0.1.0"
 authors = ["DropDemBits <r3usrlnd@gmail.com>"]
 edition = "2021"
@@ -8,7 +8,7 @@ edition = "2021"
 
 [dependencies]
 # Local deps
-toc_span = { path = "../toc_span" }
+toc-span = { workspace = true }
 # External deps
 rowan = "0.15"
 num-derive = "^0.3"

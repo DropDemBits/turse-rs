@@ -1,5 +1,5 @@
 [package]
-name = "toc_hir"
+name = "toc-hir"
 version = "0.1.0"
 authors = ["DropDemBits <r3usrlnd@gmail.com>"]
 edition = "2021"
@@ -11,5 +11,5 @@ indexmap = { workspace = true }
 internment = "0.7.0"
 la-arena = "0.2.0"
 lazy_static = "1.4.0"
-toc_span = { path = "../toc_span" }
-toc_source_graph = { path = "../toc_source_graph" }
+toc-span = { workspace = true }
+toc-source-graph = { workspace = true }

@@ -1,17 +1,17 @@
 [package]
-name = "toc_ast_db"
+name = "toc-ast-db"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-toc_salsa = { path = "../toc_salsa" }
-toc_syntax = { path = "../toc_syntax" }
-toc_source_graph = { path = "../toc_source_graph" }
-toc_span = { path = "../toc_span" }
-toc_vfs = { path = "../toc_vfs" }
-toc_vfs_db = { path = "../toc_vfs_db" }
-toc_parser = { path = "../toc_parser" }
-toc_validate = { path = "../toc_validate" }
-toc_reporting = { path = "../toc_reporting" }
+toc-salsa = { workspace = true }
+toc-syntax = { workspace = true }
+toc-source-graph = { workspace = true }
+toc-span = { workspace = true }
+toc-vfs = { workspace = true }
+toc-vfs-db = { workspace = true }
+toc-parser = { workspace = true }
+toc-validate = { workspace = true }
+toc-reporting = { workspace = true }

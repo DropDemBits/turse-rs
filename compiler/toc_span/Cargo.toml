@@ -1,5 +1,5 @@
 [package]
-name = "toc_span"
+name = "toc-span"
 version = "0.1.0"
 authors = ["DropDemBits <r3usrlnd@gmail.com>"]
 edition = "2021"
@@ -9,4 +9,4 @@ edition = "2021"
 [dependencies]
 text-size = "1.0.0"
 indexmap = { workspace = true }
-toc_salsa = { path = "../toc_salsa" }
+toc-salsa = { workspace = true }

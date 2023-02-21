@@ -1,5 +1,5 @@
 [package]
-name = "toc_reporting"
+name = "toc-reporting"
 version = "0.1.0"
 authors = ["DropDemBits <r3usrlnd@gmail.com>"]
 edition = "2021"
@@ -7,6 +7,6 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-toc_span = { path = "../toc_span" }
+toc-span = { workspace = true }
 
 drop_bomb = "0.1.5"

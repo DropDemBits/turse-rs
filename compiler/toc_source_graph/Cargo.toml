@@ -1,12 +1,12 @@
 [package]
-name = "toc_source_graph"
+name = "toc-source-graph"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-toc_span = { path = "../toc_span" }
+toc-span = { workspace = true }
 
 indexmap = { workspace = true }
 petgraph = { version = "0.6.0", default-features = false, features = ["stable_graph"] }

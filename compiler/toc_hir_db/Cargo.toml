@@ -1,15 +1,15 @@
 [package]
-name = "toc_hir_db"
+name = "toc-hir-db"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-toc_ast_db = { path = "../toc_ast_db" }
-toc_hir = { path = "../toc_hir" }
-toc_hir_lowering = { path = "../toc_hir_lowering" }
-toc_reporting = { path = "../toc_reporting" }
-toc_salsa = { path = "../toc_salsa" }
-toc_span = { path = "../toc_span" }
-toc_vfs = { path = "../toc_vfs" }
+toc-ast-db = { workspace = true }
+toc-hir = { workspace = true }
+toc-hir-lowering = { workspace = true }
+toc-reporting = { workspace = true }
+toc-salsa = { workspace = true }
+toc-span = { workspace = true }
+toc-vfs = { workspace = true }

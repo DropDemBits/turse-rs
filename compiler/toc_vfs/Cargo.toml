@@ -1,5 +1,5 @@
 [package]
-name = "toc_vfs"
+name = "toc-vfs"
 version = "0.1.0"
 authors = ["DropDemBits <r3usrlnd@gmail.com>"]
 edition = "2021"
@@ -8,4 +8,4 @@ edition = "2021"
 
 [dependencies]
 itertools = { workspace = true }
-toc_span = { path =  "../toc_span" }
+toc-span = { workspace = true }
