@@ -39,7 +39,7 @@ fn package_server() -> anyhow::Result<()> {
 
 fn package_client() -> anyhow::Result<()> {
     let sh = Shell::new().context("failed to create the shell")?;
-    let _dir = sh.push_dir("./lsp-client/vscode");
+    let _dir = sh.push_dir(project_root().join("lsp-client/vscode"));
 
     if cfg!(target_os = "windows") {
         cmd!(sh, "cmd /c npm ci").run()?;
