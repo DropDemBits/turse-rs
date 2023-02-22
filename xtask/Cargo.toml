@@ -14,4 +14,4 @@ anyhow = "1.0.0"
 quote = "1.0"
 heck = "0.4"
 xshell = "0.2.2"
-unindent = "0.1"
+unindent = { workspace = true }
