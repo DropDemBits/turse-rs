@@ -723,19 +723,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "lsp-types"
-version = "0.94.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0b63735a13a1f9cd4f4835223d828ed9c2e35c8c5e61837774399f558b6a1237"
-dependencies = [
- "bitflags",
- "serde",
- "serde_json",
- "serde_repr",
- "url",
-]
-
-[[package]]
 name = "matchers"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1464,7 +1451,7 @@ name = "toc-ide-db"
 version = "0.1.0"
 dependencies = [
  "camino",
- "lsp-types 0.94.0",
+ "lsp-types",
  "ropey",
  "toc-analysis",
  "toc-ast-db",
@@ -1483,7 +1470,7 @@ name = "toc-lsp-server"
 version = "0.1.0"
 dependencies = [
  "if_chain",
- "lsp-types 0.94.0",
+ "lsp-types",
  "serde_json",
  "toc-ide-db",
  "tokio",
@@ -1667,7 +1654,7 @@ dependencies = [
  "dashmap",
  "futures",
  "httparse",
- "lsp-types 0.93.2",
+ "lsp-types",
  "memchr",
  "serde",
  "serde_json",
