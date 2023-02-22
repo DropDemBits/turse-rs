@@ -1,6 +1,6 @@
 //! Helper builders for creating the HIR tree
 
-use la_arena::Arena;
+use la_arena::{Arena, Idx};
 use toc_span::{FileId, Span, SpanId, SpanTable};
 
 use crate::{body, expr, item, library, stmt, symbol, ty};
@@ -140,11 +140,11 @@ impl BodyBuilder {
     }
 
     pub fn expr(&self, expr_id: expr::ExprId) -> &expr::Expr {
-        &self.exprs[expr_id.into()]
+        &self.exprs[Idx::from(expr_id)]
     }
 
     pub fn stmt(&self, stmt_id: stmt::StmtId) -> &stmt::Stmt {
-        &self.stmts[stmt_id.into()]
+        &self.stmts[Idx::from(stmt_id)]
     }
 
     /// Finish as an expression body
@@ -153,7 +153,7 @@ impl BodyBuilder {
         debug_assert!(stmts.is_empty());
 
         // Body span is the same as the root expression
-        let root_span = exprs[root_expr.into()].span;
+        let root_span = exprs[Idx::from(root_expr)].span;
         body::Body {
             kind: body::BodyKind::Exprs(root_expr),
             span: root_span,

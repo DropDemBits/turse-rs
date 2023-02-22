@@ -23,6 +23,6 @@ toc-ast-db = { workspace = true }
 toc-vfs = { workspace = true }
 toc-vfs-db = { workspace = true }
 
-insta = "1.7"
-unindent = "0.1.7"
-paste = "1.0.5"
+insta = { workspace = true }
+unindent = { workspace = true }
+paste = { workspace = true }

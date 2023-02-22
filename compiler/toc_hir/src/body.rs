@@ -2,7 +2,7 @@
 
 use std::fmt;
 
-use la_arena::{Arena, ArenaMap};
+use la_arena::{Arena, ArenaMap, Idx};
 use toc_span::SpanId;
 
 use crate::{expr, ids::BodyIndex, item, stmt, symbol::LocalDefId, ty};
@@ -32,11 +32,11 @@ impl fmt::Debug for Body {
 
 impl Body {
     pub fn expr(&self, expr_id: expr::ExprId) -> &expr::Expr {
-        &self.exprs[expr_id.into()]
+        &self.exprs[Idx::from(expr_id)]
     }
 
     pub fn stmt(&self, stmt_id: stmt::StmtId) -> &stmt::Stmt {
-        &self.stmts[stmt_id.into()]
+        &self.stmts[Idx::from(stmt_id)]
     }
 }
 

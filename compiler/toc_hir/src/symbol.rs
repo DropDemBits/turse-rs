@@ -392,7 +392,7 @@ pub struct DefMap<T> {
 }
 
 impl<T> DefMap<T> {
-    pub fn insert(&mut self, def_id: LocalDefId, value: T) {
+    pub fn insert(&mut self, def_id: LocalDefId, value: T) -> Option<T> {
         self.map.insert(def_id.0, value)
     }
 

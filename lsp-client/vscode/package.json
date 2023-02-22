@@ -13,14 +13,12 @@
     "description": "Syntax highlighting & LSP provider for HoltSoft's Turing language",
     "license": "SEE LICENSE IN LICENSE",
     "engines": {
-        "vscode": "^1.69.0"
+        "vscode": "^1.74.0"
     },
     "categories": [
         "Programming Languages"
     ],
-    "activationEvents": [
-        "onLanguage:turing"
-    ],
+    "activationEvents": [],
     "main": "./dist/extension.js",
     "contributes": {
         "languages": [
