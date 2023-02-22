@@ -244,6 +244,10 @@ impl ScopeTracker {
         let def_scope = self.scopes.last_mut().unwrap();
         def_scope.def_in(name, def_id);
 
+        // FIXME: This allows overwriting the previous declare kind of a def
+        // Is done in several other places (where it's changed to the same def),
+        // but is notable for automatic imports of unqualified exports
+        // (where the define kind is changed from ItemExport to UnqualifiedImport)
         self.declare_kinds.insert(def_id, kind);
 
         if is_pervasive {

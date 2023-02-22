@@ -392,11 +392,8 @@ pub struct DefMap<T> {
 }
 
 impl<T> DefMap<T> {
-    pub fn insert(&mut self, def_id: LocalDefId, value: T) {
-        assert!(
-            self.map.insert(def_id.0, value).is_none(),
-            "existing DefMap entry found for {def_id:?}"
-        );
+    pub fn insert(&mut self, def_id: LocalDefId, value: T) -> Option<T> {
+        self.map.insert(def_id.0, value)
     }
 
     pub fn get(&self, def_id: LocalDefId) -> Option<&T> {
