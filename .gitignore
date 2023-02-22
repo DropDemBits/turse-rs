@@ -12,3 +12,6 @@ notes/*
 
 # Fuzz data
 fuzz-data/
+
+# new snapshots
+*.snap.new
