@@ -3,7 +3,7 @@
 use std::sync::Arc;
 
 use indexmap::IndexMap;
-use la_arena::Arena;
+use la_arena::{Arena, Idx};
 use toc_span::{FileId, HasSpanTable, SpanTable, Spanned};
 
 use crate::{
@@ -85,11 +85,11 @@ impl std::fmt::Debug for Library {
 
 impl Library {
     pub fn body(&self, body_id: body::BodyId) -> &body::Body {
-        &self.bodies[body_id.into()]
+        &self.bodies[Idx::from(body_id)]
     }
 
     pub fn item(&self, item_id: item::ItemId) -> &item::Item {
-        &self.items[item_id.into()]
+        &self.items[Idx::from(item_id)]
     }
 
     pub fn module_item(&self, module_id: item::ModuleId) -> item::ModuleLike<'_> {

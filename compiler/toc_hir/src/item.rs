@@ -299,11 +299,19 @@ impl ModuleTree {
     }
 
     pub fn link_modules(&mut self, from: ModuleId, to: ModuleId) {
-        self.in_module.insert(to.item_id().0, from)
+        assert_eq!(
+            self.in_module.insert(to.item_id().0, from),
+            None,
+            "existing link for {from:?}, replaced with {to:?}"
+        );
     }
 
     pub fn link_declared_item(&mut self, module_id: ModuleId, declares: ItemId) {
-        self.in_module.insert(declares.0, module_id)
+        assert_eq!(
+            self.in_module.insert(declares.0, module_id),
+            None,
+            "existing link for {declares:?}, replaced with {module_id:?}"
+        );
     }
 
     /// Gets the parent of this module.
