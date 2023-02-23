@@ -34,11 +34,12 @@ use toc_hir::{
     builder::{self, BodyBuilder},
     expr::{Expr, ExprKind},
     item,
+    span::{HasSpanTable, SpanId},
     stmt::{Stmt, StmtId, StmtKind},
     symbol::LocalDefId,
 };
 use toc_reporting::{CompileResult, MessageBundle, MessageSink};
-use toc_span::{FileId, HasSpanTable, Span, SpanId, TextRange};
+use toc_span::{FileId, Span, TextRange};
 use toc_syntax::ast::{self, AstNode};
 
 use crate::{LoweredLibrary, LoweringDb};

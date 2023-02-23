@@ -4,10 +4,11 @@ use std::sync::Arc;
 
 use indexmap::IndexMap;
 use la_arena::{Arena, Idx};
-use toc_span::{FileId, HasSpanTable, SpanTable, Spanned};
+use toc_span::FileId;
 
 use crate::{
     body, item,
+    span::{HasSpanTable, SpanTable, Spanned},
     symbol::{self, ResolutionMap},
     ty,
 };

@@ -1,9 +1,13 @@
 //! Helper builders for creating the HIR tree
 
 use la_arena::{Arena, Idx};
-use toc_span::{FileId, Span, SpanId, SpanTable};
+use toc_span::{FileId, Span};
 
-use crate::{body, expr, item, library, stmt, symbol, ty};
+use crate::{
+    body, expr, item, library,
+    span::{HasSpanTable, SpanId, SpanTable},
+    stmt, symbol, ty,
+};
 
 /// Builder for constructing a [`Library`]
 ///
@@ -109,8 +113,8 @@ impl std::ops::DerefMut for LibraryBuilder {
     }
 }
 
-impl toc_span::HasSpanTable for LibraryBuilder {
-    fn span_table(&self) -> &toc_span::SpanTable {
+impl HasSpanTable for LibraryBuilder {
+    fn span_table(&self) -> &SpanTable {
         self.library.span_table()
     }
 }

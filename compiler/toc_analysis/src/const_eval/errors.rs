@@ -1,9 +1,10 @@
 //! Errors during constant evaluation
 use toc_hir::{
     library::LibraryId,
+    span::Spanned,
     symbol::{DefId, Resolve, Symbol},
 };
-use toc_span::{Span, Spanned};
+use toc_span::Span;
 
 use crate::const_eval::db;
 

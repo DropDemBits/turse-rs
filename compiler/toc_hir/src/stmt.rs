@@ -1,7 +1,6 @@
 //! Statement nodes
-use toc_span::SpanId;
 
-use crate::{expr, item, symbol, ty};
+use crate::{expr, item, span::SpanId, symbol, ty};
 
 pub use crate::ids::{BodyStmt, StmtId};
 

@@ -5,11 +5,11 @@ use std::fmt;
 
 use indexmap::IndexMap;
 use la_arena::{Arena, ArenaMap};
-use toc_span::{SpanId, Spanned};
 
 pub use crate::ids::{DefId, LocalDefId};
 use crate::{
     ids::{ExportId, ItemId, LocalDefIndex, ModuleId},
+    span::{SpanId, Spanned},
     stmt::BodyStmt,
     ty::{FieldId, PassBy, TypeId},
 };

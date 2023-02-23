@@ -1,6 +1,9 @@
 //! Lowering into `Expr` HIR nodes
-use toc_hir::{body, expr};
-use toc_span::{HasSpanTable, Span, SpanId, Spanned, TextRange};
+use toc_hir::{
+    body, expr,
+    span::{HasSpanTable, SpanId, Spanned},
+};
+use toc_span::{Span, TextRange};
 use toc_syntax::{
     ast::{self, AstNode},
     LiteralValue,

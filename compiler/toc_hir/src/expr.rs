@@ -1,8 +1,8 @@
 //! Expression nodes
-use toc_span::{SpanId, Spanned};
 
 use crate::{
     body,
+    span::{SpanId, Spanned},
     symbol::{self, Symbol},
 };
 

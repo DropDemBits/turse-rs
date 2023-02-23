@@ -3,6 +3,7 @@
 use std::collections::HashMap;
 
 use toc_hir::{
+    span::{SpanId, SpanTable},
     symbol::{
         syms, DefInfoTable, IsMonitor, IsPervasive, IsRegister, LocalDefId, Mutability, NodeSpan,
         SubprogramKind, Symbol, SymbolKind,
@@ -10,7 +11,7 @@ use toc_hir::{
     ty::PassBy,
 };
 use toc_reporting::{CompileResult, MessageSink};
-use toc_span::{FileId, Span, SpanId, SpanTable, TextRange};
+use toc_span::{FileId, Span, TextRange};
 use toc_syntax::{
     ast::{self, AstNode},
     match_ast,

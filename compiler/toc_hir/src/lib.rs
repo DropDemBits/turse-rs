@@ -110,6 +110,7 @@ pub mod expr;
 pub mod item;
 pub mod library;
 pub mod library_graph;
+pub mod span;
 pub mod stmt;
 pub mod symbol;
 pub mod ty;

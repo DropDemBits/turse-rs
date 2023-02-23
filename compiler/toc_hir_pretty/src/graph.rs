@@ -16,12 +16,12 @@ use toc_hir::{
     expr::{self, BodyExpr},
     item,
     library::{self, LoweredLibrary},
+    span::{HasSpanTable, SpanId, Spanned},
     stmt::{self, BodyStmt},
     symbol::{LocalDefId, Mutability, SubprogramKind},
     ty,
     visitor::{HirVisitor, WalkEvent, Walker},
 };
-use toc_span::{HasSpanTable, SpanId, Spanned};
 
 const IS_LR_LAYOUT: bool = true;
 

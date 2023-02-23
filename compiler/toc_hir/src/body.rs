@@ -3,9 +3,8 @@
 use std::fmt;
 
 use la_arena::{Arena, ArenaMap, Idx};
-use toc_span::SpanId;
 
-use crate::{expr, ids::BodyIndex, item, stmt, symbol::LocalDefId, ty};
+use crate::{expr, ids::BodyIndex, item, span::SpanId, stmt, symbol::LocalDefId, ty};
 
 pub use crate::ids::BodyId;
 

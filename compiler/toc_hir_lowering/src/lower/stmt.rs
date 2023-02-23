@@ -6,11 +6,12 @@ use toc_hir::symbol::{syms, IsPervasive, SymbolKind};
 use toc_hir::ty::PassBy;
 use toc_hir::{
     expr, item,
+    span::{HasSpanTable, SpanId, Spanned},
     stmt::{self, Assign},
     symbol::{self, Mutability, Symbol},
     ty,
 };
-use toc_span::{HasSpanTable, Span, SpanId, Spanned};
+use toc_span::Span;
 use toc_syntax::ast::{self, AstNode};
 
 use crate::lower::LoweredStmt;

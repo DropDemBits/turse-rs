@@ -11,12 +11,12 @@ use toc_hir::{
     expr::{self, BodyExpr},
     item,
     library::{self, LoweredLibrary},
+    span::{HasSpanTable, SpanId, Spanned},
     stmt::{self, BodyStmt},
     symbol::{self, LocalDefId, Mutability, SubprogramKind},
     ty,
     visitor::{HirVisitor, WalkEvent, Walker},
 };
-use toc_span::{HasSpanTable, SpanId, Spanned};
 
 pub fn pretty_print_tree(lowered: &LoweredLibrary) -> String {
     let mut output = String::new();
