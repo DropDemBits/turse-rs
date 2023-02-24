@@ -1,44 +1,12 @@
 //! Re-exports of `text_size` structs, as well as providing report location helpers.
 //! Keeps a common `text_size` version between dependents.
 
-use std::{fmt, num::NonZeroU32};
+use std::fmt;
 
 pub use text_size::{TextRange, TextSize};
-use toc_salsa::salsa::{InternId, InternKey};
 
 /// A unique file id
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[repr(transparent)]
-pub struct FileId(NonZeroU32);
-
-impl FileId {
-    /// Constructs a new file id
-    ///
-    /// Must only be constructed in the context of a file db
-    pub fn new(id: NonZeroU32) -> Self {
-        Self(id)
-    }
-
-    /// Gets the underlying raw file id
-    pub fn raw_id(&self) -> NonZeroU32 {
-        self.0
-    }
-
-    /// Constructs a new file id, for testing purposes
-    pub fn new_testing(id: u32) -> Option<Self> {
-        NonZeroU32::new(id).map(Self::new)
-    }
-}
-
-impl InternKey for FileId {
-    fn from_intern_id(v: InternId) -> Self {
-        Self(NonZeroU32::new(v.as_u32() + 1).unwrap())
-    }
-
-    fn as_intern_id(&self) -> InternId {
-        (self.0.get() - 1).into()
-    }
-}
+pub type FileId = toc_paths::RawPath;
 
 #[derive(Default, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Span {

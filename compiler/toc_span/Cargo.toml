@@ -10,5 +10,4 @@ edition.workspace = true
 
 [dependencies]
 text-size = "1.0.0"
-indexmap = { workspace = true }
-toc-salsa = { workspace = true }
+toc-paths = { workspace = true }

@@ -1667,9 +1667,8 @@ dependencies = [
 name = "toc-span"
 version = "0.1.0"
 dependencies = [
- "indexmap",
  "text-size",
- "toc-salsa",
+ "toc-paths",
 ]
 
 [[package]]
@@ -1708,7 +1707,7 @@ name = "toc-vfs-db"
 version = "0.1.0"
 dependencies = [
  "camino",
- "toc-salsa",
+ "salsa-2022",
  "toc-span",
  "toc-vfs",
 ]
