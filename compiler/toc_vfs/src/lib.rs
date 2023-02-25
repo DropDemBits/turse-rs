@@ -50,6 +50,8 @@ impl fmt::Display for LoadError {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ErrorKind {
+    /// File contents have not been loaded yet
+    NotLoaded,
     /// File was not found
     NotFound,
     /// File is in an unsupported encoding
@@ -61,6 +63,7 @@ pub enum ErrorKind {
 impl fmt::Display for ErrorKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::NotLoaded => f.write_str("File has not been loaded yet"),
             Self::NotFound => f.write_str("File not found"),
             Self::InvalidEncoding => f.write_str("Invalid file encoding"),
             Self::Other(err) => f.write_str(err),
