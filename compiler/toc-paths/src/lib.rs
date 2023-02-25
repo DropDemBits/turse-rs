@@ -38,6 +38,18 @@ mod paths {
         #[return_ref]
         pub raw_path: Utf8PathBuf,
     }
+
+    impl RawPath {
+        /// Creates a a new dummy [`RawPath`], for use in test
+        /// as a dummy handle to pass things through.
+        ///
+        /// Do not use this outside of tests, as crashes will
+        /// happen if used improperly
+        pub fn dummy(id: u32) -> Self {
+            use salsa::{AsId, Id};
+            Self::from_id(Id::from_u32(id))
+        }
+    }
 }
 
 mod expansion {

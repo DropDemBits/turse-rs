@@ -179,7 +179,7 @@ mod tests {
     #[test]
     fn report_message() {
         // Test message sorting as well
-        let file_id = FileId::new_testing(1).unwrap();
+        let file_id = FileId::dummy(1);
         let mut sink = MessageSink::new();
         sink.report(
             AnnotateKind::Warning,

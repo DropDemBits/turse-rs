@@ -371,10 +371,7 @@ mod tests {
         reporter
             .error_detailed(
                 "oops",
-                Span::new(
-                    toc_span::FileId::new_testing(1).unwrap(),
-                    Default::default(),
-                ),
+                Span::new(toc_span::FileId::dummy(1), Default::default()),
             )
             .report_delayed()
             .finish();

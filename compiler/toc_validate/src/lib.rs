@@ -176,7 +176,7 @@ fn validate_source(src: ast::Source, ctx: &mut ValidateCtx) {
 pub(crate) fn check(source: &str, expected: expect_test::Expect) {
     use std::fmt::Write;
 
-    let dummy_id = FileId::new_testing(1).unwrap();
+    let dummy_id = FileId::dummy(1);
     let res = toc_parser::parse(dummy_id, source);
     let validate_res = validate_ast(dummy_id, res.result().syntax());
 

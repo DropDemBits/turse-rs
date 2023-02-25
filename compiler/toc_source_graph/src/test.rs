@@ -8,22 +8,22 @@ fn no_dedup_source_roots() {
     source_graph.add_library(SourceLibrary {
         artifact: ArtifactKind::Binary,
         name: "a".into(),
-        root: FileId::new_testing(3).unwrap(),
+        root: FileId::dummy(3),
     });
     source_graph.add_library(SourceLibrary {
         artifact: ArtifactKind::Binary,
         name: "a".into(),
-        root: FileId::new_testing(2).unwrap(),
+        root: FileId::dummy(2),
     });
     source_graph.add_library(SourceLibrary {
         artifact: ArtifactKind::Binary,
         name: "a".into(),
-        root: FileId::new_testing(2).unwrap(),
+        root: FileId::dummy(2),
     });
     source_graph.add_library(SourceLibrary {
         artifact: ArtifactKind::Binary,
         name: "a".into(),
-        root: FileId::new_testing(1).unwrap(),
+        root: FileId::dummy(1),
     });
 
     // Don't dedup roots
@@ -33,10 +33,10 @@ fn no_dedup_source_roots() {
             .map(|(_, lib)| lib.root)
             .collect::<Vec<_>>(),
         vec![
-            FileId::new_testing(3).unwrap(),
-            FileId::new_testing(2).unwrap(),
-            FileId::new_testing(2).unwrap(),
-            FileId::new_testing(1).unwrap(),
+            FileId::dummy(3),
+            FileId::dummy(2),
+            FileId::dummy(2),
+            FileId::dummy(1),
         ]
     );
 }
