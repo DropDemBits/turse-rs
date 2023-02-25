@@ -16,9 +16,18 @@ pub struct Jar(
     expansion::PrefixExpansions_builtin_expansion,
 );
 
-pub trait Db: salsa::DbWithJar<Jar> {}
+pub trait Db: salsa::DbWithJar<Jar> {
+    fn upcast_to_path_db(&self) -> &dyn Db;
+}
 
-impl<DB> Db for DB where DB: salsa::DbWithJar<Jar> {}
+impl<DB> Db for DB
+where
+    DB: salsa::DbWithJar<Jar>,
+{
+    fn upcast_to_path_db(&self) -> &dyn Db {
+        self
+    }
+}
 
 mod paths {
     use camino::{Utf8Component, Utf8PathBuf};
