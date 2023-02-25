@@ -1707,8 +1707,9 @@ name = "toc-vfs-db"
 version = "0.1.0"
 dependencies = [
  "camino",
+ "parking_lot 0.12.1",
  "salsa-2022",
- "toc-span",
+ "toc-paths",
  "toc-vfs",
 ]
 
