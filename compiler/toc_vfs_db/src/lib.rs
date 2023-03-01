@@ -23,9 +23,18 @@ mod test;
 #[salsa::jar(db = Db)]
 pub struct Jar(sources::SourceFile, sources::source_of, resolve_path);
 
-pub trait Db: salsa::DbWithJar<Jar> + toc_paths::Db + VfsBridge {}
+pub trait Db: salsa::DbWithJar<Jar> + toc_paths::Db + VfsBridge {
+    fn upcast_to_vfs_db(&self) -> &dyn Db;
+}
 
-impl<DB> Db for DB where DB: ?Sized + salsa::DbWithJar<Jar> + toc_paths::Db + VfsBridge {}
+impl<DB> Db for DB
+where
+    DB: salsa::DbWithJar<Jar> + toc_paths::Db + VfsBridge,
+{
+    fn upcast_to_vfs_db(&self) -> &dyn Db {
+        self
+    }
+}
 
 mod db_ext {
     use std::{borrow::Cow, path::Path};
