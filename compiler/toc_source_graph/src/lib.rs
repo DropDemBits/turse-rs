@@ -55,14 +55,6 @@ pub struct SourceGraph {
     to_node_idx: IdMap<Library, NodeIndex>,
 }
 
-#[derive(Debug, Clone)]
-pub struct LibraryDeps<'g> {
-    graph: &'g LibraryGraph,
-    visitor: DfsPostOrder<NodeIndex, <LibraryGraph as Visitable>::Map>,
-}
-
-type LibraryGraph = StableDiGraph<Library, LibraryDep>;
-
 impl fmt::Debug for LibraryId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_tuple("LibraryId")
@@ -70,6 +62,8 @@ impl fmt::Debug for LibraryId {
             .finish()
     }
 }
+
+type LibraryGraph = StableDiGraph<Library, LibraryDep>;
 
 impl SourceGraph {
     pub fn new() -> Self {
@@ -121,6 +115,12 @@ impl SourceGraph {
             .get(id)
             .expect("library not added to source graph")
     }
+}
+
+#[derive(Debug, Clone)]
+pub struct LibraryDeps<'g> {
+    graph: &'g LibraryGraph,
+    visitor: DfsPostOrder<NodeIndex, <LibraryGraph as Visitable>::Map>,
 }
 
 impl<'g> Iterator for LibraryDeps<'g> {
