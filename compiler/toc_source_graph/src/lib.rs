@@ -1,22 +1,31 @@
-use std::{fmt, ops::Deref, sync::Arc};
+use std::fmt;
 
 use petgraph::{
     graph::NodeIndex,
     stable_graph::StableDiGraph,
     visit::{DfsPostOrder, Visitable},
 };
-use toc_span::FileId;
+use salsa::AsId;
+use toc_paths::RawPath;
+use toc_salsa_collections::IdMap;
+
+#[salsa::jar(db = Db)]
+pub struct Jar(Library);
+
+pub trait Db: salsa::DbWithJar<Jar> {}
+
+impl<DB> Db for DB where DB: salsa::DbWithJar<Jar> {}
 
 #[cfg(test)]
 mod test;
 
 /// Source information about a library
-#[derive(Debug, Clone)]
-pub struct SourceLibrary {
+#[salsa::input]
+pub struct Library {
     /// Name of the library
     pub name: String,
-    /// The main file of the library where all of the other files are discovered from
-    pub root: FileId,
+    /// Path to the main file of the library, where all of the other files are discovered from
+    pub root: RawPath,
     /// What kind of build artifact this is
     pub artifact: ArtifactKind,
 }
@@ -30,19 +39,20 @@ pub enum ArtifactKind {
     Library,
 }
 
-/// Information about a library depdendency
+/// Information about a library dependency
 #[derive(Debug, Clone)]
 struct LibraryDep();
 
 /// A reference to a library in the [`SourceGraph`]
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(transparent)]
-pub struct LibraryId(NodeIndex);
+pub struct LibraryId(Library);
 
 /// Library source graph
 #[derive(Debug, Clone, Default)]
 pub struct SourceGraph {
     libraries: LibraryGraph,
+    to_node_idx: IdMap<Library, NodeIndex>,
 }
 
 #[derive(Debug, Clone)]
@@ -51,27 +61,13 @@ pub struct LibraryDeps<'g> {
     visitor: DfsPostOrder<NodeIndex, <LibraryGraph as Visitable>::Map>,
 }
 
-/// Wrapper reference to a specific [`SourceLibrary`].
-/// Workaround for the salsa version we use not being able to return references
-#[derive(Debug, Clone)]
-pub struct LibraryRef {
-    source_graph: Arc<SourceGraph>,
-    library_id: LibraryId,
-}
-
-impl Eq for LibraryRef {}
-
-impl PartialEq for LibraryRef {
-    fn eq(&self, other: &Self) -> bool {
-        Arc::ptr_eq(&self.source_graph, &other.source_graph) && self.library_id == other.library_id
-    }
-}
-
-type LibraryGraph = StableDiGraph<SourceLibrary, LibraryDep>;
+type LibraryGraph = StableDiGraph<Library, LibraryDep>;
 
 impl fmt::Debug for LibraryId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_tuple("LibraryId").field(&self.0.index()).finish()
+        f.debug_tuple("LibraryId")
+            .field(&self.0.as_id().as_u32())
+            .finish()
     }
 }
 
@@ -81,64 +77,58 @@ impl SourceGraph {
     }
 
     /// Adds a library to the graph
-    pub fn add_library(&mut self, library: SourceLibrary) -> LibraryId {
-        LibraryId(self.libraries.add_node(library))
+    pub fn add_library(&mut self, library: Library) -> LibraryId {
+        let idx = self.libraries.add_node(library);
+        self.to_node_idx.insert(library, idx);
+        LibraryId(library)
     }
 
     /// Removes the specified library from the graph
     pub fn remove_library(&mut self, library_id: LibraryId) {
-        self.libraries.remove_node(library_id.0);
+        let idx = self.to_idx(library_id.0);
+        self.libraries.remove_node(idx);
     }
 
     /// Adds a dependency between libraries
     pub fn add_library_dep(&mut self, from: LibraryId, to: LibraryId) {
-        self.libraries.update_edge(from.0, to.0, LibraryDep());
+        self.libraries
+            .update_edge(self.to_idx(from.0), self.to_idx(to.0), LibraryDep());
     }
 
-    /// Gets the corresponding [`SourceLibrary`] for a [`LibraryId`]
-    pub fn library(&self, library_id: LibraryId) -> &SourceLibrary {
-        &self.libraries[library_id.0]
+    /// Gets the corresponding [`Library`] for a [`LibraryId`]
+    pub fn library(&self, library_id: LibraryId) -> Library {
+        library_id.0
     }
 
     /// Traverses the library and its dependencies in DFS order
     pub fn library_deps(&self, from_library: LibraryId) -> LibraryDeps<'_> {
         LibraryDeps {
             graph: &self.libraries,
-            visitor: DfsPostOrder::new(&self.libraries, from_library.0),
+            visitor: DfsPostOrder::new(&self.libraries, self.to_idx(from_library.0)),
         }
     }
 
     /// Iterates over all libraries in the graph
-    pub fn all_libraries(&self) -> impl Iterator<Item = (LibraryId, &'_ SourceLibrary)> + '_ {
+    pub fn all_libraries(&self) -> impl Iterator<Item = (LibraryId, Library)> + '_ {
         self.libraries
             .node_indices()
-            .map(|idx| (LibraryId(idx), &self.libraries[idx]))
+            .map(|idx| (LibraryId(self.libraries[idx]), self.libraries[idx]))
     }
-}
 
-impl LibraryRef {
-    pub fn new(source_graph: Arc<SourceGraph>, library_id: LibraryId) -> Self {
-        Self {
-            source_graph,
-            library_id,
-        }
-    }
-}
-
-impl Deref for LibraryRef {
-    type Target = SourceLibrary;
-
-    fn deref(&self) -> &Self::Target {
-        self.source_graph.library(self.library_id)
+    fn to_idx(&self, id: Library) -> NodeIndex {
+        *self
+            .to_node_idx
+            .get(id)
+            .expect("library not added to source graph")
     }
 }
 
 impl<'g> Iterator for LibraryDeps<'g> {
-    type Item = (LibraryId, &'g SourceLibrary);
+    type Item = (LibraryId, Library);
 
     fn next(&mut self) -> Option<Self::Item> {
         self.visitor
             .next(self.graph)
-            .map(|lib_id| (LibraryId(lib_id), &self.graph[lib_id]))
+            .map(|lib_id| (LibraryId(self.graph[lib_id]), self.graph[lib_id]))
     }
 }

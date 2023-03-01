@@ -1666,8 +1666,10 @@ dependencies = [
 name = "toc-source-graph"
 version = "0.1.0"
 dependencies = [
- "indexmap",
  "petgraph",
+ "salsa-2022",
+ "toc-paths",
+ "toc-salsa-collections",
  "toc-span",
 ]
 

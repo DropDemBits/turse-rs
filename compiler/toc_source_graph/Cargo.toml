@@ -10,7 +10,10 @@ edition.workspace = true
 
 [dependencies]
 toc-span = { workspace = true }
+toc-paths = { workspace = true }
+salsa = { workspace = true }
+toc-salsa-collections = { workspace = true }
 
-indexmap = { workspace = true }
-petgraph = { version = "0.6.0", default-features = false, features = ["stable_graph"] }
-
+petgraph = { version = "0.6.0", default-features = false, features = [
+    "stable_graph",
+] }
