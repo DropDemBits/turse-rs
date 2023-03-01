@@ -1472,10 +1472,10 @@ dependencies = [
 name = "toc-ast-db"
 version = "0.1.0"
 dependencies = [
+ "salsa-2022",
  "toc-parser",
+ "toc-paths",
  "toc-reporting",
- "toc-salsa",
- "toc-source-graph",
  "toc-span",
  "toc-syntax",
  "toc-validate",

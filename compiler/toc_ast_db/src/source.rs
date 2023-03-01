@@ -1,53 +1,76 @@
 //! Source file interpretation queries
 
 use std::{
-    collections::{BTreeSet, HashSet, VecDeque},
+    collections::{BTreeSet, VecDeque},
     sync::Arc,
 };
 
 use toc_parser::ExternalLinks;
 use toc_reporting::CompileResult;
-use toc_source_graph::{LibraryId, LibraryRef};
 use toc_span::FileId;
-use toc_vfs_db::db::{FilesystemExt, PathIntern, VfsDatabaseExt};
+use toc_vfs_db::SourceFile;
 
-use crate::db;
+use crate::Db;
 
-pub(crate) fn source_library(db: &dyn db::SourceParser, library_id: LibraryId) -> LibraryRef {
-    LibraryRef::new(db.source_graph(), library_id)
+/// What other files a given file refers to
+#[salsa::tracked]
+pub fn file_links(db: &dyn Db, source: SourceFile) -> Arc<toc_parser::ExternalLinks> {
+    let mut links = ExternalLinks::default();
+    let deps = crate::parse_depends(db, source);
+    for dep in deps.result().dependencies() {
+        // Get the target file
+        let child = toc_vfs_db::resolve_path(
+            db.upcast_to_vfs_db(),
+            source.path(db.upcast_to_vfs_db()),
+            dep.relative_path.clone(),
+        );
+
+        links.bind(dep.link_from.clone(), child);
+    }
+
+    Arc::new(links)
 }
 
-pub(crate) fn parse_file(
-    db: &dyn db::SourceParser,
-    file_id: FileId,
-) -> CompileResult<toc_parser::ParseTree> {
-    let source = db.file_source(file_id);
+/// Parses the given file
+#[salsa::tracked]
+pub fn parse_file(db: &dyn Db, source: SourceFile) -> CompileResult<toc_parser::ParseTree> {
     // FIXME: If a load error is present, then add it to the parse result / create a new one
-    toc_parser::parse(file_id, &source.0)
+    toc_parser::parse(
+        source.path(db.upcast_to_vfs_db()),
+        source.contents(db.upcast_to_vfs_db()),
+    )
 }
 
-pub(crate) fn validate_file(db: &dyn db::SourceParser, file_id: FileId) -> CompileResult<()> {
-    let cst = db.parse_file(file_id);
-    toc_validate::validate_ast(file_id, cst.result().syntax())
+/// Validates the file according to grammar validation rules
+#[salsa::tracked]
+pub fn validate_file(db: &dyn Db, source: SourceFile) -> CompileResult<()> {
+    let cst = crate::parse_file(db, source);
+    toc_validate::validate_ast(source.path(db.upcast_to_vfs_db()), cst.result().syntax())
 }
 
-pub(crate) fn parse_depends(
-    db: &dyn db::SourceParser,
-    file_id: FileId,
+/// Parse out the dependencies of a file
+#[salsa::tracked]
+pub fn parse_depends(
+    db: &dyn Db,
+    source: SourceFile,
 ) -> CompileResult<Arc<toc_parser::FileDepends>> {
-    let cst = db.parse_file(file_id);
-    toc_parser::parse_depends(file_id, cst.result().syntax())
+    let cst = crate::parse_file(db, source);
+    toc_parser::parse_depends(source.path(db.upcast_to_vfs_db()), cst.result().syntax())
 }
 
-pub(crate) fn file_link_of(
-    db: &dyn db::SourceParser,
-    file_id: FileId,
+/// Gets the [`ExternalLink`](toc_parser::ExternalLink)'s corresponding file
+#[salsa::tracked]
+pub fn file_link_of(
+    db: &dyn Db,
+    source: SourceFile,
     link: toc_parser::ExternalLink,
 ) -> Option<FileId> {
-    db.file_links(file_id).links_to(link)
+    crate::file_links(db, source).links_to(link)
 }
 
-pub(crate) fn reachable_files(db: &dyn db::SourceParser, root: FileId) -> Arc<BTreeSet<FileId>> {
+/// Gets the set of all the transient file dependencies of `root`
+#[salsa::tracked]
+pub fn reachable_files(db: &dyn Db, root: SourceFile) -> Arc<BTreeSet<SourceFile>> {
     let mut files = BTreeSet::default();
     let mut pending_queue = VecDeque::default();
 
@@ -61,16 +84,19 @@ pub(crate) fn reachable_files(db: &dyn db::SourceParser, root: FileId) -> Arc<BT
         files.insert(current_file);
 
         // add all of this file's linked bits to the queue
-        pending_queue.extend(db.file_links(current_file).all_links());
+        pending_queue.extend(
+            crate::file_links(db, current_file)
+                .all_links()
+                .map(|path| toc_vfs_db::source_of(db.upcast_to_vfs_db(), path)),
+        );
     }
 
     Arc::new(files)
 }
 
-pub(crate) fn reachable_imported_files(
-    db: &dyn db::SourceParser,
-    root: FileId,
-) -> Arc<BTreeSet<FileId>> {
+/// Gets the set of all the transient file imports of `root`
+#[salsa::tracked]
+pub fn reachable_imported_files(db: &dyn Db, root: SourceFile) -> Arc<BTreeSet<SourceFile>> {
     let mut files = BTreeSet::default();
     let mut pending_queue = VecDeque::default();
 
@@ -84,15 +110,20 @@ pub(crate) fn reachable_imported_files(
         files.insert(current_file);
 
         // add all of this file's linked bits to the queue
-        pending_queue.extend(db.file_links(current_file).import_links());
+        pending_queue.extend(
+            crate::file_links(db, current_file)
+                .all_links()
+                .map(|path| toc_vfs_db::source_of(db.upcast_to_vfs_db(), path)),
+        );
     }
 
     Arc::new(files)
 }
 
-impl<T> db::AstDatabaseExt for T
+#[cfg(remove)]
+impl<T> crate::db::AstDatabaseExt for T
 where
-    T: db::SourceParser + PathIntern,
+    T: Db,
 {
     fn rebuild_file_links(&mut self, loader: &dyn toc_vfs::FileLoader) {
         let db = self;
@@ -134,6 +165,7 @@ where
     }
 }
 
+#[cfg(remove)] // Would probably be useful during hir_lowering, since that where the source graph is used more
 #[cfg(test)]
 mod test {
     use super::*;

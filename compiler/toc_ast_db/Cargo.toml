@@ -9,12 +9,12 @@ edition.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-toc-salsa = { workspace = true }
+salsa = { workspace = true }
 toc-syntax = { workspace = true }
-toc-source-graph = { workspace = true }
 toc-span = { workspace = true }
 toc-vfs = { workspace = true }
 toc-vfs-db = { workspace = true }
+toc-paths = { workspace = true }
 toc-parser = { workspace = true }
 toc-validate = { workspace = true }
 toc-reporting = { workspace = true }
