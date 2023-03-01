@@ -62,7 +62,7 @@ mod db_ext {
             );
 
             let source = crate::source_of(self, path);
-            source.set_source(self).to(contents.into());
+            source.set_contents(self).to(contents.into());
             source.set_errors(self).to(None);
             path
         }
@@ -121,7 +121,7 @@ mod db_ext {
             };
 
             let source = crate::source_of(self, path);
-            source.set_source(self).to(contents);
+            source.set_contents(self).to(contents);
             source.set_errors(self).to(errors);
         }
     }
@@ -237,7 +237,7 @@ mod sources {
         /// Originating source path
         pub path: RawPath,
         #[return_ref]
-        pub source: String,
+        pub contents: String,
         pub errors: Option<LoadError>,
     }
 
