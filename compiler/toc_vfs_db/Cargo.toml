@@ -12,5 +12,6 @@ edition.workspace = true
 toc-paths = { workspace = true }
 toc-vfs = { workspace = true }
 salsa = { workspace = true }
+toc-salsa-collections = { workspace = true }
 camino = { workspace = true }
 parking_lot = "0.12"

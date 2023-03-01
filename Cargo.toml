@@ -36,6 +36,7 @@ toc-parser = { path = "compiler/toc_parser" }
 toc-paths = { path = "compiler/toc-paths" }
 toc-reporting = { path = "compiler/toc_reporting" }
 toc-salsa = { path = "compiler/toc_salsa" }
+toc-salsa-collections = { path = "compiler/toc-salsa-collections" }
 toc-scanner = { path = "compiler/toc_scanner" }
 toc-source-graph = { path = "compiler/toc_source_graph" }
 toc-span = { path = "compiler/toc_span" }

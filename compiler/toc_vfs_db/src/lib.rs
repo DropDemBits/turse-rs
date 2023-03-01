@@ -141,8 +141,8 @@ mod sources {
 
     use camino::{Utf8Path, Utf8PathBuf};
     use parking_lot::Mutex;
-    use salsa::AsId;
     use toc_paths::RawPath;
+    use toc_salsa_collections::IdMap;
     use toc_vfs::LoadError;
 
     use crate::Db;
@@ -153,7 +153,7 @@ mod sources {
     /// Mappings are meant to be stable, so replacing source files is not allowed
     #[derive(Debug, Clone, Default)]
     pub struct SourceTable {
-        sources: Arc<Mutex<Vec<Option<SourceFile>>>>,
+        sources: Arc<Mutex<IdMap<RawPath, SourceFile>>>,
     }
 
     impl SourceTable {
@@ -163,9 +163,8 @@ mod sources {
 
         /// Looks up `path`'s [`SourceFile`]
         pub fn source(&self, path: RawPath) -> Option<SourceFile> {
-            let idx = Self::to_idx(path);
             let sources = self.sources.lock();
-            sources.get(idx).copied().flatten()
+            sources.get(path).copied()
         }
 
         /// Inserts a source into the table, linking it to path
@@ -174,24 +173,14 @@ mod sources {
         ///
         /// If `path` already has a mapping
         pub fn insert(&self, path: RawPath, source: SourceFile) {
-            let idx = Self::to_idx(path);
             let mut sources = self.sources.lock();
 
-            // resize truncates, so make sure that we don't go below the source length
-            // add one since we want the number of elements instead of the index
-            let len = sources.len();
-            sources.resize((idx + 1).max(len), None);
-
             // Keep invariant of never changing old links
-            let old = sources[idx].replace(source);
+            let old = sources.insert(path, source);
             assert_eq!(
                 old, None,
                 "duplicate mapping for {path:?} (tried to replace {source:?} with {old:?})"
             );
-        }
-
-        fn to_idx(path: RawPath) -> usize {
-            usize::try_from(path.as_id().as_u32()).unwrap()
         }
     }
 
