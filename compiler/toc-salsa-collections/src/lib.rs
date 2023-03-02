@@ -89,6 +89,14 @@ impl<K: salsa::AsId, V> IdMap<K, V> {
         self.v.get_mut(Self::to_idx(id)).and_then(|it| it.as_mut())
     }
 
+    /// Returns an iterator over the keys in the map.
+    pub fn keys(&self) -> impl Iterator<Item = K> + '_ {
+        self.v
+            .iter()
+            .enumerate()
+            .filter_map(|(id, v)| v.is_some().then_some(Self::from_idx(id)))
+    }
+
     /// Returns an iterator over the values in the map.
     pub fn values(&self) -> impl Iterator<Item = &V> {
         self.v.iter().filter_map(|o| o.as_ref())
