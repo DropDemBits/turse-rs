@@ -36,6 +36,8 @@ pub struct Jar(
 );
 
 pub trait Db: salsa::DbWithJar<Jar> + toc_vfs_db::Db {
+    fn upcast_to_source_db(&self) -> &dyn Db;
+
     /// Firewall method so that upstream jars don't have to explicitly depend on `toc-vfs-db`
     fn path_of(&self, source: SourceFile) -> toc_paths::RawPath;
 }
@@ -44,6 +46,10 @@ impl<DB> Db for DB
 where
     DB: salsa::DbWithJar<Jar> + toc_vfs_db::Db + toc_paths::Db,
 {
+    fn upcast_to_source_db(&self) -> &dyn Db {
+        self
+    }
+
     fn path_of(&self, source: SourceFile) -> toc_paths::RawPath {
         source.path(self)
     }

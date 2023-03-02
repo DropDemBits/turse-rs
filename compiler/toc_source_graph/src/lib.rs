@@ -14,9 +14,18 @@ pub struct Jar(
     SourceGraph_all_libraries,
 );
 
-pub trait Db: salsa::DbWithJar<Jar> {}
+pub trait Db: salsa::DbWithJar<Jar> {
+    fn upcast_to_source_graph_db(&self) -> &dyn Db;
+}
 
-impl<DB> Db for DB where DB: salsa::DbWithJar<Jar> {}
+impl<DB> Db for DB
+where
+    DB: salsa::DbWithJar<Jar>,
+{
+    fn upcast_to_source_graph_db(&self) -> &dyn Db {
+        self
+    }
+}
 
 #[cfg(test)]
 mod test;
