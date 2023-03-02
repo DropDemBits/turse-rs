@@ -1,16 +1,18 @@
-use std::fmt;
+use std::{collections::BTreeMap, fmt};
 
-use petgraph::{
-    graph::NodeIndex,
-    stable_graph::StableDiGraph,
-    visit::{DfsPostOrder, Visitable},
-};
 use salsa::AsId;
 use toc_paths::RawPath;
 use toc_salsa_collections::IdMap;
 
 #[salsa::jar(db = Db)]
-pub struct Jar(Library);
+pub struct Jar(
+    Library,
+    RootLibraries,
+    source_graph,
+    SourceGraph,
+    DependencyList,
+    SourceGraph_all_libraries,
+);
 
 pub trait Db: salsa::DbWithJar<Jar> {}
 
@@ -19,15 +21,25 @@ impl<DB> Db for DB where DB: salsa::DbWithJar<Jar> {}
 #[cfg(test)]
 mod test;
 
+/// Libraries to start walking the dependency graph from
+#[salsa::input(singleton)]
+pub struct RootLibraries {
+    #[return_ref]
+    pub roots: Vec<Library>,
+}
+
 /// Source information about a library
 #[salsa::input]
 pub struct Library {
     /// Name of the library
+    #[return_ref]
     pub name: String,
     /// Path to the main file of the library, where all of the other files are discovered from
     pub root: RawPath,
     /// What kind of build artifact this is
     pub artifact: ArtifactKind,
+    /// What other libraries this depends on
+    pub depends: DependencyList,
 }
 
 /// What kind of build artifact this is
@@ -39,21 +51,42 @@ pub enum ArtifactKind {
     Library,
 }
 
+/// What libraries a [`Library`] depends on
+#[salsa::input]
+pub struct DependencyList {
+    depends: BTreeMap<Library, DependencyInfo>,
+}
+
+impl DependencyList {
+    pub fn empty(db: &dyn Db) -> Self {
+        Self::new(db, Default::default())
+    }
+
+    /// Adds a library to depend on
+    #[allow(unused)]
+    pub fn add(self, db: &mut dyn Db, library: Library, info: DependencyInfo) {
+        todo!()
+    }
+
+    /// Removes a library that is currently depended on
+    #[allow(unused)]
+    pub fn remove(self, db: &mut dyn Db, library: Library) {
+        todo!()
+    }
+
+    // ???: Do we want to pass ref to the dep info?
+    // Only relevant when we store that information
+}
+
 /// Information about a library dependency
-#[derive(Debug, Clone)]
-struct LibraryDep();
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+#[non_exhaustive]
+pub struct DependencyInfo();
 
 /// A reference to a library in the [`SourceGraph`]
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(transparent)]
-pub struct LibraryId(Library);
-
-/// Library source graph
-#[derive(Debug, Clone, Default)]
-pub struct SourceGraph {
-    libraries: LibraryGraph,
-    to_node_idx: IdMap<Library, NodeIndex>,
-}
+pub struct LibraryId(pub Library);
 
 impl fmt::Debug for LibraryId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -63,72 +96,37 @@ impl fmt::Debug for LibraryId {
     }
 }
 
-type LibraryGraph = StableDiGraph<Library, LibraryDep>;
+/// Gets the full source graph with all of its dependencies.
+///
+/// If there is a cycle in the dependency graph, [`CyclicDependencies`]
+/// describes which library had a cyclic dependency
+#[salsa::tracked(return_ref)]
+pub fn source_graph(db: &dyn Db) -> Result<SourceGraph, CyclicDependencies> {
+    // FIXME: Actually explore the dependencies of the roots
+    let roots = RootLibraries::get(db).roots(db);
+    let graph = roots.iter().map(|lib| (*lib, lib.depends(db))).collect();
 
+    Ok(SourceGraph::new(db, graph))
+}
+
+#[salsa::tracked]
+pub struct SourceGraph {
+    graph: IdMap<Library, DependencyList>,
+}
+
+#[salsa::tracked]
 impl SourceGraph {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    /// Adds a library to the graph
-    pub fn add_library(&mut self, library: Library) -> LibraryId {
-        let idx = self.libraries.add_node(library);
-        self.to_node_idx.insert(library, idx);
-        LibraryId(library)
-    }
-
-    /// Removes the specified library from the graph
-    pub fn remove_library(&mut self, library_id: LibraryId) {
-        let idx = self.to_idx(library_id.0);
-        self.libraries.remove_node(idx);
-    }
-
-    /// Adds a dependency between libraries
-    pub fn add_library_dep(&mut self, from: LibraryId, to: LibraryId) {
-        self.libraries
-            .update_edge(self.to_idx(from.0), self.to_idx(to.0), LibraryDep());
-    }
-
-    /// Gets the corresponding [`Library`] for a [`LibraryId`]
-    pub fn library(&self, library_id: LibraryId) -> Library {
-        library_id.0
-    }
-
-    /// Traverses the library and its dependencies in DFS order
-    pub fn library_deps(&self, from_library: LibraryId) -> LibraryDeps<'_> {
-        LibraryDeps {
-            graph: &self.libraries,
-            visitor: DfsPostOrder::new(&self.libraries, self.to_idx(from_library.0)),
-        }
-    }
-
-    /// Iterates over all libraries in the graph
-    pub fn all_libraries(&self) -> impl Iterator<Item = (LibraryId, Library)> + '_ {
-        self.libraries
-            .node_indices()
-            .map(|idx| (LibraryId(self.libraries[idx]), self.libraries[idx]))
-    }
-
-    fn to_idx(&self, id: Library) -> NodeIndex {
-        *self
-            .to_node_idx
-            .get(id)
-            .expect("library not added to source graph")
+    #[salsa::tracked(return_ref)]
+    #[allow(clippy::needless_lifetimes)] // FIXME(salsa-2022): embed in proc-macro codegen
+    pub fn all_libraries(self, db: &dyn Db) -> Vec<Library> {
+        self.graph(db).keys().collect::<Vec<_>>()
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct LibraryDeps<'g> {
-    graph: &'g LibraryGraph,
-    visitor: DfsPostOrder<NodeIndex, <LibraryGraph as Visitable>::Map>,
-}
-
-impl<'g> Iterator for LibraryDeps<'g> {
-    type Item = (LibraryId, Library);
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.visitor
-            .next(self.graph)
-            .map(|lib_id| (LibraryId(self.graph[lib_id]), self.graph[lib_id]))
-    }
+/// A dependency cycle is present in at least one library
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CyclicDependencies {
+    // FIXME: Record entire cycle
+    /// Library which participates in the cycle
+    library: Library,
 }
