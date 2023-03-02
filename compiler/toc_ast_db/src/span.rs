@@ -109,8 +109,9 @@ pub(crate) mod query {
         Db,
     };
 
+    /// FIXME: Would be better to use SourceFile directly
     #[salsa::tracked]
-    pub fn line_mapping(db: &dyn Db, file_id: toc_span::FileId) -> Arc<LineMapping> {
+    pub fn line_mapping(db: &dyn Db, file_id: toc_paths::RawPath) -> Arc<LineMapping> {
         let source = toc_vfs_db::source_of(db.upcast_to_vfs_db(), file_id);
         Arc::new(LineMapping::from_source(Arc::new(
             source.contents(db.upcast_to_vfs_db()).clone(),
@@ -120,7 +121,7 @@ pub(crate) mod query {
     #[salsa::tracked]
     pub fn map_byte_index(
         db: &dyn Db,
-        file_id: toc_span::FileId,
+        file_id: toc_paths::RawPath,
         index: usize,
     ) -> Option<LineInfo> {
         line_mapping(db, file_id).map_index(index)
@@ -129,7 +130,7 @@ pub(crate) mod query {
     #[salsa::tracked]
     pub fn map_byte_index_to_position(
         db: &dyn Db,
-        file_id: toc_span::FileId,
+        file_id: toc_paths::RawPath,
         index: usize,
     ) -> Option<LspPosition> {
         line_mapping(db, file_id).map_index_to_position(index)
@@ -138,7 +139,7 @@ pub(crate) mod query {
     #[salsa::tracked]
     pub fn map_byte_index_to_character(
         db: &dyn Db,
-        file_id: toc_span::FileId,
+        file_id: toc_paths::RawPath,
         index: usize,
     ) -> Option<usize> {
         line_mapping(db, file_id).map_index_to_character(index)

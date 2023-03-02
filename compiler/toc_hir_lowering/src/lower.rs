@@ -67,7 +67,7 @@ pub fn lower_library(db: &dyn Db, library: SourceLibrary) -> CompileResult<Lower
         report
             .error_detailed(
                 format!("{err}"),
-                Span::new(library_root, TextRange::empty(0.into())),
+                Span::new(library_root.into(), TextRange::empty(0.into())),
             )
             .finish();
         messages.aggregate(&report.finish());
@@ -102,7 +102,7 @@ pub fn lower_library(db: &dyn Db, library: SourceLibrary) -> CompileResult<Lower
             .lower_file()
             .take();
         messages = messages.combine(msgs);
-        root_items.push((file.path(db.upcast_to_vfs_db()), item));
+        root_items.push((file.path(db.upcast_to_vfs_db()).into(), item));
     }
 
     let library = library.freeze_root_items(root_items);
@@ -283,7 +283,7 @@ impl<'ctx> FileLowering<'ctx> {
     }
 
     fn mk_span(&self, range: toc_span::TextRange) -> Span {
-        Span::new(self.file.path(self.db.upcast_to_vfs_db()), range)
+        Span::new(self.file.path(self.db.upcast_to_vfs_db()).into(), range)
     }
 
     fn intern_range(&mut self, range: toc_span::TextRange) -> SpanId {

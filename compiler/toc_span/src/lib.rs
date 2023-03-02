@@ -6,7 +6,41 @@ use std::fmt;
 pub use text_size::{TextRange, TextSize};
 
 /// A unique file id
-pub type FileId = toc_paths::RawPath;
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[repr(transparent)]
+pub struct FileId(toc_paths::RawPath);
+
+// FIXME: This is so that we don't have to review 500+ snapshots
+mod debug_hax {
+    use super::*;
+
+    use toc_paths::RawPath;
+
+    impl FileId {
+        /// See [`toc_paths::RawPath::dummy`]
+        pub fn dummy(id: u32) -> Self {
+            Self(RawPath::dummy(id))
+        }
+
+        pub fn into_raw(self) -> RawPath {
+            self.0
+        }
+    }
+
+    impl fmt::Debug for FileId {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            f.debug_tuple("FileId")
+                .field(&(self.0.into_raw() + 1))
+                .finish()
+        }
+    }
+
+    impl From<toc_paths::RawPath> for FileId {
+        fn from(value: toc_paths::RawPath) -> Self {
+            Self(value)
+        }
+    }
+}
 
 #[derive(Default, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Span {

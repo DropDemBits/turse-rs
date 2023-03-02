@@ -42,7 +42,7 @@ pub(crate) fn collect_defs(
         )
         .unwrap();
         FileCollector::collect(
-            file.path(db.upcast_to_vfs_db()),
+            file.path(db.upcast_to_vfs_db()).into(),
             root,
             &mut res,
             &mut messages,

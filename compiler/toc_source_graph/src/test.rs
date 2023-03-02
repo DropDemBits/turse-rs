@@ -25,7 +25,7 @@ fn no_dedup_source_roots() {
             Library::new(
                 db,
                 "a".into(),
-                root,
+                root.into_raw(),
                 ArtifactKind::Binary,
                 DependencyList::empty(db),
             )
@@ -42,8 +42,8 @@ fn no_dedup_source_roots() {
             .unwrap()
             .all_libraries(db)
             .iter()
-            .map(|lib| lib.root(db))
-            .collect::<Vec<_>>(),
+            .map(|lib| lib.root(db).into())
+            .collect::<Vec<FileId>>(),
         vec![
             FileId::dummy(3),
             FileId::dummy(2),

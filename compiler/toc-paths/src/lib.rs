@@ -49,6 +49,11 @@ mod paths {
             use salsa::{AsId, Id};
             Self::from_id(Id::from_u32(id))
         }
+
+        // FIXME: Remove once we fully migrate to raw paths and the like
+        pub fn into_raw(self) -> u32 {
+            self.0.as_u32()
+        }
     }
 }
 

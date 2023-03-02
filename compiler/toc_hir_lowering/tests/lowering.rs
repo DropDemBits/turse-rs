@@ -75,7 +75,7 @@ fn do_lower(src: &str) -> (String, LowerResult) {
     (
         s,
         LowerResult {
-            root_file,
+            root_file: root_file.into(),
             hir_result: lowered,
         },
     )
