@@ -3,7 +3,7 @@ use toc_hir::{
     body, expr,
     span::{HasSpanTable, SpanId, Spanned},
 };
-use toc_span::{Span, TextRange};
+use toc_span::TextRange;
 use toc_syntax::{
     ast::{self, AstNode},
     LiteralValue,
@@ -111,11 +111,15 @@ impl super::BodyLowering<'_, '_> {
             // Report errors
             // TODO: Add note saying to escape the caret for `InvalidCaretEscape`
             let span = self.ctx.mk_span(range);
+            let parts = errors
+                .parts(range)
+                .into_iter()
+                .map(|(msg, range)| (msg, self.ctx.mk_span(range)))
+                .collect::<Vec<_>>();
             let mut message = self.ctx.messages.error_detailed(errors.header(), span);
 
-            for (msg, range) in errors.parts(range) {
-                let span = Span::new(self.ctx.file, range);
-                message = message.with_error(&msg, span);
+            for (msg, span) in parts {
+                message = message.with_error(msg, span);
             }
 
             message.finish();

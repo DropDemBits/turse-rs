@@ -1553,11 +1553,13 @@ dependencies = [
  "indexmap",
  "insta",
  "paste",
+ "salsa-2022",
  "toc-ast-db",
  "toc-hir",
  "toc-hir-pretty",
+ "toc-paths",
  "toc-reporting",
- "toc-salsa",
+ "toc-source-graph",
  "toc-span",
  "toc-syntax",
  "toc-vfs",
@@ -1571,6 +1573,7 @@ version = "0.1.0"
 dependencies = [
  "itertools",
  "toc-hir",
+ "toc-source-graph",
  "toc-span",
 ]
 

@@ -26,7 +26,8 @@ use toc_hir::{
 const IS_LR_LAYOUT: bool = true;
 
 pub fn pretty_print_graph(
-    library_graph: &SourceGraph,
+    db: &dyn toc_source_graph::Db,
+    library_graph: SourceGraph,
     get_library: impl Fn(LibraryId) -> LoweredLibrary,
 ) -> String {
     let mut output = String::new();
@@ -45,7 +46,8 @@ pub fn pretty_print_graph(
     writeln!(output, "nodesep=0.5").unwrap();
 
     // Define the contents of the libraries
-    for (library_id, _) in library_graph.all_libraries() {
+    for &library in library_graph.all_libraries(db) {
+        let library_id = LibraryId(library);
         writeln!(output, r#"subgraph "cluster_{library_id:?}" {{"#).unwrap();
         writeln!(output, r#"label="{library_id:?}""#).unwrap();
         writeln!(output, r##"bgcolor="#009aef22""##).unwrap();

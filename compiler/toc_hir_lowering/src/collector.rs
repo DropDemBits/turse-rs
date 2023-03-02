@@ -16,8 +16,9 @@ use toc_syntax::{
     ast::{self, AstNode},
     match_ast,
 };
+use toc_vfs_db::SourceFile;
 
-use crate::LoweringDb;
+use crate::Db;
 
 #[derive(Debug, Default)]
 pub(crate) struct CollectRes {
@@ -27,15 +28,25 @@ pub(crate) struct CollectRes {
 }
 
 pub(crate) fn collect_defs(
-    db: &dyn LoweringDb,
-    reachable_files: &[FileId],
+    db: &dyn Db,
+    reachable_files: &[SourceFile],
 ) -> CompileResult<CollectRes> {
     let mut res = CollectRes::default();
     let mut messages = MessageSink::default();
 
     for &file in reachable_files {
-        let root = ast::Source::cast(db.parse_file(file).result().syntax()).unwrap();
-        FileCollector::collect(file, root, &mut res, &mut messages);
+        let root = ast::Source::cast(
+            toc_ast_db::parse_file(db.upcast_to_source_db(), file)
+                .result()
+                .syntax(),
+        )
+        .unwrap();
+        FileCollector::collect(
+            file.path(db.upcast_to_vfs_db()),
+            root,
+            &mut res,
+            &mut messages,
+        );
     }
 
     CompileResult::new(res, messages.finish())
