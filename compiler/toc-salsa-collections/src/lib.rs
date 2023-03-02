@@ -50,6 +50,7 @@ impl<K, V> IdMap<K, V> {
         self.v.shrink_to_fit();
     }
 }
+
 impl<K: salsa::AsId, V> IdMap<K, V> {
     /// Returns whether the map contains a value for the specified id.
     pub fn contains_id(&self, id: K) -> bool {
@@ -138,6 +139,17 @@ impl<K: salsa::AsId, V> IdMap<K, V> {
         K::from_id(salsa::Id::from(idx))
     }
 }
+
+impl<K, V> PartialEq for IdMap<K, V>
+where
+    V: PartialEq,
+{
+    fn eq(&self, other: &Self) -> bool {
+        self.v.eq(&other.v)
+    }
+}
+
+impl<K, V> Eq for IdMap<K, V> where V: Eq {}
 
 impl<K: salsa::AsId, V> std::ops::Index<K> for IdMap<K, V> {
     type Output = V;
