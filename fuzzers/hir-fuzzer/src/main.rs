@@ -1,5 +1,3 @@
-use std::{collections::HashSet, path::PathBuf, sync::Arc};
-
 use toc_analysis::db::HirAnalysis;
 use toc_paths::RawPath;
 use toc_source_graph::{DependencyList, RootLibraries};
@@ -38,13 +36,7 @@ fn run(source: &str) {
         Ok(v) => v,
         Err(_) => return, // Don't care about invalid fixture files
     };
-    let valid_files = fixture
-        .files
-        .iter()
-        .map(|(path, _)| path.clone())
-        .collect::<HashSet<_>>();
 
-    // Error out any escaped files so that we don't get false-positive crashes
     db.insert_fixture(fixture);
 
     let root_file = RawPath::new(&db, "src/main.t".into());
@@ -84,21 +76,12 @@ impl VfsBridge for FuzzDb {
     fn source_table(&self) -> &SourceTable {
         &self.source_table
     }
+
+    fn load_new_file(&self, _path: RawPath) -> (String, Option<toc_vfs::LoadError>) {
+        // Error out any escaped files so that we don't get false-positive crashes
+        (
+            String::new(),
+            Some(toc_vfs::LoadError::new("", toc_vfs::ErrorKind::NotFound)),
+        )
+    }
 }
-
-// #[derive(Default)]
-// struct ValidFileLoader(HashSet<PathBuf>);
-
-// impl toc_vfs::FileLoader for ValidFileLoader {
-//     fn load_file(&self, path: &std::path::Path) -> toc_vfs::LoadResult {
-//         if self.0.contains(path) {
-//             Ok(toc_vfs::LoadStatus::Unchanged)
-//         } else {
-//             Err(toc_vfs::LoadError::new(path, toc_vfs::ErrorKind::NotFound))
-//         }
-//     }
-
-//     fn normalize_path(&self, _path: &std::path::Path) -> Option<PathBuf> {
-//         None
-//     }
-// }
