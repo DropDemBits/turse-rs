@@ -92,7 +92,7 @@ mod test {
     use expect_test::{expect, Expect};
 
     fn do_scanner(source: &str) -> (Vec<(TokenKind, &str)>, String) {
-        let dummy_id = FileId::dummy(1);
+        let dummy_id = FileId::dummy(0);
         let scanner = Scanner::new(dummy_id, source);
 
         let (toks, errors) = scanner.collect_all();
@@ -119,7 +119,7 @@ mod test {
     /// Expects no errors to be produced
     #[track_caller] // Issue isn't here, but from caller
     fn expect(source: &str, kind: &TokenKind) {
-        let dummy_id = FileId::dummy(1);
+        let dummy_id = FileId::dummy(0);
         let mut scanner = Scanner::new(dummy_id, source);
 
         // Should be the expected token & the same source text
@@ -151,7 +151,7 @@ mod test {
 
     #[track_caller]
     fn expect_with_error(source: &str, kind: &TokenKind, expecting: Expect) {
-        let dummy_id = FileId::dummy(1);
+        let dummy_id = FileId::dummy(0);
         let mut scanner = Scanner::new(dummy_id, source);
 
         // Should be the expected token & the same source text
