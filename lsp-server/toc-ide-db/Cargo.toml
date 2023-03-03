@@ -12,15 +12,18 @@ edition.workspace = true
 lsp-types = { workspace = true }
 tracing = { workspace = true }
 camino = { workspace = true }
+salsa = { workspace = true }
 ropey = "1.5.0"
 
 # Local compiler dependencies
-toc-hir = { workspace = true }
-toc-hir-db = { workspace = true }
 toc-analysis = { workspace = true }
 toc-ast-db = { workspace = true }
+toc-hir = { workspace = true }
+toc-hir-db = { workspace = true }
+toc-hir-lowering = { workspace = true }
+toc-paths = { workspace = true }
 toc-reporting = { workspace = true }
+toc-source-graph = { workspace = true }
 toc-span = { workspace = true }
 toc-vfs = { workspace = true }
 toc-vfs-db = { workspace = true }
-toc-salsa = { workspace = true }
