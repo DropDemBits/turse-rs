@@ -10,6 +10,8 @@ use toc_hir::{
 ///
 /// [`DefId`]s can't be uniquely inside of a module as undeclared don't have a
 /// declaration that pins them to a specific module.
+///
+/// [`DefId`]: toc_hir::symbol::DefId
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum InsideModule {
     Item(LibraryId, item::ItemId),
