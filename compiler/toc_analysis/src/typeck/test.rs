@@ -1,7 +1,7 @@
 //! Type check tests
 
 use toc_hir::symbol::DefId;
-use toc_hir_db::db::HirDatabase;
+use toc_hir_db::Db;
 use toc_reporting::MessageBundle;
 use unindent::unindent;
 
@@ -45,16 +45,16 @@ macro_rules! test_named_group {
 }
 
 fn do_typecheck(source: &str) -> String {
-    let (db, lib) = TestDb::from_source(source);
-    let typeck_res = db.typecheck_library(lib);
+    let (db, library) = TestDb::from_source(source);
+    let typeck_res = db.typecheck_library(library);
     typeck_res.messages().assert_no_delayed_reports();
 
-    stringify_typeck_results(&db, lib, typeck_res.messages())
+    stringify_typeck_results(&db, library.into(), typeck_res.messages())
 }
 
 fn stringify_typeck_results(
     db: &TestDb,
-    lib: toc_hir::library::LibraryId,
+    library_id: toc_hir::library::LibraryId,
     messages: &MessageBundle,
 ) -> String {
     use std::fmt::Write;
@@ -63,7 +63,7 @@ fn stringify_typeck_results(
     // Pretty print typectx
     // Want: `type_of` all reachable DefIds
     // - Printed type nodes because we wanted to see the full type
-    let library = db.library(lib);
+    let library = db.library(library_id);
     for did in library.local_defs() {
         let def_info = library.local_def(did);
         let name = def_info.name;
@@ -72,7 +72,7 @@ fn stringify_typeck_results(
             Some(kind) => format!("{kind:?}"),
             None => "Undeclared".to_string(),
         };
-        let ty = db.type_of(DefId(lib, did).into()).in_db(db);
+        let ty = db.type_of(DefId(library_id, did).into()).in_db(db);
 
         writeln!(&mut s, "{name:?}@{name_span:?} [{sym_kind}]: {ty:?}").unwrap();
     }

@@ -1,48 +1,51 @@
 //! Testing helpers
 
-use std::sync::Arc;
+use toc_hir::library_graph::SourceLibrary;
+use toc_paths::RawPath;
+use toc_source_graph::{DependencyList, RootLibraries};
+use toc_vfs_db::{SourceTable, VfsBridge, VfsDbExt};
 
-use toc_ast_db::{
-    db::{AstDatabaseExt, SourceParser},
-    SourceGraph,
-};
-use toc_hir::library::LibraryId;
-use toc_salsa::salsa;
-use toc_vfs_db::db::{PathIntern, VfsDatabaseExt};
-
-#[salsa::database(
-    toc_vfs_db::db::FileSystemStorage,
-    toc_vfs_db::db::PathInternStorage,
-    toc_ast_db::db::SourceParserStorage,
-    toc_hir_db::db::HirDatabaseStorage,
-    crate::db::TypeInternStorage,
-    crate::db::TypeDatabaseStorage,
-    crate::db::ConstEvalStorage,
-    crate::db::HirAnalysisStorage
+#[salsa::db(
+    toc_paths::Jar,
+    toc_vfs_db::Jar,
+    toc_source_graph::Jar,
+    toc_ast_db::Jar,
+    toc_hir_lowering::Jar,
+    toc_hir_db::Jar,
+    crate::TypeJar,
+    crate::ConstEvalJar,
+    crate::AnalysisJar
 )]
 #[derive(Default)]
 pub(crate) struct TestDb {
     storage: salsa::Storage<Self>,
+    source_table: SourceTable,
+}
+
+impl VfsBridge for TestDb {
+    fn source_table(&self) -> &SourceTable {
+        &self.source_table
+    }
 }
 
 impl salsa::Database for TestDb {}
 
 impl TestDb {
-    pub(crate) fn from_source(source: &str) -> (Self, LibraryId) {
+    pub(crate) fn from_source(source: &str) -> (Self, SourceLibrary) {
         let mut db = TestDb::default();
         let fixture = toc_vfs::generate_vfs(source).unwrap();
         db.insert_fixture(fixture);
 
-        let root_file = db.intern_path("src/main.t".into());
-        let mut source_graph = SourceGraph::default();
-        let library_id = source_graph.add_library(toc_hir::library_graph::SourceLibrary {
-            name: "main".into(),
-            root: root_file,
-            artifact: toc_hir::library_graph::ArtifactKind::Binary,
-        });
-        db.set_source_graph(Arc::new(source_graph));
-        db.rebuild_file_links(&toc_vfs::DummyFileLoader);
+        let root_file = RawPath::new(&db, "src/main.t".into());
+        let library = SourceLibrary::new(
+            &db,
+            "main".into(),
+            root_file,
+            toc_hir::library_graph::ArtifactKind::Binary,
+            DependencyList::empty(&db),
+        );
+        RootLibraries::new(&db, vec![library]);
 
-        (db, library_id)
+        (db, library)
     }
 }

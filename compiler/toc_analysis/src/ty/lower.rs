@@ -13,7 +13,11 @@ use toc_hir::{
 use crate::{
     const_eval::{Const, ConstInt},
     db::TypeDatabase,
-    ty::{self, db::NotValueErrExt, Checked, Param, TypeId, TypeKind},
+    ty::{
+        self,
+        db::{NotValueErrExt, TypeInternExt},
+        Checked, Param, TypeId, TypeKind,
+    },
 };
 
 use super::{AllowDyn, IntSize, NatSize, RealSize, SeqSize};

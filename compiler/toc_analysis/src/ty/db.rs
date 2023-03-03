@@ -10,49 +10,38 @@ use toc_hir::{
     symbol::{self, DefId},
     ty::TypeId as HirTypeId,
 };
-use toc_salsa::salsa;
 
 use crate::{const_eval, ty};
 
-#[salsa::query_group(TypeInternStorage)]
-pub trait TypeIntern: toc_hir_db::db::HirDatabase {
-    /// Interns the given type.
-    #[salsa::interned]
-    fn intern_type(&self, ty: ty::TypeData) -> ty::TypeId;
-}
+#[salsa::jar(db = TypeDatabase)]
+pub struct TypeJar(ty::TypeId);
 
 /// Type database
-#[salsa::query_group(TypeDatabaseStorage)]
-pub trait TypeDatabase: TypeIntern + TypeInternExt {
+pub trait TypeDatabase: salsa::DbWithJar<TypeJar> + toc_hir_db::Db {
+    fn upcast_to_type_db(&self) -> &dyn TypeDatabase;
+
     /// Converts the HIR type into an analysis form
-    #[salsa::invoke(ty::query::from_hir_type)]
     fn from_hir_type(&self, type_id: InLibrary<HirTypeId>) -> ty::TypeId;
 
     /// Gets the type of the given type source.
-    #[salsa::invoke(ty::query::type_of)]
     fn type_of(&self, source: TypeSource) -> ty::TypeId;
 
     /// Gets what kind of value a [`ValueSource`] produces, or a [`NotValue`] if it doesn't produce one
-    #[salsa::invoke(ty::query::value_produced)]
     fn value_produced(&self, source: ValueSource) -> Result<ValueKind, NotValue>;
 
     /// Gets the corresponding definition from the given [`BindingSource`], or `None` if there isn't one.
     /// This also performs definition resolution, so resolving the resultant [`DefId`] is unnecessary.
-    #[salsa::invoke(ty::query::binding_def)]
     fn binding_def(&self, bind_src: BindingSource) -> Option<DefId>;
 
     /// Like [`Self::binding_def`], but does not perform definition resolution.
     /// Unless looking at the immediate def is necessary (e.g. determining if it's an import),
     /// then [`Self::binding_def`] should always be prefered.
-    #[salsa::invoke(ty::query::unresolved_binding_def)]
     fn unresolved_binding_def(&self, bind_src: BindingSource) -> Option<DefId>;
 
     /// Gets the fields from the given [`FieldSource`]
-    #[salsa::invoke(ty::query::fields_of)]
     fn fields_of(&self, source: FieldSource) -> Option<Arc<item::Fields>>;
 
     /// Finds the associated exporting def from the given [`BindingSource`], or `None` if there isn't any
-    #[salsa::invoke(ty::query::find_exported_def)]
     fn exporting_def(&self, source: BindingSource) -> Option<DefId>;
 }
 
@@ -258,7 +247,7 @@ pub enum ValueSource {
 impl ValueSource {
     pub fn span_of<DB>(self, db: &DB) -> toc_span::Span
     where
-        DB: ?Sized + toc_hir_db::db::HirDatabase,
+        DB: ?Sized + toc_hir_db::Db,
     {
         match self {
             ValueSource::Def(_def_id) => {

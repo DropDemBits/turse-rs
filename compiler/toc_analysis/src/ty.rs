@@ -1,6 +1,6 @@
 //! Representation of Turing types
 
-use std::{fmt::Debug, sync::Arc};
+use std::fmt::Debug;
 
 use toc_hir::symbol::{self, DefId};
 use toc_span::Span;
@@ -27,19 +27,23 @@ pub const MAX_CHAR_N_LEN: u32 = 32768;
 // Unconstructible, ill-formed => A type cannot be reified
 //                                e.g. `<error>`, or from a TyKind::Missing
 
-/// General concrete type
-#[derive(Debug, PartialEq, Eq, Hash)]
-pub struct Type {
-    kind: TypeKind,
+/// Id referencing an interned type.
+#[salsa::interned(jar = db::TypeJar)]
+pub struct TypeId {
+    #[return_ref]
+    pub kind: TypeKind,
 }
 
-impl Type {
-    pub fn kind(&self) -> &TypeKind {
-        &self.kind
+impl TypeId {
+    pub fn in_db<'db, DB>(self, db: &'db DB) -> TyRef<'db, DB>
+    where
+        DB: db::TypeDatabase + ?Sized + 'db,
+    {
+        TyRef { db, id: self }
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum TypeKind {
     /// Unconstructable type.
     /// Produced so that errors aren't duplicated.
@@ -125,7 +129,7 @@ pub enum NatSize {
 }
 
 /// Size variant of a Real
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum RealSize {
     Real4,
     Real8,
@@ -134,7 +138,7 @@ pub enum RealSize {
 }
 
 /// Size of a CharSeq
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum SeqSize {
     /// Any sized (only accepted for parameters)
     Any,
@@ -181,7 +185,7 @@ pub enum AllowDyn {
 }
 
 /// End bound of a [`TypeKind::Constrained`]
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum EndBound {
     /// From a constant expression
     Expr(Const, AllowDyn),
@@ -229,7 +233,7 @@ pub enum Checked {
 }
 
 /// Parameter for a [`TypeKind::Subprogram`]
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Param {
     /// How the parameter should be passed in as
     pub pass_by: PassBy,
@@ -255,12 +259,14 @@ pub enum PassBy {
 pub struct TyRef<'db, DB: ?Sized + 'db> {
     db: &'db DB,
     id: TypeId,
-    data: TypeData,
 }
 
-impl<'db, DB: ?Sized + 'db> TyRef<'db, DB> {
+impl<'db, DB> TyRef<'db, DB>
+where
+    DB: ?Sized + db::TypeDatabase + 'db,
+{
     pub fn kind(&self) -> &TypeKind {
-        &self.data.kind
+        self.id.kind(self.db.upcast_to_type_db())
     }
 
     pub fn id(&self) -> TypeId {
@@ -585,7 +591,6 @@ impl<'db, DB: ?Sized + 'db> Clone for TyRef<'db, DB> {
         Self {
             db: self.db,
             id: self.id,
-            data: self.data.clone(),
         }
     }
 }
@@ -597,42 +602,4 @@ pub fn align_up_to(size: usize, align: usize) -> usize {
     let mask = align - 1;
 
     (size + mask) & !mask
-}
-
-toc_salsa::create_intern_key!(
-    /// Id referencing an interned type.
-    pub TypeId;
-);
-
-impl TypeId {
-    pub fn in_db<'db, DB>(self, db: &'db DB) -> TyRef<'db, DB>
-    where
-        DB: db::TypeDatabase + ?Sized + 'db,
-    {
-        TyRef {
-            db,
-            id: self,
-            data: db.lookup_intern_type(self),
-        }
-    }
-}
-
-/// Interned type data
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct TypeData {
-    data: Arc<Type>,
-}
-
-impl std::ops::Deref for TypeData {
-    type Target = Type;
-
-    fn deref(&self) -> &Self::Target {
-        self.data.deref()
-    }
-}
-
-impl From<Type> for TypeData {
-    fn from(ty: Type) -> Self {
-        Self { data: Arc::new(ty) }
-    }
 }

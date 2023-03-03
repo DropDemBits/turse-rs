@@ -10,6 +10,7 @@ use toc_hir::{
     expr::{self, BodyExpr},
     item,
     library::{self, LibraryId, WrapInLibrary},
+    library_graph::SourceLibrary,
     stmt,
     stmt::BodyStmt,
     symbol::{DefId, DefOwner, IsRegister, Mutability, SubprogramKind, SymbolKind},
@@ -45,8 +46,9 @@ use crate::{
 // - Mutability in general falls under responsibility of assignability (so by extension, typeck is responsible)
 // - Export mutability matters for mutation outside of the local unit scope, normal const/var rules apply for local units
 
-pub(crate) fn typecheck_library(db: &dyn HirAnalysis, library: LibraryId) -> CompileResult<()> {
-    TypeCheck::check_library(db, library)
+#[salsa::tracked(jar = crate::db::AnalysisJar)]
+pub(crate) fn typecheck_library(db: &dyn HirAnalysis, library: SourceLibrary) -> CompileResult<()> {
+    TypeCheck::check_library(db, library.into())
 }
 
 struct TypeCheck<'db> {

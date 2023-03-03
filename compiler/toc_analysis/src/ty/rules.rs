@@ -5,7 +5,7 @@ use toc_reporting::MessageSink;
 use toc_span::Span;
 
 use crate::{
-    db,
+    db::{self, TypeInternExt},
     ty::{self, NotFixedLen, SeqSize, TypeId, TypeKind},
 };
 

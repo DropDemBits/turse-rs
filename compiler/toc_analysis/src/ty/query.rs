@@ -15,11 +15,48 @@ use toc_hir::{
     ty::TypeId as HirTypeId,
 };
 
-use crate::const_eval;
 use crate::db::{self, BindingSource, TypeDatabase};
 use crate::ty::{EndBound, WithDef};
+use crate::{const_eval, db::TypeInternExt};
 
-use super::{lower, Checked, IntSize, NatSize, Param, RealSize, SeqSize, Type, TypeId, TypeKind};
+use super::{lower, Checked, IntSize, NatSize, Param, RealSize, SeqSize, TypeId, TypeKind};
+
+impl<DB> db::TypeDatabase for DB
+where
+    DB: salsa::DbWithJar<db::TypeJar> + toc_hir_db::Db,
+{
+    fn upcast_to_type_db(&self) -> &dyn TypeDatabase {
+        self
+    }
+
+    fn from_hir_type(&self, type_id: InLibrary<HirTypeId>) -> super::TypeId {
+        from_hir_type(self, type_id)
+    }
+
+    fn type_of(&self, source: db::TypeSource) -> super::TypeId {
+        type_of(self, source)
+    }
+
+    fn value_produced(&self, source: db::ValueSource) -> Result<db::ValueKind, db::NotValue> {
+        value_produced(self, source)
+    }
+
+    fn binding_def(&self, bind_src: BindingSource) -> Option<DefId> {
+        binding_def(self, bind_src)
+    }
+
+    fn unresolved_binding_def(&self, bind_src: BindingSource) -> Option<DefId> {
+        unresolved_binding_def(self, bind_src)
+    }
+
+    fn fields_of(&self, source: db::FieldSource) -> Option<Arc<item::Fields>> {
+        fields_of(self, source)
+    }
+
+    fn exporting_def(&self, source: BindingSource) -> Option<DefId> {
+        exporting_def(self, source)
+    }
+}
 
 pub(crate) fn from_hir_type(db: &dyn db::TypeDatabase, type_id: InLibrary<HirTypeId>) -> TypeId {
     lower::ty_from_hir_ty(db, type_id)
@@ -529,10 +566,7 @@ pub(crate) fn fields_of(
     }
 }
 
-pub(crate) fn find_exported_def(
-    db: &dyn TypeDatabase,
-    bind_src: db::BindingSource,
-) -> Option<DefId> {
+pub(crate) fn exporting_def(db: &dyn TypeDatabase, bind_src: db::BindingSource) -> Option<DefId> {
     let (library_id, library);
     let (body_id, expr_id) = match bind_src {
         db::BindingSource::DefId(def_id @ DefId(lib_id, _)) => {
@@ -609,131 +643,64 @@ pub(crate) fn find_exported_def(
 
 impl<T> db::TypeInternExt for T
 where
-    T: db::TypeIntern,
+    T: ?Sized + db::TypeDatabase,
 {
     fn mk_error(&self) -> TypeId {
-        self.intern_type(
-            Type {
-                kind: TypeKind::Error,
-            }
-            .into(),
-        )
+        TypeId::new(self.upcast_to_type_db(), TypeKind::Error)
     }
 
     fn mk_boolean(&self) -> TypeId {
-        self.intern_type(
-            Type {
-                kind: TypeKind::Boolean,
-            }
-            .into(),
-        )
+        TypeId::new(self.upcast_to_type_db(), TypeKind::Boolean)
     }
 
     fn mk_int(&self, kind: IntSize) -> TypeId {
-        self.intern_type(
-            Type {
-                kind: TypeKind::Int(kind),
-            }
-            .into(),
-        )
+        TypeId::new(self.upcast_to_type_db(), TypeKind::Int(kind))
     }
 
     fn mk_nat(&self, kind: NatSize) -> TypeId {
-        self.intern_type(
-            Type {
-                kind: TypeKind::Nat(kind),
-            }
-            .into(),
-        )
+        TypeId::new(self.upcast_to_type_db(), TypeKind::Nat(kind))
     }
 
     fn mk_real(&self, kind: RealSize) -> TypeId {
-        self.intern_type(
-            Type {
-                kind: TypeKind::Real(kind),
-            }
-            .into(),
-        )
+        TypeId::new(self.upcast_to_type_db(), TypeKind::Real(kind))
     }
 
     fn mk_integer(&self) -> TypeId {
-        self.intern_type(
-            Type {
-                kind: TypeKind::Integer,
-            }
-            .into(),
-        )
+        TypeId::new(self.upcast_to_type_db(), TypeKind::Integer)
     }
 
     fn mk_char(&self) -> TypeId {
-        self.intern_type(
-            Type {
-                kind: TypeKind::Char,
-            }
-            .into(),
-        )
+        TypeId::new(self.upcast_to_type_db(), TypeKind::Char)
     }
 
     fn mk_string(&self) -> TypeId {
-        self.intern_type(
-            Type {
-                kind: TypeKind::String,
-            }
-            .into(),
-        )
+        TypeId::new(self.upcast_to_type_db(), TypeKind::String)
     }
 
     fn mk_char_n(&self, seq_size: SeqSize) -> TypeId {
-        self.intern_type(
-            Type {
-                kind: TypeKind::CharN(seq_size),
-            }
-            .into(),
-        )
+        TypeId::new(self.upcast_to_type_db(), TypeKind::CharN(seq_size))
     }
 
     fn mk_string_n(&self, seq_size: SeqSize) -> TypeId {
-        self.intern_type(
-            Type {
-                kind: TypeKind::StringN(seq_size),
-            }
-            .into(),
-        )
+        TypeId::new(self.upcast_to_type_db(), TypeKind::StringN(seq_size))
     }
 
     fn mk_alias(&self, def_id: DefId, base_ty: TypeId) -> TypeId {
-        self.intern_type(
-            Type {
-                kind: TypeKind::Alias(def_id, base_ty),
-            }
-            .into(),
-        )
+        TypeId::new(self.upcast_to_type_db(), TypeKind::Alias(def_id, base_ty))
     }
 
     fn mk_opaque(&self, def_id: DefId, base_ty: TypeId) -> TypeId {
-        self.intern_type(
-            Type {
-                kind: TypeKind::Opaque(def_id, base_ty),
-            }
-            .into(),
-        )
+        TypeId::new(self.upcast_to_type_db(), TypeKind::Opaque(def_id, base_ty))
     }
 
     fn mk_forward(&self) -> TypeId {
-        self.intern_type(
-            Type {
-                kind: TypeKind::Forward,
-            }
-            .into(),
-        )
+        TypeId::new(self.upcast_to_type_db(), TypeKind::Forward)
     }
 
     fn mk_constrained(&self, base_ty: TypeId, start: const_eval::Const, end: EndBound) -> TypeId {
-        self.intern_type(
-            Type {
-                kind: TypeKind::Constrained(base_ty, start, end),
-            }
-            .into(),
+        TypeId::new(
+            self.upcast_to_type_db(),
+            TypeKind::Constrained(base_ty, start, end),
         )
     }
 
@@ -743,38 +710,24 @@ where
         ranges: Vec<super::TypeId>,
         elem_ty: super::TypeId,
     ) -> super::TypeId {
-        self.intern_type(
-            Type {
-                kind: TypeKind::Array(sizing, ranges, elem_ty),
-            }
-            .into(),
+        TypeId::new(
+            self.upcast_to_type_db(),
+            TypeKind::Array(sizing, ranges, elem_ty),
         )
     }
 
     fn mk_enum(&self, with_def: WithDef, variants: Vec<DefId>) -> TypeId {
-        self.intern_type(
-            Type {
-                kind: TypeKind::Enum(with_def, variants),
-            }
-            .into(),
-        )
+        TypeId::new(self.upcast_to_type_db(), TypeKind::Enum(with_def, variants))
     }
 
     fn mk_set(&self, with_def: WithDef, elem_ty: TypeId) -> TypeId {
-        self.intern_type(
-            Type {
-                kind: TypeKind::Set(with_def, elem_ty),
-            }
-            .into(),
-        )
+        TypeId::new(self.upcast_to_type_db(), TypeKind::Set(with_def, elem_ty))
     }
 
     fn mk_pointer(&self, checked: Checked, target_ty: TypeId) -> TypeId {
-        self.intern_type(
-            Type {
-                kind: TypeKind::Pointer(checked, target_ty),
-            }
-            .into(),
+        TypeId::new(
+            self.upcast_to_type_db(),
+            TypeKind::Pointer(checked, target_ty),
         )
     }
 
@@ -784,20 +737,13 @@ where
         params: Option<Vec<Param>>,
         result: TypeId,
     ) -> TypeId {
-        self.intern_type(
-            Type {
-                kind: TypeKind::Subprogram(kind, params, result),
-            }
-            .into(),
+        TypeId::new(
+            self.upcast_to_type_db(),
+            TypeKind::Subprogram(kind, params, result),
         )
     }
 
     fn mk_void(&self) -> TypeId {
-        self.intern_type(
-            Type {
-                kind: TypeKind::Void,
-            }
-            .into(),
-        )
+        TypeId::new(self.upcast_to_type_db(), TypeKind::Void)
     }
 }
