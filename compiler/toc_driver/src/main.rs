@@ -1,18 +1,15 @@
 //! Dummy bin for running the new scanner and parser
 
-use std::{collections::HashMap, fs, sync::Arc};
+use std::{collections::HashMap, fs};
 
+use camino::{Utf8Path, Utf8PathBuf};
 use toc_analysis::db::HirAnalysis;
-use toc_ast_db::{
-    db::{AstDatabaseExt, SourceParser, SpanMapping},
-    SourceGraph,
-};
-use toc_hir::library_graph::SourceLibrary;
-use toc_hir_db::db::HirDatabase;
-use toc_salsa::salsa;
+use toc_hir::library_graph::{DependencyList, SourceLibrary};
+use toc_paths::RawPath;
+use toc_source_graph::RootLibraries;
 use toc_span::{FileId, Span};
 use toc_vfs::FileLoader;
-use toc_vfs_db::db::{FileSystem, PathIntern};
+use toc_vfs_db::{SourceTable, VfsBridge};
 
 mod config;
 
@@ -38,50 +35,57 @@ fn main() {
         .unwrap_or_else(|| "main".to_string());
     let path = loader.normalize_path(path).unwrap_or_else(|| path.into());
     let output_path = path.with_extension("tbc");
-    let mut db = MainDatabase::default();
+    let db = MainDatabase::default();
 
     // Add the root path to the db
-    let root_file = db.intern_path(path.try_into().unwrap());
+    let root_file = RawPath::new(&db, path.try_into().unwrap());
 
     // Set the source root
-    let mut source_graph = SourceGraph::default();
-    let _lib_id = source_graph.add_library(SourceLibrary {
-        artifact: toc_hir::library_graph::ArtifactKind::Binary,
-        name: maybe_name,
-        root: root_file,
-    });
-    db.set_source_graph(Arc::new(source_graph));
-    db.rebuild_file_links(&loader);
+    let _lib_id = SourceLibrary::new(
+        &db,
+        maybe_name,
+        root_file,
+        toc_hir::library_graph::ArtifactKind::Binary,
+        DependencyList::empty(&db),
+    );
+    RootLibraries::new(&db, vec![_lib_id]);
 
     // Dump requested information
     if let Some(dump_mode) = args.dump {
         match dump_mode {
             config::DumpMode::Ast => {
                 // Show CST + dependencies for the current file
-                let parsed = db.parse_file(root_file);
+                let source = toc_vfs_db::source_of(&db, root_file);
+                let parsed = toc_ast_db::parse_file(&db, source);
                 let tree = parsed.result();
-                let dependencies = db.parse_depends(root_file);
+                let dependencies = toc_ast_db::parse_depends(&db, source);
 
                 println!("Parsed output: {}", tree.dump_tree());
                 println!("Dependencies: {:#?}", dependencies.result());
             }
             config::DumpMode::Hir => {
+                use toc_hir_db::Db;
+
                 // Dump library graph
                 println!("Libraries:");
-                let library_graph = db.source_graph();
+                let source_graph = toc_source_graph::source_graph(&db).as_ref().ok().unwrap();
 
-                for (lib_id, lib) in library_graph.all_libraries() {
-                    let file = lib.root;
+                for &library in source_graph.all_libraries(&db) {
+                    let file = library.root(&db);
                     println!(
                         "{file:?}: {tree}",
-                        tree = toc_hir_pretty::tree::pretty_print_tree(&db.library(lib_id))
+                        tree = toc_hir_pretty::tree::pretty_print_tree(&db.library(library.into()))
                     );
                 }
             }
             config::DumpMode::HirGraph => {
-                let out = toc_hir_pretty::graph::pretty_print_graph(&db.source_graph(), |lib_id| {
-                    db.library(lib_id)
-                });
+                use toc_hir_db::Db;
+
+                let source_graph = toc_source_graph::source_graph(&db).as_ref().ok().unwrap();
+                let out =
+                    toc_hir_pretty::graph::pretty_print_graph(&db, *source_graph, |library| {
+                        db.library(library)
+                    });
                 println!("{out}");
             }
         }
@@ -123,8 +127,8 @@ fn emit_message(db: &MainDatabase, cache: &mut VfsCache, msg: &toc_reporting::Re
         let start: usize = range.start().into();
         let end: usize = range.end().into();
 
-        let start = db.map_byte_index_to_character(file, start).unwrap();
-        let end = db.map_byte_index_to_character(file, end).unwrap();
+        let start = toc_ast_db::map_byte_index_to_character(db, file.into_raw(), start).unwrap();
+        let end = toc_ast_db::map_byte_index_to_character(db, file.into_raw(), end).unwrap();
 
         Some((file, start..end))
     }
@@ -205,34 +209,68 @@ impl ariadne::Cache<FileId> for VfsCache<'_> {
         Ok(match self.sources.entry(*id) {
             Entry::Occupied(entry) => entry.into_mut(),
             Entry::Vacant(entry) => {
-                let value = ariadne::Source::from(&*self.db.file_source(*id).0);
+                let source = toc_vfs_db::source_of(self.db, id.into_raw());
+                let value = ariadne::Source::from(source.contents(self.db));
                 entry.insert(value)
             }
         })
     }
 
     fn display<'a>(&self, id: &'a FileId) -> Option<Box<dyn std::fmt::Display + 'a>> {
-        Some(Box::new(self.db.file_path(*id)))
+        Some(Box::new(id.into_raw().raw_path(self.db).clone()))
     }
 }
 
-#[salsa::database(
-    toc_vfs_db::db::FileSystemStorage,
-    toc_vfs_db::db::PathInternStorage,
-    toc_ast_db::db::SpanMappingStorage,
-    toc_ast_db::db::SourceParserStorage,
-    toc_hir_db::db::HirDatabaseStorage,
-    toc_analysis::db::TypeInternStorage,
-    toc_analysis::db::TypeDatabaseStorage,
-    toc_analysis::db::ConstEvalStorage,
-    toc_analysis::db::HirAnalysisStorage
+#[salsa::db(
+    toc_paths::Jar,
+    toc_vfs_db::Jar,
+    toc_source_graph::Jar,
+    toc_ast_db::Jar,
+    toc_hir_lowering::Jar,
+    toc_hir_db::Jar,
+    toc_analysis::TypeJar,
+    toc_analysis::ConstEvalJar,
+    toc_analysis::AnalysisJar
 )]
 #[derive(Default)]
 struct MainDatabase {
     storage: salsa::Storage<Self>,
+    source_table: SourceTable,
 }
 
 impl salsa::Database for MainDatabase {}
+
+impl VfsBridge for MainDatabase {
+    fn source_table(&self) -> &SourceTable {
+        &self.source_table
+    }
+
+    fn load_new_file(&self, path: toc_paths::RawPath) -> (String, Option<toc_vfs::LoadError>) {
+        match fs::read(path.raw_path(self).as_path()) {
+            Ok(contents) => (String::from_utf8_lossy(&contents).into_owned(), None),
+            Err(err) => match err.kind() {
+                std::io::ErrorKind::NotFound => (
+                    String::new(),
+                    Some(toc_vfs::LoadError::new("", toc_vfs::ErrorKind::NotFound)),
+                ),
+                _ => (
+                    String::new(),
+                    Some(toc_vfs::LoadError::new(
+                        "",
+                        toc_vfs::ErrorKind::Other(std::sync::Arc::new(err.to_string())),
+                    )),
+                ),
+            },
+        }
+    }
+
+    fn normalize_path(&self, path: &Utf8Path) -> Utf8PathBuf {
+        fs::canonicalize(path.as_std_path())
+            .ok()
+            .and_then(|path| Utf8PathBuf::try_from(path).ok())
+            .unwrap_or_else(|| path.to_owned())
+    }
+}
 
 #[derive(Default)]
 struct MainFileLoader {}
