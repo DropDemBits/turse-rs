@@ -105,6 +105,18 @@ impl fmt::Debug for LibraryId {
     }
 }
 
+impl From<LibraryId> for Library {
+    fn from(value: LibraryId) -> Self {
+        value.0
+    }
+}
+
+impl From<Library> for LibraryId {
+    fn from(value: Library) -> Self {
+        Self(value)
+    }
+}
+
 /// Gets the full source graph with all of its dependencies.
 ///
 /// If there is a cycle in the dependency graph, [`CyclicDependencies`]
