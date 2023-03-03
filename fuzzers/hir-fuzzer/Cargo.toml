@@ -13,11 +13,14 @@ toc-analysis = { workspace = true }
 toc-ast-db = { workspace = true }
 toc-hir = { workspace = true }
 toc-hir-db = { workspace = true }
+toc-hir-lowering = { workspace = true }
 toc-reporting = { workspace = true }
-toc-salsa = { workspace = true }
+toc-paths = { workspace = true }
 toc-span = { workspace = true }
+toc-source-graph = { workspace = true }
 toc-vfs = { workspace = true }
 toc-vfs-db = { workspace = true }
+salsa = { workspace = true }
 
 [target.'cfg(target_os = "linux")'.dependencies.afl]
 package = "afl"

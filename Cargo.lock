@@ -527,12 +527,15 @@ name = "hir-fuzzer"
 version = "0.1.0"
 dependencies = [
  "afl",
+ "salsa-2022",
  "toc-analysis",
  "toc-ast-db",
  "toc-hir",
  "toc-hir-db",
+ "toc-hir-lowering",
+ "toc-paths",
  "toc-reporting",
- "toc-salsa",
+ "toc-source-graph",
  "toc-span",
  "toc-vfs",
  "toc-vfs-db",
@@ -1531,6 +1534,7 @@ dependencies = [
  "toc-hir",
  "toc-hir-db",
  "toc-reporting",
+ "toc-source-graph",
  "toc-span",
 ]
 
