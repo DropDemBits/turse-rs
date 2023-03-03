@@ -64,7 +64,7 @@ impl ParseTree {
 pub(crate) fn check(source: &str, expected: expect_test::Expect) {
     use std::fmt::Write;
 
-    let dummy_file = FileId::dummy(1);
+    let dummy_file = FileId::dummy(0);
     let res = parse(dummy_file, source);
 
     let mut debug_tree = res.result().dump_tree();
