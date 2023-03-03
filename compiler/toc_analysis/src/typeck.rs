@@ -1207,7 +1207,7 @@ impl TypeCheck<'_> {
         if let Some(hir_ty) = result_ty {
             // Peel any opaques first
             let in_module = db.inside_module((self.library_id, hir_ty).into());
-            let result_ty = db.from_hir_type(hir_ty.in_library(self.library_id));
+            let result_ty = db.lower_hir_type(hir_ty.in_library(self.library_id));
             let result_ty_ref = result_ty.in_db(db).peel_opaque(in_module);
 
             let result_ty = result_ty_ref.id();
@@ -1896,7 +1896,7 @@ impl TypeCheck<'_> {
         let db = self.db;
         let ty = self
             .db
-            .from_hir_type(id.in_library(self.library_id))
+            .lower_hir_type(id.in_library(self.library_id))
             .in_db(db);
 
         let (expr_body, expr_span) = match ty_node {
@@ -2044,7 +2044,7 @@ impl TypeCheck<'_> {
 
         let ty_span = library.lookup_type(id).span.lookup_in(library);
 
-        let cons_tyref = db.from_hir_type(id.in_library(library_id)).in_db(db);
+        let cons_tyref = db.lower_hir_type(id.in_library(library_id)).in_db(db);
         let (base_ty, start_bound, end_bound) = match cons_tyref.kind() {
             ty::TypeKind::Constrained(base_ty, start_bound, end_bound) => {
                 (base_ty, start_bound, end_bound)
@@ -2180,7 +2180,7 @@ impl TypeCheck<'_> {
         // - must be positive size (or non-negative if flexible)
         for &range_hir_ty in &ty.ranges {
             let span = library.lookup_type(range_hir_ty).span.lookup_in(library);
-            let range_ty = db.from_hir_type(range_hir_ty.in_library(library_id));
+            let range_ty = db.lower_hir_type(range_hir_ty.in_library(library_id));
             let range_tyref = range_ty.in_db(db).peel_opaque(in_module);
 
             if !range_tyref.clone().to_base_type().kind().is_index() {
@@ -2249,7 +2249,7 @@ impl TypeCheck<'_> {
             return;
         }
 
-        let array_ty = db.from_hir_type(id.in_library(library_id)).in_db(db);
+        let array_ty = db.lower_hir_type(id.in_library(library_id)).in_db(db);
         let array_span = library.lookup_type(id).span.lookup_in(library);
 
         let within_limit = match array_ty.element_count() {
@@ -2304,7 +2304,7 @@ impl TypeCheck<'_> {
 
         // elem tyref should be the visible one
         let elem_tyref = db
-            .from_hir_type(ty.elem_ty.in_library(self.library_id))
+            .lower_hir_type(ty.elem_ty.in_library(self.library_id))
             .in_db(db)
             .peel_opaque(in_module);
         let span = self
@@ -2390,7 +2390,7 @@ impl TypeCheck<'_> {
         let library_id = self.library_id;
         let library = &self.library;
 
-        let ty_id = db.from_hir_type(ty_spec.in_library(library_id));
+        let ty_id = db.lower_hir_type(ty_spec.in_library(library_id));
         let ty_ref = ty_id.in_db(db);
 
         // Only need to check constrained types
@@ -2443,7 +2443,7 @@ impl TypeCheck<'_> {
 
     // For now, we only check for any-sized charseq
     fn require_known_size(&self, ty_spec: toc_hir::ty::TypeId, in_where: impl Fn() -> String) {
-        let ty_id = self.db.from_hir_type(ty_spec.in_library(self.library_id));
+        let ty_id = self.db.lower_hir_type(ty_spec.in_library(self.library_id));
         let ty_ref = ty_id.in_db(self.db);
         match ty_ref.kind() {
             ty::TypeKind::CharN(ty::SeqSize::Any) | ty::TypeKind::StringN(ty::SeqSize::Any) => {
@@ -2808,7 +2808,7 @@ impl TypeCheck<'_> {
     fn require_resolved_type(&self, ty: toc_hir::ty::TypeId) {
         let ty_ref = self
             .db
-            .from_hir_type(ty.in_library(self.library_id))
+            .lower_hir_type(ty.in_library(self.library_id))
             .in_db(self.db);
 
         if let ty::TypeKind::Alias(def_id, to_ty) = ty_ref.kind() {

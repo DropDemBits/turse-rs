@@ -187,9 +187,9 @@ fn array_ty(
     let ranges = ty
         .ranges
         .iter()
-        .map(|&range_ty| db.from_hir_type(range_ty.in_library(library_id)))
+        .map(|&range_ty| db.lower_hir_type(range_ty.in_library(library_id)))
         .collect();
-    let elem_ty = db.from_hir_type(ty.elem_ty.in_library(library_id));
+    let elem_ty = db.lower_hir_type(ty.elem_ty.in_library(library_id));
 
     db.mk_array(sizing, ranges, elem_ty)
 }
@@ -209,7 +209,7 @@ fn enum_ty(db: &dyn TypeDatabase, hir_id: InLibrary<hir_ty::TypeId>, ty: &hir_ty
 
 fn set_ty(db: &dyn TypeDatabase, hir_id: InLibrary<hir_ty::TypeId>, ty: &hir_ty::Set) -> TypeId {
     let library_id = hir_id.0;
-    let elem_ty = db.from_hir_type(ty.elem_ty.in_library(library_id));
+    let elem_ty = db.lower_hir_type(ty.elem_ty.in_library(library_id));
     let def_id = DefId(library_id, ty.def_id);
     db.mk_set(ty::WithDef::Anonymous(def_id), elem_ty)
 }
@@ -220,7 +220,7 @@ fn pointer_ty(
     ty: &hir_ty::Pointer,
 ) -> TypeId {
     let library_id = hir_id.0;
-    let target_ty = db.from_hir_type(ty.ty.in_library(library_id));
+    let target_ty = db.lower_hir_type(ty.ty.in_library(library_id));
     let checked = match ty.checked {
         hir_ty::Checked::Checked => Checked::Checked,
         hir_ty::Checked::Unchecked => Checked::Unchecked,
@@ -314,7 +314,7 @@ fn constvar_ty(
     let item_ty = match (item.type_spec, item.init_expr) {
         (Some(ty_spec), _) => {
             // From type_spec
-            db.from_hir_type(ty_spec.in_library(item_id.0)).in_db(db)
+            db.lower_hir_type(ty_spec.in_library(item_id.0)).in_db(db)
         }
         (_, Some(body)) => {
             // From inferred init expr
@@ -366,7 +366,7 @@ fn type_def_ty(
         item::DefinedType::Alias(to_ty) => {
             // Peel any aliases that are encountered
             let base_ty = db
-                .from_hir_type((*to_ty).in_library(item_id.0))
+                .lower_hir_type((*to_ty).in_library(item_id.0))
                 .in_db(db)
                 .peel_aliases();
 
@@ -463,7 +463,7 @@ pub(crate) fn ty_from_ty_field(
     type_id: InLibrary<hir_ty::TypeId>,
     _field_id: hir_ty::FieldId,
 ) -> TypeId {
-    let ty_ref = db.from_hir_type(type_id).in_db(db);
+    let ty_ref = db.lower_hir_type(type_id).in_db(db);
 
     match ty_ref.kind() {
         // Enum fields are the same type as the original enum
@@ -757,7 +757,7 @@ pub(super) fn ty_from_body_owner(
             match &item.kind {
                 item::ItemKind::Subprogram(subprog) => {
                     // From result type
-                    db.from_hir_type(subprog.result.ty.in_library(library_id))
+                    db.lower_hir_type(subprog.result.ty.in_library(library_id))
                 }
                 item::ItemKind::Module(_) => {
                     // Modules are always procedure-like bodies
@@ -773,7 +773,7 @@ pub(super) fn ty_from_body_owner(
 }
 
 fn require_resolved_hir_type(db: &dyn TypeDatabase, ty: InLibrary<hir_ty::TypeId>) -> TypeId {
-    require_resolved_type(db, db.from_hir_type(ty))
+    require_resolved_type(db, db.lower_hir_type(ty))
 }
 
 /// Requires that a type is resolved at this point, otherwise produces

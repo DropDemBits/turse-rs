@@ -29,8 +29,8 @@ where
         self
     }
 
-    fn from_hir_type(&self, type_id: InLibrary<HirTypeId>) -> super::TypeId {
-        from_hir_type(self, type_id)
+    fn lower_hir_type(&self, type_id: InLibrary<HirTypeId>) -> super::TypeId {
+        lower_hir_type(self, type_id)
     }
 
     fn type_of(&self, source: db::TypeSource) -> super::TypeId {
@@ -58,7 +58,7 @@ where
     }
 }
 
-pub(crate) fn from_hir_type(db: &dyn db::TypeDatabase, type_id: InLibrary<HirTypeId>) -> TypeId {
+pub(crate) fn lower_hir_type(db: &dyn db::TypeDatabase, type_id: InLibrary<HirTypeId>) -> TypeId {
     lower::ty_from_hir_ty(db, type_id)
 }
 

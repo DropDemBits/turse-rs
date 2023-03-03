@@ -21,7 +21,7 @@ pub trait TypeDatabase: salsa::DbWithJar<TypeJar> + toc_hir_db::Db {
     fn upcast_to_type_db(&self) -> &dyn TypeDatabase;
 
     /// Converts the HIR type into an analysis form
-    fn from_hir_type(&self, type_id: InLibrary<HirTypeId>) -> ty::TypeId;
+    fn lower_hir_type(&self, type_id: InLibrary<HirTypeId>) -> ty::TypeId;
 
     /// Gets the type of the given type source.
     fn type_of(&self, source: TypeSource) -> ty::TypeId;
