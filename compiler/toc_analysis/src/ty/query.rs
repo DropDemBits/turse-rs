@@ -21,43 +21,6 @@ use crate::{const_eval, db::TypeInternExt};
 
 use super::{lower, Checked, IntSize, NatSize, Param, RealSize, SeqSize, TypeId, TypeKind};
 
-impl<DB> db::TypeDatabase for DB
-where
-    DB: salsa::DbWithJar<db::TypeJar> + toc_hir_db::Db,
-{
-    fn upcast_to_type_db(&self) -> &dyn TypeDatabase {
-        self
-    }
-
-    fn lower_hir_type(&self, type_id: InLibrary<HirTypeId>) -> super::TypeId {
-        lower_hir_type(self, type_id)
-    }
-
-    fn type_of(&self, source: db::TypeSource) -> super::TypeId {
-        type_of(self, source)
-    }
-
-    fn value_produced(&self, source: db::ValueSource) -> Result<db::ValueKind, db::NotValue> {
-        value_produced(self, source)
-    }
-
-    fn binding_def(&self, bind_src: BindingSource) -> Option<DefId> {
-        binding_def(self, bind_src)
-    }
-
-    fn unresolved_binding_def(&self, bind_src: BindingSource) -> Option<DefId> {
-        unresolved_binding_def(self, bind_src)
-    }
-
-    fn fields_of(&self, source: db::FieldSource) -> Option<Arc<item::Fields>> {
-        fields_of(self, source)
-    }
-
-    fn exporting_def(&self, source: BindingSource) -> Option<DefId> {
-        exporting_def(self, source)
-    }
-}
-
 pub(crate) fn lower_hir_type(db: &dyn db::TypeDatabase, type_id: InLibrary<HirTypeId>) -> TypeId {
     lower::ty_from_hir_ty(db, type_id)
 }

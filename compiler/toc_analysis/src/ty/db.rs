@@ -11,7 +11,10 @@ use toc_hir::{
     ty::TypeId as HirTypeId,
 };
 
-use crate::{const_eval, ty};
+use crate::{
+    const_eval,
+    ty::{self, query},
+};
 
 #[salsa::jar(db = TypeDatabase)]
 pub struct TypeJar(ty::TypeId);
@@ -43,6 +46,43 @@ pub trait TypeDatabase: salsa::DbWithJar<TypeJar> + toc_hir_db::Db {
 
     /// Finds the associated exporting def from the given [`BindingSource`], or `None` if there isn't any
     fn exporting_def(&self, source: BindingSource) -> Option<DefId>;
+}
+
+impl<DB> TypeDatabase for DB
+where
+    DB: salsa::DbWithJar<TypeJar> + toc_hir_db::Db,
+{
+    fn upcast_to_type_db(&self) -> &dyn TypeDatabase {
+        self
+    }
+
+    fn lower_hir_type(&self, type_id: InLibrary<HirTypeId>) -> super::TypeId {
+        query::lower_hir_type(self, type_id)
+    }
+
+    fn type_of(&self, source: TypeSource) -> super::TypeId {
+        query::type_of(self, source)
+    }
+
+    fn value_produced(&self, source: ValueSource) -> Result<ValueKind, NotValue> {
+        query::value_produced(self, source)
+    }
+
+    fn binding_def(&self, bind_src: BindingSource) -> Option<DefId> {
+        query::binding_def(self, bind_src)
+    }
+
+    fn unresolved_binding_def(&self, bind_src: BindingSource) -> Option<DefId> {
+        query::unresolved_binding_def(self, bind_src)
+    }
+
+    fn fields_of(&self, source: FieldSource) -> Option<Arc<item::Fields>> {
+        query::fields_of(self, source)
+    }
+
+    fn exporting_def(&self, source: BindingSource) -> Option<DefId> {
+        query::exporting_def(self, source)
+    }
 }
 
 /// Helpers for working with the type interner
