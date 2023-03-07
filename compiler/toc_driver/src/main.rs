@@ -41,14 +41,14 @@ fn main() {
     let root_file = RawPath::new(&db, path.try_into().unwrap());
 
     // Set the source root
-    let _lib_id = SourceLibrary::new(
+    let library_id = SourceLibrary::new(
         &db,
         maybe_name,
         root_file,
         toc_hir::library_graph::ArtifactKind::Binary,
         DependencyList::empty(&db),
     );
-    RootLibraries::new(&db, vec![_lib_id]);
+    RootLibraries::new(&db, vec![library_id]);
 
     // Dump requested information
     if let Some(dump_mode) = args.dump {
