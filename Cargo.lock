@@ -45,6 +45,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "arc-swap"
+version = "1.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bddcadddf5e9015d310179a59bb28c4d4b9920ad0f11e8e14dbadf654890c9a6"
+
+[[package]]
 name = "ariadne"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -145,7 +151,7 @@ version = "4.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "684a277d672e91966334af371f1a7b5833f9aa00b07c84e92fbce95e00208ce8"
 dependencies = [
- "heck 0.4.1",
+ "heck",
  "proc-macro-error",
  "proc-macro2",
  "quote",
@@ -180,6 +186,64 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7704b5fdd17b18ae31c4c1da5a2e0305a2bf17b5249300a9ee9ed7b72114c636"
 
 [[package]]
+name = "crossbeam"
+version = "0.8.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2801af0d36612ae591caa9568261fddce32ce6e08a7275ea334a06a4ad021a2c"
+dependencies = [
+ "cfg-if",
+ "crossbeam-channel",
+ "crossbeam-deque",
+ "crossbeam-epoch",
+ "crossbeam-queue",
+ "crossbeam-utils",
+]
+
+[[package]]
+name = "crossbeam-channel"
+version = "0.5.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c2dd04ddaf88237dc3b8d8f9a3c1004b506b54b3313403944054d23c0870c521"
+dependencies = [
+ "cfg-if",
+ "crossbeam-utils",
+]
+
+[[package]]
+name = "crossbeam-deque"
+version = "0.8.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "715e8152b692bba2d374b53d4875445368fdf21a94751410af607a5ac677d1fc"
+dependencies = [
+ "cfg-if",
+ "crossbeam-epoch",
+ "crossbeam-utils",
+]
+
+[[package]]
+name = "crossbeam-epoch"
+version = "0.9.13"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "01a9af1f4c2ef74bb8aa1f7e19706bc72d03598c8a570bb5de72243c7a9d9d5a"
+dependencies = [
+ "autocfg",
+ "cfg-if",
+ "crossbeam-utils",
+ "memoffset 0.7.1",
+ "scopeguard",
+]
+
+[[package]]
+name = "crossbeam-queue"
+version = "0.3.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d1cfb3ea8a53f37c40dea2c7bedcbd88bdfae54f5e2175d6ecaff1c988353add"
+dependencies = [
+ "cfg-if",
+ "crossbeam-utils",
+]
+
+[[package]]
 name = "crossbeam-utils"
 version = "0.8.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -198,7 +262,7 @@ dependencies = [
  "hashbrown",
  "lock_api",
  "once_cell",
- "parking_lot_core 0.9.7",
+ "parking_lot_core",
 ]
 
 [[package]]
@@ -277,6 +341,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "eyre"
+version = "0.6.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4c2b6b5a29c02cdc822728b7d7b8ae1bab3e3b05d44522770ddd49722eeac7eb"
+dependencies = [
+ "indenter",
+ "once_cell",
+]
+
+[[package]]
 name = "fastrand"
 version = "1.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -284,12 +358,6 @@ checksum = "e51093e27b0797c359783294ca4f0a911c270184cb10f85783b118614a1501be"
 dependencies = [
  "instant",
 ]
-
-[[package]]
-name = "fixedbitset"
-version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0ce7134b9999ecaf8bcd65542e436736ef32ddca1b3e06094cb6ec5755203b80"
 
 [[package]]
 name = "fnv"
@@ -410,12 +478,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "heck"
-version = "0.3.3"
+name = "hashlink"
+version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6d621efb26863f0e9924c6ac577e8275e5e6b77455db64ffa6c65c904e9e132c"
+checksum = "69fe1fcf8b4278d860ad0548329f892a3631fb63f82574df68275f34cdbe0ffa"
 dependencies = [
- "unicode-segmentation",
+ "hashbrown",
 ]
 
 [[package]]
@@ -444,12 +512,15 @@ name = "hir-fuzzer"
 version = "0.1.0"
 dependencies = [
  "afl",
+ "salsa-2022",
  "toc-analysis",
  "toc-ast-db",
  "toc-hir",
  "toc-hir-db",
+ "toc-hir-lowering",
+ "toc-paths",
  "toc-reporting",
- "toc-salsa",
+ "toc-source-graph",
  "toc-span",
  "toc-vfs",
  "toc-vfs-db",
@@ -485,6 +556,12 @@ name = "if_chain"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cb56e1aa765b4b4f3aadfab769793b7087bb03a4ea4920644a6d238e2df5b9ed"
+
+[[package]]
+name = "indenter"
+version = "0.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ce23b50ad8242c51a442f3ff322d56b02f08852c77e4c0b4d3fd684abc89c683"
 
 [[package]]
 name = "indexmap"
@@ -525,7 +602,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2a798d7677f07d6f1e77be484ea8626ddb1566194de399f1206306820c406371"
 dependencies = [
  "hashbrown",
- "parking_lot 0.12.1",
+ "parking_lot",
 ]
 
 [[package]]
@@ -747,6 +824,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "memoffset"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5de893c32cde5f383baa4c04c5d6dbdd735cfd4a794b0debdb2bb1b421da5ff4"
+dependencies = [
+ "autocfg",
+]
+
+[[package]]
 name = "mio"
 version = "0.8.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -805,12 +891,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b7e5500299e16ebb147ae15a00a942af264cf3688f47923b8fc2cd5858f23ad3"
 
 [[package]]
-name = "oorandom"
-version = "11.1.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0ab1bc2a289d34bd04a330323ac98a1b4bc82c9d9fcb1e66b63caa84da26b575"
-
-[[package]]
 name = "os_str_bytes"
 version = "6.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -824,37 +904,12 @@ checksum = "b15813163c1d831bf4a13c3610c05c0d03b39feb07f7e09fa234dac9b15aaf39"
 
 [[package]]
 name = "parking_lot"
-version = "0.11.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7d17b78036a60663b797adeaee46f5c9dfebb86948d1255007a1d6be0271ff99"
-dependencies = [
- "instant",
- "lock_api",
- "parking_lot_core 0.8.6",
-]
-
-[[package]]
-name = "parking_lot"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3742b2c103b9f06bc9fff0a37ff4912935851bee6d36f3c02bcc755bcfec228f"
 dependencies = [
  "lock_api",
- "parking_lot_core 0.9.7",
-]
-
-[[package]]
-name = "parking_lot_core"
-version = "0.8.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "60a2cfe6f0ad2bfc16aefa463b497d5c7a5ecd44a23efa72aa342d90177356dc"
-dependencies = [
- "cfg-if",
- "instant",
- "libc",
- "redox_syscall",
- "smallvec",
- "winapi",
+ "parking_lot_core",
 ]
 
 [[package]]
@@ -890,16 +945,6 @@ name = "percent-encoding"
 version = "2.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "478c572c3d73181ff3c2539045f6eb99e5491218eae919370993b890cdbdd98e"
-
-[[package]]
-name = "petgraph"
-version = "0.6.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4dd7d28ee937e54fe3080c91faa1c3a46c06de6252988a7f4592ba2310ef22a4"
-dependencies = [
- "fixedbitset",
- "indexmap",
-]
 
 [[package]]
 name = "pin-project"
@@ -1046,7 +1091,7 @@ checksum = "5811547e7ba31e903fe48c8ceab10d40d70a101f3d15523c847cce91aa71f332"
 dependencies = [
  "countme",
  "hashbrown",
- "memoffset",
+ "memoffset 0.6.5",
  "rustc-hash",
  "text-size",
 ]
@@ -1087,29 +1132,30 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7b4b9743ed687d4b4bcedf9ff5eaa7398495ae14e61cba0a295704edbc7decde"
 
 [[package]]
-name = "salsa"
-version = "0.17.0-pre.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9b223dccb46c32753144d0b51290da7230bb4aedcd8379d6b4c9a474c18bf17a"
+name = "salsa-2022"
+version = "0.1.0"
+source = "git+https://github.com/salsa-rs/salsa/?branch=master#ef7c0f12c8159e7025316e959c26f6278a576fa5"
 dependencies = [
+ "arc-swap",
+ "crossbeam",
  "crossbeam-utils",
+ "dashmap",
+ "hashlink",
  "indexmap",
- "lock_api",
  "log",
- "oorandom",
- "parking_lot 0.11.2",
+ "parking_lot",
  "rustc-hash",
- "salsa-macros",
+ "salsa-2022-macros",
  "smallvec",
 ]
 
 [[package]]
-name = "salsa-macros"
-version = "0.17.0-pre.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ac6c2e352df550bf019da7b16164ed2f7fa107c39653d1311d1bba42d1582ff7"
+name = "salsa-2022-macros"
+version = "0.1.0"
+source = "git+https://github.com/salsa-rs/salsa/?branch=master#ef7c0f12c8159e7025316e959c26f6278a576fa5"
 dependencies = [
- "heck 0.3.3",
+ "eyre",
+ "heck",
  "proc-macro2",
  "quote",
  "syn",
@@ -1328,12 +1374,15 @@ dependencies = [
  "indexmap",
  "insta",
  "paste",
+ "salsa-2022",
  "thiserror",
  "toc-ast-db",
  "toc-hir",
  "toc-hir-db",
+ "toc-hir-lowering",
+ "toc-paths",
  "toc-reporting",
- "toc-salsa",
+ "toc-source-graph",
  "toc-span",
  "toc-vfs",
  "toc-vfs-db",
@@ -1344,10 +1393,10 @@ dependencies = [
 name = "toc-ast-db"
 version = "0.1.0"
 dependencies = [
+ "salsa-2022",
  "toc-parser",
+ "toc-paths",
  "toc-reporting",
- "toc-salsa",
- "toc-source-graph",
  "toc-span",
  "toc-syntax",
  "toc-validate",
@@ -1360,15 +1409,19 @@ name = "toc-driver"
 version = "0.1.0"
 dependencies = [
  "ariadne",
+ "camino",
  "clap",
+ "salsa-2022",
  "toc-analysis",
  "toc-ast-db",
  "toc-hir",
  "toc-hir-codegen",
  "toc-hir-db",
+ "toc-hir-lowering",
  "toc-hir-pretty",
+ "toc-paths",
  "toc-reporting",
- "toc-salsa",
+ "toc-source-graph",
  "toc-span",
  "toc-syntax",
  "toc-vfs",
@@ -1400,6 +1453,7 @@ dependencies = [
  "toc-hir",
  "toc-hir-db",
  "toc-reporting",
+ "toc-source-graph",
  "toc-span",
 ]
 
@@ -1407,11 +1461,12 @@ dependencies = [
 name = "toc-hir-db"
 version = "0.1.0"
 dependencies = [
+ "salsa-2022",
  "toc-ast-db",
  "toc-hir",
  "toc-hir-lowering",
  "toc-reporting",
- "toc-salsa",
+ "toc-source-graph",
  "toc-span",
  "toc-vfs",
 ]
@@ -1425,11 +1480,13 @@ dependencies = [
  "indexmap",
  "insta",
  "paste",
+ "salsa-2022",
  "toc-ast-db",
  "toc-hir",
  "toc-hir-pretty",
+ "toc-paths",
  "toc-reporting",
- "toc-salsa",
+ "toc-source-graph",
  "toc-span",
  "toc-syntax",
  "toc-vfs",
@@ -1443,6 +1500,7 @@ version = "0.1.0"
 dependencies = [
  "itertools",
  "toc-hir",
+ "toc-source-graph",
  "toc-span",
 ]
 
@@ -1453,12 +1511,15 @@ dependencies = [
  "camino",
  "lsp-types",
  "ropey",
+ "salsa-2022",
  "toc-analysis",
  "toc-ast-db",
  "toc-hir",
  "toc-hir-db",
+ "toc-hir-lowering",
+ "toc-paths",
  "toc-reporting",
- "toc-salsa",
+ "toc-source-graph",
  "toc-span",
  "toc-vfs",
  "toc-vfs-db",
@@ -1494,6 +1555,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "toc-paths"
+version = "0.1.0"
+dependencies = [
+ "camino",
+ "salsa-2022",
+]
+
+[[package]]
 name = "toc-reporting"
 version = "0.1.0"
 dependencies = [
@@ -1502,10 +1571,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "toc-salsa"
+name = "toc-salsa-collections"
 version = "0.1.0"
 dependencies = [
- "salsa",
+ "parking_lot",
+ "salsa-2022",
 ]
 
 [[package]]
@@ -1522,8 +1592,9 @@ dependencies = [
 name = "toc-source-graph"
 version = "0.1.0"
 dependencies = [
- "indexmap",
- "petgraph",
+ "salsa-2022",
+ "toc-paths",
+ "toc-salsa-collections",
  "toc-span",
 ]
 
@@ -1531,9 +1602,8 @@ dependencies = [
 name = "toc-span"
 version = "0.1.0"
 dependencies = [
- "indexmap",
  "text-size",
- "toc-salsa",
+ "toc-paths",
 ]
 
 [[package]]
@@ -1572,8 +1642,10 @@ name = "toc-vfs-db"
 version = "0.1.0"
 dependencies = [
  "camino",
- "toc-salsa",
- "toc-span",
+ "parking_lot",
+ "salsa-2022",
+ "toc-paths",
+ "toc-salsa-collections",
  "toc-vfs",
 ]
 
@@ -1589,7 +1661,7 @@ dependencies = [
  "memchr",
  "mio",
  "num_cpus",
- "parking_lot 0.12.1",
+ "parking_lot",
  "pin-project-lite",
  "signal-hook-registry",
  "socket2",
@@ -1772,12 +1844,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "unicode-segmentation"
-version = "1.10.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1dd624098567895118886609431a7c3b8f516e41d30e0643f03d94592a147e36"
-
-[[package]]
 name = "unindent"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1954,7 +2020,7 @@ name = "xtask"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "heck 0.4.1",
+ "heck",
  "quote",
  "ungrammar",
  "unindent",

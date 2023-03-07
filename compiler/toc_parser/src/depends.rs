@@ -174,7 +174,7 @@ mod test {
     use super::*;
 
     fn get_deps(source: &str) -> CompileResult<(Arc<FileDepends>, SyntaxNode)> {
-        let file_id = FileId::new_testing(1).unwrap();
+        let file_id = FileId::dummy(0);
         let parsed = crate::parse(file_id, source);
         gather_dependencies(file_id, parsed.result().syntax())
             .map(|deps| (deps, parsed.result().syntax()))

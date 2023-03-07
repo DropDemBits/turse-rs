@@ -6,7 +6,6 @@ use byteorder::{LittleEndian as LE, WriteBytesExt};
 use indexmap::{IndexMap, IndexSet};
 use instruction::{CheckKind, RelocatableOffset};
 use toc_analysis::{db::HirAnalysis, ty};
-use toc_ast_db::db::SpanMapping;
 use toc_hir::{
     body as hir_body, expr as hir_expr, item as hir_item, library as hir_library,
     library::InLibrary,
@@ -23,9 +22,9 @@ use crate::instruction::{
 
 mod instruction;
 
-pub trait CodeGenDB: HirAnalysis + SpanMapping {}
+pub trait CodeGenDB: HirAnalysis {}
 
-impl<T> CodeGenDB for T where T: HirAnalysis + SpanMapping {}
+impl<T> CodeGenDB for T where T: HirAnalysis {}
 
 #[derive(Default)]
 pub struct CodeBlob {
@@ -71,7 +70,7 @@ impl CodeBlob {
             // file_id
             out.write_u16::<LE>(blob_id)?;
             // filename
-            let filename = db.file_path(*file_id);
+            let filename = file_id.into_raw().raw_path(db.upcast_to_path_db()).as_str();
             let mut encoded_filename = [0; 255];
             // trunc to 256 bytes
             let filename_len = filename.len().min(encoded_filename.len());
@@ -281,18 +280,23 @@ pub fn generate_code(db: &dyn CodeGenDB) -> CompileResult<Option<CodeBlob>> {
 
     // Start producing blobs for each library
     // Only deal with one library right now
-    let lib_graph = db.source_graph();
+    let lib_graph = toc_source_graph::source_graph(db.upcast_to_source_graph_db())
+        .as_ref()
+        .unwrap();
     let mut blob = CodeBlob::default();
 
-    if let Some((library_id, library)) = lib_graph.all_libraries().next() {
-        let root_file = library.root;
+    if let Some(&library_id) = lib_graph
+        .all_libraries(db.upcast_to_source_graph_db())
+        .first()
+    {
+        let root_file = library_id.root(db.upcast_to_source_graph_db());
 
         // This library will act as the main file
-        let library = db.library(library_id);
+        let library = db.library(library_id.into());
         let main_body = {
             let item_id = library
                 .root_items
-                .get(&root_file)
+                .get(&FileId::from(root_file))
                 .expect("no item for this file");
             if let hir_item::ItemKind::Module(a) = &library.item(*item_id).kind {
                 a.body
@@ -301,7 +305,7 @@ pub fn generate_code(db: &dyn CodeGenDB) -> CompileResult<Option<CodeBlob>> {
             }
         };
 
-        blob.main_body = Some((library_id, main_body));
+        blob.main_body = Some((library_id.into(), main_body));
 
         // Generate code for each statement body
         for body_id in library.body_ids() {
@@ -318,7 +322,7 @@ pub fn generate_code(db: &dyn CodeGenDB) -> CompileResult<Option<CodeBlob>> {
                     let body_code = BodyCodeGenerator::generate_body(
                         db,
                         &mut blob,
-                        library_id,
+                        library_id.into(),
                         library.as_ref(),
                         body_id,
                         params,
@@ -342,7 +346,8 @@ pub fn generate_code(db: &dyn CodeGenDB) -> CompileResult<Option<CodeBlob>> {
                         println!("{idx:4}    {off:?}");
                     }
 
-                    blob.body_fragments.insert((library_id, body_id), body_code);
+                    blob.body_fragments
+                        .insert((library_id.into(), body_id), body_code);
                 }
                 hir_body::BodyKind::Exprs(_expr) => {
                     // We don't start code generation from expr bodies
@@ -1048,7 +1053,12 @@ impl BodyCodeGenerator<'_> {
 
     fn emit_location(&mut self, span: Span) {
         let (file, range) = span.into_parts().unwrap();
-        let info = self.db.map_byte_index(file, range.start().into()).unwrap();
+        let info = toc_ast_db::map_byte_index(
+            self.db.upcast_to_source_db(),
+            file.into_raw(),
+            range.start().into(),
+        )
+        .unwrap();
 
         // `0` is reserved for "<No File>"
         let code_file = self.code_blob.file_map.insert_full(file).0 + 1;

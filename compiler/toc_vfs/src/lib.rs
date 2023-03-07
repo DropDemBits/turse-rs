@@ -9,7 +9,6 @@
 mod fixture;
 
 use std::{
-    convert::TryFrom,
     fmt,
     path::{Path, PathBuf},
     sync::Arc,
@@ -17,57 +16,6 @@ use std::{
 
 pub use fixture::{generate_vfs, FixtureFiles, ParseError};
 
-/// Built-in prefixes for paths.
-///
-/// The `FileSystem::set_prefix_expansion` query
-/// should be used to set the corresponding path the path expands into.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum BuiltinPrefix {
-    /// %oot, should point to the Turing home directory
-    /// (the directory containing "support" from an (Open)Turing installation).
-    Oot,
-    /// `%help`, should point to the Turing help directory
-    /// (normally set as "%oot/support/help").
-    Help,
-    /// `%user`, should point to the current user's home directory
-    /// (normally "$HOME" on Linux, or "C:/Users/%USER%" on Windows).
-    UserHome,
-    /// `%job`, can be specified by the user
-    /// (set to a user provided path, or the temp directory root otherwise).
-    Job,
-    /// `%tmp`, should point to the temp directory
-    /// (normally should be the path returned from [`env::temp_dir`][temp_dir])
-    ///
-    /// [temp_dir]: std::env::temp_dir
-    Temp,
-}
-
-impl TryFrom<&str> for BuiltinPrefix {
-    type Error = ();
-
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
-        Ok(match value {
-            "oot" => Self::Oot,
-            "help" => Self::Help,
-            "home" => Self::UserHome,
-            "job" => Self::Job,
-            "tmp" => Self::Temp,
-            _ => return Err(()),
-        })
-    }
-}
-
-impl fmt::Display for BuiltinPrefix {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(match self {
-            BuiltinPrefix::Oot => "%oot",
-            BuiltinPrefix::Help => "%help",
-            BuiltinPrefix::UserHome => "%home",
-            BuiltinPrefix::Job => "%job",
-            BuiltinPrefix::Temp => "%tmp",
-        })
-    }
-}
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct LoadError {
     // FIXME: remove this hack now that we can fetch paths from the db's path interner
@@ -102,6 +50,8 @@ impl fmt::Display for LoadError {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ErrorKind {
+    /// File contents have not been loaded yet
+    NotLoaded,
     /// File was not found
     NotFound,
     /// File is in an unsupported encoding
@@ -113,6 +63,7 @@ pub enum ErrorKind {
 impl fmt::Display for ErrorKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::NotLoaded => f.write_str("File has not been loaded yet"),
             Self::NotFound => f.write_str("File not found"),
             Self::InvalidEncoding => f.write_str("Invalid file encoding"),
             Self::Other(err) => f.write_str(err),

@@ -4,6 +4,7 @@ use std::cell::{RefCell, RefMut};
 
 use toc_hir::{
     expr, library,
+    library_graph::SourceLibrary,
     visitor::{HirVisitor, Walker},
 };
 use toc_reporting::{CompileResult, MessageSink};
@@ -13,14 +14,15 @@ use crate::{db, ty};
 #[cfg(test)]
 mod test;
 
+#[salsa::tracked(jar = crate::db::AnalysisJar)]
 pub(crate) fn lint_library(
     db: &dyn db::HirAnalysis,
-    library_id: library::LibraryId,
+    library_id: SourceLibrary,
 ) -> CompileResult<()> {
-    let library = db.library(library_id);
+    let library = db.library(library_id.into());
     let ctx = LintContext {
         _db: db,
-        _library_id: library_id,
+        _library_id: library_id.into(),
         library,
         reporter: Default::default(),
     };

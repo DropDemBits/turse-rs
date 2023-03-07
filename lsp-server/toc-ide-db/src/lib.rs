@@ -2,22 +2,17 @@ use std::{
     borrow::Cow,
     collections::{BTreeMap, HashMap},
     path::{Path, PathBuf},
-    sync::Arc,
 };
 
 use camino::Utf8PathBuf;
 use lsp_types::{Diagnostic, DiagnosticRelatedInformation, DiagnosticSeverity, Location, Position};
 use ropey::Rope;
 use toc_analysis::db::HirAnalysis;
-use toc_ast_db::{
-    db::{AstDatabaseExt, SourceParser, SpanMapping},
-    SourceGraph,
-};
-use toc_hir::{library::LibraryId, library_graph::SourceLibrary};
-use toc_salsa::salsa;
-use toc_span::FileId;
+use toc_hir::library_graph::SourceLibrary;
+use toc_paths::RawPath;
+use toc_source_graph::{DependencyList, RootLibraries};
 use toc_vfs::{LoadError, LoadStatus};
-use toc_vfs_db::db::{PathIntern, VfsDatabaseExt};
+use toc_vfs_db::{SourceTable, VfsBridge, VfsDbExt};
 use tracing::{error, trace};
 
 pub type Cancellable<T = ()> = Result<T, salsa::Cancelled>;
@@ -26,8 +21,7 @@ pub type Cancellable<T = ()> = Result<T, salsa::Cancelled>;
 pub struct ServerState {
     db: LspDatabase,
     files: FileStore,
-    source_graph: SourceGraph,
-    existing_libraries: BTreeMap<FileId, LibraryId>,
+    existing_libraries: BTreeMap<RawPath, SourceLibrary>,
 }
 
 impl ServerState {
@@ -81,7 +75,7 @@ impl ServerState {
 
         // Add the root path to the file db
         // FIXME: Remove unwrap by using Utf8Path{Buf}
-        let root_file = db.intern_path(Utf8PathBuf::from_path_buf(path.to_owned()).unwrap());
+        let root_file = RawPath::new(db, Utf8PathBuf::from_path_buf(path.to_owned()).unwrap());
         let load_status = if !removed {
             let contents = self.files.source(path).into_owned();
             Ok(LoadStatus::Modified(contents.into()))
@@ -91,7 +85,7 @@ impl ServerState {
         db.update_file(root_file, load_status);
 
         // Setup source graph
-        if !removed {
+        let roots_modified = if !removed {
             match self.existing_libraries.entry(root_file) {
                 std::collections::btree_map::Entry::Vacant(ent) => {
                     let Some(file_name) = path.file_name() else {
@@ -99,37 +93,53 @@ impl ServerState {
                         return;
                     };
 
-                    let library_id = self.source_graph.add_library(SourceLibrary {
-                        artifact: toc_hir::library_graph::ArtifactKind::Binary,
-                        name: file_name.to_string_lossy().to_string(),
-                        root: root_file,
-                    });
+                    let library_id = SourceLibrary::new(
+                        db,
+                        file_name.to_string_lossy().to_string(),
+                        root_file,
+                        toc_hir::library_graph::ArtifactKind::Binary,
+                        DependencyList::empty(db),
+                    );
 
                     ent.insert(library_id);
+                    true
                 }
                 std::collections::btree_map::Entry::Occupied(ent) => {
                     trace!("reusing {ent:?} for {root_file:?}");
+                    false
                 }
             }
         } else {
             match self.existing_libraries.entry(root_file) {
                 std::collections::btree_map::Entry::Vacant(_) => {
-                    error!("{root_file:?} already was removed")
+                    // already removed, nothing needs to be updated
+                    error!("{root_file:?} already was removed");
+                    false
                 }
                 std::collections::btree_map::Entry::Occupied(ent) => {
                     trace!("closing library {ent:?}");
                     ent.remove();
+                    true
                 }
             }
-        }
-        // oeuf, this is not pretty!
-        // ???: Can we avoid the clone here?
-        db.set_source_graph(Arc::new(self.source_graph.clone()));
+        };
 
-        // TODO: Recursively load in files, respecting already loaded files
-        // TODO: Deal with adding source roots that depend on files that are already source roots
-        let file_loader = LspFileLoader::new(&self.files);
-        db.rebuild_file_links(&file_loader);
+        if roots_modified {
+            let root_libraries =
+                RootLibraries::try_get(db).unwrap_or_else(|| RootLibraries::new(db, vec![]));
+
+            // This is than having to clone the whole source graph (since that's reconstructed anyways)
+            let all_roots = self
+                .existing_libraries
+                .values()
+                .copied()
+                .collect::<Vec<_>>();
+
+            root_libraries.set_roots(db).to(all_roots);
+        }
+
+        // FIXME: Recursively load in files, respecting already loaded files
+        // FIXME: Deal with adding source roots that depend on files that are already source roots
     }
 
     /// Collect diagnostics for all libraries
@@ -208,7 +218,7 @@ impl ServerState {
                 // FIXME: Log a warning in this situation
                 continue;
             };
-            let file_diagnostics = bundles.entry(file).or_insert_with(Vec::new);
+            let file_diagnostics = bundles.entry(file.into_raw()).or_insert_with(Vec::new);
             file_diagnostics.push(diagnostic);
         }
 
@@ -216,16 +226,17 @@ impl ServerState {
         // This is done to remove any diagnostics from files which previously had some
         for (path, _) in self.files.file_map.iter() {
             // FIXME: Remove unwrap by using Utf8Path{Buf}
-            let file_id = self
-                .db
-                .intern_path(Utf8PathBuf::from_path_buf(path.to_owned()).unwrap());
+            let file_id = RawPath::new(
+                &self.db,
+                Utf8PathBuf::from_path_buf(path.to_owned()).unwrap(),
+            );
             bundles.entry(file_id).or_insert_with(Vec::new);
         }
 
-        // Convert FileIds into paths
+        // Convert RawPaths into the underlying PathBufs
         Ok(bundles
             .into_iter()
-            .map(|(file, bundle)| (self.db.lookup_intern_path(file).into_std_path_buf(), bundle))
+            .map(|(path, bundle)| (path.raw_path(&self.db).as_std_path().to_owned(), bundle))
             .collect())
     }
 
@@ -234,11 +245,12 @@ impl ServerState {
 
         let (file, range) = span.into_parts()?;
         let (start, end) = (u32::from(range.start()), u32::from(range.end()));
+        let path = file.into_raw();
 
-        let start = db.map_byte_index_to_position(file, start as usize)?;
-        let end = db.map_byte_index_to_position(file, end as usize)?;
+        let start = toc_ast_db::map_byte_index_to_position(db, path, start as usize)?;
+        let end = toc_ast_db::map_byte_index_to_position(db, path, end as usize)?;
 
-        let path = &db.file_path(file);
+        let path = path.raw_path(db);
 
         Some(Location::new(
             lsp_types::Url::from_file_path(path.as_str()).unwrap(),
@@ -257,23 +269,39 @@ impl IntoPosition for toc_ast_db::span::LspPosition {
     }
 }
 
-#[salsa::database(
-    toc_vfs_db::db::FileSystemStorage,
-    toc_vfs_db::db::PathInternStorage,
-    toc_ast_db::db::SpanMappingStorage,
-    toc_ast_db::db::SourceParserStorage,
-    toc_hir_db::db::HirDatabaseStorage,
-    toc_analysis::db::TypeInternStorage,
-    toc_analysis::db::TypeDatabaseStorage,
-    toc_analysis::db::ConstEvalStorage,
-    toc_analysis::db::HirAnalysisStorage
+#[salsa::db(
+    toc_paths::Jar,
+    toc_vfs_db::Jar,
+    toc_source_graph::Jar,
+    toc_ast_db::Jar,
+    toc_hir_lowering::Jar,
+    toc_hir_db::Jar,
+    toc_analysis::TypeJar,
+    toc_analysis::ConstEvalJar,
+    toc_analysis::AnalysisJar
 )]
 #[derive(Default)]
 struct LspDatabase {
     storage: salsa::Storage<Self>,
+    source_table: SourceTable,
 }
 
 impl salsa::Database for LspDatabase {}
+
+impl VfsBridge for LspDatabase {
+    fn source_table(&self) -> &SourceTable {
+        &self.source_table
+    }
+
+    fn load_new_file(&self, _path: toc_paths::RawPath) -> (String, Option<LoadError>) {
+        // Don't actually load in file sources
+        // TODO: Send a message to load in new file sources, and indicate that we're tracking changes to them
+        (
+            String::new(),
+            Some(toc_vfs::LoadError::new("", toc_vfs::ErrorKind::NotLoaded)),
+        )
+    }
+}
 
 // FIXME: Impl ParallelDb now  that path interning is in the db
 
@@ -386,43 +414,11 @@ impl FileStore {
 
         source.into()
     }
-
-    fn is_tracked(&self, path: &Path) -> bool {
-        self.file_map.contains_key(path)
-    }
 }
 
 struct FileInfo {
     version: i32,
     source: Rope,
-}
-
-struct LspFileLoader<'a> {
-    files: &'a FileStore,
-}
-
-impl<'a> LspFileLoader<'a> {
-    fn new(files: &'a FileStore) -> Self {
-        Self { files }
-    }
-}
-
-impl<'a> toc_vfs::FileLoader for LspFileLoader<'a> {
-    fn load_file(&self, path: &Path) -> toc_vfs::LoadResult {
-        if self.files.is_tracked(path) {
-            // Tracked, source is unchanged from before
-            Ok(toc_vfs::LoadStatus::Unchanged)
-        } else {
-            // Don't actually load in file sources
-            // TODO: Load in new file sources, and indicate that we're tracking changes to them
-            Err(toc_vfs::LoadError::new(path, toc_vfs::ErrorKind::NotFound))
-        }
-    }
-
-    fn normalize_path(&self, _path: &Path) -> Option<PathBuf> {
-        // No canonicalization to be performed right now
-        None
-    }
 }
 
 #[cfg(test)]
@@ -440,6 +436,22 @@ mod tests {
         let uri = Url::from_file_path(path).unwrap();
 
         // Survive opening & closing a file
+        state.open_file(&uri, 0, "% blah".into());
+        state.close_file(&uri);
+    }
+    #[test]
+    fn state_open_close_repeated_file() {
+        let mut state = ServerState::default();
+
+        // Make an absolute path for making a url from
+        let path = Path::new("/").canonicalize().unwrap().join("test.yee");
+        let uri = Url::from_file_path(path).unwrap();
+
+        // Survive repeated opening & closing a file
+        state.open_file(&uri, 0, "% blah".into());
+        state.close_file(&uri);
+        state.open_file(&uri, 0, "% blah".into());
+        state.close_file(&uri);
         state.open_file(&uri, 0, "% blah".into());
         state.close_file(&uri);
     }

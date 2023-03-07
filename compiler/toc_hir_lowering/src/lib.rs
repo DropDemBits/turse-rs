@@ -21,22 +21,23 @@ mod collector;
 mod lower;
 mod resolver;
 
-use toc_hir::library::{LibraryId, LoweredLibrary};
-use toc_reporting::CompileResult;
+use toc_hir::library::LoweredLibrary;
+
+pub use lower::{lower_library, lower_source_graph};
+
+#[salsa::jar(db = Db)]
+pub struct Jar(lower::lower_library, lower::lower_source_graph);
 
 /// Trait representing a database that can store a lowered HIR tree
-//
-// Note: So long as we have a split between `hir_lowering` and `hir_db`, we can't use salsa's interner
-// with a trait we defined here, as that would require a foreign blanket impl on a foreign trait.
-// (this is why symbol interning is handled by the `internment` crate.)
-pub trait LoweringDb: toc_ast_db::db::SourceParser {
-    /// Lowers the given library into a HIR library.
-    ///
-    /// ## Returns
-    ///
-    /// Returns the [`LoweredLibrary`] of the newly lowered HIR tree.
-    fn lower_library(&self, library_id: LibraryId) -> CompileResult<LoweredLibrary>;
+pub trait Db: salsa::DbWithJar<Jar> + toc_source_graph::Db + toc_ast_db::Db {
+    fn upcast_to_lowering_db(&self) -> &dyn Db;
+}
 
-    /// Lowers the entire source graph
-    fn lower_source_graph(&self) -> CompileResult<()>;
+impl<DB> Db for DB
+where
+    DB: salsa::DbWithJar<Jar> + toc_source_graph::Db + toc_ast_db::Db,
+{
+    fn upcast_to_lowering_db(&self) -> &dyn Db {
+        self
+    }
 }

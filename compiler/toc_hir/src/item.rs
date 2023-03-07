@@ -1,11 +1,11 @@
 //! Item definitions
 
 use indexmap::IndexMap;
-use toc_span::SpanId;
 
 use crate::{
     body,
     ids::ItemIndex,
+    span::SpanId,
     symbol::{self, Symbol},
     ty,
 };

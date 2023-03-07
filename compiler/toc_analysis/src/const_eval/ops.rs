@@ -2,8 +2,7 @@
 
 use std::{cmp::Ordering, convert::TryFrom, sync::Arc};
 
-use toc_hir::expr;
-use toc_span::Spanned;
+use toc_hir::{expr, span::Spanned};
 
 use crate::{
     const_eval::{errors::ErrorKind, ConstError, ConstInt, ConstValue},

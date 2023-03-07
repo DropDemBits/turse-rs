@@ -4,7 +4,7 @@
 use std::cell::RefCell;
 
 use toc_hir::library::{LibraryId, LoweredLibrary};
-use toc_hir_db::db::HirDatabase;
+use toc_hir_db::Db;
 use toc_reporting::{MessageBundle, MessageSink};
 use unindent::unindent;
 
@@ -37,6 +37,7 @@ macro_rules! for_all_const_exprs {
 
 fn do_const_eval(source: &str) -> String {
     let (db, library_id) = TestDb::from_source(source);
+    let library_id = LibraryId(library_id);
     let library = db.library(library_id);
 
     // Eagerly evaluate all of the available const vars

@@ -1,15 +1,21 @@
 //! Everything related to symbols.
 //! `SymbolTable` construction with respect to scoping rules occurs in `toc_hir_lowering`.
+//!
+//! ## Why not use Salsa's interner
+//!
+//! Symbols are interned into a global interner as opposed to a Salsa one because
+//! it's used in many places, and also can be displayed in debug impls without needing
+//! an extra wrapper type to retain the necessary db
 
 use std::fmt;
 
 use indexmap::IndexMap;
 use la_arena::{Arena, ArenaMap};
-use toc_span::{SpanId, Spanned};
 
 pub use crate::ids::{DefId, LocalDefId};
 use crate::{
     ids::{ExportId, ItemId, LocalDefIndex, ModuleId},
+    span::{SpanId, Spanned},
     stmt::BodyStmt,
     ty::{FieldId, PassBy, TypeId},
 };

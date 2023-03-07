@@ -1,26 +1,53 @@
 //! Definition of analysis queries, as well as re-exports of internal database types
 
-use toc_hir::library::LibraryId;
+use toc_hir::library_graph::SourceLibrary;
 use toc_reporting::CompileResult;
-use toc_salsa::salsa;
 
 use crate::{lints, query, typeck};
 
 pub use crate::{const_eval::db::*, ty::db::*};
 
+#[salsa::jar(db = HirAnalysis)]
+pub struct AnalysisJar(
+    query::analyze_libraries,
+    typeck::typecheck_library,
+    lints::lint_library,
+);
+
 /// HIR Analysis queries
-#[salsa::query_group(HirAnalysisStorage)]
-pub trait HirAnalysis: TypeDatabase + ConstEval {
+pub trait HirAnalysis:
+    salsa::DbWithJar<AnalysisJar> + TypeDatabase + ConstEval + toc_source_graph::Db
+{
+    fn upcast_to_anaylsis_db(&self) -> &dyn HirAnalysis;
+
     /// Performs analysis passes on all libraries
-    #[salsa::invoke(query::analyze_libraries)]
     fn analyze_libraries(&self) -> CompileResult<()>;
 
     /// Checks the given library to ensure that all type rules are followed,
     /// and that all types are well-formed.
-    #[salsa::invoke(typeck::typecheck_library)]
-    fn typecheck_library(&self, library: LibraryId) -> CompileResult<()>;
+    fn typecheck_library(&self, library: SourceLibrary) -> CompileResult<()>;
 
     /// Runs the lint passes over given library
-    #[salsa::invoke(lints::lint_library)]
-    fn lint_library(&self, library: LibraryId) -> CompileResult<()>;
+    fn lint_library(&self, library: SourceLibrary) -> CompileResult<()>;
+}
+
+impl<DB> HirAnalysis for DB
+where
+    DB: salsa::DbWithJar<AnalysisJar> + TypeDatabase + ConstEval + toc_source_graph::Db,
+{
+    fn upcast_to_anaylsis_db(&self) -> &dyn HirAnalysis {
+        self
+    }
+
+    fn analyze_libraries(&self) -> CompileResult<()> {
+        query::analyze_libraries(self)
+    }
+
+    fn typecheck_library(&self, library: SourceLibrary) -> CompileResult<()> {
+        typeck::typecheck_library(self, library)
+    }
+
+    fn lint_library(&self, library: SourceLibrary) -> CompileResult<()> {
+        lints::lint_library(self, library)
+    }
 }

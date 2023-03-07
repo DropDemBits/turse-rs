@@ -19,6 +19,7 @@ insta = "1.28"
 # FIXME: tied to tower-lsp version, use separate structs so that changes are confined to lsp-server
 lsp-types = "0.93.2"
 paste = "1.0.5"
+salsa = { git = "https://github.com/salsa-rs/salsa/", branch = "master", package = "salsa-2022" }
 tracing = "0.1.37"
 tracing-subscriber = "0.3.16"
 unindent = "0.2"
@@ -32,8 +33,9 @@ toc-hir-db = { path = "compiler/toc_hir_db" }
 toc-hir-lowering = { path = "compiler/toc_hir_lowering" }
 toc-hir-pretty = { path = "compiler/toc_hir_pretty" }
 toc-parser = { path = "compiler/toc_parser" }
+toc-paths = { path = "compiler/toc-paths" }
 toc-reporting = { path = "compiler/toc_reporting" }
-toc-salsa = { path = "compiler/toc_salsa" }
+toc-salsa-collections = { path = "compiler/toc-salsa-collections" }
 toc-scanner = { path = "compiler/toc_scanner" }
 toc-source-graph = { path = "compiler/toc_source_graph" }
 toc-span = { path = "compiler/toc_span" }

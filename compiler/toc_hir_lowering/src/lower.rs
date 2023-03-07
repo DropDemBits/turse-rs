@@ -26,108 +26,116 @@ mod ty;
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use toc_ast_db::db::SourceParser;
-use toc_hir::library::LibraryId;
+use toc_hir::library_graph::SourceLibrary;
 use toc_hir::symbol::{syms, IsMonitor, IsPervasive, NodeSpan, SymbolKind};
 use toc_hir::{
     body,
     builder::{self, BodyBuilder},
     expr::{Expr, ExprKind},
     item,
+    span::{HasSpanTable, SpanId},
     stmt::{Stmt, StmtId, StmtKind},
     symbol::LocalDefId,
 };
 use toc_reporting::{CompileResult, MessageBundle, MessageSink};
-use toc_span::{FileId, HasSpanTable, Span, SpanId, TextRange};
+use toc_span::{Span, TextRange};
 use toc_syntax::ast::{self, AstNode};
+use toc_vfs_db::SourceFile;
 
-use crate::{LoweredLibrary, LoweringDb};
+use crate::{Db, LoweredLibrary};
 
-// Implement for anything that can provide an AST source.
-impl<T> LoweringDb for T
-where
-    T: SourceParser,
-{
-    fn lower_library(&self, library: LibraryId) -> CompileResult<LoweredLibrary> {
-        let db = self;
-        let mut messages = MessageBundle::default();
+/// Lowers the given library into a HIR library.
+///
+/// ## Returns
+///
+/// Returns the [`LoweredLibrary`] of the newly lowered HIR tree.
+#[salsa::tracked]
+pub fn lower_library(db: &dyn Db, library: SourceLibrary) -> CompileResult<LoweredLibrary> {
+    let mut messages = MessageBundle::default();
 
-        // take the library from the source graph
-        let library_root = db.source_library(library).root;
+    // take the library from the source graph
+    let library_root = library.root(db.upcast_to_source_graph_db());
+    let root_source = toc_vfs_db::source_of(db.upcast_to_vfs_db(), library_root);
 
-        // Report if the root file is missing
-        if let (_, Some(err)) = self.file_source(library_root) {
-            // Report the missing file
-            // Note: we can't lookup the path directly because we don't
-            // have access to the file info table from just a source file
-            // without having to import toc_vfs_db
-            let mut report = MessageSink::new();
-            report
-                .error_detailed(
-                    format!("{err}"),
-                    Span::new(library_root, TextRange::empty(0.into())),
-                )
-                .finish();
-            messages.aggregate(&report.finish());
-        }
+    // Report if the root file is missing
+    if let Some(err) = root_source.errors(db.upcast_to_vfs_db()) {
+        // Report the missing file
+        // Note: we can't lookup the path directly because we don't
+        // have access to the file info table from just a source file
+        // without having to import toc_vfs_db
+        let mut report = MessageSink::new();
+        report
+            .error_detailed(
+                format!("{err}"),
+                Span::new(library_root.into(), TextRange::empty(0.into())),
+            )
+            .finish();
+        messages.aggregate(&report.finish());
+    }
 
-        // Reachable files isn't the way to go
-        // Unfortunately, we can't quite precollect defs since that also depends on expansion
-        //
-        // Note that unit files (i.e. files linked from by import) serve as expansion roots
-        // we could probably do precollection again by recording what items are bound to
-        // which scopes, and then expanding from there (since once we've gone through
-        // expanding, the scopes are final)
-        //
-        // for now though, this just replicates the old behavior
-        let reachable_files = self
-            .reachable_imported_files(library_root)
+    // Reachable files isn't the way to go
+    // Unfortunately, we can't quite precollect defs since that also depends on expansion
+    //
+    // Note that unit files (i.e. files linked from by import) serve as expansion roots
+    // we could probably do precollection again by recording what items are bound to
+    // which scopes, and then expanding from there (since once we've gone through
+    // expanding, the scopes are final)
+    //
+    // for now though, this just replicates the old behavior
+
+    let reachable_files =
+        toc_ast_db::reachable_imported_files(db.upcast_to_source_db(), root_source)
             .iter()
             .copied()
             .collect::<Vec<_>>();
 
-        // Collect all the defs in the library
-        let (collect_res, msgs) = crate::collector::collect_defs(db, &reachable_files).take();
+    // Collect all the defs in the library
+    let (collect_res, msgs) = crate::collector::collect_defs(db, &reachable_files).take();
+    messages = messages.combine(msgs);
+
+    let mut root_items = vec![];
+    let mut library = builder::LibraryBuilder::new(collect_res.spans, collect_res.defs);
+
+    // Lower all files reachable from the library root
+    for file in reachable_files {
+        let (item, msgs) = FileLowering::new(db, file, &mut library, &collect_res.node_defs)
+            .lower_file()
+            .take();
         messages = messages.combine(msgs);
-
-        let mut root_items = vec![];
-        let mut library = builder::LibraryBuilder::new(collect_res.spans, collect_res.defs);
-
-        // Lower all files reachable from the library root
-        for file in reachable_files {
-            let (item, msgs) =
-                FileLowering::lower_file(db, file, &mut library, &collect_res.node_defs).take();
-            messages = messages.combine(msgs);
-            root_items.push((file, item));
-        }
-
-        let library = library.freeze_root_items(root_items);
-
-        // FIXME: This needs be punted to after all HIR trees are constructed,
-        // as we need to know the module exports of a foreign library
-        let (resolve_map, resolve_msgs) = crate::resolver::resolve_defs(&library).take();
-        messages = messages.combine(resolve_msgs);
-
-        let lib = library.finish(resolve_map);
-
-        CompileResult::new(Arc::new(lib), messages)
+        root_items.push((file.path(db.upcast_to_vfs_db()).into(), item));
     }
 
-    fn lower_source_graph(&self) -> CompileResult<()> {
-        let mut messages = MessageBundle::default();
-        let source_graph = self.source_graph();
+    let library = library.freeze_root_items(root_items);
 
-        for (library_id, _) in source_graph.all_libraries() {
-            self.lower_library(library_id)
-                .bundle_messages(&mut messages);
-        }
+    // FIXME: This needs be punted to after all HIR trees are constructed,
+    // as we need to know the module exports of a foreign library
+    let (resolve_map, resolve_msgs) = crate::resolver::resolve_defs(&library).take();
+    messages = messages.combine(resolve_msgs);
 
-        CompileResult::new((), messages)
+    let lib = library.finish(resolve_map);
+
+    CompileResult::new(Arc::new(lib), messages)
+}
+
+/// Lowers the entire source graph
+#[salsa::tracked]
+pub fn lower_source_graph(db: &dyn Db) -> CompileResult<()> {
+    let mut messages = MessageBundle::default();
+    let source_graph = toc_source_graph::source_graph(db.upcast_to_source_graph_db())
+        .as_ref()
+        .ok()
+        .unwrap();
+
+    for &library in source_graph.all_libraries(db.upcast_to_source_graph_db()) {
+        lower_library(db, library).bundle_messages(&mut messages);
     }
+
+    CompileResult::new((), messages)
 }
 
 struct FileLowering<'ctx> {
-    file: FileId,
+    db: &'ctx dyn Db,
+    file: SourceFile,
     library: &'ctx mut builder::LibraryBuilder,
     node_defs: &'ctx HashMap<NodeSpan, LocalDefId>,
     messages: MessageSink,
@@ -135,11 +143,13 @@ struct FileLowering<'ctx> {
 
 impl<'ctx> FileLowering<'ctx> {
     fn new(
-        file: FileId,
+        db: &'ctx dyn Db,
+        file: SourceFile,
         library: &'ctx mut builder::LibraryBuilder,
         node_defs: &'ctx HashMap<NodeSpan, LocalDefId>,
     ) -> Self {
         Self {
+            db,
             file,
             library,
             node_defs,
@@ -147,18 +157,13 @@ impl<'ctx> FileLowering<'ctx> {
         }
     }
 
-    fn lower_file(
-        db: &dyn LoweringDb,
-        file: FileId,
-        library: &'ctx mut builder::LibraryBuilder,
-        node_defs: &'ctx HashMap<NodeSpan, LocalDefId>,
-    ) -> CompileResult<item::ItemId> {
+    fn lower_file(self) -> CompileResult<item::ItemId> {
         // Parse & validate file
-        let parse_res = db.parse_file(file);
-        let validate_res = db.validate_file(file);
+        let parse_res = toc_ast_db::parse_file(self.db.upcast_to_source_db(), self.file);
+        let validate_res = toc_ast_db::validate_file(self.db.upcast_to_source_db(), self.file);
 
         // Enter the actual lowering
-        let mut ctx = Self::new(file, library, node_defs);
+        let mut ctx = self;
         let root = ast::Source::cast(parse_res.result().syntax()).unwrap();
         let root_item = ctx.lower_root(root);
 
@@ -278,7 +283,7 @@ impl<'ctx> FileLowering<'ctx> {
     }
 
     fn mk_span(&self, range: toc_span::TextRange) -> Span {
-        Span::new(self.file, range)
+        Span::new(self.file.path(self.db.upcast_to_vfs_db()).into(), range)
     }
 
     fn intern_range(&mut self, range: toc_span::TextRange) -> SpanId {

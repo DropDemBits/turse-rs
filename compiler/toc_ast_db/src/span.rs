@@ -105,44 +105,44 @@ pub(crate) mod query {
     use std::sync::Arc;
 
     use crate::{
-        db,
         span::{LineInfo, LineMapping, LspPosition},
+        Db,
     };
 
-    pub(crate) fn line_mapping(
-        db: &dyn db::SpanMapping,
-        file_id: toc_span::FileId,
-    ) -> Arc<LineMapping> {
-        let source = db.file_source(file_id).0;
-        Arc::new(LineMapping::from_source(source))
+    /// FIXME: Would be better to use SourceFile directly
+    #[salsa::tracked]
+    pub fn line_mapping(db: &dyn Db, file_id: toc_paths::RawPath) -> Arc<LineMapping> {
+        let source = toc_vfs_db::source_of(db.upcast_to_vfs_db(), file_id);
+        Arc::new(LineMapping::from_source(Arc::new(
+            source.contents(db.upcast_to_vfs_db()).clone(),
+        )))
     }
 
-    pub(crate) fn file_path(db: &dyn db::SpanMapping, file_id: toc_span::FileId) -> Arc<String> {
-        Arc::new(db.lookup_intern_path(file_id).to_string())
-    }
-
-    pub(crate) fn map_byte_index(
-        db: &dyn db::SpanMapping,
-        file_id: toc_span::FileId,
+    #[salsa::tracked]
+    pub fn map_byte_index(
+        db: &dyn Db,
+        file_id: toc_paths::RawPath,
         index: usize,
     ) -> Option<LineInfo> {
-        db.line_mapping(file_id).map_index(index)
+        line_mapping(db, file_id).map_index(index)
     }
 
-    pub(crate) fn map_byte_index_to_position(
-        db: &dyn db::SpanMapping,
-        file_id: toc_span::FileId,
+    #[salsa::tracked]
+    pub fn map_byte_index_to_position(
+        db: &dyn Db,
+        file_id: toc_paths::RawPath,
         index: usize,
     ) -> Option<LspPosition> {
-        db.line_mapping(file_id).map_index_to_position(index)
+        line_mapping(db, file_id).map_index_to_position(index)
     }
 
-    pub(crate) fn map_byte_index_to_character(
-        db: &dyn db::SpanMapping,
-        file_id: toc_span::FileId,
+    #[salsa::tracked]
+    pub fn map_byte_index_to_character(
+        db: &dyn Db,
+        file_id: toc_paths::RawPath,
         index: usize,
     ) -> Option<usize> {
-        db.line_mapping(file_id).map_index_to_character(index)
+        line_mapping(db, file_id).map_index_to_character(index)
     }
 }
 

@@ -3,13 +3,13 @@
 use std::convert::TryInto;
 
 use indexmap::{IndexMap, IndexSet};
-use toc_span::{SpanId, Spanned};
 
 pub use crate::ids::{FieldId, TypeId};
 
 use crate::{
     body,
     ids::TypeIndex,
+    span::{SpanId, Spanned},
     symbol::{self, Symbol},
 };
 

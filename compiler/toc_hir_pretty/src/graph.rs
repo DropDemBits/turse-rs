@@ -8,7 +8,6 @@ use std::{
 };
 
 use toc_hir::library::LibraryId;
-use toc_hir::library_graph::SourceGraph;
 use toc_hir::symbol::{self, Symbol};
 use toc_hir::visitor::WalkNode;
 use toc_hir::{
@@ -16,19 +15,23 @@ use toc_hir::{
     expr::{self, BodyExpr},
     item,
     library::{self, LoweredLibrary},
+    span::{HasSpanTable, SpanId, Spanned},
     stmt::{self, BodyStmt},
     symbol::{LocalDefId, Mutability, SubprogramKind},
     ty,
     visitor::{HirVisitor, WalkEvent, Walker},
 };
-use toc_span::{HasSpanTable, SpanId, Spanned};
 
 const IS_LR_LAYOUT: bool = true;
 
 pub fn pretty_print_graph(
-    library_graph: &SourceGraph,
+    db: &dyn toc_source_graph::Db,
     get_library: impl Fn(LibraryId) -> LoweredLibrary,
 ) -> String {
+    let Ok(library_graph) = toc_source_graph::source_graph(db) else {
+        return String::new()
+    };
+
     let mut output = String::new();
     writeln!(output, "digraph hir_graph {{").unwrap();
     writeln!(
@@ -45,7 +48,8 @@ pub fn pretty_print_graph(
     writeln!(output, "nodesep=0.5").unwrap();
 
     // Define the contents of the libraries
-    for (library_id, _) in library_graph.all_libraries() {
+    for &library in library_graph.all_libraries(db) {
+        let library_id = LibraryId(library);
         writeln!(output, r#"subgraph "cluster_{library_id:?}" {{"#).unwrap();
         writeln!(output, r#"label="{library_id:?}""#).unwrap();
         writeln!(output, r##"bgcolor="#009aef22""##).unwrap();

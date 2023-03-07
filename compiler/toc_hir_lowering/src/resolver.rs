@@ -7,13 +7,13 @@ use toc_hir::{
     expr::{BodyExpr, ExprId, ExprKind, Name, RangeBound},
     item::{DefinedType, ItemId, ItemKind, QualifyAs, SubprogramExtra},
     library::Library,
+    span::SpanId,
     stmt::{BodyStmt, CaseSelector, FalseBranch, ForBounds, GetWidth, Skippable, StmtId, StmtKind},
     symbol::{DefMap, DefResolve, LocalDefId, ResolutionMap, Resolve, Symbol},
     ty::{ConstrainedEnd, Primitive, SeqLength, TypeId, TypeKind},
     visitor,
 };
 use toc_reporting::{CompileResult, MessageSink};
-use toc_span::SpanId;
 
 use scopes::{DeclareKind, ForwardKind, LimitedKind, ScopeKind, ScopeTracker};
 

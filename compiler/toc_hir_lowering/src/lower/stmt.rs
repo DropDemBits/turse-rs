@@ -6,11 +6,11 @@ use toc_hir::symbol::{syms, IsPervasive, SymbolKind};
 use toc_hir::ty::PassBy;
 use toc_hir::{
     expr, item,
+    span::{HasSpanTable, SpanId, Spanned},
     stmt::{self, Assign},
     symbol::{self, Mutability, Symbol},
     ty,
 };
-use toc_span::{HasSpanTable, Span, SpanId, Spanned};
 use toc_syntax::ast::{self, AstNode};
 
 use crate::lower::LoweredStmt;
@@ -907,7 +907,7 @@ impl super::BodyLowering<'_, '_> {
                             exported_def,
                         })
                     } else {
-                        let span = Span::new(self.ctx.file, name.syntax().text_range());
+                        let span = self.ctx.mk_span(name.syntax().text_range());
                         let name = name.identifier_token().unwrap();
                         self.ctx.messages.error(
                             format!("exported symbol `{name}` has not been declared"),

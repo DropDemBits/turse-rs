@@ -16,4 +16,5 @@ toc-ast-db = { workspace = true }
 toc-hir = { workspace = true }
 toc-hir-db = { workspace = true }
 toc-reporting = { workspace = true }
+toc-source-graph = { workspace = true }
 toc-span = { workspace = true }

@@ -6,23 +6,31 @@ use toc_hir::{
     body::{self, BodyOwner, BodyTable},
     expr,
     item::{self, ModuleId, ModuleTree},
-    library::{InLibrary, Library, LibraryId, LoweredLibrary},
+    library::{InLibrary, Library, LoweredLibrary},
+    library_graph::SourceLibrary,
     stmt,
     symbol::{DefId, DefOwner, DefResolve, DefTable, LocalDefId, SymbolKind},
     ty::{self, TypeOwner, TypeOwners},
     visitor::HirVisitor,
 };
 
-use crate::db::{HirDatabase, InsideModule};
+use crate::{db::InsideModule, Db};
 
-pub fn library_query(db: &dyn HirDatabase, library: LibraryId) -> LoweredLibrary {
-    db.lower_library(library).result().clone()
+/// Get the library associated with the given id
+#[salsa::tracked]
+pub fn hir_library(db: &dyn Db, library: SourceLibrary) -> LoweredLibrary {
+    toc_hir_lowering::lower_library(db.upcast_to_lowering_db(), library)
+        .result()
+        .clone()
 }
 
-pub fn collect_defs(db: &dyn HirDatabase, library_id: LibraryId) -> Arc<DefTable> {
+/// Gets all of the definitions in the library,
+/// providing a mapping between definitions and definition owners.
+#[salsa::tracked]
+pub fn defs_of(db: &dyn Db, library: SourceLibrary) -> Arc<DefTable> {
     use toc_hir::visitor::Walker;
 
-    let library = db.library(library_id);
+    let library = hir_library(db, library);
 
     // Collect definitions
     let def_collector = DefCollector {
@@ -34,14 +42,20 @@ pub fn collect_defs(db: &dyn HirDatabase, library_id: LibraryId) -> Arc<DefTable
     Arc::new(def_collector.def_table.into_inner())
 }
 
-pub fn lookup_def_owner(db: &dyn HirDatabase, def_id: DefId) -> Option<DefOwner> {
+/// Gets the corresponding [`DefOwner`] to the given [`DefId`]
+///
+/// This does not perform any form of definition resolution.
+pub fn def_owner(db: &dyn Db, def_id: DefId) -> Option<DefOwner> {
     db.defs_of(def_id.0).get_owner(def_id.1)
 }
 
-pub fn collect_body_owners(db: &dyn HirDatabase, library_id: LibraryId) -> Arc<BodyTable> {
+/// Gets all of the body owners in the library,
+/// providing a mapping between bodies and body owners
+#[salsa::tracked]
+pub fn body_owners_of(db: &dyn Db, library: SourceLibrary) -> Arc<BodyTable> {
     use toc_hir::visitor::Walker;
 
-    let library = db.library(library_id);
+    let library = hir_library(db, library);
 
     // Collect bodies
     let body_collector = BodyCollector {
@@ -53,17 +67,19 @@ pub fn collect_body_owners(db: &dyn HirDatabase, library_id: LibraryId) -> Arc<B
     Arc::new(body_collector.body_table.into_inner())
 }
 
-pub fn lookup_body_owner(
-    db: &dyn HirDatabase,
-    body_id: InLibrary<body::BodyId>,
-) -> Option<BodyOwner> {
-    db.body_owners_of(body_id.0).get_owner(body_id.1)
+// FIXME: Make body_owner lookup infallible
+/// Gets the corresponding [`BodyOwner`](body::BodyOwner) to the given [`BodyId`](body::BodyId)
+pub fn body_owner(db: &dyn Db, body: InLibrary<body::BodyId>) -> Option<BodyOwner> {
+    db.body_owners_of(body.0).get_owner(body.1)
 }
 
-pub(crate) fn collect_type_owners(db: &dyn HirDatabase, library_id: LibraryId) -> Arc<TypeOwners> {
+/// Gets all of the type owners in the library,
+/// providing a link between types and type owners.
+#[salsa::tracked]
+pub fn type_owners_of(db: &dyn Db, library: SourceLibrary) -> Arc<TypeOwners> {
     use toc_hir::visitor::Walker;
 
-    let library = db.library(library_id);
+    let library = hir_library(db, library);
 
     // Collect types
     let type_collector = TypeCollector {
@@ -74,14 +90,18 @@ pub(crate) fn collect_type_owners(db: &dyn HirDatabase, library_id: LibraryId) -
     Arc::new(type_collector.type_table.into_inner())
 }
 
-pub(crate) fn lookup_type_owner(db: &dyn HirDatabase, ty: InLibrary<ty::TypeId>) -> TypeOwner {
+/// Gets the corresponding [`TypeOwner`](ty::TypeOwner) for the given [`TypeId`](ty::TypeId)
+pub fn type_owner(db: &dyn Db, ty: InLibrary<ty::TypeId>) -> TypeOwner {
     db.type_owners_of(ty.0).lookup_owner(ty.1)
 }
 
-pub(crate) fn collect_module_tree(db: &dyn HirDatabase, library: LibraryId) -> Arc<ModuleTree> {
+/// Gets the module tree from the library,
+/// providing a link from child modules to parent modules.
+#[salsa::tracked]
+pub fn module_tree_of(db: &dyn Db, library: SourceLibrary) -> Arc<ModuleTree> {
     use toc_hir::visitor::{WalkEvent, WalkNode, Walker};
 
-    let library = db.library(library);
+    let library = hir_library(db, library);
 
     // Need an in-line collection since we're also concerned about exit events
     let mut walker = Walker::from_library(&library);
@@ -123,42 +143,37 @@ pub(crate) fn collect_module_tree(db: &dyn HirDatabase, library: LibraryId) -> A
     Arc::new(module_tree)
 }
 
-pub(crate) fn lookup_module_parent(
-    db: &dyn HirDatabase,
-    module: InLibrary<ModuleId>,
-) -> Option<ModuleId> {
+/// Gets the parent module of the given module.
+pub fn module_parent(db: &dyn Db, module: InLibrary<ModuleId>) -> Option<ModuleId> {
     db.module_tree_of(module.0).parent_of(module.1)
 }
 
-pub(crate) fn is_module_ancestor(
-    db: &dyn HirDatabase,
-    parent: InLibrary<ModuleId>,
-    child: InLibrary<ModuleId>,
+/// Tests if `parent` is an ancestor module of `child`.
+/// All modules are their own ancestors.
+#[salsa::tracked]
+pub fn is_module_ancestor(
+    db: &dyn Db,
+    library: SourceLibrary,
+    parent: ModuleId,
+    child: ModuleId,
 ) -> bool {
-    // Must be from the same library
-    if parent.0 != child.0 {
-        return false;
-    }
-
     // All modules are their own ancestor
     if parent == child {
         return true;
     }
 
     // Don't need to route through query, would create redundant module tree clones
-    let module_tree = db.module_tree_of(parent.0);
+    let module_tree = db.module_tree_of(library.into());
 
     // Module is only an ancestor if it's anywhere on the hierarchy
-    std::iter::successors(module_tree.parent_of(child.1), |id| {
+    std::iter::successors(module_tree.parent_of(child), |id| {
         module_tree.parent_of(*id)
     })
-    .any(|mod_id| mod_id == parent.1)
+    .any(|mod_id| mod_id == parent)
 }
 
-pub(crate) fn lookup_inside_module(
-    db: &dyn HirDatabase,
-    inside_module: InsideModule,
-) -> item::ModuleId {
+/// Looks up which module the given HIR node is in
+pub fn inside_module(db: &dyn Db, inside_module: InsideModule) -> item::ModuleId {
     let inside_module = match inside_module {
         InsideModule::Item(library_id, item_id) => {
             // We're either at a module-like, or at a plain old item
@@ -209,19 +224,27 @@ pub(crate) fn lookup_inside_module(
     db.inside_module(inside_module)
 }
 
-pub fn lookup_item(db: &dyn HirDatabase, def_id: DefId) -> Option<InLibrary<item::ItemId>> {
+/// Looks up the corresponding item for the given [`DefId`],
+/// or `None` if it doesn't exist.
+///
+/// This does not perform any form of definition resolution.
+pub fn item_of(db: &dyn Db, def_id: DefId) -> Option<InLibrary<item::ItemId>> {
     db.def_owner(def_id).and_then(|owner| match owner {
         DefOwner::Item(id) => Some(InLibrary(def_id.0, id)),
         _ => None,
     })
 }
 
-pub fn lookup_bodies(db: &dyn HirDatabase, library: LibraryId) -> Arc<Vec<body::BodyId>> {
-    let library = db.library(library);
+/// Gets all of the bodies in the given library
+#[salsa::tracked]
+pub fn bodies_of(db: &dyn Db, library: SourceLibrary) -> Arc<Vec<body::BodyId>> {
+    let library = hir_library(db, library);
     Arc::new(library.body_ids())
 }
 
-pub(crate) fn resolve_def(db: &dyn HirDatabase, def_id: DefId) -> Result<DefId, DefId> {
+/// Resolved the given `def_id` to the canonical definition (i.e. beyond any exports),
+/// or the last def before an undeclared was encountered.
+pub fn resolve_def(db: &dyn Db, def_id: DefId) -> Result<DefId, DefId> {
     // ???: How does this interact with def collecting (i.e how are we redirected to the right library)?
     // Assuming it'd be done through `ItemExport` holding a library id to the real definition
 
@@ -244,7 +267,10 @@ pub(crate) fn resolve_def(db: &dyn HirDatabase, def_id: DefId) -> Result<DefId, 
     db.resolve_def(next_def)
 }
 
-pub(crate) fn symbol_kind(db: &dyn HirDatabase, def_id: DefId) -> Option<SymbolKind> {
+/// Gets the [`SymbolKind`] of the given `def_id`, or [`None`] if it's an undeclared definition.
+///
+/// This does not perform any form of definition resolution.
+pub fn symbol_kind(db: &dyn Db, def_id: DefId) -> Option<SymbolKind> {
     // Take the binding kind from the def owner
     let library = db.library(def_id.0);
     let def_info = library.local_def(def_id.1);

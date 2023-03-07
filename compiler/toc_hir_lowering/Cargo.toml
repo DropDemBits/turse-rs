@@ -10,17 +10,19 @@ edition.workspace = true
 
 [dependencies]
 toc-ast-db = { workspace = true }
-toc-syntax = { workspace = true }
 toc-hir = { workspace = true }
-toc-reporting = { workspace = true }
+toc-source-graph = { workspace = true }
 toc-span = { workspace = true }
+toc-syntax = { workspace = true }
+toc-reporting = { workspace = true }
+toc-vfs = { workspace = true }
+toc-vfs-db = { workspace = true }
 
+salsa = { workspace = true }
 indexmap = { workspace = true }
 
 [dev-dependencies]
-toc-salsa = { workspace = true }
-toc-vfs = { workspace = true }
-toc-vfs-db = { workspace = true }
+toc-paths = { workspace = true }
 toc-hir-pretty = { workspace = true }
 if_chain = "1.0"
 approx = "0.5"

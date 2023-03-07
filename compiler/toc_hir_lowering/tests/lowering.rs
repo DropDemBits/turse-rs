@@ -1,29 +1,38 @@
 //! Tests for lowering
-use std::sync::Arc;
 
 use if_chain::if_chain;
-use toc_ast_db::{
-    db::{AstDatabaseExt, SourceParser},
-    SourceGraph,
+use toc_hir::{
+    body, expr, item,
+    library::LoweredLibrary,
+    library_graph::{DependencyList, SourceLibrary},
+    stmt,
 };
-use toc_hir::{body, expr, item, library::LoweredLibrary, stmt};
-use toc_hir_lowering::LoweringDb;
+use toc_paths::RawPath;
 use toc_reporting::CompileResult;
-use toc_salsa::salsa;
+use toc_source_graph::RootLibraries;
 use toc_span::FileId;
-use toc_vfs_db::db::{PathIntern, VfsDatabaseExt};
+use toc_vfs_db::VfsDbExt;
 
-#[salsa::database(
-    toc_vfs_db::db::FileSystemStorage,
-    toc_vfs_db::db::PathInternStorage,
-    toc_ast_db::db::SourceParserStorage
+#[salsa::db(
+    toc_paths::Jar,
+    toc_source_graph::Jar,
+    toc_vfs_db::Jar,
+    toc_ast_db::Jar,
+    toc_hir_lowering::Jar
 )]
 #[derive(Default)]
 struct TestHirDb {
     storage: salsa::Storage<Self>,
+    source_table: toc_vfs_db::SourceTable,
 }
 
 impl salsa::Database for TestHirDb {}
+
+impl toc_vfs_db::VfsBridge for TestHirDb {
+    fn source_table(&self) -> &toc_vfs_db::SourceTable {
+        &self.source_table
+    }
+}
 
 struct LowerResult {
     root_file: FileId,
@@ -42,21 +51,21 @@ macro_rules! assert_lower {
 fn do_lower(src: &str) -> (String, LowerResult) {
     use std::fmt::Write;
 
-    let mut db = TestHirDb::default();
+    let db = &mut TestHirDb::default();
     let fixture = toc_vfs::generate_vfs(src).unwrap();
     db.insert_fixture(fixture);
 
-    let root_file = db.intern_path("src/main.t".into());
-    let mut source_graph = SourceGraph::new();
-    let lib = source_graph.add_library(toc_hir::library_graph::SourceLibrary {
-        name: "main".into(),
-        root: root_file,
-        artifact: toc_hir::library_graph::ArtifactKind::Binary,
-    });
-    db.set_source_graph(Arc::new(source_graph));
-    db.rebuild_file_links(&toc_vfs::DummyFileLoader);
+    let root_file = RawPath::new(db, "src/main.t".into());
+    let library = SourceLibrary::new(
+        db,
+        "main".into(),
+        root_file,
+        toc_hir::library_graph::ArtifactKind::Binary,
+        DependencyList::empty(db),
+    );
+    RootLibraries::new(db, vec![library]);
 
-    let lowered = db.lower_library(lib);
+    let lowered = toc_hir_lowering::lower_library(db, library);
 
     let mut s = toc_hir_pretty::tree::pretty_print_tree(lowered.result());
     for err in lowered.messages().iter() {
@@ -66,7 +75,7 @@ fn do_lower(src: &str) -> (String, LowerResult) {
     (
         s,
         LowerResult {
-            root_file,
+            root_file: root_file.into(),
             hir_result: lowered,
         },
     )

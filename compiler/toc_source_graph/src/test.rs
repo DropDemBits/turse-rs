@@ -1,42 +1,57 @@
 use toc_span::FileId;
 
-use crate::{ArtifactKind, SourceGraph, SourceLibrary};
+use crate::{ArtifactKind, DependencyList, Library, RootLibraries};
+
+#[derive(Default)]
+#[salsa::db(crate::Jar)]
+struct TestDb {
+    storage: salsa::Storage<Self>,
+}
+
+impl salsa::Database for TestDb {}
 
 #[test]
 fn no_dedup_source_roots() {
-    let mut source_graph = SourceGraph::new();
-    source_graph.add_library(SourceLibrary {
-        artifact: ArtifactKind::Binary,
-        name: "a".into(),
-        root: FileId::new_testing(3).unwrap(),
-    });
-    source_graph.add_library(SourceLibrary {
-        artifact: ArtifactKind::Binary,
-        name: "a".into(),
-        root: FileId::new_testing(2).unwrap(),
-    });
-    source_graph.add_library(SourceLibrary {
-        artifact: ArtifactKind::Binary,
-        name: "a".into(),
-        root: FileId::new_testing(2).unwrap(),
-    });
-    source_graph.add_library(SourceLibrary {
-        artifact: ArtifactKind::Binary,
-        name: "a".into(),
-        root: FileId::new_testing(1).unwrap(),
-    });
+    let db = &mut TestDb::default();
+    let roots = vec![
+        FileId::dummy(3),
+        FileId::dummy(2),
+        FileId::dummy(2),
+        FileId::dummy(1),
+    ];
+    let roots = roots
+        .into_iter()
+        .map(|root| {
+            Library::new(
+                db,
+                "a".into(),
+                root.into_raw(),
+                ArtifactKind::Binary,
+                DependencyList::empty(db),
+            )
+        })
+        .collect::<Vec<_>>();
 
-    // Don't dedup roots
+    // Set the
+    RootLibraries::new(db, roots);
+
+    // Don't dedup roots, since they're different libraries
     assert_eq!(
-        source_graph
-            .all_libraries()
-            .map(|(_, lib)| lib.root)
-            .collect::<Vec<_>>(),
+        crate::source_graph(db)
+            .as_ref()
+            .unwrap()
+            .all_libraries(db)
+            .iter()
+            .map(|lib| lib.root(db).into())
+            .collect::<Vec<FileId>>(),
         vec![
-            FileId::new_testing(3).unwrap(),
-            FileId::new_testing(2).unwrap(),
-            FileId::new_testing(2).unwrap(),
-            FileId::new_testing(1).unwrap(),
+            FileId::dummy(3),
+            FileId::dummy(2),
+            FileId::dummy(2),
+            FileId::dummy(1),
         ]
     );
 }
+
+// FIXME: add test for dep exploring
+// FIXME: add test for cycle checking

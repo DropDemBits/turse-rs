@@ -1,6 +1,9 @@
 //! Lowering into `Type` HIR nodes
-use toc_hir::{symbol, ty};
-use toc_span::{HasSpanTable, Span, Spanned};
+use toc_hir::{
+    span::{HasSpanTable, Spanned},
+    symbol, ty,
+};
+use toc_span::Span;
 use toc_syntax::ast::{self, AstNode};
 
 impl super::BodyLowering<'_, '_> {

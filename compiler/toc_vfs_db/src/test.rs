@@ -1,14 +1,13 @@
-use std::ops::Deref;
+use toc_paths::BuiltinPrefix;
+use toc_vfs::{LoadError, LoadStatus};
 
-use toc_salsa::salsa;
-use toc_vfs::{BuiltinPrefix, DummyFileLoader, LoadError, LoadStatus};
+use crate::{SourceTable, VfsBridge, VfsDbExt};
 
-use crate::db::{FileSystem, FileSystemStorage, FilesystemExt, PathInternStorage, VfsDatabaseExt};
-
-#[salsa::database(FileSystemStorage, PathInternStorage)]
 #[derive(Default)]
+#[salsa::db(crate::Jar, toc_paths::Jar)]
 struct VfsTestDB {
     storage: salsa::Storage<Self>,
+    source_table: SourceTable,
 }
 
 impl salsa::Database for VfsTestDB {}
@@ -19,15 +18,25 @@ impl VfsTestDB {
     }
 }
 
+impl VfsBridge for VfsTestDB {
+    fn source_table(&self) -> &SourceTable {
+        &self.source_table
+    }
+}
+
 fn make_test_db() -> VfsTestDB {
-    let mut db = VfsTestDB::new();
+    let db = VfsTestDB::new();
 
     // Setup the builtin prefixes to reasonable defaults
-    db.set_prefix_expansion(BuiltinPrefix::Oot, "/oot/".into());
-    db.set_prefix_expansion(BuiltinPrefix::Help, "/help/".into());
-    db.set_prefix_expansion(BuiltinPrefix::UserHome, "/home/".into());
-    db.set_prefix_expansion(BuiltinPrefix::Job, "/temp/".into());
-    db.set_prefix_expansion(BuiltinPrefix::Temp, "/temp/".into());
+    let builtin_paths = vec![
+        (BuiltinPrefix::Oot, "/oot/".into()),
+        (BuiltinPrefix::Help, "/help/".into()),
+        (BuiltinPrefix::UserHome, "/home/".into()),
+        (BuiltinPrefix::Job, "/temp/".into()),
+        (BuiltinPrefix::Temp, "/temp/".into()),
+    ];
+
+    toc_paths::PrefixExpansions::new(&db, builtin_paths.into_iter().collect());
 
     db
 }
@@ -39,10 +48,9 @@ fn file_retrieval() {
     let mut db = make_test_db();
     let root_file = db.insert_file("/src/main.t", FILE_SOURCE);
 
-    let res = db.file_source(root_file);
-    let (source, _load_error) = res;
+    let res = crate::source_of(&db, root_file);
 
-    assert_eq!(source.deref(), FILE_SOURCE);
+    assert_eq!(res.contents(&db), FILE_SOURCE);
 }
 
 #[test]
@@ -56,29 +64,26 @@ fn relative_path_resolve() {
 
     // Lookup root file source
     {
-        let res = db.file_source(root_file);
-        let (source, _load_error) = res;
+        let res = crate::source_of(&db, root_file);
 
-        assert_eq!(source.deref(), FILE_SOURCES[0]);
+        assert_eq!(res.contents(&db), FILE_SOURCES[0]);
     }
 
     // Lookup bar.t file source
     let bar_t = {
-        let bar_t = db.resolve_path(Some(root_file), "foo/bar.t", &DummyFileLoader);
-        let res = db.file_source(bar_t);
-        let (source, _load_error) = res;
+        let bar_t = crate::resolve_path(&db, root_file, "foo/bar.t".into());
+        let res = crate::source_of(&db, bar_t);
 
-        assert_eq!(source.deref(), FILE_SOURCES[1]);
+        assert_eq!(res.contents(&db), FILE_SOURCES[1]);
         bar_t
     };
 
     // Lookup bap.t from bar.t
     {
-        let bap_t = db.resolve_path(Some(bar_t), "bap.t", &DummyFileLoader);
-        let res = db.file_source(bap_t);
-        let (source, _load_error) = res;
+        let bap_t = crate::resolve_path(&db, bar_t, "bap.t".into());
+        let res = crate::source_of(&db, bap_t);
 
-        assert_eq!(source.deref(), FILE_SOURCES[2]);
+        assert_eq!(res.contents(&db), FILE_SOURCES[2]);
     };
 }
 
@@ -102,64 +107,76 @@ fn path_expansion() {
         db.insert_file("/job/to/make/job-item", FILE_SOURCES[0]);
 
         // Ensure that we are using the correct dirs
-        db.set_prefix_expansion(BuiltinPrefix::Oot, "/oot/".into());
-        db.set_prefix_expansion(BuiltinPrefix::Help, "/oot/support/help".into());
-        db.set_prefix_expansion(BuiltinPrefix::UserHome, "/home/".into());
-        db.set_prefix_expansion(BuiltinPrefix::Job, "/job/".into());
-        db.set_prefix_expansion(BuiltinPrefix::Temp, "/temp/".into());
+        let builtin_paths = vec![
+            (BuiltinPrefix::Oot, "/oot/".into()),
+            (BuiltinPrefix::Help, "/oot/support/help".into()),
+            (BuiltinPrefix::UserHome, "/home/".into()),
+            (BuiltinPrefix::Job, "/job/".into()),
+            (BuiltinPrefix::Temp, "/temp/".into()),
+        ];
+
+        toc_paths::PrefixExpansions::get(&db)
+            .set_builtin_expansions(&mut db)
+            .to(builtin_paths.into_iter().collect());
 
         root_file
     };
 
     // Lookup Predefs.lst file source
     let predefs_list = {
-        let predefs_list = db.resolve_path(
-            Some(root_file),
-            "%oot/support/Predefs.lst",
-            &DummyFileLoader,
+        let predefs_list = crate::resolve_path(&db, root_file, "%oot/support/Predefs.lst".into());
+        let res = crate::source_of(&db, predefs_list);
+        assert_eq!(
+            (res.contents(&db).as_str(), res.errors(&db)),
+            (FILE_SOURCES[1], None)
         );
-        let res = db.file_source(predefs_list);
-        assert_eq!((res.0.as_str(), res.1), (FILE_SOURCES[1], None));
         predefs_list
     };
 
     // Lookup Net.tu from Predefs.lst
     {
-        let net_tu = db.resolve_path(Some(predefs_list), "Net.tu", &DummyFileLoader);
-        let res = db.file_source(net_tu);
-        assert_eq!((res.0.as_str(), res.1), (FILE_SOURCES[2], None));
-    };
-
-    {
-        let file = db.resolve_path(
-            Some(root_file),
-            "%help/Keyword Lookup.txt",
-            &DummyFileLoader,
+        let net_tu = crate::resolve_path(&db, predefs_list, "Net.tu".into());
+        let res = crate::source_of(&db, net_tu);
+        assert_eq!(
+            (res.contents(&db).as_str(), res.errors(&db)),
+            (FILE_SOURCES[2], None)
         );
-        let res = db.file_source(file);
-        assert_eq!((res.0.as_str(), res.1), (FILE_SOURCES[3], None));
     };
 
     {
-        let file = db.resolve_path(Some(root_file), "%home/special_file.t", &DummyFileLoader);
-        let res = db.file_source(file);
-        assert_eq!((res.0.as_str(), res.1), (FILE_SOURCES[0], None));
-    };
-
-    {
-        let file = db.resolve_path(
-            Some(root_file),
-            "%tmp/pre/made/some-temp-item",
-            &DummyFileLoader,
+        let file = crate::resolve_path(&db, root_file, "%help/Keyword Lookup.txt".into());
+        let res = crate::source_of(&db, file);
+        assert_eq!(
+            (res.contents(&db).as_str(), res.errors(&db)),
+            (FILE_SOURCES[3], None)
         );
-        let res = db.file_source(file);
-        assert_eq!((res.0.as_str(), res.1), (FILE_SOURCES[0], None));
     };
 
     {
-        let file = db.resolve_path(Some(root_file), "%job/to/make/job-item", &DummyFileLoader);
-        let res = db.file_source(file);
-        assert_eq!((res.0.as_str(), res.1), (FILE_SOURCES[0], None));
+        let file = crate::resolve_path(&db, root_file, "%home/special_file.t".into());
+        let res = crate::source_of(&db, file);
+        assert_eq!(
+            (res.contents(&db).as_str(), res.errors(&db)),
+            (FILE_SOURCES[0], None)
+        );
+    };
+
+    {
+        let file = crate::resolve_path(&db, root_file, "%tmp/pre/made/some-temp-item".into());
+        let res = crate::source_of(&db, file);
+        assert_eq!(
+            (res.contents(&db).as_str(), res.errors(&db)),
+            (FILE_SOURCES[0], None)
+        );
+    };
+
+    {
+        let file = crate::resolve_path(&db, root_file, "%job/to/make/job-item".into());
+        let res = crate::source_of(&db, file);
+        assert_eq!(
+            (res.contents(&db).as_str(), res.errors(&db)),
+            (FILE_SOURCES[0], None)
+        );
     };
 }
 
@@ -171,21 +188,27 @@ fn file_update() {
     let file = db.insert_file("/main.t", FILE_SOURCES[0]);
 
     {
-        let res = db.file_source(file);
-        assert_eq!((res.0.as_str(), res.1), (FILE_SOURCES[0], None));
+        let res = crate::source_of(&db, file);
+        assert_eq!(
+            (res.contents(&db).as_str(), res.errors(&db)),
+            (FILE_SOURCES[0], None)
+        );
     }
 
     db.update_file(file, Ok(LoadStatus::Modified(FILE_SOURCES[1].into())));
     {
-        let res = db.file_source(file);
-        assert_eq!((res.0.as_str(), res.1), (FILE_SOURCES[1], None));
+        let res = crate::source_of(&db, file);
+        assert_eq!(
+            (res.contents(&db).as_str(), res.errors(&db)),
+            (FILE_SOURCES[1], None)
+        );
     }
 
     db.update_file(file, Err(LoadError::new("", toc_vfs::ErrorKind::NotFound)));
     {
-        let res = db.file_source(file);
+        let res = crate::source_of(&db, file);
         assert_eq!(
-            (res.0.as_str(), res.1.unwrap().kind()),
+            (res.contents(&db).as_str(), res.errors(&db).unwrap().kind()),
             ("", &toc_vfs::ErrorKind::NotFound)
         );
     }
