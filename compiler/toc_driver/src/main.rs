@@ -8,7 +8,6 @@ use toc_hir::library_graph::{DependencyList, SourceLibrary};
 use toc_paths::RawPath;
 use toc_source_graph::RootLibraries;
 use toc_span::{FileId, Span};
-use toc_vfs::FileLoader;
 use toc_vfs_db::{SourceTable, VfsBridge};
 
 mod config;
@@ -27,13 +26,8 @@ fn main() {
         .finish();
     tracing::subscriber::set_global_default(subscriber).expect("setting global subscriber failed");
 
-    let loader = MainFileLoader::default();
-    let path = std::path::Path::new(&args.source_file);
-    let maybe_name = path
-        .file_name()
-        .map(|name| name.to_string_lossy().to_string())
-        .unwrap_or_else(|| "main".to_string());
-    let path = loader.normalize_path(path).unwrap_or_else(|| path.into());
+    let path = Utf8Path::new(&args.source_file);
+    let maybe_name = path.file_name().unwrap_or("main");
     let output_path = path.with_extension("tbc");
     let db = MainDatabase::default();
 
@@ -43,7 +37,7 @@ fn main() {
     // Set the source root
     let library_id = SourceLibrary::new(
         &db,
-        maybe_name,
+        maybe_name.into(),
         root_file,
         toc_hir::library_graph::ArtifactKind::Binary,
         DependencyList::empty(&db),
@@ -269,29 +263,5 @@ impl VfsBridge for MainDatabase {
             .ok()
             .and_then(|path| Utf8PathBuf::try_from(path).ok())
             .unwrap_or_else(|| path.to_owned())
-    }
-}
-
-#[derive(Default)]
-struct MainFileLoader {}
-
-impl toc_vfs::FileLoader for MainFileLoader {
-    fn load_file(&self, path: &std::path::Path) -> toc_vfs::LoadResult {
-        match fs::read(path) {
-            Ok(contents) => Ok(toc_vfs::LoadStatus::Modified(contents)),
-            Err(err) => match err.kind() {
-                std::io::ErrorKind::NotFound => {
-                    Err(toc_vfs::LoadError::new(path, toc_vfs::ErrorKind::NotFound))
-                }
-                _ => Err(toc_vfs::LoadError::new(
-                    path,
-                    toc_vfs::ErrorKind::Other(std::sync::Arc::new(err.to_string())),
-                )),
-            },
-        }
-    }
-
-    fn normalize_path(&self, path: &std::path::Path) -> Option<std::path::PathBuf> {
-        fs::canonicalize(path).ok()
     }
 }
