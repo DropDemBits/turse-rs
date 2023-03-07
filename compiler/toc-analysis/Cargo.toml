@@ -19,6 +19,7 @@ toc-span = { workspace = true }
 salsa = { workspace = true }
 indexmap = { workspace = true }
 thiserror = "1.0.24"
+upcast = { workspace = true }
 
 [dev-dependencies]
 toc-paths = { workspace = true }

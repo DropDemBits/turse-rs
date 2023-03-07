@@ -1387,6 +1387,7 @@ dependencies = [
  "toc-vfs",
  "toc-vfs-db",
  "unindent",
+ "upcast",
 ]
 
 [[package]]

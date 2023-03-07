@@ -2,6 +2,7 @@
 
 use toc_hir::library_graph::SourceLibrary;
 use toc_reporting::CompileResult;
+use upcast::{Upcast, UpcastFrom};
 
 use crate::{lints, query, typeck};
 
@@ -16,7 +17,11 @@ pub struct AnalysisJar(
 
 /// HIR Analysis queries
 pub trait HirAnalysis:
-    salsa::DbWithJar<AnalysisJar> + TypeDatabase + ConstEval + toc_source_graph::Db
+    salsa::DbWithJar<AnalysisJar>
+    + TypeDatabase
+    + ConstEval
+    + Upcast<dyn TypeDatabase>
+    + Upcast<dyn ConstEval>
 {
     fn upcast_to_anaylsis_db(&self) -> &dyn HirAnalysis;
 
@@ -33,7 +38,11 @@ pub trait HirAnalysis:
 
 impl<DB> HirAnalysis for DB
 where
-    DB: salsa::DbWithJar<AnalysisJar> + TypeDatabase + ConstEval + toc_source_graph::Db,
+    DB: salsa::DbWithJar<AnalysisJar>
+        + TypeDatabase
+        + ConstEval
+        + Upcast<dyn TypeDatabase>
+        + Upcast<dyn ConstEval>,
 {
     fn upcast_to_anaylsis_db(&self) -> &dyn HirAnalysis {
         self
@@ -49,5 +58,14 @@ where
 
     fn lint_library(&self, library: SourceLibrary) -> CompileResult<()> {
         lints::lint_library(self, library)
+    }
+}
+
+impl<'db, DB: HirAnalysis + 'db> UpcastFrom<DB> for dyn HirAnalysis + 'db {
+    fn up_from(value: &DB) -> &Self {
+        value
+    }
+    fn up_from_mut(value: &mut DB) -> &mut Self {
+        value
     }
 }

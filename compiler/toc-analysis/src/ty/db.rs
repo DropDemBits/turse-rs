@@ -10,6 +10,7 @@ use toc_hir::{
     symbol::{self, DefId},
     ty::TypeId as HirTypeId,
 };
+use upcast::{Upcast, UpcastFrom};
 
 use crate::ty::{self, query};
 
@@ -17,7 +18,9 @@ use crate::ty::{self, query};
 pub struct TypeJar(ty::TypeId);
 
 /// Type database
-pub trait TypeDatabase: salsa::DbWithJar<TypeJar> + toc_hir_db::Db {
+pub trait TypeDatabase:
+    salsa::DbWithJar<TypeJar> + toc_hir_db::Db + Upcast<dyn toc_hir_db::Db>
+{
     fn upcast_to_type_db(&self) -> &dyn TypeDatabase;
 
     /// Converts the HIR type into an analysis form
@@ -47,7 +50,7 @@ pub trait TypeDatabase: salsa::DbWithJar<TypeJar> + toc_hir_db::Db {
 
 impl<DB> TypeDatabase for DB
 where
-    DB: salsa::DbWithJar<TypeJar> + toc_hir_db::Db,
+    DB: salsa::DbWithJar<TypeJar> + toc_hir_db::Db + Upcast<dyn toc_hir_db::Db>,
 {
     fn upcast_to_type_db(&self) -> &dyn TypeDatabase {
         self
@@ -79,6 +82,15 @@ where
 
     fn exporting_def(&self, source: BindingSource) -> Option<DefId> {
         query::exporting_def(self, source)
+    }
+}
+
+impl<'db, DB: TypeDatabase + 'db> UpcastFrom<DB> for dyn TypeDatabase + 'db {
+    fn up_from(value: &DB) -> &Self {
+        value
+    }
+    fn up_from_mut(value: &mut DB) -> &mut Self {
+        value
     }
 }
 
