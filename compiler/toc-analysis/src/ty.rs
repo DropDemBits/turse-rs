@@ -9,6 +9,7 @@ use crate::const_eval::{Const, ConstError, ConstInt, ConstValue, ErrorKind, NotC
 
 pub(crate) mod db;
 mod lower;
+pub mod make;
 mod pretty;
 pub(crate) mod query;
 pub mod rules;

@@ -11,10 +11,7 @@ use toc_hir::{
     ty::TypeId as HirTypeId,
 };
 
-use crate::{
-    const_eval,
-    ty::{self, query},
-};
+use crate::ty::{self, query};
 
 #[salsa::jar(db = TypeDatabase)]
 pub struct TypeJar(ty::TypeId);
@@ -83,46 +80,6 @@ where
     fn exporting_def(&self, source: BindingSource) -> Option<DefId> {
         query::exporting_def(self, source)
     }
-}
-
-/// Helpers for working with the type interner
-pub trait TypeInternExt {
-    // Helper creators
-    fn mk_error(&self) -> ty::TypeId;
-    fn mk_boolean(&self) -> ty::TypeId;
-    fn mk_int(&self, kind: ty::IntSize) -> ty::TypeId;
-    fn mk_nat(&self, kind: ty::NatSize) -> ty::TypeId;
-    fn mk_real(&self, kind: ty::RealSize) -> ty::TypeId;
-    fn mk_integer(&self) -> ty::TypeId;
-    fn mk_char(&self) -> ty::TypeId;
-    fn mk_string(&self) -> ty::TypeId;
-    fn mk_char_n(&self, seq_size: ty::SeqSize) -> ty::TypeId;
-    fn mk_string_n(&self, seq_size: ty::SeqSize) -> ty::TypeId;
-    fn mk_alias(&self, def_id: DefId, base_ty: ty::TypeId) -> ty::TypeId;
-    fn mk_opaque(&self, def_id: DefId, base_ty: ty::TypeId) -> ty::TypeId;
-    fn mk_forward(&self) -> ty::TypeId;
-    fn mk_constrained(
-        &self,
-        base_ty: ty::TypeId,
-        start: const_eval::Const,
-        end: ty::EndBound,
-    ) -> ty::TypeId;
-    fn mk_array(
-        &self,
-        sizing: ty::ArraySizing,
-        ranges: Vec<ty::TypeId>,
-        elem_ty: ty::TypeId,
-    ) -> ty::TypeId;
-    fn mk_enum(&self, with_def: ty::WithDef, variants: Vec<DefId>) -> ty::TypeId;
-    fn mk_set(&self, with_def: ty::WithDef, elem_ty: ty::TypeId) -> ty::TypeId;
-    fn mk_pointer(&self, checked: ty::Checked, target_ty: ty::TypeId) -> ty::TypeId;
-    fn mk_subprogram(
-        &self,
-        kind: symbol::SubprogramKind,
-        params: Option<Vec<ty::Param>>,
-        result: ty::TypeId,
-    ) -> ty::TypeId;
-    fn mk_void(&self) -> ty::TypeId;
 }
 
 /// Anything which can produce a type

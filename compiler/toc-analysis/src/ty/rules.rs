@@ -5,8 +5,8 @@ use toc_reporting::MessageSink;
 use toc_span::Span;
 
 use crate::{
-    db::{self, TypeInternExt},
-    ty::{self, NotFixedLen, SeqSize, TypeId, TypeKind},
+    db::{self},
+    ty::{self, make, NotFixedLen, SeqSize, TypeId, TypeKind},
 };
 
 use super::{AllowDyn, ArraySizing, TyRef};
@@ -251,7 +251,7 @@ where
                         // FIXME: add special cases for records and unions once lowered
                         TypeKind::Enum(..) | TypeKind::Set(..) => hidden_tyref,
                         TypeKind::Alias(..) => unreachable!("found alias wrapped in opaque"),
-                        _ => db.mk_alias(*def_id, *hidden_ty).in_db(db),
+                        _ => make::alias(db.upcast_to_type_db(), *def_id, *hidden_ty).in_db(db),
                     }
                 } else {
                     // Not visible, don't peel
@@ -933,8 +933,8 @@ impl InferTy {
 ///
 /// `OK(ty)` for the proper inferred type,
 /// `Err(ty)` if the input types aren't appropriate for the operation
-pub fn infer_binary_op<T: ?Sized + db::TypeDatabase>(
-    db: &T,
+pub fn infer_binary_op(
+    db: &dyn db::TypeDatabase,
     left: TypeId,
     op: expr::BinaryOp,
     right: TypeId,
@@ -955,31 +955,31 @@ pub fn infer_binary_op<T: ?Sized + db::TypeDatabase>(
     // nat - nat => nat
     use crate::ty::{IntSize, NatSize, RealSize};
 
-    fn infer_arithmetic_operands<T: ?Sized + db::TypeDatabase>(
-        db: &T,
+    fn infer_arithmetic_operands(
+        db: &dyn db::TypeDatabase,
         left: &TypeKind,
         right: &TypeKind,
     ) -> Option<TypeId> {
         match (left, right) {
             // Pass through integer inference
-            (TypeKind::Integer, TypeKind::Integer) => Some(db.mk_integer()),
+            (TypeKind::Integer, TypeKind::Integer) => Some(make::integer(db)),
 
             // Normal operands
             (operand, TypeKind::Real(_)) | (TypeKind::Real(_), operand) if operand.is_number() => {
-                Some(db.mk_real(RealSize::Real))
+                Some(make::real(db, RealSize::Real))
             }
             (operand, TypeKind::Int(_)) | (TypeKind::Int(_), operand) if operand.is_integer() => {
-                Some(db.mk_int(IntSize::Int))
+                Some(make::int(db, IntSize::Int))
             }
             (operand, TypeKind::Nat(_)) | (TypeKind::Nat(_), operand) if operand.is_nat() => {
-                Some(db.mk_nat(NatSize::Nat))
+                Some(make::nat(db, NatSize::Nat))
             }
             _ => None,
         }
     }
 
-    fn infer_bitwise_operands<T: ?Sized + db::TypeDatabase>(
-        db: &T,
+    fn infer_bitwise_operands(
+        db: &dyn db::TypeDatabase,
         left: &TypeKind,
         right: &TypeKind,
     ) -> Option<TypeId> {
@@ -987,14 +987,14 @@ pub fn infer_binary_op<T: ?Sized + db::TypeDatabase>(
         // Integer inference is not passed through
 
         if left.is_integer() && right.is_integer() {
-            Some(db.mk_nat(NatSize::Nat))
+            Some(make::nat(db, NatSize::Nat))
         } else {
             None
         }
     }
 
-    fn infer_charseq_operands<T: ?Sized + db::TypeDatabase>(
-        db: &T,
+    fn infer_charseq_operands(
+        db: &dyn db::TypeDatabase,
         left: &TypeKind,
         right: &TypeKind,
     ) -> Option<TypeId> {
@@ -1010,7 +1010,7 @@ pub fn infer_binary_op<T: ?Sized + db::TypeDatabase>(
 
         if left.is_charseq() && right.is_charseq() {
             // The rest of the cases fall back on producing string
-            Some(db.mk_string())
+            Some(make::string(db))
         } else {
             None
         }
@@ -1021,7 +1021,7 @@ pub fn infer_binary_op<T: ?Sized + db::TypeDatabase>(
 
     // Propagate error type as complete so that we don't duplicate the error
     if left.kind().is_error() || right.kind().is_error() {
-        return InferTy::Complete(db.mk_error());
+        return InferTy::Complete(make::error(db));
     }
 
     match op {
@@ -1043,7 +1043,7 @@ pub fn infer_binary_op<T: ?Sized + db::TypeDatabase>(
                 InferTy::Partial(left.id())
             } else {
                 // Type error
-                InferTy::Error(db.mk_error())
+                InferTy::Error(make::error(db))
             }
         }
         expr::BinaryOp::Sub => {
@@ -1058,7 +1058,7 @@ pub fn infer_binary_op<T: ?Sized + db::TypeDatabase>(
                 // Set difference (depends on `is_equivalent`, but okay to infer from left)
                 InferTy::Partial(left.id())
             } else {
-                InferTy::Error(db.mk_error())
+                InferTy::Error(make::error(db))
             }
         }
         expr::BinaryOp::Mul => {
@@ -1073,7 +1073,7 @@ pub fn infer_binary_op<T: ?Sized + db::TypeDatabase>(
                 // Set intersection (depends on `is_equivalent`, but okay to infer from left)
                 InferTy::Partial(left.id())
             } else {
-                InferTy::Error(db.mk_error())
+                InferTy::Error(make::error(db))
             }
         }
         expr::BinaryOp::Div => {
@@ -1082,14 +1082,14 @@ pub fn infer_binary_op<T: ?Sized + db::TypeDatabase>(
 
             match (left.kind(), right.kind()) {
                 // Pass through type inference
-                (TypeKind::Integer, TypeKind::Integer) => InferTy::Complete(db.mk_integer()),
+                (TypeKind::Integer, TypeKind::Integer) => InferTy::Complete(make::integer(db)),
                 (operand, TypeKind::Nat(_)) | (TypeKind::Nat(_), operand) if operand.is_nat() => {
-                    InferTy::Complete(db.mk_nat(NatSize::Nat))
+                    InferTy::Complete(make::nat(db, NatSize::Nat))
                 }
                 (lhs, rhs) if lhs.is_number() && rhs.is_number() => {
-                    InferTy::Complete(db.mk_int(IntSize::Int))
+                    InferTy::Complete(make::int(db, IntSize::Int))
                 }
-                _ => InferTy::Error(db.mk_error()),
+                _ => InferTy::Error(make::error(db)),
             }
         }
         expr::BinaryOp::RealDiv => {
@@ -1097,9 +1097,9 @@ pub fn infer_binary_op<T: ?Sized + db::TypeDatabase>(
             // - Floating point division (number, number => real)
 
             if left.kind().is_number() && right.kind().is_number() {
-                InferTy::Complete(db.mk_real(RealSize::Real))
+                InferTy::Complete(make::real(db, RealSize::Real))
             } else {
-                InferTy::Error(db.mk_error())
+                InferTy::Error(make::error(db))
             }
         }
         expr::BinaryOp::Mod => {
@@ -1110,7 +1110,7 @@ pub fn infer_binary_op<T: ?Sized + db::TypeDatabase>(
                 // Modulo
                 InferTy::Complete(result_ty)
             } else {
-                InferTy::Error(db.mk_error())
+                InferTy::Error(make::error(db))
             }
         }
         expr::BinaryOp::Rem => {
@@ -1121,7 +1121,7 @@ pub fn infer_binary_op<T: ?Sized + db::TypeDatabase>(
                 // Remainder
                 InferTy::Complete(result_ty)
             } else {
-                InferTy::Error(db.mk_error())
+                InferTy::Error(make::error(db))
             }
         }
         expr::BinaryOp::Exp => {
@@ -1132,7 +1132,7 @@ pub fn infer_binary_op<T: ?Sized + db::TypeDatabase>(
                 // Exponentiation
                 InferTy::Complete(result_ty)
             } else {
-                InferTy::Error(db.mk_error())
+                InferTy::Error(make::error(db))
             }
         }
         // Bitwise operators (integer, integer => nat)
@@ -1147,9 +1147,9 @@ pub fn infer_binary_op<T: ?Sized + db::TypeDatabase>(
                 InferTy::Complete(result_ty)
             } else if let (TypeKind::Boolean, TypeKind::Boolean) = (left.kind(), right.kind()) {
                 // Logical And
-                InferTy::Complete(db.mk_boolean())
+                InferTy::Complete(make::boolean(db))
             } else {
-                InferTy::Error(db.mk_error())
+                InferTy::Error(make::error(db))
             }
         }
         expr::BinaryOp::Or => {
@@ -1162,9 +1162,9 @@ pub fn infer_binary_op<T: ?Sized + db::TypeDatabase>(
                 InferTy::Complete(result_ty)
             } else if let (TypeKind::Boolean, TypeKind::Boolean) = (left.kind(), right.kind()) {
                 // Logical Or
-                InferTy::Complete(db.mk_boolean())
+                InferTy::Complete(make::boolean(db))
             } else {
-                InferTy::Error(db.mk_error())
+                InferTy::Error(make::error(db))
             }
         }
         expr::BinaryOp::Xor => {
@@ -1177,9 +1177,9 @@ pub fn infer_binary_op<T: ?Sized + db::TypeDatabase>(
                 InferTy::Complete(result_ty)
             } else if let (TypeKind::Boolean, TypeKind::Boolean) = (left.kind(), right.kind()) {
                 // Logical Xor
-                InferTy::Complete(db.mk_boolean())
+                InferTy::Complete(make::boolean(db))
             } else {
-                InferTy::Error(db.mk_error())
+                InferTy::Error(make::error(db))
             }
         }
         // Pure bitwise operators
@@ -1191,7 +1191,7 @@ pub fn infer_binary_op<T: ?Sized + db::TypeDatabase>(
                 // Bitwise Shl
                 InferTy::Complete(result_ty)
             } else {
-                InferTy::Error(db.mk_error())
+                InferTy::Error(make::error(db))
             }
         }
         expr::BinaryOp::Shr => {
@@ -1202,7 +1202,7 @@ pub fn infer_binary_op<T: ?Sized + db::TypeDatabase>(
                 // Bitwise Shr
                 InferTy::Complete(result_ty)
             } else {
-                InferTy::Error(db.mk_error())
+                InferTy::Error(make::error(db))
             }
         }
         // Pure logical operator
@@ -1212,9 +1212,9 @@ pub fn infer_binary_op<T: ?Sized + db::TypeDatabase>(
 
             if let (TypeKind::Boolean, TypeKind::Boolean) = (left.kind(), right.kind()) {
                 // Imply
-                InferTy::Complete(db.mk_boolean())
+                InferTy::Complete(make::boolean(db))
             } else {
-                InferTy::Error(db.mk_error())
+                InferTy::Error(make::error(db))
             }
         }
 
@@ -1226,10 +1226,10 @@ pub fn infer_binary_op<T: ?Sized + db::TypeDatabase>(
         | expr::BinaryOp::Greater
         | expr::BinaryOp::GreaterEq
         | expr::BinaryOp::Equal
-        | expr::BinaryOp::NotEqual => InferTy::Partial(db.mk_boolean()),
+        | expr::BinaryOp::NotEqual => InferTy::Partial(make::boolean(db)),
         // Set membership tests (a, set(a) => boolean)
         // Requires `is_equivalent`, but inferring them into a boolean type is ok
-        expr::BinaryOp::In | expr::BinaryOp::NotIn => InferTy::Partial(db.mk_boolean()),
+        expr::BinaryOp::In | expr::BinaryOp::NotIn => InferTy::Partial(make::boolean(db)),
     }
 }
 
@@ -1261,7 +1261,7 @@ pub fn check_binary_op<T: ?Sized + db::ConstEval>(
     let right = right.to_base_type();
 
     // Start from the inference code
-    match infer_binary_op(db, left.id(), op, right.id()) {
+    match infer_binary_op(db.upcast_to_type_db(), left.id(), op, right.id()) {
         InferTy::Complete(_) => return Ok(()),
         InferTy::Error(_) => return mk_type_error(),
         InferTy::Partial(_) => (),
@@ -1373,18 +1373,14 @@ pub fn check_binary_op<T: ?Sized + db::ConstEval>(
     }
 }
 
-pub fn infer_unary_op<T: ?Sized + db::TypeDatabase>(
-    db: &T,
-    op: expr::UnaryOp,
-    right: TypeId,
-) -> InferTy {
+pub fn infer_unary_op(db: &dyn db::TypeDatabase, op: expr::UnaryOp, right: TypeId) -> InferTy {
     use crate::ty::{IntSize, NatSize, RealSize};
 
     let right = right.in_db(db);
 
     // Propagate error type as complete so that we don't duplicate the error
     if right.kind().is_error() {
-        return InferTy::Complete(db.mk_error());
+        return InferTy::Complete(make::error(db));
     }
 
     let right = right.to_base_type();
@@ -1393,24 +1389,24 @@ pub fn infer_unary_op<T: ?Sized + db::TypeDatabase>(
         expr::UnaryOp::Not => {
             if right.kind().is_integer() {
                 // Bitwise Not
-                InferTy::Complete(db.mk_nat(NatSize::Nat))
+                InferTy::Complete(make::nat(db, NatSize::Nat))
             } else if let TypeKind::Boolean = &right.kind() {
                 // Logical Not
-                InferTy::Complete(db.mk_boolean())
+                InferTy::Complete(make::boolean(db))
             } else {
-                InferTy::Error(db.mk_error())
+                InferTy::Error(make::error(db))
             }
         }
         expr::UnaryOp::Identity | expr::UnaryOp::Negate => {
             match right.kind() {
                 // Pass through integer inference
-                TypeKind::Integer => InferTy::Complete(db.mk_integer()),
+                TypeKind::Integer => InferTy::Complete(make::integer(db)),
 
                 // Normal operands
-                TypeKind::Real(_) => InferTy::Complete(db.mk_real(RealSize::Real)),
-                TypeKind::Int(_) => InferTy::Complete(db.mk_int(IntSize::Int)),
-                TypeKind::Nat(_) => InferTy::Complete(db.mk_nat(NatSize::Nat)),
-                _ => InferTy::Error(db.mk_error()),
+                TypeKind::Real(_) => InferTy::Complete(make::real(db, RealSize::Real)),
+                TypeKind::Int(_) => InferTy::Complete(make::int(db, IntSize::Int)),
+                TypeKind::Nat(_) => InferTy::Complete(make::nat(db, NatSize::Nat)),
+                _ => InferTy::Error(make::error(db)),
             }
         }
     }
@@ -1429,7 +1425,7 @@ pub fn check_unary_op<T: ?Sized + db::TypeDatabase>(
     let right = right.in_db(db);
 
     // Infer unary type currently does all of the work
-    match infer_unary_op(db, op, right.id()) {
+    match infer_unary_op(db.upcast_to_type_db(), op, right.id()) {
         InferTy::Complete(_) => Ok(()),
         InferTy::Error(_) => {
             // Use the peeled version of the type
