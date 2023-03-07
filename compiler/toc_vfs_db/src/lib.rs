@@ -5,10 +5,10 @@
 //! have to depend on the entirety of `toc-vfs-db`.
 //!
 //! Paths that correspond to source files are represented by [`SourceFile`]
-//! inputs. [`source_of`] is used to lookup the corresponding [`SourceFile`],
+//! inputs. [`source_of()`] is used to lookup the corresponding [`SourceFile`],
 //! and the mapping is ultimately backed by a [`SourceTable`] stored in the db.
 //!
-//! Expansion of builtin percent prefixes are handled by [`resolve_path`],
+//! Expansion of builtin percent prefixes are handled by [`resolve_path()`],
 //! which relies on [`expand_path`](toc_paths::expand_path) to do most of the
 //! work. Path normalization is also performed before getting the final
 //! interned path.
