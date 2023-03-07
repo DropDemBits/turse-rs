@@ -62,7 +62,7 @@ impl DependencyList {
 #[non_exhaustive]
 pub struct DependencyInfo();
 
-/// A reference to a library in the [`SourceGraph`]
+/// A reference to a library in the [`SourceGraph`](crate::SourceGraph)
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(transparent)]
 pub struct LibraryId(pub Library);
