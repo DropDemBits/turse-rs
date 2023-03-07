@@ -8,7 +8,6 @@ use std::{
 };
 
 use toc_hir::library::LibraryId;
-use toc_hir::library_graph::SourceGraph;
 use toc_hir::symbol::{self, Symbol};
 use toc_hir::visitor::WalkNode;
 use toc_hir::{
@@ -27,9 +26,12 @@ const IS_LR_LAYOUT: bool = true;
 
 pub fn pretty_print_graph(
     db: &dyn toc_source_graph::Db,
-    library_graph: SourceGraph,
     get_library: impl Fn(LibraryId) -> LoweredLibrary,
 ) -> String {
+    let Ok(library_graph) = toc_source_graph::source_graph(db) else {
+        return String::new()
+    };
+
     let mut output = String::new();
     writeln!(output, "digraph hir_graph {{").unwrap();
     writeln!(

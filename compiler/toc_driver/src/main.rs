@@ -75,11 +75,8 @@ fn main() {
             config::DumpMode::HirGraph => {
                 use toc_hir_db::Db;
 
-                let source_graph = toc_source_graph::source_graph(&db).as_ref().ok().unwrap();
                 let out =
-                    toc_hir_pretty::graph::pretty_print_graph(&db, *source_graph, |library| {
-                        db.library(library)
-                    });
+                    toc_hir_pretty::graph::pretty_print_graph(&db, |library| db.library(library));
                 println!("{out}");
             }
         }
