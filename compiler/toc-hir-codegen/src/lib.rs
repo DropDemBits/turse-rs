@@ -70,7 +70,7 @@ impl CodeBlob {
             // file_id
             out.write_u16::<LE>(blob_id)?;
             // filename
-            let filename = file_id.into_raw().raw_path(db.upcast_to_path_db()).as_str();
+            let filename = file_id.into_raw().raw_path(db.up()).as_str();
             let mut encoded_filename = [0; 255];
             // trunc to 256 bytes
             let filename_len = filename.len().min(encoded_filename.len());
@@ -280,16 +280,11 @@ pub fn generate_code(db: &dyn CodeGenDB) -> CompileResult<Option<CodeBlob>> {
 
     // Start producing blobs for each library
     // Only deal with one library right now
-    let lib_graph = toc_source_graph::source_graph(db.upcast_to_source_graph_db())
-        .as_ref()
-        .unwrap();
+    let lib_graph = toc_source_graph::source_graph(db.up()).as_ref().unwrap();
     let mut blob = CodeBlob::default();
 
-    if let Some(&library_id) = lib_graph
-        .all_libraries(db.upcast_to_source_graph_db())
-        .first()
-    {
-        let root_file = library_id.root(db.upcast_to_source_graph_db());
+    if let Some(&library_id) = lib_graph.all_libraries(db.up()).first() {
+        let root_file = library_id.root(db.up());
 
         // This library will act as the main file
         let library = db.library(library_id.into());
@@ -1053,12 +1048,8 @@ impl BodyCodeGenerator<'_> {
 
     fn emit_location(&mut self, span: Span) {
         let (file, range) = span.into_parts().unwrap();
-        let info = toc_ast_db::map_byte_index(
-            self.db.upcast_to_source_db(),
-            file.into_raw(),
-            range.start().into(),
-        )
-        .unwrap();
+        let info = toc_ast_db::map_byte_index(self.db.up(), file.into_raw(), range.start().into())
+            .unwrap();
 
         // `0` is reserved for "<No File>"
         let code_file = self.code_blob.file_map.insert_full(file).0 + 1;

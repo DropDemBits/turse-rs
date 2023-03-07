@@ -19,11 +19,8 @@ pub fn file_links(db: &dyn Db, source: SourceFile) -> Arc<toc_parser::ExternalLi
     let deps = crate::parse_depends(db, source);
     for dep in deps.result().dependencies() {
         // Get the target file
-        let child = toc_vfs_db::resolve_path(
-            db.upcast_to_vfs_db(),
-            source.path(db.upcast_to_vfs_db()),
-            dep.relative_path.clone(),
-        );
+        let child =
+            toc_vfs_db::resolve_path(db.up(), source.path(db.up()), dep.relative_path.clone());
 
         links.bind(dep.link_from.clone(), child.into());
     }
@@ -35,20 +32,14 @@ pub fn file_links(db: &dyn Db, source: SourceFile) -> Arc<toc_parser::ExternalLi
 #[salsa::tracked]
 pub fn parse_file(db: &dyn Db, source: SourceFile) -> CompileResult<toc_parser::ParseTree> {
     // FIXME: If a load error is present, then add it to the parse result / create a new one
-    toc_parser::parse(
-        source.path(db.upcast_to_vfs_db()).into(),
-        source.contents(db.upcast_to_vfs_db()),
-    )
+    toc_parser::parse(source.path(db.up()).into(), source.contents(db.up()))
 }
 
 /// Validates the file according to grammar validation rules
 #[salsa::tracked]
 pub fn validate_file(db: &dyn Db, source: SourceFile) -> CompileResult<()> {
     let cst = crate::parse_file(db, source);
-    toc_validate::validate_ast(
-        source.path(db.upcast_to_vfs_db()).into(),
-        cst.result().syntax(),
-    )
+    toc_validate::validate_ast(source.path(db.up()).into(), cst.result().syntax())
 }
 
 /// Parse out the dependencies of a file
@@ -58,10 +49,7 @@ pub fn parse_depends(
     source: SourceFile,
 ) -> CompileResult<Arc<toc_parser::FileDepends>> {
     let cst = crate::parse_file(db, source);
-    toc_parser::parse_depends(
-        source.path(db.upcast_to_vfs_db()).into(),
-        cst.result().syntax(),
-    )
+    toc_parser::parse_depends(source.path(db.up()).into(), cst.result().syntax())
 }
 
 /// Gets the [`ExternalLink`](toc_parser::ExternalLink)'s corresponding file
@@ -93,7 +81,7 @@ pub fn reachable_files(db: &dyn Db, root: SourceFile) -> Arc<BTreeSet<SourceFile
         pending_queue.extend(
             crate::file_links(db, current_file)
                 .all_links()
-                .map(|path| toc_vfs_db::source_of(db.upcast_to_vfs_db(), path.into_raw())),
+                .map(|path| toc_vfs_db::source_of(db.up(), path.into_raw())),
         );
     }
 
@@ -119,7 +107,7 @@ pub fn reachable_imported_files(db: &dyn Db, root: SourceFile) -> Arc<BTreeSet<S
         pending_queue.extend(
             crate::file_links(db, current_file)
                 .all_links()
-                .map(|path| toc_vfs_db::source_of(db.upcast_to_vfs_db(), path.into_raw())),
+                .map(|path| toc_vfs_db::source_of(db.up(), path.into_raw())),
         );
     }
 

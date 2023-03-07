@@ -5,6 +5,8 @@ pub mod span;
 
 mod source;
 
+use upcast::{Upcast, UpcastFrom};
+
 pub use crate::source::{
     file_link_of, file_links, parse_depends, parse_file, reachable_files, reachable_imported_files,
     validate_file,
@@ -33,15 +35,15 @@ pub struct Jar(
     map_byte_index_to_position,
 );
 
-pub trait Db: salsa::DbWithJar<Jar> + toc_vfs_db::Db {
-    fn upcast_to_source_db(&self) -> &dyn Db;
-}
+pub trait Db: salsa::DbWithJar<Jar> + toc_vfs_db::Db + Upcast<dyn toc_vfs_db::Db> {}
 
-impl<DB> Db for DB
-where
-    DB: salsa::DbWithJar<Jar> + toc_vfs_db::Db + toc_paths::Db,
-{
-    fn upcast_to_source_db(&self) -> &dyn Db {
-        self
+impl<DB> Db for DB where DB: salsa::DbWithJar<Jar> + toc_vfs_db::Db + Upcast<dyn toc_vfs_db::Db> {}
+
+impl<'db, DB: Db + 'db> UpcastFrom<DB> for dyn Db + 'db {
+    fn up_from(value: &DB) -> &Self {
+        value
+    }
+    fn up_from_mut(value: &mut DB) -> &mut Self {
+        value
     }
 }
