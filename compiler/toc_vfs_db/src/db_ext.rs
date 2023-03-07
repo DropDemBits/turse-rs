@@ -10,7 +10,7 @@ use crate::VfsBridge;
 
 /// Helper extension trait for inserting & updating files
 pub trait VfsDbExt {
-    /// Inserts a file into the database, producing a [`FileId`]
+    /// Inserts a file into the database, producing a [`RawPath`]
     ///
     /// Mainly used in tests
     fn insert_file<P: AsRef<Path>>(&mut self, path: P, source: &str) -> RawPath;
