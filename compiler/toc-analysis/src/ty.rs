@@ -36,10 +36,11 @@ pub struct TypeId {
 }
 
 impl TypeId {
-    pub fn in_db<'db, DB>(self, db: &'db DB) -> TyRef<'db, DB>
-    where
-        DB: db::TypeDatabase + ?Sized + 'db,
-    {
+    pub fn display(self, db: &dyn crate::db::ConstEval) -> TyRef<'_, dyn crate::db::ConstEval> {
+        TyRef { db, id: self }
+    }
+
+    pub fn debug(self, db: &dyn db::TypeDatabase) -> TyRef<'_, dyn db::TypeDatabase> {
         TyRef { db, id: self }
     }
 }
@@ -255,29 +256,18 @@ pub enum PassBy {
     Reference(symbol::Mutability),
 }
 
-/// Wrapper type for making it easier to work with TypeIds
+/// Wrapper type for displaying [`TypeId`]s
 #[derive(PartialEq, Eq)]
 pub struct TyRef<'db, DB: ?Sized + 'db> {
     db: &'db DB,
     id: TypeId,
 }
 
-impl<'db, DB> TyRef<'db, DB>
-where
-    DB: ?Sized + db::TypeDatabase + 'db,
-{
-    pub fn kind(&self) -> &TypeKind {
-        self.id.kind(self.db.upcast_to_type_db())
-    }
-
-    pub fn id(&self) -> TypeId {
-        self.id
-    }
-
+impl TypeId {
     /// If this type has an uninitialized pattern
-    pub fn has_uninit(&self) -> bool {
+    pub fn has_uninit(&self, db: &dyn db::TypeDatabase) -> bool {
         matches!(
-            self.kind(),
+            self.kind(db),
             TypeKind::Boolean
                 | TypeKind::Int(IntSize::Int)
                 | TypeKind::Nat(NatSize::AddressInt | NatSize::Nat)
@@ -287,15 +277,12 @@ where
     }
 }
 
-impl<'db, DB> TyRef<'db, DB>
-where
-    DB: crate::db::ConstEval + ?Sized + 'db,
-{
+impl TypeId {
     /// Alignment of a type, or `None` if it isn't representable
-    pub fn align_of(&self) -> Option<usize> {
+    pub fn align_of(&self, db: &dyn crate::db::ConstEval) -> Option<usize> {
         const POINTER_ALIGNMENT: usize = 4;
 
-        let align_of = match self.kind() {
+        let align_of = match self.kind(db.up()) {
             TypeKind::Error => return None,
             TypeKind::Boolean => 1,
             TypeKind::Int(IntSize::Int1) => 1,
@@ -319,17 +306,15 @@ where
             TypeKind::Void => return None,
             TypeKind::Constrained(base_ty, ..) => {
                 // Defer to the base type
-                return base_ty.in_db(self.db).peel_aliases().align_of();
+                return base_ty.peel_aliases(db.up()).align_of(db);
             }
             TypeKind::Array(..) => POINTER_ALIGNMENT, // ???: It's to an array descriptor
             TypeKind::Enum(..) => 4, // ???: Alignment based on user-specified size?
             TypeKind::Set(..) => 2,
             TypeKind::Pointer(_, _) => POINTER_ALIGNMENT,
             // Defer to the aliased type
-            TypeKind::Alias(_, base_ty) => return base_ty.in_db(self.db).align_of(),
-            TypeKind::Opaque(_, base_ty) => {
-                return base_ty.in_db(self.db).peel_aliases().align_of()
-            }
+            TypeKind::Alias(_, base_ty) => return base_ty.align_of(db),
+            TypeKind::Opaque(_, base_ty) => return base_ty.peel_aliases(db.up()).align_of(db),
             TypeKind::Forward => return None,
         };
 
@@ -337,9 +322,9 @@ where
     }
 
     /// Size of a type, or `None` if it isn't representable
-    pub fn size_of(&self) -> Option<usize> {
+    pub fn size_of(&self, db: &dyn crate::db::ConstEval) -> Option<usize> {
         const POINTER_SIZE: usize = 4;
-        let size_of = match self.kind() {
+        let size_of = match self.kind(db.up()) {
             TypeKind::Boolean => 1,
             TypeKind::Int(IntSize::Int1) => 1,
             TypeKind::Int(IntSize::Int2) => 2,
@@ -355,9 +340,9 @@ where
             TypeKind::Real(RealSize::Real) => 8,
             TypeKind::Char => 1,
             TypeKind::String | TypeKind::StringN(_) | TypeKind::CharN(_) => {
-                let length_of = self.length_of()?;
+                let length_of = self.length_of(db)?;
 
-                if matches!(self.kind(), TypeKind::String | TypeKind::StringN(_)) {
+                if matches!(self.kind(db.up()), TypeKind::String | TypeKind::StringN(_)) {
                     // Storage size for strings includes the always present null terminator
                     length_of + 1
                 } else {
@@ -372,7 +357,7 @@ where
             TypeKind::Void => return None,
             TypeKind::Constrained(base_ty, ..) => {
                 // Defer to the base type
-                return base_ty.in_db(self.db).peel_aliases().size_of();
+                return base_ty.peel_aliases(db.up()).size_of(db);
             }
             TypeKind::Array(..) => POINTER_SIZE, // To an array descriptor
             TypeKind::Enum(..) => 4, // FIXME: Have size be based on a user-specified size
@@ -380,8 +365,8 @@ where
             TypeKind::Pointer(Checked::Checked, _) => POINTER_SIZE * 2, // address + metadata
             TypeKind::Pointer(Checked::Unchecked, _) => POINTER_SIZE, // address only
             // Defer to the aliased type
-            TypeKind::Alias(_, base_ty) => return base_ty.in_db(self.db).size_of(),
-            TypeKind::Opaque(_, base_ty) => return base_ty.in_db(self.db).size_of(),
+            TypeKind::Alias(_, base_ty) => return base_ty.size_of(db),
+            TypeKind::Opaque(_, base_ty) => return base_ty.size_of(db),
             TypeKind::Integer | TypeKind::Forward | TypeKind::Error => return None,
         };
 
@@ -389,14 +374,14 @@ where
     }
 
     /// Length of a type, or `None` if it isn't representable or a charseq
-    pub fn length_of(&self) -> Option<usize> {
-        let length = match self.kind() {
+    pub fn length_of(&self, db: &dyn crate::db::ConstEval) -> Option<usize> {
+        let length = match self.kind(db.up()) {
             TypeKind::String => {
                 // max chars (excluding null terminator)
                 255
             }
             TypeKind::CharN(seq_size) | TypeKind::StringN(seq_size) => {
-                let char_len = seq_size.fixed_len(self.db, Span::default()).ok()?;
+                let char_len = seq_size.fixed_len(db, Span::default()).ok()?;
 
                 (char_len.into_u32()?) as usize
             }
@@ -409,8 +394,8 @@ where
 
     /// If this type were to be used as a range, computes the number of elements in the range,
     /// or `None` if it can't be used as a range
-    pub fn element_count(&self) -> Result<ConstInt, ConstError> {
-        match self.kind() {
+    pub fn element_count(self, db: &dyn crate::db::ConstEval) -> Result<ConstInt, ConstError> {
+        match self.kind(db.up()) {
             TypeKind::Array(ArraySizing::Static | ArraySizing::MaybeDyn, ranges, _) => {
                 // Element count is just the product of the range element counts
                 let mut count = ConstInt::ONE;
@@ -419,21 +404,21 @@ where
                     // Forcefully poke through opaque
                     // Observing through is okay, since we don't leak the type itself
                     let range_tyref = {
-                        let ty_ref = range_ty.in_db(self.db);
-                        match ty_ref.kind() {
-                            TypeKind::Opaque(_, type_id) => type_id.in_db(self.db),
-                            _ => ty_ref.peel_aliases(),
+                        let ty_ref = range_ty;
+                        match ty_ref.kind(db.up()) {
+                            TypeKind::Opaque(_, type_id) => *type_id,
+                            _ => ty_ref.peel_aliases(db.up()),
                         }
                     };
 
                     // If this isn't an index type, stop
                     // Prevents a cycle if we happen to have the same array type as one of the
                     // range types.
-                    if !range_tyref.clone().to_base_type().kind().is_index() {
+                    if !range_tyref.to_base_type(db.up()).kind(db.up()).is_index() {
                         return Err(ConstError::without_span(ErrorKind::WrongOperandType));
                     }
 
-                    let index_count = range_tyref.element_count()?;
+                    let index_count = range_tyref.element_count(db)?;
 
                     count = count.checked_mul(index_count)?
                 }
@@ -442,8 +427,8 @@ where
             }
             _ => {
                 // Simple range subtraction
-                let min = self.min_int_of()?;
-                let max = self.max_int_of()?;
+                let min = self.min_int_of(db)?;
+                let max = self.max_int_of(db)?;
 
                 // Range is inclusive, so also add 1
                 max.checked_sub(min)?.checked_add(ConstInt::ONE)
@@ -452,8 +437,8 @@ where
     }
 
     /// Minimum integer value of this type, or `None` if this is not an integer
-    pub fn min_int_of(&self) -> Result<ConstInt, ConstError> {
-        match self.kind() {
+    pub fn min_int_of(self, db: &dyn crate::db::ConstEval) -> Result<ConstInt, ConstError> {
+        match self.kind(db.up()) {
             TypeKind::Char => Ok(ConstValue::Char('\x00')
                 .ordinal()
                 .expect("const construction")),
@@ -489,8 +474,7 @@ where
             TypeKind::Constrained(_, start_bound, _end_bound) => {
                 // FIXME: use the correct eval params
                 // Just the ordinal value of the start bound
-                self.db
-                    .evaluate_const(start_bound.clone(), Default::default())?
+                db.evaluate_const(start_bound.clone(), Default::default())?
                     .ordinal()
                     .ok_or_else(|| ConstError::without_span(ErrorKind::WrongOperandType))
             }
@@ -499,8 +483,8 @@ where
     }
 
     /// Maximum integer value of this type, or `None` if this is not an integer
-    pub fn max_int_of(&self) -> Result<ConstInt, ConstError> {
-        match self.kind() {
+    pub fn max_int_of(self, db: &dyn crate::db::ConstEval) -> Result<ConstInt, ConstError> {
+        match self.kind(db.up()) {
             TypeKind::Char => {
                 // Codepoint can only fit inside of a u8
                 Ok(ConstValue::Char('\u{FF}')
@@ -555,15 +539,13 @@ where
                 match end_bound {
                     EndBound::Expr(end_bound, _) => {
                         // Just the ordinal value of the end bound
-                        self.db
-                            .evaluate_const(end_bound.clone(), eval_params)?
+                        db.evaluate_const(end_bound.clone(), eval_params)?
                             .ordinal()
                             .ok_or_else(|| ConstError::without_span(ErrorKind::WrongOperandType))
                     }
                     EndBound::Unsized(count) => {
                         // Based on the ordinal value of the start bound
-                        let start_bound = self
-                            .db
+                        let start_bound = db
                             .evaluate_const(start_bound.clone(), eval_params)?
                             .ordinal()
                             .ok_or_else(|| ConstError::without_span(ErrorKind::WrongOperandType))?;
@@ -583,15 +565,6 @@ where
                 }
             }
             _ => Err(ConstError::without_span(ErrorKind::WrongOperandType)),
-        }
-    }
-}
-
-impl<'db, DB: ?Sized + 'db> Clone for TyRef<'db, DB> {
-    fn clone(&self) -> Self {
-        Self {
-            db: self.db,
-            id: self.id,
         }
     }
 }

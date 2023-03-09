@@ -124,18 +124,17 @@ fn constrained_ty(
 
     // Infer base ty (from start, or end if start isn't present / is {integer})
     let base_tyref = {
-        let start_tyref = db.type_of(ty.start.in_library(library_id).into()).in_db(db);
+        let start_tyref = db.type_of(ty.start.in_library(library_id).into());
         let end_tyref = match ty.end {
             hir_ty::ConstrainedEnd::Expr(end) => db.type_of(end.in_library(library_id).into()),
             _ => make::error(db),
-        }
-        .in_db(db);
+        };
 
-        let start_tyref = start_tyref.peel_opaque(in_module).to_base_type();
-        let end_tyref = end_tyref.peel_opaque(in_module).to_base_type();
+        let start_tyref = start_tyref.peel_opaque(db, in_module).to_base_type(db);
+        let end_tyref = end_tyref.peel_opaque(db, in_module).to_base_type(db);
 
         // Pick whichever is more concrete
-        let base_tyref = match (start_tyref.kind(), end_tyref.kind()) {
+        let base_tyref = match (start_tyref.kind(db), end_tyref.kind(db)) {
             (TypeKind::Error, _) => end_tyref,
             (TypeKind::Integer, rhs) if rhs.is_number() => end_tyref,
             (_, _) => start_tyref,
@@ -145,10 +144,10 @@ fn constrained_ty(
     };
 
     // Require a concrete type
-    let base_ty = if base_tyref.kind() == &TypeKind::Integer {
+    let base_ty = if base_tyref.kind(db) == &TypeKind::Integer {
         make::int(db, IntSize::Int)
     } else {
-        base_tyref.id()
+        base_tyref
     };
 
     let allow_dyn = if ty.allow_dyn {
@@ -310,24 +309,24 @@ fn constvar_ty(
     let item_ty = match (item.type_spec, item.init_expr) {
         (Some(ty_spec), _) => {
             // From type_spec
-            db.lower_hir_type(ty_spec.in_library(item_id.0)).in_db(db)
+            db.lower_hir_type(ty_spec.in_library(item_id.0))
         }
         (_, Some(body)) => {
             // From inferred init expr
-            db.type_of((item_id.0, body).into()).in_db(db)
+            db.type_of((item_id.0, body).into())
         }
         (None, None) => {
             // No place to infer from, make an error
-            make::error(db).in_db(db)
+            make::error(db)
         }
     };
 
     // Make the type concrete
-    if *item_ty.kind() == TypeKind::Integer {
+    if *item_ty.kind(db) == TypeKind::Integer {
         // Integer decomposes into a normal `int`
         make::int(db, IntSize::Int)
     } else {
-        require_resolved_type(db, item_ty.id())
+        require_resolved_type(db, item_ty)
     }
 }
 
@@ -363,12 +362,11 @@ fn type_def_ty(
             // Peel any aliases that are encountered
             let base_ty = db
                 .lower_hir_type((*to_ty).in_library(item_id.0))
-                .in_db(db)
-                .peel_aliases();
+                .peel_aliases(db);
 
             // Specialize based on the kind
             // TODO: Specialize type when it's a record or union
-            match base_ty.kind() {
+            match base_ty.kind(db) {
                 // Forward base types get propagated as errors, since we require a resolved definition
                 ty::TypeKind::Forward => make::error(db),
                 // Make anonymous types not anonymous anymore
@@ -380,8 +378,8 @@ fn type_def_ty(
                 ty::TypeKind::Enum(ty::WithDef::Anonymous(def_id), variants) => maybe_opaque(
                     make::enum_(db, ty::WithDef::Named(*def_id), variants.clone()),
                 ),
-                _ if is_opaque => make::opaque(db, def_id, base_ty.id()),
-                _ => make::alias(db, def_id, base_ty.id()),
+                _ if is_opaque => make::opaque(db, def_id, base_ty),
+                _ => make::alias(db, def_id, base_ty),
             }
         }
         item::DefinedType::Forward(_) if is_opaque => make::opaque(db, def_id, make::forward(db)),
@@ -459,11 +457,11 @@ pub(crate) fn ty_from_ty_field(
     type_id: InLibrary<hir_ty::TypeId>,
     _field_id: hir_ty::FieldId,
 ) -> TypeId {
-    let ty_ref = db.lower_hir_type(type_id).in_db(db);
+    let ty_ref = db.lower_hir_type(type_id);
 
-    match ty_ref.kind() {
+    match ty_ref.kind(db) {
         // Enum fields are the same type as the original enum
-        TypeKind::Enum(..) => ty_ref.id(),
+        TypeKind::Enum(..) => ty_ref,
         _ => unreachable!("missing field"),
     }
 }
@@ -520,28 +518,28 @@ fn for_counter_ty(
 
                 // Just infer as a peeled opaque
                 // We're expecting constrained ty's to be here, so it makes sense for it to carry through
-                bounds_ty.in_db(db).peel_opaque(in_module).id()
+                bounds_ty.peel_opaque(db, in_module)
             }
         }
         stmt::ForBounds::Full(start, end) => {
             // Always infer from the start type
             // We can usually ignore the end type, except if start is not a concrete type
-            let start_ty = db.type_of((library_id, stmt_id.0, start).into()).in_db(db);
-            let end_ty = db.type_of((library_id, stmt_id.0, end).into()).in_db(db);
+            let start_ty = db.type_of((library_id, stmt_id.0, start).into());
+            let end_ty = db.type_of((library_id, stmt_id.0, end).into());
 
             // Pick whichever is the more concrete type
-            let counter_tyref = match (start_ty.kind(), end_ty.kind()) {
+            let counter_tyref = match (start_ty.kind(db), end_ty.kind(db)) {
                 (TypeKind::Error, _) => end_ty,
                 (TypeKind::Integer, rhs) if rhs.is_number() => end_ty,
                 _ => start_ty,
             };
 
             // Decompose into a concrete type
-            if counter_tyref.kind() == &TypeKind::Integer {
+            if counter_tyref.kind(db) == &TypeKind::Integer {
                 // Integer decomposes into a normal `int`
                 make::int(db, IntSize::Int)
             } else {
-                counter_tyref.id()
+                counter_tyref
             }
         }
     }
@@ -636,14 +634,14 @@ fn name_ty(
             let in_module = db.inside_module(body_expr.into());
 
             // Defer to result type if it's a paren-less function
-            let ty = db.type_of(def_id.into()).in_db(db);
-            let ty = ty.peel_opaque(in_module);
+            let ty = db.type_of(def_id.into());
+            let ty = ty.peel_opaque(db, in_module);
 
-            match ty.kind() {
+            match ty.kind(db) {
                 TypeKind::Subprogram(symbol::SubprogramKind::Function, None, result) => {
-                    result.in_db(db).peel_opaque(in_module).id()
+                    result.peel_opaque(db, in_module)
                 }
-                _ => ty.id(),
+                _ => ty,
             }
         }
         expr::Name::Self_ => {
@@ -664,7 +662,7 @@ fn field_ty(
 
                 // Expected behaviour to leak the hidden type (same as name_ty)
                 let in_module = db.inside_module(body_expr.into());
-                ty_id.in_db(db).peel_opaque(in_module).id()
+                ty_id.peel_opaque(db, in_module)
             })
         })
         .unwrap_or_else(|| make::error(db))
@@ -676,12 +674,12 @@ fn deref_ty(
     expr: &expr::Deref,
 ) -> TypeId {
     let ty = db.type_of((body_expr.map(|id| id.with_expr(expr.rhs))).into());
-    let ty_ref = ty.in_db(db).to_base_type();
+    let ty_ref = ty.to_base_type(db);
 
     // Just needs to be a pointer type, no extra special things
-    if let ty::TypeKind::Pointer(_, to_ty) = ty_ref.kind() {
+    if let ty::TypeKind::Pointer(_, to_ty) = ty_ref.kind(db) {
         let in_module = db.inside_module(body_expr.into());
-        to_ty.in_db(db).peel_opaque(in_module).id()
+        to_ty.peel_opaque(db, in_module)
     } else {
         make::error(db)
     }
@@ -696,25 +694,25 @@ fn call_expr_ty(
     // Don't need to peel opaques here, since we're guaranteed to do so via NameExpr
     // FIXME: Unify fetching call kind from typeck with here, since we may try to call a paren-less with parens
     let left = ty_from_expr(db, body, body_expr.1.with_expr(expr.lhs));
-    let calling_ty = left.in_db(db).to_base_type();
+    let calling_ty = left.to_base_type(db);
 
-    match calling_ty.kind() {
+    match calling_ty.kind(db) {
         TypeKind::Subprogram(
             symbol::SubprogramKind::Procedure | symbol::SubprogramKind::Function,
             _params,
             result,
         ) => {
             // Is void result? Error! (proc call in expr position)
-            let result = result.in_db(db);
+            let result = result;
 
-            if matches!(result.kind(), TypeKind::Void) {
+            if matches!(result.kind(db,), TypeKind::Void) {
                 make::error(db)
             } else {
                 let in_module = db.inside_module(body_expr.into());
 
                 // It's okay to always infer as the result type, since that gives
                 // better diagnostics
-                result.peel_opaque(in_module).id()
+                result.peel_opaque(db, in_module)
             }
         }
         TypeKind::Set(..) => {
@@ -775,7 +773,7 @@ fn require_resolved_hir_type(db: &dyn TypeDatabase, ty: InLibrary<hir_ty::TypeId
 /// Requires that a type is resolved at this point, otherwise produces
 /// a type error
 fn require_resolved_type(db: &dyn TypeDatabase, ty: TypeId) -> TypeId {
-    if ty.in_db(db).peel_aliases().kind().is_forward() {
+    if ty.peel_aliases(db).kind(db).is_forward() {
         make::error(db)
     } else {
         ty

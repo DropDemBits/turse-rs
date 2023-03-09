@@ -4,8 +4,11 @@ use std::sync::Arc;
 
 use toc_span::Span;
 
-use crate::const_eval::{errors::ErrorKind, ConstError, ConstInt};
 use crate::ty;
+use crate::{
+    const_eval::{errors::ErrorKind, ConstError, ConstInt},
+    ty::db,
+};
 
 /// A compile-time constant literal
 ///
@@ -54,7 +57,7 @@ impl Eq for ConstValue {}
 
 impl ConstValue {
     /// Formats the constant value for display.
-    pub fn display<DB: ty::db::TypeDatabase + ?Sized>(&self, db: &DB) -> String {
+    pub fn display(&self, db: &dyn db::TypeDatabase) -> String {
         match self {
             ConstValue::Integer(v) => format!("{v}"),
             ConstValue::Real(v) => format!("{v}"),
@@ -62,9 +65,8 @@ impl ConstValue {
             ConstValue::Char(v) => format!("'{v}'"),
             ConstValue::String(v) => format!(r#""{v}""#),
             ConstValue::CharN(v) => format!(r#"'{v}'"#),
-            ConstValue::EnumVariant(ty_id, ord) => {
-                let ty_ref = ty_id.in_db(db);
-                let ty::TypeKind::Enum(with_def, variants) = ty_ref.kind() else {
+            ConstValue::EnumVariant(ty_ref, ord) => {
+                let ty::TypeKind::Enum(with_def, variants) = ty_ref.kind(db) else {
                     unreachable!("not enum ty for `EnumVariant` ty");
                 };
                 let def_id = with_def.def_id();

@@ -180,9 +180,9 @@ pub(super) fn value_produced(
         body_expr: BodyExpr,
     ) -> Result<db::ValueKind, db::NotValue> {
         let expr_ty = db.type_of((lib_id, body_expr).into());
-        let expr_ty_ref = expr_ty.in_db(db).to_base_type();
+        let expr_ty_ref = expr_ty.to_base_type(db);
 
-        match expr_ty_ref.kind() {
+        match expr_ty_ref.kind(db) {
             kind if kind.is_scalar() => Ok(ValueKind::Scalar),
             kind if !kind.is_error() => Ok(ValueKind::Reference(symbol::Mutability::Const)),
             _ => Err(NotValue::Missing),
@@ -355,10 +355,10 @@ pub(super) fn value_produced(
                             (db.type_of(lhs_expr.into()), false)
                         };
                     let in_module = db.inside_module(lhs_expr.into());
-                    let lhs_tyref = lhs_ty.in_db(db).peel_opaque(in_module).to_base_type();
+                    let lhs_tyref = lhs_ty.peel_opaque(db, in_module).to_base_type(db);
 
                     // Bail on error types
-                    if lhs_tyref.kind().is_error() {
+                    if lhs_tyref.kind(db).is_error() {
                         return Err(NotValue::Missing);
                     }
 
@@ -370,7 +370,7 @@ pub(super) fn value_produced(
 
                     // Check if lhs is callable
                     let has_parens = true;
-                    let call_kind = match lhs_tyref.kind() {
+                    let call_kind = match lhs_tyref.kind(db) {
                         TypeKind::Subprogram(toc_hir::symbol::SubprogramKind::Process, ..) => None,
                         // Parens are only potentially optional in subprograms
                         TypeKind::Subprogram(..) if !from_ty_binding => {
@@ -460,10 +460,10 @@ pub(crate) fn fields_of(
         }
         db::FieldSource::TypeAssociated(ty_id, in_module) => {
             // Fields associated with the type's definition
-            let ty_ref = ty_id.in_db(db).peel_opaque(in_module).peel_aliases();
+            let ty_ref = ty_id.peel_opaque(db, in_module).peel_aliases(db);
 
             // Only applicable for enums
-            let TypeKind::Enum(with_def, variants) = ty_ref.kind() else {
+            let TypeKind::Enum(with_def, variants) = ty_ref.kind(db, ) else {
                 return None;
             };
             let library = db.library(with_def.def_id().library());
@@ -486,9 +486,9 @@ pub(crate) fn fields_of(
         }
         db::FieldSource::TypeInstance(ty_id, in_module) => {
             // Fields on an instance of a type
-            let ty_ref = ty_id.in_db(db).peel_opaque(in_module).peel_aliases();
+            let ty_ref = ty_id.peel_opaque(db, in_module).peel_aliases(db);
 
-            match ty_ref.kind() {
+            match ty_ref.kind(db) {
                 // While an enum does have fields, it's attached to the type
                 // binding itself, not to anything with an enum type
                 TypeKind::Enum(..) => None,

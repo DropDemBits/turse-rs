@@ -72,7 +72,7 @@ fn stringify_typeck_results(
             Some(kind) => format!("{kind:?}"),
             None => "Undeclared".to_string(),
         };
-        let ty = db.type_of(DefId(library_id, did).into()).in_db(db);
+        let ty = db.type_of(DefId(library_id, did).into()).debug(db);
 
         writeln!(&mut s, "{name:?}@{name_span:?} [{sym_kind}]: {ty:?}").unwrap();
     }

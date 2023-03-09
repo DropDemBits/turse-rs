@@ -9,7 +9,7 @@ use crate::{
     ty::{self, make, NotFixedLen, SeqSize, TypeId, TypeKind},
 };
 
-use super::{AllowDyn, ArraySizing, TyRef};
+use super::{AllowDyn, ArraySizing};
 
 impl TypeKind {
     // ???: Do we want to move all of these into `TyRef`?
@@ -201,10 +201,7 @@ impl TypeKind {
 }
 
 // Conversions of type
-impl<'db, DB> TyRef<'db, DB>
-where
-    DB: db::TypeDatabase + ?Sized + 'db,
-{
+impl TypeId {
     /// Returns the type id pointed to by an alias, or itself if it's not an alias type.
     /// This peels through all aliases, since they never point to other aliases.
     ///
@@ -215,12 +212,11 @@ where
     /// Alias(Boolean) -> Boolean
     /// Alias(Alias(Boolean)) -> ! (never happens)
     /// ```
-    pub fn peel_aliases(self) -> Self {
-        match self.kind() {
+    pub fn peel_aliases(self, db: &dyn db::TypeDatabase) -> Self {
+        match self.kind(db) {
             TypeKind::Alias(_, to_ty) => {
-                let ty = to_ty.in_db(self.db);
-                assert!(!ty.kind().is_alias());
-                ty
+                assert!(!to_ty.kind(db).is_alias());
+                *to_ty
             }
             _ => self,
         }
@@ -228,12 +224,14 @@ where
 
     /// Peels the opaque wrapper into an alias, but only if it would be visible
     /// from `in_module`. Otherwise, returns itself.
-    pub fn peel_opaque(self, in_module: toc_hir::item::ModuleId) -> Self {
-        match self.kind() {
+    pub fn peel_opaque(
+        self,
+        db: &dyn db::TypeDatabase,
+        in_module: toc_hir::item::ModuleId,
+    ) -> Self {
+        match self.kind(db) {
             TypeKind::Opaque(def_id, hidden_ty) => {
                 use toc_hir::library::InLibrary;
-
-                let db = self.db;
 
                 let item_of @ InLibrary(library_id, _) =
                     db.item_of(*def_id).expect("opaque not from type def");
@@ -244,14 +242,12 @@ where
                     InLibrary(library_id, in_module),
                 ) {
                     // Convert into an alias type (if needed)
-                    let hidden_tyref = hidden_ty.in_db(db);
-
-                    match hidden_tyref.kind() {
+                    match hidden_ty.kind(db) {
                         // Enums, sets, records, and unions don't need an alias
                         // FIXME: add special cases for records and unions once lowered
-                        TypeKind::Enum(..) | TypeKind::Set(..) => hidden_tyref,
+                        TypeKind::Enum(..) | TypeKind::Set(..) => *hidden_ty,
                         TypeKind::Alias(..) => unreachable!("found alias wrapped in opaque"),
-                        _ => make::alias(db.upcast_to_type_db(), *def_id, *hidden_ty).in_db(db),
+                        _ => make::alias(db, *def_id, *hidden_ty),
                     }
                 } else {
                     // Not visible, don't peel
@@ -265,11 +261,11 @@ where
     /// Transforms the type into its base representation.
     ///
     /// Turns [`TypeKind::Constrained`] into its common type, and peels aliases.
-    pub fn to_base_type(self) -> Self {
-        let ty_ref = self.peel_aliases();
+    pub fn to_base_type(self, db: &dyn db::TypeDatabase) -> Self {
+        let ty_ref = self.peel_aliases(db);
 
-        match ty_ref.kind() {
-            TypeKind::Constrained(base_ty, ..) => base_ty.in_db(ty_ref.db),
+        match ty_ref.kind(db) {
+            TypeKind::Constrained(base_ty, ..) => *base_ty,
             _ => ty_ref,
         }
     }
@@ -281,16 +277,16 @@ where
 ///
 /// This is a symmetric relation.
 pub fn is_equivalent<T: db::ConstEval + ?Sized>(db: &T, left: TypeId, right: TypeId) -> bool {
-    let left = left.in_db(db).peel_aliases();
-    let right = right.in_db(db).peel_aliases();
+    let left = left.peel_aliases(db.up());
+    let right = right.peel_aliases(db.up());
 
     // Quick bailout
-    if left.id() == right.id() {
+    if left == right {
         // Same type id implies trivial equivalency
         return true;
     }
 
-    match (left.kind(), right.kind()) {
+    match (left.kind(db.up()), right.kind(db.up())) {
         // Error types get treated as equivalent to everything
         (TypeKind::Error, _) | (_, TypeKind::Error) => true,
 
@@ -513,18 +509,18 @@ pub fn is_coercible_into_param<T: ?Sized + db::ConstEval>(
     lhs: TypeId,
     rhs: TypeId,
 ) -> bool {
-    let left = lhs.in_db(db).peel_aliases();
-    let right = rhs.in_db(db).peel_aliases();
+    let left = lhs.peel_aliases(db.up());
+    let right = rhs.peel_aliases(db.up());
 
     // Equivalent types imply trivial coercion
-    if is_equivalent(db, left.id(), right.id()) {
+    if is_equivalent(db, left, right) {
         return true;
     }
 
-    match (left.kind(), right.kind()) {
+    match (left.kind(db.up()), right.kind(db.up())) {
         // CharSeq-likes are coercible into the corresponding any-sized CharSeq
-        (TypeKind::CharN(SeqSize::Any), _) => right.kind().is_char_like(),
-        (TypeKind::StringN(SeqSize::Any), _) => right.kind().is_string_like(),
+        (TypeKind::CharN(SeqSize::Any), _) => right.kind(db.up()).is_char_like(),
+        (TypeKind::StringN(SeqSize::Any), _) => right.kind(db.up()).is_string_like(),
         // Arrays are coercible if the ranges and elem ty are
         (
             TypeKind::Array(left_sizing, left_ranges, left_elem),
@@ -533,7 +529,7 @@ pub fn is_coercible_into_param<T: ?Sized + db::ConstEval>(
             let same_flex = match (left_sizing, right_sizing) {
                 // If either is flexible, the other must be too
                 (ArraySizing::Flexible, other) | (other, ArraySizing::Flexible) => {
-                    *other == ArraySizing::Flexible
+                    other == &ArraySizing::Flexible
                 }
                 // The rest are equivalent
                 _ => true,
@@ -686,8 +682,8 @@ pub fn is_coercible_into<T: ?Sized + db::ConstEval>(db: &T, lhs: TypeId, rhs: Ty
     // | String(*) [runtime checked]
     //
 
-    let left = lhs.in_db(db).to_base_type();
-    let right = rhs.in_db(db).to_base_type();
+    let left = lhs.to_base_type(db.up());
+    let right = rhs.to_base_type(db.up());
 
     /// Gets a sequence size suitable for coercion checking.
     /// All errors (overflow, other const error) and dynamic sizes are ignored.
@@ -704,11 +700,11 @@ pub fn is_coercible_into<T: ?Sized + db::ConstEval>(db: &T, lhs: TypeId, rhs: Ty
     }
 
     // Equivalent types imply trivial coercion
-    if is_equivalent(db, left.id(), right.id()) {
+    if is_equivalent(db, left, right) {
         return true;
     }
 
-    match (left.kind(), right.kind()) {
+    match (left.kind(db.up()), right.kind(db.up())) {
         // Integer types can be coerced to each other
         (TypeKind::Nat(_) | TypeKind::Int(_), rhs) if rhs.is_integer() => true,
 
@@ -816,11 +812,8 @@ pub fn is_either_coercible<T: ?Sized + db::ConstEval>(db: &T, left: TypeId, righ
 // steal from the old compiler
 /// Alias of [`is_coercible_into`]
 pub fn is_assignable<T: ?Sized + db::ConstEval>(db: &T, left: TypeId, right: TypeId) -> bool {
-    let left = left.in_db(db);
-    let right = right.in_db(db);
-
     // Defer to the coercion rules
-    is_coercible_into(db, left.id(), right.id())
+    is_coercible_into(db, left, right)
 }
 
 /// Checks that the operands for the binary op are values, or types when appropriate
@@ -1016,11 +1009,11 @@ pub fn infer_binary_op(
         }
     }
 
-    let left = left.in_db(db).to_base_type();
-    let right = right.in_db(db).to_base_type();
+    let left = left.to_base_type(db);
+    let right = right.to_base_type(db);
 
     // Propagate error type as complete so that we don't duplicate the error
-    if left.kind().is_error() || right.kind().is_error() {
+    if left.kind(db).is_error() || right.kind(db).is_error() {
         return InferTy::Complete(make::error(db));
     }
 
@@ -1032,15 +1025,17 @@ pub fn infer_binary_op(
             // - Set union (set, set => set)
             // - Addition (number, number => number)
 
-            if let Some(result_ty) = infer_arithmetic_operands(db, left.kind(), right.kind()) {
+            if let Some(result_ty) = infer_arithmetic_operands(db, left.kind(db), right.kind(db)) {
                 // Addition
                 InferTy::Complete(result_ty)
-            } else if let Some(result_ty) = infer_charseq_operands(db, left.kind(), right.kind()) {
+            } else if let Some(result_ty) =
+                infer_charseq_operands(db, left.kind(db), right.kind(db))
+            {
                 // String concatenation
                 InferTy::Complete(result_ty)
-            } else if left.kind().is_set() && right.kind().is_set() {
+            } else if left.kind(db).is_set() && right.kind(db).is_set() {
                 // Set union (depends on `is_equivalent`, but okay to infer from left)
-                InferTy::Partial(left.id())
+                InferTy::Partial(left)
             } else {
                 // Type error
                 InferTy::Error(make::error(db))
@@ -1051,12 +1046,12 @@ pub fn infer_binary_op(
             // - Set difference (set, set => set)
             // - Subtraction (number, number => number)
 
-            if let Some(result_ty) = infer_arithmetic_operands(db, left.kind(), right.kind()) {
+            if let Some(result_ty) = infer_arithmetic_operands(db, left.kind(db), right.kind(db)) {
                 // Subtraction
                 InferTy::Complete(result_ty)
-            } else if left.kind().is_set() && right.kind().is_set() {
+            } else if left.kind(db).is_set() && right.kind(db).is_set() {
                 // Set difference (depends on `is_equivalent`, but okay to infer from left)
-                InferTy::Partial(left.id())
+                InferTy::Partial(left)
             } else {
                 InferTy::Error(make::error(db))
             }
@@ -1066,12 +1061,12 @@ pub fn infer_binary_op(
             // - Set intersection (set, set => set)
             // - Multiplication (number, number => number)
 
-            if let Some(result_ty) = infer_arithmetic_operands(db, left.kind(), right.kind()) {
+            if let Some(result_ty) = infer_arithmetic_operands(db, left.kind(db), right.kind(db)) {
                 // Multiplication
                 InferTy::Complete(result_ty)
-            } else if left.kind().is_set() && right.kind().is_set() {
+            } else if left.kind(db).is_set() && right.kind(db).is_set() {
                 // Set intersection (depends on `is_equivalent`, but okay to infer from left)
-                InferTy::Partial(left.id())
+                InferTy::Partial(left)
             } else {
                 InferTy::Error(make::error(db))
             }
@@ -1080,7 +1075,7 @@ pub fn infer_binary_op(
             // Operations:
             // - Integer division (number, number => integer)
 
-            match (left.kind(), right.kind()) {
+            match (left.kind(db), right.kind(db)) {
                 // Pass through type inference
                 (TypeKind::Integer, TypeKind::Integer) => InferTy::Complete(make::integer(db)),
                 (operand, TypeKind::Nat(_)) | (TypeKind::Nat(_), operand) if operand.is_nat() => {
@@ -1096,7 +1091,7 @@ pub fn infer_binary_op(
             // Operations:
             // - Floating point division (number, number => real)
 
-            if left.kind().is_number() && right.kind().is_number() {
+            if left.kind(db).is_number() && right.kind(db).is_number() {
                 InferTy::Complete(make::real(db, RealSize::Real))
             } else {
                 InferTy::Error(make::error(db))
@@ -1106,7 +1101,7 @@ pub fn infer_binary_op(
             // Operations:
             // - Modulo (number, number => number)
 
-            if let Some(result_ty) = infer_arithmetic_operands(db, left.kind(), right.kind()) {
+            if let Some(result_ty) = infer_arithmetic_operands(db, left.kind(db), right.kind(db)) {
                 // Modulo
                 InferTy::Complete(result_ty)
             } else {
@@ -1117,7 +1112,7 @@ pub fn infer_binary_op(
             // Operations:
             // - Remainder (number, number => number)
 
-            if let Some(result_ty) = infer_arithmetic_operands(db, left.kind(), right.kind()) {
+            if let Some(result_ty) = infer_arithmetic_operands(db, left.kind(db), right.kind(db)) {
                 // Remainder
                 InferTy::Complete(result_ty)
             } else {
@@ -1128,7 +1123,7 @@ pub fn infer_binary_op(
             // Operations:
             // - Exponentiation (number, number => number)
 
-            if let Some(result_ty) = infer_arithmetic_operands(db, left.kind(), right.kind()) {
+            if let Some(result_ty) = infer_arithmetic_operands(db, left.kind(db), right.kind(db)) {
                 // Exponentiation
                 InferTy::Complete(result_ty)
             } else {
@@ -1142,10 +1137,10 @@ pub fn infer_binary_op(
             // - Bitwise And (integer, integer => nat)
             // - Logical And (boolean, boolean => boolean)
 
-            if let Some(result_ty) = infer_bitwise_operands(db, left.kind(), right.kind()) {
+            if let Some(result_ty) = infer_bitwise_operands(db, left.kind(db), right.kind(db)) {
                 // Bitwise And
                 InferTy::Complete(result_ty)
-            } else if let (TypeKind::Boolean, TypeKind::Boolean) = (left.kind(), right.kind()) {
+            } else if let (TypeKind::Boolean, TypeKind::Boolean) = (left.kind(db), right.kind(db)) {
                 // Logical And
                 InferTy::Complete(make::boolean(db))
             } else {
@@ -1157,10 +1152,10 @@ pub fn infer_binary_op(
             // - Bitwise Or (integer, integer => nat)
             // - Logical Or (boolean, boolean => boolean)
 
-            if let Some(result_ty) = infer_bitwise_operands(db, left.kind(), right.kind()) {
+            if let Some(result_ty) = infer_bitwise_operands(db, left.kind(db), right.kind(db)) {
                 // Bitwise Or
                 InferTy::Complete(result_ty)
-            } else if let (TypeKind::Boolean, TypeKind::Boolean) = (left.kind(), right.kind()) {
+            } else if let (TypeKind::Boolean, TypeKind::Boolean) = (left.kind(db), right.kind(db)) {
                 // Logical Or
                 InferTy::Complete(make::boolean(db))
             } else {
@@ -1172,10 +1167,10 @@ pub fn infer_binary_op(
             // - Bitwise Xor (integer, integer => nat)
             // - Logical Xor (boolean, boolean => boolean)
 
-            if let Some(result_ty) = infer_bitwise_operands(db, left.kind(), right.kind()) {
+            if let Some(result_ty) = infer_bitwise_operands(db, left.kind(db), right.kind(db)) {
                 // Bitwise Xor
                 InferTy::Complete(result_ty)
-            } else if let (TypeKind::Boolean, TypeKind::Boolean) = (left.kind(), right.kind()) {
+            } else if let (TypeKind::Boolean, TypeKind::Boolean) = (left.kind(db), right.kind(db)) {
                 // Logical Xor
                 InferTy::Complete(make::boolean(db))
             } else {
@@ -1187,7 +1182,7 @@ pub fn infer_binary_op(
             // Operations:
             // - Bitwise Shl (integer, integer => nat)
 
-            if let Some(result_ty) = infer_bitwise_operands(db, left.kind(), right.kind()) {
+            if let Some(result_ty) = infer_bitwise_operands(db, left.kind(db), right.kind(db)) {
                 // Bitwise Shl
                 InferTy::Complete(result_ty)
             } else {
@@ -1198,7 +1193,7 @@ pub fn infer_binary_op(
             // Operations:
             // - Bitwise Shr (integer, integer => nat)
 
-            if let Some(result_ty) = infer_bitwise_operands(db, left.kind(), right.kind()) {
+            if let Some(result_ty) = infer_bitwise_operands(db, left.kind(db), right.kind(db)) {
                 // Bitwise Shr
                 InferTy::Complete(result_ty)
             } else {
@@ -1210,7 +1205,7 @@ pub fn infer_binary_op(
             // Operations:
             // - Imply (boolean, boolean => boolean)
 
-            if let (TypeKind::Boolean, TypeKind::Boolean) = (left.kind(), right.kind()) {
+            if let (TypeKind::Boolean, TypeKind::Boolean) = (left.kind(db), right.kind(db)) {
                 // Imply
                 InferTy::Complete(make::boolean(db))
             } else {
@@ -1245,23 +1240,17 @@ pub fn check_binary_op<T: ?Sized + db::ConstEval>(
     op: expr::BinaryOp,
     right: TypeId,
 ) -> Result<(), InvalidBinaryOp> {
-    let left = left.in_db(db);
-    let right = right.in_db(db);
+    let left = left;
+    let right = right;
 
     // Use the peeled versions of the types for reporting
-    let mk_type_error = move || {
-        Err(InvalidBinaryOp {
-            left: left.id,
-            op,
-            right: right.id,
-        })
-    };
+    let mk_type_error = move || Err(InvalidBinaryOp { left, op, right });
 
-    let left = left.to_base_type();
-    let right = right.to_base_type();
+    let left = left.to_base_type(db.up());
+    let right = right.to_base_type(db.up());
 
     // Start from the inference code
-    match infer_binary_op(db.upcast_to_type_db(), left.id(), op, right.id()) {
+    match infer_binary_op(db.upcast_to_type_db(), left, op, right) {
         InferTy::Complete(_) => return Ok(()),
         InferTy::Error(_) => return mk_type_error(),
         InferTy::Partial(_) => (),
@@ -1277,7 +1266,7 @@ pub fn check_binary_op<T: ?Sized + db::ConstEval>(
             // - Set intersection
 
             // Set types must be equivalent
-            if is_equivalent(db, left.id(), right.id()) && left.kind().is_set() {
+            if is_equivalent(db, left, right) && left.kind(db.up()).is_set() {
                 Ok(())
             } else {
                 mk_type_error()
@@ -1295,13 +1284,13 @@ pub fn check_binary_op<T: ?Sized + db::ConstEval>(
             // - Set sub/supersets (set, set => boolean)
             // x Class hierarchy (class, class => boolean)
 
-            match (left.kind(), right.kind()) {
+            match (left.kind(db.up()), right.kind(db.up())) {
                 // All numbers are comparable to each other
                 (lhs, rhs) if lhs.is_number() && rhs.is_number() => Ok(()),
                 // Charseqs that can be coerced to a sized type are comparable
                 (lhs, rhs) if lhs.is_cmp_charseq() && rhs.is_cmp_charseq() => Ok(()),
                 // Types that are equivalent may be compared
-                (lhs, _) if is_equivalent(db, left.id(), right.id()) => {
+                (lhs, _) if is_equivalent(db, left, right) => {
                     // This only applies to the following types:
                     // - Sets
                     // - Enums
@@ -1324,7 +1313,7 @@ pub fn check_binary_op<T: ?Sized + db::ConstEval>(
             // - Set equality (set, set => boolean)
             // - Scalar equality (scalar, scalar => boolean)
 
-            match (left.kind(), right.kind()) {
+            match (left.kind(db.up()), right.kind(db.up())) {
                 // All numbers are comparable to each other
                 (lhs, rhs) if lhs.is_number() && rhs.is_number() => Ok(()),
                 // Charseqs that can be coerced to a sized type are comparable
@@ -1333,14 +1322,14 @@ pub fn check_binary_op<T: ?Sized + db::ConstEval>(
                 (lhs, rhs) if lhs.is_scalar() && rhs.is_scalar() => {
                     // Types should be coercible into each other
                     // TODO: This really only starts to matter when we lower range types, so add tests for this then
-                    if is_either_coercible(db, left.id(), right.id()) {
+                    if is_either_coercible(db, left, right) {
                         Ok(())
                     } else {
                         mk_type_error()
                     }
                 }
                 // Types that are equivalent may be tested for equality
-                (lhs, _) if is_equivalent(db, left.id(), right.id()) => {
+                (lhs, _) if is_equivalent(db, left, right) => {
                     // This only applies to the following types:
                     // - Sets
                     // - Enums
@@ -1358,12 +1347,12 @@ pub fn check_binary_op<T: ?Sized + db::ConstEval>(
         // Set membership tests (a, set(a) => boolean)
         expr::BinaryOp::In | expr::BinaryOp::NotIn => {
             // `right` must be a set
-            let TypeKind::Set(_, elem_ty) = right.kind() else {
+            let TypeKind::Set(_, elem_ty) = right.kind(db.up()) else {
                 return mk_type_error();
             };
 
             // Element type & `left` type must be coercible
-            if is_coercible_into(db, *elem_ty, left.id()) {
+            if is_coercible_into(db, *elem_ty, left) {
                 Ok(())
             } else {
                 mk_type_error()
@@ -1376,21 +1365,21 @@ pub fn check_binary_op<T: ?Sized + db::ConstEval>(
 pub fn infer_unary_op(db: &dyn db::TypeDatabase, op: expr::UnaryOp, right: TypeId) -> InferTy {
     use crate::ty::{IntSize, NatSize, RealSize};
 
-    let right = right.in_db(db);
+    let right = right;
 
     // Propagate error type as complete so that we don't duplicate the error
-    if right.kind().is_error() {
+    if right.kind(db).is_error() {
         return InferTy::Complete(make::error(db));
     }
 
-    let right = right.to_base_type();
+    let right = right.to_base_type(db);
 
     match op {
         expr::UnaryOp::Not => {
-            if right.kind().is_integer() {
+            if right.kind(db).is_integer() {
                 // Bitwise Not
                 InferTy::Complete(make::nat(db, NatSize::Nat))
-            } else if let TypeKind::Boolean = &right.kind() {
+            } else if let TypeKind::Boolean = &right.kind(db) {
                 // Logical Not
                 InferTy::Complete(make::boolean(db))
             } else {
@@ -1398,7 +1387,7 @@ pub fn infer_unary_op(db: &dyn db::TypeDatabase, op: expr::UnaryOp, right: TypeI
             }
         }
         expr::UnaryOp::Identity | expr::UnaryOp::Negate => {
-            match right.kind() {
+            match right.kind(db) {
                 // Pass through integer inference
                 TypeKind::Integer => InferTy::Complete(make::integer(db)),
 
@@ -1422,17 +1411,14 @@ pub fn check_unary_op<T: ?Sized + db::TypeDatabase>(
     op: expr::UnaryOp,
     right: TypeId,
 ) -> Result<(), InvalidUnaryOp> {
-    let right = right.in_db(db);
+    let right = right;
 
     // Infer unary type currently does all of the work
-    match infer_unary_op(db.upcast_to_type_db(), op, right.id()) {
+    match infer_unary_op(db.upcast_to_type_db(), op, right) {
         InferTy::Complete(_) => Ok(()),
         InferTy::Error(_) => {
             // Use the peeled version of the type
-            Err(InvalidUnaryOp {
-                op,
-                right: right.id(),
-            })
+            Err(InvalidUnaryOp { op, right })
         }
         InferTy::Partial(_) => unreachable!(),
     }
@@ -1486,16 +1472,14 @@ pub struct InvalidBinaryOp {
     right: TypeId,
 }
 
-pub fn report_invalid_bin_op<'db, DB>(
-    db: &'db DB,
+pub fn report_invalid_bin_op(
+    db: &dyn db::ConstEval,
     err: InvalidBinaryOp,
     left_span: Span,
     op_span: Span,
     right_span: Span,
     reporter: &mut MessageSink,
-) where
-    DB: ?Sized + db::ConstEval + 'db,
-{
+) {
     let InvalidBinaryOp {
         left: left_ty,
         op,
@@ -1503,12 +1487,13 @@ pub fn report_invalid_bin_op<'db, DB>(
         ..
     } = err;
 
-    let left_ty = left_ty.in_db(db);
-    let right_ty = right_ty.in_db(db);
+    let left_ty = left_ty;
+    let right_ty = right_ty;
     // Try logical operation if either is a boolean
-    let is_logical = left_ty.kind().is_boolean() || right_ty.kind().is_boolean();
+    let is_logical = left_ty.kind(db.up()).is_boolean() || right_ty.kind(db.up()).is_boolean();
     // Try string concat operation if either is a charseq
-    let is_string_concat = left_ty.kind().is_charseq() || right_ty.kind().is_charseq();
+    let is_string_concat =
+        left_ty.kind(db.up()).is_charseq() || right_ty.kind(db.up()).is_charseq();
 
     let op_name = match op {
         expr::BinaryOp::Add if is_string_concat => "string concatenation",
@@ -1566,23 +1551,36 @@ pub fn report_invalid_bin_op<'db, DB>(
         | expr::BinaryOp::Imply => "compared to",
     };
     let (peeled_left, peeled_right) = (
-        left_ty.clone().to_base_type(),
-        right_ty.clone().to_base_type(),
+        left_ty.to_base_type(db.up()),
+        right_ty.to_base_type(db.up()),
     );
 
     // Specialize message for set member ops
     if matches!(op, expr::BinaryOp::In | expr::BinaryOp::NotIn) {
         // Set membership tests (set(a), a => boolean)
-        if let TypeKind::Set(_, elem_ty) = peeled_right.kind() {
+        if let TypeKind::Set(_, elem_ty) = peeled_right.kind(db.up()) {
             // Incompatible element types
-            let elem_ty = elem_ty.in_db(db).to_base_type();
+            let elem_ty = elem_ty.to_base_type(db.up());
 
             reporter
                 .error_detailed(format!("mismatched types for {op_name}"), op_span)
-                .with_note(format!("this is of type `{right_ty}`"), right_span)
-                .with_note(format!("this is of type `{left_ty}`"), left_span)
+                .with_note(
+                    format!(
+                        "this is of type `{right_ty}`",
+                        right_ty = right_ty.display(db)
+                    ),
+                    right_span,
+                )
+                .with_note(
+                    format!("this is of type `{left_ty}`", left_ty = left_ty.display(db)),
+                    left_span,
+                )
                 .with_error(
-                    format!("`{peeled_left}` is not the same as `{elem_ty}`"),
+                    format!(
+                        "`{peeled_left}` is not the same as `{elem_ty}`",
+                        peeled_left = peeled_left.display(db),
+                        elem_ty = elem_ty.display(db)
+                    ),
                     right_span,
                 )
                 .with_info("operand and element type must be the same")
@@ -1591,8 +1589,20 @@ pub fn report_invalid_bin_op<'db, DB>(
             // Not a set
             reporter
                 .error_detailed(format!("mismatched types for {op_name}"), op_span)
-                .with_note(format!("this is of type `{right_ty}`"), right_span)
-                .with_error(format!("`{peeled_right}` is not a set type"), right_span)
+                .with_note(
+                    format!(
+                        "this is of type `{right_ty}`",
+                        right_ty = right_ty.display(db)
+                    ),
+                    right_span,
+                )
+                .with_error(
+                    format!(
+                        "`{peeled_right}` is not a set type",
+                        peeled_right = peeled_right.display(db)
+                    ),
+                    right_span,
+                )
                 .with_info("operand must be a set")
                 .finish();
         }
@@ -1602,10 +1612,23 @@ pub fn report_invalid_bin_op<'db, DB>(
     let msg = {
         reporter
             .error_detailed(format!("mismatched types for {op_name}"), op_span)
-            .with_note(format!("this is of type `{right_ty}`"), right_span)
-            .with_note(format!("this is of type `{left_ty}`"), left_span)
+            .with_note(
+                format!(
+                    "this is of type `{right_ty}`",
+                    right_ty = right_ty.display(db)
+                ),
+                right_span,
+            )
+            .with_note(
+                format!("this is of type `{left_ty}`", left_ty = left_ty.display(db)),
+                left_span,
+            )
             .with_error(
-                format!("`{peeled_left}` cannot be {verb_phrase} `{peeled_right}`",),
+                format!(
+                    "`{peeled_left}` cannot be {verb_phrase} `{peeled_right}`",
+                    peeled_left = peeled_left.display(db),
+                    peeled_right = peeled_right.display(db)
+                ),
                 op_span,
             )
     };
@@ -1639,11 +1662,11 @@ pub fn report_invalid_bin_op<'db, DB>(
         | expr::BinaryOp::GreaterEq
         | expr::BinaryOp::Equal
         | expr::BinaryOp::NotEqual => {
-            if is_equivalent(db, left_ty.id(), right_ty.id()) {
+            if is_equivalent(db, left_ty, right_ty) {
                 msg.with_info("operands must both be scalars, sets, or strings")
             } else {
                 // Specialize for pointers of different checkedness
-                match (peeled_left.kind(), peeled_right.kind()) {
+                match (peeled_left.kind(db.up()), peeled_right.kind(db.up())) {
                     (
                         TypeKind::Pointer(left_check, left_ty),
                         TypeKind::Pointer(right_check, right_ty),
@@ -1669,22 +1692,20 @@ pub struct InvalidUnaryOp {
     right: TypeId,
 }
 
-pub fn report_invalid_unary_op<'db, DB>(
-    db: &'db DB,
+pub fn report_invalid_unary_op(
+    db: &dyn db::ConstEval,
     err: InvalidUnaryOp,
     op_span: Span,
     right_span: Span,
     reporter: &mut MessageSink,
-) where
-    DB: ?Sized + db::ConstEval + 'db,
-{
+) {
     let InvalidUnaryOp {
         op,
         right: right_ty,
         ..
     } = err;
-    let right_ty = right_ty.in_db(db);
-    let is_bitwise = right_ty.kind().is_integer();
+    let right_ty = right_ty;
+    let is_bitwise = right_ty.kind(db.up()).is_integer();
 
     let op_name = match op {
         expr::UnaryOp::Not if is_bitwise => "bitwise `not`",
@@ -1698,13 +1719,22 @@ pub fn report_invalid_unary_op<'db, DB>(
         expr::UnaryOp::Identity => "identity",
         expr::UnaryOp::Negate => "negation",
     };
-    let peeled_right_ty = right_ty.clone().to_base_type();
+    let peeled_right_ty = right_ty.to_base_type(db.up());
 
     let msg = reporter
         .error_detailed(format!("mismatched types for {op_name}"), op_span)
-        .with_note(format!("this is of type `{right_ty}`"), right_span)
+        .with_note(
+            format!(
+                "this is of type `{right_ty}`",
+                right_ty = right_ty.display(db),
+            ),
+            right_span,
+        )
         .with_error(
-            format!("cannot apply {verb_phrase} to `{peeled_right_ty}`",),
+            format!(
+                "cannot apply {verb_phrase} to `{peeled_right_ty}`",
+                peeled_right_ty = peeled_right_ty.display(db)
+            ),
             op_span,
         );
 
