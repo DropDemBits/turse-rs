@@ -311,7 +311,7 @@ impl TypeCheck<'_> {
                             Err(err) => {
                                 // Static array, but error while computing count
                                 // Should be covered by other errors
-                                err.report_delayed_to(db, &mut self.state().reporter);
+                                err.report_delayed_to(db.up(), &mut self.state().reporter);
 
                                 return;
                             }
@@ -370,7 +370,7 @@ impl TypeCheck<'_> {
                             let expr_ty = db.type_of((library_id, expr).into());
 
                             // Must be assignable into, and be a compile-time expr
-                            if !ty::rules::is_assignable(db, elem_ty, expr_ty) {
+                            if !ty::rules::is_assignable(db.up(), elem_ty, expr_ty) {
                                 let expr_span = library.body(expr).span.lookup_in(library);
 
                                 // points to the array spec
@@ -386,7 +386,7 @@ impl TypeCheck<'_> {
                                 Const::from_body(library_id, expr),
                                 Default::default(),
                             ) {
-                                err.report_to(db, &mut self.state().reporter)
+                                err.report_to(db.up(), &mut self.state().reporter)
                             }
                         }
 
@@ -424,7 +424,7 @@ impl TypeCheck<'_> {
             }
         }
 
-        if !ty::rules::is_assignable(db, left, right) {
+        if !ty::rules::is_assignable(db.up(), left, right) {
             // Incompatible, report it
             let init_span = library.body(init).span.lookup_in(library);
             let spec_span = library.lookup_type(ty_spec).span.lookup_in(library);
@@ -603,7 +603,7 @@ impl TypeCheck<'_> {
 
             // Check if types are assignable
             // Leave error types as "always assignable"
-            if !ty::rules::is_assignable(db, left, right) {
+            if !ty::rules::is_assignable(db.up(), left, right) {
                 // Invalid types!
                 let body = self.library.body(in_body);
                 let left_span = body.expr(item.lhs).span.lookup_in(&self.library);
@@ -1006,7 +1006,7 @@ impl TypeCheck<'_> {
                     let base_start = start_ty.to_base_type(db.up());
                     let base_end = end_ty.to_base_type(db.up());
 
-                    if !ty::rules::is_either_coercible(db, base_start, base_end) {
+                    if !ty::rules::is_either_coercible(db.up(), base_start, base_end) {
                         // Bounds are not equivalent for our purposes
                         self.state()
                             .reporter
@@ -1134,7 +1134,7 @@ impl TypeCheck<'_> {
             let selector_span = selector_span.lookup_in(&self.library);
 
             // Must match discriminant type
-            if !ty::rules::is_coercible_into(db, discrim_base_ty, selector_ty) {
+            if !ty::rules::is_coercible_into(db.up(), discrim_base_ty, selector_ty) {
                 let discrim = discrim_ty.display(db.up());
                 let selector = selector_ty.display(db.up());
 
@@ -1168,7 +1168,7 @@ impl TypeCheck<'_> {
 
             match res {
                 Err(err) => {
-                    err.report_to(db, &mut self.state().reporter);
+                    err.report_to(db.up(), &mut self.state().reporter);
                 }
                 Ok(ConstValue::String(s))
                     if matches!(discrim_base_ty.kind(db.up()), ty::TypeKind::Char) =>
@@ -1278,7 +1278,7 @@ impl TypeCheck<'_> {
                 // Check value compatibility
                 if !self.expect_expression((self.library_id, body, stmt.expr).into()) {
                     // Not a value (already reported)
-                } else if !ty::rules::is_assignable(db, result_ty, value_ty) {
+                } else if !ty::rules::is_assignable(db.up(), result_ty, value_ty) {
                     // Not assignable into the return type
                     let ty_span = self.library.lookup_type(hir_ty).span;
                     let ty_span = ty_span.lookup_in(&self.library);
@@ -1311,9 +1311,9 @@ impl TypeCheck<'_> {
         let left = db.type_of((lib_id, body, expr.lhs).into());
         let right = db.type_of((lib_id, body, expr.rhs).into());
 
-        if let Err(err) = ty::rules::check_binary_op_values(db, self.library_id, body, expr) {
-            ty::rules::report_invalid_bin_values(db, err, &mut self.state().reporter);
-        } else if let Err(err) = ty::rules::check_binary_op(db, left, *expr.op.item(), right) {
+        if let Err(err) = ty::rules::check_binary_op_values(db.up(), self.library_id, body, expr) {
+            ty::rules::report_invalid_bin_values(db.up(), err, &mut self.state().reporter);
+        } else if let Err(err) = ty::rules::check_binary_op(db.up(), left, *expr.op.item(), right) {
             let op_span = expr.op.span().lookup_in(&self.library);
             let body = self.library.body(body);
             let left_span = body.expr(expr.lhs).span.lookup_in(&self.library);
@@ -1335,9 +1335,9 @@ impl TypeCheck<'_> {
         let lib_id = self.library_id;
         let right = db.type_of((lib_id, body, expr.rhs).into());
 
-        if let Err(err) = ty::rules::check_unary_op_values(db, self.library_id, body, expr) {
-            ty::rules::report_invalid_unary_value(db, err, &mut self.state().reporter);
-        } else if let Err(err) = ty::rules::check_unary_op(db, *expr.op.item(), right) {
+        if let Err(err) = ty::rules::check_unary_op_values(db.up(), self.library_id, body, expr) {
+            ty::rules::report_invalid_unary_value(db.up(), err, &mut self.state().reporter);
+        } else if let Err(err) = ty::rules::check_unary_op(db.up(), *expr.op.item(), right) {
             let op_span = expr.op.span().lookup_in(&self.library);
             let body = self.library.body(body);
             let right_span = body.expr(expr.rhs).span.lookup_in(&self.library);
@@ -1626,7 +1626,7 @@ impl TypeCheck<'_> {
                 _ => {}
             }
 
-            if !ty::rules::is_assignable(db, elem_ty, arg_ty) {
+            if !ty::rules::is_assignable(db.up(), elem_ty, arg_ty) {
                 self.report_mismatched_param_tys(
                     elem_ty,
                     arg_ty,
@@ -1812,11 +1812,11 @@ impl TypeCheck<'_> {
                 // Allow all coercion for pass by value, but only param-coercion for ref-args
                 let predicate = match param.pass_by {
                     ty::PassBy::Value => {
-                        ty::rules::is_assignable(db, param_ty, arg_ty)
-                            || ty::rules::is_coercible_into_param(db, param_ty, arg_ty)
+                        ty::rules::is_assignable(db.up(), param_ty, arg_ty)
+                            || ty::rules::is_coercible_into_param(db.up(), param_ty, arg_ty)
                     }
                     ty::PassBy::Reference(_) => {
-                        ty::rules::is_coercible_into_param(db, param_ty, arg_ty)
+                        ty::rules::is_coercible_into_param(db.up(), param_ty, arg_ty)
                     }
                 };
 
@@ -1932,7 +1932,7 @@ impl TypeCheck<'_> {
                     |thing| format!("cannot pass {thing} to this parameter"),
                     None,
                 );
-            } else if !ty::rules::is_assignable(db, expected_ty, actual_ty) {
+            } else if !ty::rules::is_assignable(db.up(), expected_ty, actual_ty) {
                 // FIXME: change wording from parameter(s) to index/indices
                 self.report_mismatched_param_tys(
                     expected_ty,
@@ -1982,7 +1982,7 @@ impl TypeCheck<'_> {
             _ => unreachable!(),
         };
 
-        let int = match seq_size.fixed_len(db, expr_span) {
+        let int = match seq_size.fixed_len(db.up(), expr_span) {
             Ok(v) => v,
             Err(ty::NotFixedLen::AnySize) => return, // any-sized, doesn't need checking
             Err(ty::NotFixedLen::ConstError(err)) => {
@@ -1998,7 +1998,7 @@ impl TypeCheck<'_> {
                         ty_span,
                     );
                 } else {
-                    err.report_to(db, &mut self.state().reporter);
+                    err.report_to(db.up(), &mut self.state().reporter);
                 }
                 return;
             }
@@ -2121,7 +2121,7 @@ impl TypeCheck<'_> {
         let end_ty = end.map(|end| db.type_of(end.in_library(library_id).into()));
 
         if let Some(end_ty) = end_ty {
-            if !ty::rules::is_equivalent(db, start_ty, end_ty) {
+            if !ty::rules::is_equivalent(db.up(), start_ty, end_ty) {
                 // Bounds must be equivalent tys
                 let start_tyref = start_ty;
                 let end_tyref = end_ty;
@@ -2174,7 +2174,7 @@ impl TypeCheck<'_> {
                 Err(err) => {
                     // Only report if it's not a compile-time expr and we allow dynamic expressions
                     if !(err.is_not_compile_time() && matches!(allow_dyn, ty::AllowDyn::Yes)) {
-                        err.report_to(db, reporter);
+                        err.report_to(db.up(), reporter);
                     }
 
                     None
@@ -2245,11 +2245,7 @@ impl TypeCheck<'_> {
             let range_ty = db.lower_hir_type(range_hir_ty.in_library(library_id));
             let range_tyref = range_ty.peel_opaque(db.up(), in_module);
 
-            if !range_tyref
-                .to_base_type(db.up())
-                .kind(db.up())
-                .is_index()
-            {
+            if !range_tyref.to_base_type(db.up()).kind(db.up()).is_index() {
                 // Not an index type
                 // FIXME: Switch to common "mismatched types" convention (either altering the rest or just this)
                 self.state()
@@ -2339,7 +2335,7 @@ impl TypeCheck<'_> {
                         return;
                     }
                     _ => {
-                        err.report_delayed_to(db, &mut self.state().reporter);
+                        err.report_delayed_to(db.up(), &mut self.state().reporter);
                         return;
                     }
                 }
@@ -2382,11 +2378,7 @@ impl TypeCheck<'_> {
             .span
             .lookup_in(&self.library);
 
-        if !elem_tyref
-            .to_base_type(db.up())
-            .kind(db.up())
-            .is_index()
-        {
+        if !elem_tyref.to_base_type(db.up()).kind(db.up()).is_index() {
             // Not an index type
             // FIXME: Switch to common "mismatched types" convention (either altering the rest or just this)
             self.state()
@@ -2397,11 +2389,7 @@ impl TypeCheck<'_> {
                     "an index type is an integer, a `boolean`, a `char`, an enumerated type, or a range",
                 )
                 .finish();
-        } else if elem_tyref
-            .peel_aliases(db.up())
-            .kind(db.up())
-            .is_integer()
-        {
+        } else if elem_tyref.peel_aliases(db.up()).kind(db.up()).is_integer() {
             // Is an integer type, but not from a range
             // Range would be too big
             self.state()
@@ -2513,7 +2501,7 @@ impl TypeCheck<'_> {
                         }
                         _ => {
                             // Error during const-eval, should already reported
-                            err.report_delayed_to(db, &mut self.state().reporter);
+                            err.report_delayed_to(db.up(), &mut self.state().reporter);
                         }
                     }
                 }
@@ -2685,7 +2673,7 @@ impl TypeCheck<'_> {
 
     fn expect_expression(&self, value_src: crate::db::ValueSource) -> bool {
         let db = self.db;
-        let span = value_src.span_of(db);
+        let span = value_src.span_of(db.up());
 
         self.expect_value_kind(
             ExpectedValue::Value,
@@ -2851,7 +2839,7 @@ impl TypeCheck<'_> {
         let base_ty = ty.to_base_type(db.up());
 
         if !base_ty.kind(db.up()).is_integer() && !base_ty.kind(db.up()).is_error() {
-            let span = value_src.span_of(db);
+            let span = value_src.span_of(db.up());
 
             self.state()
                 .reporter
@@ -2883,7 +2871,7 @@ impl TypeCheck<'_> {
         let base_ty = ty.to_base_type(db.up());
 
         if !base_ty.kind(db.up()).is_boolean() && !base_ty.kind(db.up()).is_error() {
-            let span = value_src.span_of(db);
+            let span = value_src.span_of(db.up());
 
             self.state()
                 .reporter

@@ -38,27 +38,23 @@ impl ConstError {
     }
 
     /// Reports the detailed version of the `ConstError` to the given reporter
-    pub fn report_to<DB: db::ConstEval + ?Sized>(
-        &self,
-        db: &DB,
-        reporter: &mut toc_reporting::MessageSink,
-    ) {
+    pub fn report_to(&self, db: &dyn db::ConstEval, reporter: &mut toc_reporting::MessageSink) {
         self.make_report_to(db, reporter, false);
     }
 
     /// Reports the detailed version of the `ConstError` to the given reporter as a delayed report.
     /// This message should already be covered by other spans
-    pub fn report_delayed_to<DB: db::ConstEval + ?Sized>(
+    pub fn report_delayed_to(
         &self,
-        db: &DB,
+        db: &dyn db::ConstEval,
         reporter: &mut toc_reporting::MessageSink,
     ) {
         self.make_report_to(db, reporter, true);
     }
 
-    fn make_report_to<DB: db::ConstEval + ?Sized>(
+    fn make_report_to(
         &self,
-        db: &DB,
+        db: &dyn db::ConstEval,
         reporter: &mut toc_reporting::MessageSink,
         always_delayed: bool,
     ) {

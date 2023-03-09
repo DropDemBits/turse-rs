@@ -1228,7 +1228,7 @@ impl BodyCodeGenerator<'_> {
 
             if let ty::TypeKind::CharN(seq_size) = put_ty.kind(self.db.up()) {
                 let length = seq_size
-                    .fixed_len(self.db, Span::default())
+                    .fixed_len(self.db.up(), Span::default())
                     .ok()
                     .expect("const should succeed and not be dyn");
                 let length = length.into_u32().expect("should be int representable");

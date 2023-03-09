@@ -21,8 +21,6 @@ pub struct TypeJar(ty::TypeId);
 pub trait TypeDatabase:
     salsa::DbWithJar<TypeJar> + toc_hir_db::Db + Upcast<dyn toc_hir_db::Db>
 {
-    fn upcast_to_type_db(&self) -> &dyn TypeDatabase;
-
     /// Converts the HIR type into an analysis form
     fn lower_hir_type(&self, type_id: InLibrary<HirTypeId>) -> ty::TypeId;
 
@@ -52,10 +50,6 @@ impl<DB> TypeDatabase for DB
 where
     DB: salsa::DbWithJar<TypeJar> + toc_hir_db::Db + Upcast<dyn toc_hir_db::Db>,
 {
-    fn upcast_to_type_db(&self) -> &dyn TypeDatabase {
-        self
-    }
-
     fn lower_hir_type(&self, type_id: InLibrary<HirTypeId>) -> super::TypeId {
         query::lower_hir_type(self, type_id)
     }
@@ -254,10 +248,7 @@ pub enum ValueSource {
 }
 
 impl ValueSource {
-    pub fn span_of<DB>(self, db: &DB) -> toc_span::Span
-    where
-        DB: ?Sized + toc_hir_db::Db,
-    {
+    pub fn span_of(self, db: &dyn toc_hir_db::Db) -> toc_span::Span {
         match self {
             ValueSource::Def(_def_id) => {
                 unimplemented!("not sure if we need this")

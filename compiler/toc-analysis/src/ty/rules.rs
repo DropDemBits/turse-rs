@@ -276,7 +276,7 @@ impl TypeId {
 /// Tests if the types are equivalent.
 ///
 /// This is a symmetric relation.
-pub fn is_equivalent<T: db::ConstEval + ?Sized>(db: &T, left: TypeId, right: TypeId) -> bool {
+pub fn is_equivalent(db: &dyn db::ConstEval, left: TypeId, right: TypeId) -> bool {
     let left = left.peel_aliases(db.up());
     let right = right.peel_aliases(db.up());
 
@@ -504,11 +504,7 @@ pub fn is_equivalent<T: db::ConstEval + ?Sized>(db: &T, left: TypeId, right: Typ
 /// Mostly equivalent to [`is_equivalent`], except that it accepts coercion
 /// into `char(*)` and `string(*)`, with this property also being transitive
 /// over arrays and ranges.
-pub fn is_coercible_into_param<T: ?Sized + db::ConstEval>(
-    db: &T,
-    lhs: TypeId,
-    rhs: TypeId,
-) -> bool {
+pub fn is_coercible_into_param(db: &dyn db::ConstEval, lhs: TypeId, rhs: TypeId) -> bool {
     let left = lhs.peel_aliases(db.up());
     let right = rhs.peel_aliases(db.up());
 
@@ -629,7 +625,7 @@ pub fn is_coercible_into_param<T: ?Sized + db::ConstEval>(
 ///
 /// This function is not symmetric, use [`is_either_coercible`] if that property
 /// is desired.
-pub fn is_coercible_into<T: ?Sized + db::ConstEval>(db: &T, lhs: TypeId, rhs: TypeId) -> bool {
+pub fn is_coercible_into(db: &dyn db::ConstEval, lhs: TypeId, rhs: TypeId) -> bool {
     // Current coercion rules:
     // All equivalence rules, plus
     //
@@ -687,7 +683,7 @@ pub fn is_coercible_into<T: ?Sized + db::ConstEval>(db: &T, lhs: TypeId, rhs: Ty
 
     /// Gets a sequence size suitable for coercion checking.
     /// All errors (overflow, other const error) and dynamic sizes are ignored.
-    fn seq_size<T: db::ConstEval + ?Sized>(db: &T, seq_size: &SeqSize) -> Option<u32> {
+    fn seq_size(db: &dyn db::ConstEval, seq_size: &SeqSize) -> Option<u32> {
         match seq_size.fixed_len(db, Default::default()) {
             Ok(v) => {
                 // if overflow or zero, it's silently ignored (reported in typeck)
@@ -804,21 +800,21 @@ pub fn is_coercible_into<T: ?Sized + db::ConstEval>(db: &T, lhs: TypeId, rhs: Ty
 /// swapped version is true.
 ///
 /// This is the symmetric version of [`is_coercible_into`]
-pub fn is_either_coercible<T: ?Sized + db::ConstEval>(db: &T, left: TypeId, right: TypeId) -> bool {
+pub fn is_either_coercible(db: &dyn db::ConstEval, left: TypeId, right: TypeId) -> bool {
     is_coercible_into(db, left, right) || is_coercible_into(db, right, left)
 }
 
 // TODO: Document type assignability
 // steal from the old compiler
 /// Alias of [`is_coercible_into`]
-pub fn is_assignable<T: ?Sized + db::ConstEval>(db: &T, left: TypeId, right: TypeId) -> bool {
+pub fn is_assignable(db: &dyn db::ConstEval, left: TypeId, right: TypeId) -> bool {
     // Defer to the coercion rules
     is_coercible_into(db, left, right)
 }
 
 /// Checks that the operands for the binary op are values, or types when appropriate
-pub fn check_binary_op_values<T: ?Sized + db::TypeDatabase>(
-    db: &T,
+pub fn check_binary_op_values(
+    db: &dyn db::TypeDatabase,
     library_id: LibraryId,
     body_id: body::BodyId,
     expr: &expr::Binary,
@@ -863,8 +859,8 @@ pub fn check_binary_op_values<T: ?Sized + db::TypeDatabase>(
 }
 
 /// Checks that the operand for the unary op is a value
-pub fn check_unary_op_values<T: ?Sized + db::TypeDatabase>(
-    db: &T,
+pub fn check_unary_op_values(
+    db: &dyn db::TypeDatabase,
     library_id: LibraryId,
     body_id: body::BodyId,
     expr: &expr::Unary,
@@ -1234,8 +1230,8 @@ pub fn infer_binary_op(
 ///
 /// `Ok(())` if the operation is valid for the given operand types, or `Err(err)`
 /// with `err` containing information about the error
-pub fn check_binary_op<T: ?Sized + db::ConstEval>(
-    db: &T,
+pub fn check_binary_op(
+    db: &dyn db::ConstEval,
     left: TypeId,
     op: expr::BinaryOp,
     right: TypeId,
@@ -1250,7 +1246,7 @@ pub fn check_binary_op<T: ?Sized + db::ConstEval>(
     let right = right.to_base_type(db.up());
 
     // Start from the inference code
-    match infer_binary_op(db.upcast_to_type_db(), left, op, right) {
+    match infer_binary_op(db.up(), left, op, right) {
         InferTy::Complete(_) => return Ok(()),
         InferTy::Error(_) => return mk_type_error(),
         InferTy::Partial(_) => (),
@@ -1406,15 +1402,15 @@ pub fn infer_unary_op(db: &dyn db::TypeDatabase, op: expr::UnaryOp, right: TypeI
 ///
 /// `Ok(())` if the operation is valid for the given operand type, or `Err(err)`
 /// with `err` containing information about the error
-pub fn check_unary_op<T: ?Sized + db::TypeDatabase>(
-    db: &T,
+pub fn check_unary_op(
+    db: &dyn db::TypeDatabase,
     op: expr::UnaryOp,
     right: TypeId,
 ) -> Result<(), InvalidUnaryOp> {
     let right = right;
 
     // Infer unary type currently does all of the work
-    match infer_unary_op(db.upcast_to_type_db(), op, right) {
+    match infer_unary_op(db, op, right) {
         InferTy::Complete(_) => Ok(()),
         InferTy::Error(_) => {
             // Use the peeled version of the type
@@ -1431,13 +1427,11 @@ pub struct InvalidBinaryValues {
     right_info: Option<(crate::db::ValueSource, Span)>,
 }
 
-pub fn report_invalid_bin_values<'db, DB>(
-    db: &'db DB,
+pub fn report_invalid_bin_values(
+    db: &dyn db::TypeDatabase,
     err: InvalidBinaryValues,
     reporter: &mut MessageSink,
-) where
-    DB: ?Sized + db::TypeDatabase + 'db,
-{
+) {
     if let Some((value_src, span)) = err.left_info {
         report_not_value(db, value_src, span, reporter);
     }
@@ -1453,13 +1447,11 @@ pub struct InvalidUnaryValue {
     right_info: (crate::db::ValueSource, Span),
 }
 
-pub fn report_invalid_unary_value<'db, DB>(
-    db: &'db DB,
+pub fn report_invalid_unary_value(
+    db: &dyn db::TypeDatabase,
     err: InvalidUnaryValue,
     reporter: &mut MessageSink,
-) where
-    DB: ?Sized + db::TypeDatabase + 'db,
-{
+) {
     let (value_src, span) = err.right_info;
     report_not_value(db, value_src, span, reporter);
 }
@@ -1747,14 +1739,12 @@ pub fn report_invalid_unary_op(
     msg.finish();
 }
 
-fn report_not_value<'db, DB>(
-    db: &'db DB,
+fn report_not_value(
+    db: &dyn db::TypeDatabase,
     value_src: crate::db::ValueSource,
     span: Span,
     reporter: &mut MessageSink,
-) where
-    DB: ?Sized + db::TypeDatabase + 'db,
-{
+) {
     // either:
     // "cannot use `{name}` as an expression"
     // "`{name}` is a reference to {binding_to}, not a variable"

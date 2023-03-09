@@ -153,9 +153,9 @@ impl SeqSize {
     ///
     /// If this is an any-length sequence, [`NotFixedLen::AnySize`] is produced.
     /// If an error occurs during length computation, `NotFixedLen::ConstError(err)` is produced.
-    pub fn fixed_len<T: crate::db::ConstEval + ?Sized>(
+    pub fn fixed_len(
         &self,
-        db: &T,
+        db: &dyn crate::db::ConstEval,
         span: Span,
     ) -> Result<ConstInt, NotFixedLen> {
         let size = match self {

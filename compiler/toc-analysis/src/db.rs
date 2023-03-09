@@ -23,8 +23,6 @@ pub trait HirAnalysis:
     + Upcast<dyn TypeDatabase>
     + Upcast<dyn ConstEval>
 {
-    fn upcast_to_anaylsis_db(&self) -> &dyn HirAnalysis;
-
     /// Performs analysis passes on all libraries
     fn analyze_libraries(&self) -> CompileResult<()>;
 
@@ -44,10 +42,6 @@ where
         + Upcast<dyn TypeDatabase>
         + Upcast<dyn ConstEval>,
 {
-    fn upcast_to_anaylsis_db(&self) -> &dyn HirAnalysis {
-        self
-    }
-
     fn analyze_libraries(&self) -> CompileResult<()> {
         query::analyze_libraries(self)
     }
