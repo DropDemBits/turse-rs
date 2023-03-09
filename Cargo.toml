@@ -25,24 +25,24 @@ tracing-subscriber = "0.3.16"
 unindent = "0.2"
 
 # Compiler crates
-toc-analysis = { path = "compiler/toc_analysis" }
-toc-ast-db = { path = "compiler/toc_ast_db" }
-toc-hir = { path = "compiler/toc_hir" }
-toc-hir-codegen = { path = "compiler/toc_hir_codegen" }
-toc-hir-db = { path = "compiler/toc_hir_db" }
-toc-hir-lowering = { path = "compiler/toc_hir_lowering" }
-toc-hir-pretty = { path = "compiler/toc_hir_pretty" }
-toc-parser = { path = "compiler/toc_parser" }
+toc-analysis = { path = "compiler/toc-analysis" }
+toc-ast-db = { path = "compiler/toc-ast-db" }
+toc-hir = { path = "compiler/toc-hir" }
+toc-hir-codegen = { path = "compiler/toc-hir-codegen" }
+toc-hir-db = { path = "compiler/toc-hir-db" }
+toc-hir-lowering = { path = "compiler/toc-hir-lowering" }
+toc-hir-pretty = { path = "compiler/toc-hir-pretty" }
+toc-parser = { path = "compiler/toc-parser" }
 toc-paths = { path = "compiler/toc-paths" }
-toc-reporting = { path = "compiler/toc_reporting" }
+toc-reporting = { path = "compiler/toc-reporting" }
 toc-salsa-collections = { path = "compiler/toc-salsa-collections" }
-toc-scanner = { path = "compiler/toc_scanner" }
-toc-source-graph = { path = "compiler/toc_source_graph" }
-toc-span = { path = "compiler/toc_span" }
-toc-syntax = { path = "compiler/toc_syntax" }
-toc-validate = { path = "compiler/toc_validate" }
-toc-vfs = { path = "compiler/toc_vfs" }
-toc-vfs-db = { path = "compiler/toc_vfs_db" }
+toc-scanner = { path = "compiler/toc-scanner" }
+toc-source-graph = { path = "compiler/toc-source-graph" }
+toc-span = { path = "compiler/toc-span" }
+toc-syntax = { path = "compiler/toc-syntax" }
+toc-validate = { path = "compiler/toc-validate" }
+toc-vfs = { path = "compiler/toc-vfs" }
+toc-vfs-db = { path = "compiler/toc-vfs-db" }
 
 # IDE crates
 toc-ide-db = { path = "lsp-server/toc-ide-db" }
