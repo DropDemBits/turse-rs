@@ -70,7 +70,7 @@ impl CodeBlob {
             // file_id
             out.write_u16::<LE>(blob_id)?;
             // filename
-            let filename = file_id.into_raw().raw_path(db.upcast_to_path_db()).as_str();
+            let filename = file_id.into_raw().raw_path(db.up()).as_str();
             let mut encoded_filename = [0; 255];
             // trunc to 256 bytes
             let filename_len = filename.len().min(encoded_filename.len());
@@ -280,16 +280,11 @@ pub fn generate_code(db: &dyn CodeGenDB) -> CompileResult<Option<CodeBlob>> {
 
     // Start producing blobs for each library
     // Only deal with one library right now
-    let lib_graph = toc_source_graph::source_graph(db.upcast_to_source_graph_db())
-        .as_ref()
-        .unwrap();
+    let lib_graph = toc_source_graph::source_graph(db.up()).as_ref().unwrap();
     let mut blob = CodeBlob::default();
 
-    if let Some(&library_id) = lib_graph
-        .all_libraries(db.upcast_to_source_graph_db())
-        .first()
-    {
-        let root_file = library_id.root(db.upcast_to_source_graph_db());
+    if let Some(&library_id) = lib_graph.all_libraries(db.up()).first() {
+        let root_file = library_id.root(db.up());
 
         // This library will act as the main file
         let library = db.library(library_id.into());
@@ -952,11 +947,10 @@ impl BodyCodeGenerator<'_> {
             let item_ty = gen
                 .db
                 .type_of((gen.library_id, item_owner).into())
-                .in_db(gen.db)
-                .to_base_type();
+                .to_base_type(gen.db.up());
 
             if matches!(
-                item_ty.kind(),
+                item_ty.kind(gen.db.up()),
                 ty::TypeKind::Subprogram(toc_hir::symbol::SubprogramKind::Function, ..)
             ) {
                 gen.code_fragment
@@ -1008,16 +1002,15 @@ impl BodyCodeGenerator<'_> {
         };
         let item_ty = db
             .type_of((self.library_id, item_owner).into())
-            .in_db(db)
-            .to_base_type();
+            .to_base_type(self.db.up());
 
-        if let ty::TypeKind::Subprogram(_, params, result_ty) = item_ty.kind() {
+        if let ty::TypeKind::Subprogram(_, params, result_ty) = item_ty.kind(self.db.up()) {
             let mut arg_offset = 0;
 
             // Feed in ret ty
-            let ret_ty = result_ty.in_db(db).to_base_type();
+            let ret_ty = result_ty.to_base_type(self.db.up());
 
-            if !matches!(ret_ty.kind(), ty::TypeKind::Void) {
+            if !matches!(ret_ty.kind(self.db.up()), ty::TypeKind::Void) {
                 if let Some(local_def) = ret_param {
                     self.code_fragment.bind_argument(
                         DefId(self.library_id, local_def),
@@ -1033,8 +1026,8 @@ impl BodyCodeGenerator<'_> {
             if let Some(param_infos) = params.as_ref() {
                 for (local_def, param_info) in param_defs.iter().zip(param_infos) {
                     // ???: How should we deal with char(*) / string(*)?
-                    let param_ty = param_info.param_ty.in_db(db).to_base_type();
-                    let size_of = param_ty.size_of().expect("must be sized");
+                    let param_ty = param_info.param_ty.to_base_type(self.db.up());
+                    let size_of = param_ty.size_of(self.db.up()).expect("must be sized");
                     let indirect = match param_info.pass_by {
                         ty::PassBy::Value => false,
                         ty::PassBy::Reference(_) => true,
@@ -1053,12 +1046,8 @@ impl BodyCodeGenerator<'_> {
 
     fn emit_location(&mut self, span: Span) {
         let (file, range) = span.into_parts().unwrap();
-        let info = toc_ast_db::map_byte_index(
-            self.db.upcast_to_source_db(),
-            file.into_raw(),
-            range.start().into(),
-        )
-        .unwrap();
+        let info = toc_ast_db::map_byte_index(self.db.up(), file.into_raw(), range.start().into())
+            .unwrap();
 
         // `0` is reserved for "<No File>"
         let code_file = self.code_blob.file_map.insert_full(file).0 + 1;
@@ -1136,32 +1125,30 @@ impl BodyCodeGenerator<'_> {
         let lhs_ty = self
             .db
             .type_of((self.library_id, self.body_id, stmt.lhs).into())
-            .in_db(self.db)
-            .to_base_type();
+            .to_base_type(self.db.up());
         let rhs_ty = self
             .db
             .type_of((self.library_id, self.body_id, stmt.rhs).into())
-            .in_db(self.db)
-            .to_base_type();
+            .to_base_type(self.db.up());
 
         // Evaluation order is important, side effects from the rhs are visible when looking at lhs
         // For assignment, we don't want side effects from rhs eval to be visible during lookup
         self.generate_ref_expr(stmt.lhs);
         self.generate_expr(stmt.rhs);
-        self.generate_coerced_op(lhs_ty.id(), rhs_ty.id());
-        self.generate_assign(lhs_ty.id(), AssignOrder::Precomputed);
+        self.generate_coerced_op(lhs_ty, rhs_ty);
+        self.generate_assign(lhs_ty, AssignOrder::Precomputed);
 
         eprintln!("assigning reference (first operand) to value (second operand)");
     }
 
     fn generate_coerced_op(&mut self, lhs_ty: ty::TypeId, rhs_ty: ty::TypeId) {
-        let lhs_ty = lhs_ty.in_db(self.db).to_base_type();
+        let lhs_ty = lhs_ty.to_base_type(self.db.up());
 
-        let coerce_to = match lhs_ty.kind() {
+        let coerce_to = match lhs_ty.kind(self.db.up()) {
             ty::TypeKind::Real(_) => Some(CoerceTo::Real),
             ty::TypeKind::Char => Some(CoerceTo::Char),
             ty::TypeKind::CharN(ty::SeqSize::Fixed(_)) => {
-                let len = lhs_ty.length_of().expect("never dyn");
+                let len = lhs_ty.length_of(self.db.up()).expect("never dyn");
                 Some(CoerceTo::CharN(len.try_into().unwrap()))
             }
             ty::TypeKind::CharN(ty::SeqSize::Any) => {
@@ -1198,10 +1185,9 @@ impl BodyCodeGenerator<'_> {
             let put_ty = self
                 .db
                 .type_of((self.library_id, self.body_id, item.expr).into())
-                .in_db(self.db)
-                .to_base_type();
+                .to_base_type(self.db.up());
 
-            let put_kind = match put_ty.kind() {
+            let put_kind = match put_ty.kind(self.db.up()) {
                 ty::TypeKind::Boolean => PutKind::Boolean(),
                 ty::TypeKind::Integer | ty::TypeKind::Int(_) => {
                     if item.opts.exponent_width().is_some() {
@@ -1240,9 +1226,9 @@ impl BodyCodeGenerator<'_> {
             // Put value onto the stack
             self.generate_expr(item.expr);
 
-            if let ty::TypeKind::CharN(seq_size) = put_ty.kind() {
+            if let ty::TypeKind::CharN(seq_size) = put_ty.kind(self.db.up()) {
                 let length = seq_size
-                    .fixed_len(self.db, Span::default())
+                    .fixed_len(self.db.up(), Span::default())
                     .ok()
                     .expect("const should succeed and not be dyn");
                 let length = length.into_u32().expect("should be int representable");
@@ -1298,12 +1284,11 @@ impl BodyCodeGenerator<'_> {
             let get_ty = self
                 .db
                 .type_of((self.library_id, self.body_id, item.expr).into())
-                .in_db(self.db)
-                .to_base_type();
-            let ty_size = get_ty.size_of().expect("type must be concrete") as u32;
+                .to_base_type(self.db.up());
+            let ty_size = get_ty.size_of(self.db.up()).expect("type must be concrete") as u32;
 
             let mut get_width = None;
-            let get_kind = match get_ty.kind() {
+            let get_kind = match get_ty.kind(self.db.up()) {
                 ty::TypeKind::Boolean => GetKind::Boolean(),
                 ty::TypeKind::Int(_) => GetKind::Int(ty_size),
                 ty::TypeKind::Nat(_) => GetKind::Nat(ty_size),
@@ -1345,7 +1330,7 @@ impl BodyCodeGenerator<'_> {
                 }
 
                 // and max length
-                let max_len = get_ty.length_of().expect("is a charseq") as u32;
+                let max_len = get_ty.length_of(self.db.up()).expect("is a charseq") as u32;
                 self.code_fragment.emit_opcode(Opcode::PUSHINT(max_len));
             }
 
@@ -1529,10 +1514,9 @@ impl BodyCodeGenerator<'_> {
         let discrim_ty = self
             .db
             .type_of((self.library_id, self.body_id, stmt.discriminant).into())
-            .in_db(self.db)
-            .to_base_type();
+            .to_base_type(self.db.up());
 
-        let coerce_to = match discrim_ty.kind() {
+        let coerce_to = match discrim_ty.kind(self.db.up()) {
             ty::TypeKind::String | ty::TypeKind::StringN(_) => Some(CoerceTo::String),
             ty::TypeKind::Char => Some(CoerceTo::Char),
             _ => None,
@@ -1540,9 +1524,9 @@ impl BodyCodeGenerator<'_> {
 
         let discrim_value = self
             .code_fragment
-            .allocate_temporary_space(discrim_ty.size_of().expect("is concrete"));
+            .allocate_temporary_space(discrim_ty.size_of(self.db.up()).expect("is concrete"));
         self.code_fragment.emit_locate_temp(discrim_value);
-        self.generate_assign(discrim_ty.id(), AssignOrder::Postcomputed);
+        self.generate_assign(discrim_ty, AssignOrder::Postcomputed);
 
         let mut arm_targets = vec![];
         let mut has_default = false;
@@ -1557,19 +1541,21 @@ impl BodyCodeGenerator<'_> {
                         let expr_ty = self
                             .db
                             .type_of((self.library_id, self.body_id, *expr).into())
-                            .in_db(self.db)
-                            .to_base_type();
+                            .to_base_type(self.db.up());
 
                         self.generate_coerced_expr(*expr, coerce_to);
                         self.code_fragment.emit_locate_temp(discrim_value);
-                        self.generate_fetch_value(discrim_ty.id());
+                        self.generate_fetch_value(discrim_ty);
 
                         let eq_op = if matches!(coerce_to, Some(CoerceTo::Char)) {
                             // Always keep coerced char type as an EQINT
                             Opcode::EQINT()
                         } else {
                             // Reuse normal eq selection
-                            self.select_eq_op(expr_ty.kind(), discrim_ty.kind())
+                            self.select_eq_op(
+                                expr_ty.kind(self.db.up()),
+                                discrim_ty.kind(self.db.up()),
+                            )
                         };
                         self.code_fragment.emit_opcode(eq_op);
 
@@ -1660,33 +1646,30 @@ impl BodyCodeGenerator<'_> {
         let def_ty = self
             .db
             .type_of(DefId(self.library_id, item.def_id).into())
-            .in_db(self.db)
-            .to_base_type();
-        self.code_fragment.allocate_local(
-            self.db,
-            DefId(self.library_id, item.def_id),
-            def_ty.id(),
-        );
+            .to_base_type(self.db.up());
+        self.code_fragment
+            .allocate_local(self.db, DefId(self.library_id, item.def_id), def_ty);
 
         if let Some(init_body) = item.init_expr {
             eprintln!("inlining init body {init_body:?}");
             self.inline_body(init_body);
 
             let body_ty = self.db.type_of((self.library_id, init_body).into());
-            self.generate_coerced_op(def_ty.id(), body_ty);
+            self.generate_coerced_op(def_ty, body_ty);
 
             eprintln!("assigning def {init_body:?} to previously produced value");
             self.code_fragment
                 .emit_locate_local(DefId(self.library_id, item.def_id));
-            self.generate_assign(def_ty.id(), AssignOrder::Postcomputed);
-        } else if def_ty.has_uninit() {
+            self.generate_assign(def_ty, AssignOrder::Postcomputed);
+        } else if def_ty.has_uninit(self.db.up()) {
             eprintln!(
                 "assigning def {:?} to uninit pattern for type `{}`",
-                item.def_id, def_ty
+                item.def_id,
+                def_ty.display(self.db.up())
             );
             self.code_fragment
                 .emit_locate_local(DefId(self.library_id, item.def_id));
-            self.generate_assign_uninit(def_ty.id());
+            self.generate_assign_uninit(def_ty);
         }
     }
 
@@ -1723,77 +1706,78 @@ impl BodyCodeGenerator<'_> {
     }
 
     fn coerce_expr_into(&mut self, from_ty: ty::TypeId, coerce_to: Option<CoerceTo>) {
-        let expr_ty = from_ty.in_db(self.db).to_base_type();
+        let expr_ty = from_ty.to_base_type(self.db.up());
 
-        let coerce_op = coerce_to.and_then(|coerce_to| match (coerce_to, expr_ty.kind()) {
-            // To `real`
-            (CoerceTo::Real, ty::TypeKind::Nat(_)) => Some(Opcode::NATREAL()),
-            (CoerceTo::Real, int) if int.is_integer() => Some(Opcode::INTREAL()),
+        let coerce_op =
+            coerce_to.and_then(|coerce_to| match (coerce_to, expr_ty.kind(self.db.up())) {
+                // To `real`
+                (CoerceTo::Real, ty::TypeKind::Nat(_)) => Some(Opcode::NATREAL()),
+                (CoerceTo::Real, int) if int.is_integer() => Some(Opcode::INTREAL()),
 
-            // To `char`
-            (CoerceTo::Char, ty::TypeKind::String | ty::TypeKind::StringN(_)) => {
-                Some(Opcode::STRTOCHAR())
-            }
-            (CoerceTo::Char, ty::TypeKind::CharN(ty::SeqSize::Fixed(_))) => {
-                // Compile-time checked to always fit
-                let len = expr_ty.length_of();
-                assert_eq!(len, Some(1), "never dyn or not 1");
+                // To `char`
+                (CoerceTo::Char, ty::TypeKind::String | ty::TypeKind::StringN(_)) => {
+                    Some(Opcode::STRTOCHAR())
+                }
+                (CoerceTo::Char, ty::TypeKind::CharN(ty::SeqSize::Fixed(_))) => {
+                    // Compile-time checked to always fit
+                    let len = expr_ty.length_of(self.db.up());
+                    assert_eq!(len, Some(1), "never dyn or not 1");
 
-                // Fetch the first char
-                Some(Opcode::FETCHNAT1())
-            }
-            (CoerceTo::Char, ty::TypeKind::CharN(ty::SeqSize::Any)) => {
-                todo!()
-            }
+                    // Fetch the first char
+                    Some(Opcode::FETCHNAT1())
+                }
+                (CoerceTo::Char, ty::TypeKind::CharN(ty::SeqSize::Any)) => {
+                    todo!()
+                }
 
-            // To `char(N)`
-            (CoerceTo::CharN(len), ty::TypeKind::Char) => {
-                // Compile-time checked to always fit
-                assert_eq!(len, 1, "never dyn or not 1");
+                // To `char(N)`
+                (CoerceTo::CharN(len), ty::TypeKind::Char) => {
+                    // Compile-time checked to always fit
+                    assert_eq!(len, 1, "never dyn or not 1");
 
-                // Reserve enough space for the temporary char_n
-                // Note: This is size is rounded up to char_n's alignment size.
-                let reserve_size = len + 1;
+                    // Reserve enough space for the temporary char_n
+                    // Note: This is size is rounded up to char_n's alignment size.
+                    let reserve_size = len + 1;
 
-                let temp_str = self
-                    .code_fragment
-                    .allocate_temporary_space(reserve_size as usize);
-                self.code_fragment.emit_locate_temp(temp_str);
+                    let temp_str = self
+                        .code_fragment
+                        .allocate_temporary_space(reserve_size as usize);
+                    self.code_fragment.emit_locate_temp(temp_str);
 
-                Some(Opcode::CHARTOCSTR())
-            }
-            (CoerceTo::CharN(len), ty::TypeKind::String | ty::TypeKind::StringN(_)) => {
-                // Only need to verify that rhs is of the required length
-                Some(Opcode::CHKSTRSIZE(len))
-            }
+                    Some(Opcode::CHARTOCSTR())
+                }
+                (CoerceTo::CharN(len), ty::TypeKind::String | ty::TypeKind::StringN(_)) => {
+                    // Only need to verify that rhs is of the required length
+                    Some(Opcode::CHKSTRSIZE(len))
+                }
 
-            // To `string`
-            (CoerceTo::String, ty::TypeKind::Char) => {
-                // Reserve enough space for a `string(1)`
-                let temp_str = self.code_fragment.allocate_temporary_space(2);
-                self.code_fragment.emit_locate_temp(temp_str);
+                // To `string`
+                (CoerceTo::String, ty::TypeKind::Char) => {
+                    // Reserve enough space for a `string(1)`
+                    let temp_str = self.code_fragment.allocate_temporary_space(2);
+                    self.code_fragment.emit_locate_temp(temp_str);
 
-                Some(Opcode::CHARTOSTR())
-            }
-            (CoerceTo::String, ty::TypeKind::CharN(ty::SeqSize::Fixed(_))) => {
-                // Reserve enough space for the given char_n
-                let len = expr_ty.length_of().expect("never dyn");
+                    Some(Opcode::CHARTOSTR())
+                }
+                (CoerceTo::String, ty::TypeKind::CharN(ty::SeqSize::Fixed(_))) => {
+                    // Reserve enough space for the given char_n
+                    let len = expr_ty.length_of(self.db.up()).expect("never dyn");
 
-                // Include the null terminator in the reservation size
-                // Never let it exceed the maximum length of a string
-                let reserve_size = (len + 1).min(256);
+                    // Include the null terminator in the reservation size
+                    // Never let it exceed the maximum length of a string
+                    let reserve_size = (len + 1).min(256);
 
-                let temp_str = self.code_fragment.allocate_temporary_space(reserve_size);
-                self.code_fragment.emit_locate_temp(temp_str);
+                    let temp_str = self.code_fragment.allocate_temporary_space(reserve_size);
+                    self.code_fragment.emit_locate_temp(temp_str);
 
-                self.code_fragment.emit_opcode(Opcode::PUSHINT(len as u32));
-                Some(Opcode::CSTRTOSTR())
-            }
-            (CoerceTo::String, ty::TypeKind::CharN(ty::SeqSize::Any)) => {
-                todo!()
-            }
-            _ => None,
-        });
+                    self.code_fragment.emit_opcode(Opcode::PUSHINT(len as u32));
+                    Some(Opcode::CSTRTOSTR())
+                }
+                (CoerceTo::String, ty::TypeKind::CharN(ty::SeqSize::Any)) => {
+                    todo!()
+                }
+                _ => None,
+            });
 
         if let Some(opcode) = coerce_op {
             eprintln!("coercing into {coerce_op:?}");
@@ -1867,20 +1851,18 @@ impl BodyCodeGenerator<'_> {
         let lhs_ty = self
             .db
             .type_of((self.library_id, self.body_id, expr.lhs).into())
-            .in_db(self.db)
-            .to_base_type();
+            .to_base_type(self.db.up());
         let rhs_ty = self
             .db
             .type_of((self.library_id, self.body_id, expr.rhs).into())
-            .in_db(self.db)
-            .to_base_type();
+            .to_base_type(self.db.up());
 
         let opcode = match expr.op.item() {
             hir_expr::BinaryOp::Add => self
                 .dispatch_over_numbers(
                     expr,
-                    lhs_ty.kind(),
-                    rhs_ty.kind(),
+                    lhs_ty.kind(self.db.up()),
+                    rhs_ty.kind(self.db.up()),
                     Opcode::ADDREAL(),
                     Opcode::ADDNAT(),
                     Opcode::ADDNATINT(),
@@ -1891,8 +1873,8 @@ impl BodyCodeGenerator<'_> {
             hir_expr::BinaryOp::Sub => self
                 .dispatch_over_numbers(
                     expr,
-                    lhs_ty.kind(),
-                    rhs_ty.kind(),
+                    lhs_ty.kind(self.db.up()),
+                    rhs_ty.kind(self.db.up()),
                     Opcode::SUBREAL(),
                     Opcode::SUBNAT(),
                     Opcode::SUBNATINT(),
@@ -1903,8 +1885,8 @@ impl BodyCodeGenerator<'_> {
             hir_expr::BinaryOp::Mul => self
                 .dispatch_over_numbers(
                     expr,
-                    lhs_ty.kind(),
-                    rhs_ty.kind(),
+                    lhs_ty.kind(self.db.up()),
+                    rhs_ty.kind(self.db.up()),
                     Opcode::MULREAL(),
                     Opcode::MULNAT(),
                     Opcode::MULINT(),
@@ -1915,8 +1897,8 @@ impl BodyCodeGenerator<'_> {
             hir_expr::BinaryOp::Div => self
                 .dispatch_over_numbers(
                     expr,
-                    lhs_ty.kind(),
-                    rhs_ty.kind(),
+                    lhs_ty.kind(self.db.up()),
+                    rhs_ty.kind(self.db.up()),
                     Opcode::DIVREAL(),
                     Opcode::DIVNAT(),
                     Opcode::DIVINT(),
@@ -1932,8 +1914,8 @@ impl BodyCodeGenerator<'_> {
             hir_expr::BinaryOp::Mod => self
                 .dispatch_over_numbers(
                     expr,
-                    lhs_ty.kind(),
-                    rhs_ty.kind(),
+                    lhs_ty.kind(self.db.up()),
+                    rhs_ty.kind(self.db.up()),
                     Opcode::MODREAL(),
                     Opcode::MODNAT(),
                     Opcode::MODINT(),
@@ -1944,8 +1926,8 @@ impl BodyCodeGenerator<'_> {
             hir_expr::BinaryOp::Rem => self
                 .dispatch_over_numbers(
                     expr,
-                    lhs_ty.kind(),
-                    rhs_ty.kind(),
+                    lhs_ty.kind(self.db.up()),
+                    rhs_ty.kind(self.db.up()),
                     Opcode::REMREAL(),
                     Opcode::MODNAT(),
                     Opcode::MODINT(),
@@ -1953,7 +1935,8 @@ impl BodyCodeGenerator<'_> {
                     Opcode::MODINT(),
                 )
                 .expect("op over unsupported type"),
-            hir_expr::BinaryOp::Exp => match (lhs_ty.kind(), rhs_ty.kind()) {
+            hir_expr::BinaryOp::Exp => match (lhs_ty.kind(self.db.up()), rhs_ty.kind(self.db.up()))
+            {
                 (lhs, rhs) if lhs.is_integer() && rhs.is_integer() => {
                     self.generate_expr(expr.lhs);
                     self.generate_expr(expr.rhs);
@@ -1999,11 +1982,11 @@ impl BodyCodeGenerator<'_> {
                 Opcode::SHR()
             }
             hir_expr::BinaryOp::Less | hir_expr::BinaryOp::GreaterEq => {
-                self.coerce_to_same(expr, lhs_ty.kind(), rhs_ty.kind());
+                self.coerce_to_same(expr, lhs_ty.kind(self.db.up()), rhs_ty.kind(self.db.up()));
 
                 let cmp_op = if let Some(cmp_op) = self.select_over_numbers(
-                    lhs_ty.kind(),
-                    rhs_ty.kind(),
+                    lhs_ty.kind(self.db.up()),
+                    rhs_ty.kind(self.db.up()),
                     Opcode::GEREAL(),
                     Opcode::GENAT(),
                     Opcode::GENATINT(),
@@ -2012,7 +1995,7 @@ impl BodyCodeGenerator<'_> {
                 ) {
                     cmp_op
                 } else {
-                    match (lhs_ty.kind(), rhs_ty.kind()) {
+                    match (lhs_ty.kind(self.db.up()), rhs_ty.kind(self.db.up())) {
                         (ty::TypeKind::Char, ty::TypeKind::Char) => Opcode::GENAT(),
                         (lhs, rhs) if lhs.is_cmp_charseq() && rhs.is_cmp_charseq() => {
                             Opcode::GESTR()
@@ -2029,11 +2012,11 @@ impl BodyCodeGenerator<'_> {
                 }
             }
             hir_expr::BinaryOp::Greater | hir_expr::BinaryOp::LessEq => {
-                self.coerce_to_same(expr, lhs_ty.kind(), rhs_ty.kind());
+                self.coerce_to_same(expr, lhs_ty.kind(self.db.up()), rhs_ty.kind(self.db.up()));
 
                 let cmp_op = if let Some(cmp_op) = self.select_over_numbers(
-                    lhs_ty.kind(),
-                    rhs_ty.kind(),
+                    lhs_ty.kind(self.db.up()),
+                    rhs_ty.kind(self.db.up()),
                     Opcode::LEREAL(),
                     Opcode::LENAT(),
                     Opcode::LENATINT(),
@@ -2042,7 +2025,7 @@ impl BodyCodeGenerator<'_> {
                 ) {
                     cmp_op
                 } else {
-                    match (lhs_ty.kind(), rhs_ty.kind()) {
+                    match (lhs_ty.kind(self.db.up()), rhs_ty.kind(self.db.up())) {
                         (ty::TypeKind::Char, ty::TypeKind::Char) => Opcode::LENAT(),
                         (lhs, rhs) if lhs.is_cmp_charseq() && rhs.is_cmp_charseq() => {
                             Opcode::LESTR()
@@ -2059,8 +2042,9 @@ impl BodyCodeGenerator<'_> {
                 }
             }
             hir_expr::BinaryOp::Equal | hir_expr::BinaryOp::NotEqual => {
-                self.coerce_to_same(expr, lhs_ty.kind(), rhs_ty.kind());
-                let cmp_op = self.select_eq_op(lhs_ty.kind(), rhs_ty.kind());
+                self.coerce_to_same(expr, lhs_ty.kind(self.db.up()), rhs_ty.kind(self.db.up()));
+                let cmp_op =
+                    self.select_eq_op(lhs_ty.kind(self.db.up()), rhs_ty.kind(self.db.up()));
 
                 if expr.op.item() == &hir_expr::BinaryOp::Equal {
                     cmp_op
@@ -2173,15 +2157,14 @@ impl BodyCodeGenerator<'_> {
         let rhs_ty = self
             .db
             .type_of((self.library_id, self.body_id, expr.rhs).into())
-            .in_db(self.db)
-            .to_base_type();
+            .to_base_type(self.db.up());
 
         self.generate_expr(expr.rhs);
 
         match expr.op.item() {
             hir_expr::UnaryOp::Identity => {} // no-op
             hir_expr::UnaryOp::Not => {
-                if rhs_ty.kind().is_integer() {
+                if rhs_ty.kind(self.db.up()).is_integer() {
                     // Composite
                     self.code_fragment.emit_opcode(Opcode::PUSHINT(!0));
                     self.code_fragment.emit_opcode(Opcode::XOR());
@@ -2189,7 +2172,7 @@ impl BodyCodeGenerator<'_> {
                     self.code_fragment.emit_opcode(Opcode::NOT())
                 }
             }
-            hir_expr::UnaryOp::Negate => match rhs_ty.kind() {
+            hir_expr::UnaryOp::Negate => match rhs_ty.kind(self.db.up()) {
                 ty::TypeKind::Integer | ty::TypeKind::Int(_) | ty::TypeKind::Nat(_) => {
                     // should already be dealing with promoted types
                     self.code_fragment.emit_opcode(Opcode::NEGINT())
@@ -2212,17 +2195,16 @@ impl BodyCodeGenerator<'_> {
                 let def_ty = self
                     .db
                     .type_of(DefId(self.library_id, def_id).into())
-                    .in_db(self.db)
-                    .to_base_type();
+                    .to_base_type(self.db.up());
 
-                if let ty::TypeKind::Subprogram(_, None, _) = def_ty.kind() {
+                if let ty::TypeKind::Subprogram(_, None, _) = def_ty.kind(self.db.up()) {
                     // as param-less call
                     self.generate_call(expr_id, None, false);
                 } else {
                     // As normal fetch
                     self.code_fragment
                         .emit_locate_local(DefId(self.library_id, def_id));
-                    self.generate_fetch_value(def_ty.id());
+                    self.generate_fetch_value(def_ty);
                 }
             }
             hir_expr::Name::Self_ => todo!(),
@@ -2248,17 +2230,17 @@ impl BodyCodeGenerator<'_> {
             // From an actual expression
             db.type_of(lhs_expr.into())
         };
-        let lhs_ty_ref = lhs_ty.in_db(db).to_base_type();
+        let lhs_ty_ref = lhs_ty.to_base_type(db.up());
         let (params, ret_ty) =
-            if let ty::TypeKind::Subprogram(_, params, ret_ty) = lhs_ty_ref.kind() {
+            if let ty::TypeKind::Subprogram(_, params, ret_ty) = lhs_ty_ref.kind(db.up()) {
                 (params, *ret_ty)
             } else {
                 unreachable!()
             };
 
-        let ret_ty_ref = ret_ty.in_db(db).to_base_type();
-        let ret_val = if !matches!(ret_ty_ref.kind(), ty::TypeKind::Void) {
-            let size_of = ret_ty_ref.size_of().expect("must be sized");
+        let ret_ty_ref = ret_ty.to_base_type(db.up());
+        let ret_val = if !matches!(ret_ty_ref.kind(db.up()), ty::TypeKind::Void) {
+            let size_of = ret_ty_ref.size_of(db.up()).expect("must be sized");
             Some(self.code_fragment.allocate_temporary_space(size_of))
         } else {
             None
@@ -2280,7 +2262,7 @@ impl BodyCodeGenerator<'_> {
                 // Treat return argument as a pass by ref
                 let ret_arg = self
                     .code_fragment
-                    .allocate_temporary_space(ret_ty_ref.size_of().expect("must be sized"));
+                    .allocate_temporary_space(ret_ty_ref.size_of(db.up()).expect("must be sized"));
 
                 self.code_fragment.emit_locate_temp(ret_val);
                 self.code_fragment.emit_locate_temp(ret_arg);
@@ -2298,7 +2280,7 @@ impl BodyCodeGenerator<'_> {
                     match param.pass_by {
                         ty::PassBy::Value => {
                             let param_ty = param.param_ty;
-                            let size_of = param_ty.in_db(db).size_of().expect("must be sized");
+                            let size_of = param_ty.size_of(db.up()).expect("must be sized");
                             let nth_arg = self.code_fragment.allocate_temporary_space(size_of);
                             self.generate_expr(arg_expr);
                             self.generate_coerced_op(param_ty, arg_ty);
@@ -2387,9 +2369,9 @@ impl BodyCodeGenerator<'_> {
     }
 
     fn generate_assign(&mut self, into_ty: ty::TypeId, order: AssignOrder) {
-        let into_tyref = into_ty.in_db(self.db);
+        let into_tyref = into_ty;
 
-        let (pre, post) = match into_tyref.kind() {
+        let (pre, post) = match into_tyref.kind(self.db.up()) {
             ty::TypeKind::Boolean => (Opcode::ASNINT1(), Opcode::ASNINT1INV()),
             ty::TypeKind::Int(ty::IntSize::Int1) => (Opcode::ASNINT1(), Opcode::ASNINT1INV()),
             ty::TypeKind::Int(ty::IntSize::Int2) => (Opcode::ASNINT2(), Opcode::ASNINT2INV()),
@@ -2406,7 +2388,7 @@ impl BodyCodeGenerator<'_> {
             ty::TypeKind::Integer => unreachable!("type should be concrete"),
             ty::TypeKind::Char => (Opcode::ASNINT1(), Opcode::ASNINT1INV()),
             ty::TypeKind::CharN(_) => {
-                let storage_size = into_tyref.size_of().expect("not dyn") as u32;
+                let storage_size = into_tyref.size_of(self.db.up()).expect("not dyn") as u32;
                 (
                     Opcode::ASNNONSCALAR(storage_size),
                     Opcode::ASNNONSCALARINV(storage_size),
@@ -2414,7 +2396,9 @@ impl BodyCodeGenerator<'_> {
             }
             ty::TypeKind::String | ty::TypeKind::StringN(_) => {
                 // Push corresponding storage size
-                let char_len = into_tyref.length_of().expect("should not be dyn");
+                let char_len = into_tyref
+                    .length_of(self.db.up())
+                    .expect("should not be dyn");
                 self.code_fragment
                     .emit_opcode(Opcode::PUSHINT(char_len.try_into().expect("not a u32")));
                 (Opcode::ASNSTR(), Opcode::ASNSTRINV())
@@ -2444,9 +2428,9 @@ impl BodyCodeGenerator<'_> {
 
     // Expects a destination address to be present
     fn generate_assign_uninit(&mut self, uninit_ty: ty::TypeId) {
-        let uninit_ty = uninit_ty.in_db(self.db);
+        let uninit_ty = uninit_ty;
 
-        let opcode = match uninit_ty.kind() {
+        let opcode = match uninit_ty.kind(self.db.up()) {
             ty::TypeKind::Nat(ty::NatSize::AddressInt) => Opcode::UNINITADDR(),
             ty::TypeKind::Boolean => Opcode::UNINITBOOLEAN(),
             ty::TypeKind::Int(ty::IntSize::Int) => Opcode::UNINITINT(),
@@ -2469,8 +2453,8 @@ impl BodyCodeGenerator<'_> {
     }
 
     fn pick_fetch_op(&mut self, fetch_ty: ty::TypeId) -> Option<Opcode> {
-        let fetch_ty = fetch_ty.in_db(self.db);
-        let opcode = match fetch_ty.kind() {
+        let fetch_ty = fetch_ty;
+        let opcode = match fetch_ty.kind(self.db.up()) {
             ty::TypeKind::Boolean => Opcode::FETCHBOOL(),
             ty::TypeKind::Int(ty::IntSize::Int1) => Opcode::FETCHINT1(),
             ty::TypeKind::Int(ty::IntSize::Int2) => Opcode::FETCHINT2(),
@@ -2569,9 +2553,8 @@ impl CodeFragment {
         self.allocate_local_space(
             def_id,
             def_ty
-                .in_db(db)
-                .to_base_type()
-                .size_of()
+                .to_base_type(db.up())
+                .size_of(db.up())
                 .expect("is concrete"),
         );
     }

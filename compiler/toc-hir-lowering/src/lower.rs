@@ -54,11 +54,11 @@ pub fn lower_library(db: &dyn Db, library: SourceLibrary) -> CompileResult<Lower
     let mut messages = MessageBundle::default();
 
     // take the library from the source graph
-    let library_root = library.root(db.upcast_to_source_graph_db());
-    let root_source = toc_vfs_db::source_of(db.upcast_to_vfs_db(), library_root);
+    let library_root = library.root(db.up());
+    let root_source = toc_vfs_db::source_of(db.up(), library_root);
 
     // Report if the root file is missing
-    if let Some(err) = root_source.errors(db.upcast_to_vfs_db()) {
+    if let Some(err) = root_source.errors(db.up()) {
         // Report the missing file
         // Note: we can't lookup the path directly because we don't
         // have access to the file info table from just a source file
@@ -83,11 +83,10 @@ pub fn lower_library(db: &dyn Db, library: SourceLibrary) -> CompileResult<Lower
     //
     // for now though, this just replicates the old behavior
 
-    let reachable_files =
-        toc_ast_db::reachable_imported_files(db.upcast_to_source_db(), root_source)
-            .iter()
-            .copied()
-            .collect::<Vec<_>>();
+    let reachable_files = toc_ast_db::reachable_imported_files(db.up(), root_source)
+        .iter()
+        .copied()
+        .collect::<Vec<_>>();
 
     // Collect all the defs in the library
     let (collect_res, msgs) = crate::collector::collect_defs(db, &reachable_files).take();
@@ -102,7 +101,7 @@ pub fn lower_library(db: &dyn Db, library: SourceLibrary) -> CompileResult<Lower
             .lower_file()
             .take();
         messages = messages.combine(msgs);
-        root_items.push((file.path(db.upcast_to_vfs_db()).into(), item));
+        root_items.push((file.path(db.up()).into(), item));
     }
 
     let library = library.freeze_root_items(root_items);
@@ -121,12 +120,12 @@ pub fn lower_library(db: &dyn Db, library: SourceLibrary) -> CompileResult<Lower
 #[salsa::tracked]
 pub fn lower_source_graph(db: &dyn Db) -> CompileResult<()> {
     let mut messages = MessageBundle::default();
-    let source_graph = toc_source_graph::source_graph(db.upcast_to_source_graph_db())
+    let source_graph = toc_source_graph::source_graph(db.up())
         .as_ref()
         .ok()
         .unwrap();
 
-    for &library in source_graph.all_libraries(db.upcast_to_source_graph_db()) {
+    for &library in source_graph.all_libraries(db.up()) {
         lower_library(db, library).bundle_messages(&mut messages);
     }
 
@@ -159,8 +158,8 @@ impl<'ctx> FileLowering<'ctx> {
 
     fn lower_file(self) -> CompileResult<item::ItemId> {
         // Parse & validate file
-        let parse_res = toc_ast_db::parse_file(self.db.upcast_to_source_db(), self.file);
-        let validate_res = toc_ast_db::validate_file(self.db.upcast_to_source_db(), self.file);
+        let parse_res = toc_ast_db::parse_file(self.db.up(), self.file);
+        let validate_res = toc_ast_db::validate_file(self.db.up(), self.file);
 
         // Enter the actual lowering
         let mut ctx = self;
@@ -283,7 +282,7 @@ impl<'ctx> FileLowering<'ctx> {
     }
 
     fn mk_span(&self, range: toc_span::TextRange) -> Span {
-        Span::new(self.file.path(self.db.upcast_to_vfs_db()).into(), range)
+        Span::new(self.file.path(self.db.up()).into(), range)
     }
 
     fn intern_range(&mut self, range: toc_span::TextRange) -> SpanId {

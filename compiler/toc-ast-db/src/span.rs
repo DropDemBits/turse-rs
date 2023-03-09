@@ -112,9 +112,9 @@ pub(crate) mod query {
     /// FIXME: Would be better to use SourceFile directly
     #[salsa::tracked]
     pub fn line_mapping(db: &dyn Db, file_id: toc_paths::RawPath) -> Arc<LineMapping> {
-        let source = toc_vfs_db::source_of(db.upcast_to_vfs_db(), file_id);
+        let source = toc_vfs_db::source_of(db.up(), file_id);
         Arc::new(LineMapping::from_source(Arc::new(
-            source.contents(db.upcast_to_vfs_db()).clone(),
+            source.contents(db.up()).clone(),
         )))
     }
 

@@ -13,11 +13,7 @@ use toc_hir::{
 use crate::{
     const_eval::{Const, ConstInt},
     db::TypeDatabase,
-    ty::{
-        self,
-        db::{NotValueErrExt, TypeInternExt},
-        Checked, Param, TypeId, TypeKind,
-    },
+    ty::{self, db::NotValueErrExt, make, Checked, Param, TypeId, TypeKind},
 };
 
 use super::{AllowDyn, IntSize, NatSize, RealSize, SeqSize};
@@ -27,7 +23,7 @@ pub(crate) fn ty_from_hir_ty(db: &dyn TypeDatabase, hir_id: InLibrary<hir_ty::Ty
     let hir_ty = library.lookup_type(hir_id.1);
 
     match &hir_ty.kind {
-        hir_ty::TypeKind::Missing => db.mk_error(),
+        hir_ty::TypeKind::Missing => make::error(db),
         hir_ty::TypeKind::Primitive(ty) => primitive_ty(db, hir_id, ty),
         hir_ty::TypeKind::Alias(ty) => alias_ty(db, hir_id, ty),
         hir_ty::TypeKind::Constrained(ty) => constrained_ty(db, hir_id, ty),
@@ -36,7 +32,7 @@ pub(crate) fn ty_from_hir_ty(db: &dyn TypeDatabase, hir_id: InLibrary<hir_ty::Ty
         hir_ty::TypeKind::Set(ty) => set_ty(db, hir_id, ty),
         hir_ty::TypeKind::Pointer(ty) => pointer_ty(db, hir_id, ty),
         hir_ty::TypeKind::Subprogram(ty) => subprogram_ty(db, hir_id, ty),
-        hir_ty::TypeKind::Void => db.mk_void(),
+        hir_ty::TypeKind::Void => make::void(db),
     }
 }
 
@@ -47,23 +43,23 @@ fn primitive_ty(
 ) -> TypeId {
     // Create the correct type based off of the base primitive type
     match ty {
-        hir_ty::Primitive::Int => db.mk_int(IntSize::Int),
-        hir_ty::Primitive::Int1 => db.mk_int(IntSize::Int1),
-        hir_ty::Primitive::Int2 => db.mk_int(IntSize::Int2),
-        hir_ty::Primitive::Int4 => db.mk_int(IntSize::Int4),
-        hir_ty::Primitive::Nat => db.mk_nat(NatSize::Nat),
-        hir_ty::Primitive::Nat1 => db.mk_nat(NatSize::Nat1),
-        hir_ty::Primitive::Nat2 => db.mk_nat(NatSize::Nat2),
-        hir_ty::Primitive::Nat4 => db.mk_nat(NatSize::Nat4),
-        hir_ty::Primitive::Real => db.mk_real(RealSize::Real),
-        hir_ty::Primitive::Real4 => db.mk_real(RealSize::Real4),
-        hir_ty::Primitive::Real8 => db.mk_real(RealSize::Real8),
-        hir_ty::Primitive::Boolean => db.mk_boolean(),
-        hir_ty::Primitive::AddressInt => db.mk_nat(NatSize::AddressInt),
-        hir_ty::Primitive::Char => db.mk_char(),
-        hir_ty::Primitive::String => db.mk_string(),
-        hir_ty::Primitive::SizedChar(len) => db.mk_char_n(lower_seq_len(hir_id.0, *len)),
-        hir_ty::Primitive::SizedString(len) => db.mk_string_n(lower_seq_len(hir_id.0, *len)),
+        hir_ty::Primitive::Int => make::int(db, IntSize::Int),
+        hir_ty::Primitive::Int1 => make::int(db, IntSize::Int1),
+        hir_ty::Primitive::Int2 => make::int(db, IntSize::Int2),
+        hir_ty::Primitive::Int4 => make::int(db, IntSize::Int4),
+        hir_ty::Primitive::Nat => make::nat(db, NatSize::Nat),
+        hir_ty::Primitive::Nat1 => make::nat(db, NatSize::Nat1),
+        hir_ty::Primitive::Nat2 => make::nat(db, NatSize::Nat2),
+        hir_ty::Primitive::Nat4 => make::nat(db, NatSize::Nat4),
+        hir_ty::Primitive::Real => make::real(db, RealSize::Real),
+        hir_ty::Primitive::Real4 => make::real(db, RealSize::Real4),
+        hir_ty::Primitive::Real8 => make::real(db, RealSize::Real8),
+        hir_ty::Primitive::Boolean => make::boolean(db),
+        hir_ty::Primitive::AddressInt => make::nat(db, NatSize::AddressInt),
+        hir_ty::Primitive::Char => make::char(db),
+        hir_ty::Primitive::String => make::string(db),
+        hir_ty::Primitive::SizedChar(len) => make::char_n(db, lower_seq_len(hir_id.0, *len)),
+        hir_ty::Primitive::SizedString(len) => make::string_n(db, lower_seq_len(hir_id.0, *len)),
     }
 }
 
@@ -86,7 +82,7 @@ fn alias_ty(
             let library = db.library(hir_id.library());
             match library.binding_resolve(ty.base_def) {
                 symbol::Resolve::Def(local_def) => DefId(hir_id.library(), local_def),
-                symbol::Resolve::Err => return db.mk_error(),
+                symbol::Resolve::Err => return make::error(db),
             }
         };
 
@@ -98,7 +94,7 @@ fn alias_ty(
             if let Some(next_def) = next_def {
                 def_id = next_def;
             } else {
-                return db.mk_error();
+                return make::error(db);
             }
         }
 
@@ -113,7 +109,7 @@ fn alias_ty(
         }
         _ => {
             // Not a reference to a type
-            db.mk_error()
+            make::error(db)
         }
     }
 }
@@ -128,18 +124,17 @@ fn constrained_ty(
 
     // Infer base ty (from start, or end if start isn't present / is {integer})
     let base_tyref = {
-        let start_tyref = db.type_of(ty.start.in_library(library_id).into()).in_db(db);
+        let start_tyref = db.type_of(ty.start.in_library(library_id).into());
         let end_tyref = match ty.end {
             hir_ty::ConstrainedEnd::Expr(end) => db.type_of(end.in_library(library_id).into()),
-            _ => db.mk_error(),
-        }
-        .in_db(db);
+            _ => make::error(db),
+        };
 
-        let start_tyref = start_tyref.peel_opaque(in_module).to_base_type();
-        let end_tyref = end_tyref.peel_opaque(in_module).to_base_type();
+        let start_tyref = start_tyref.peel_opaque(db, in_module).to_base_type(db);
+        let end_tyref = end_tyref.peel_opaque(db, in_module).to_base_type(db);
 
         // Pick whichever is more concrete
-        let base_tyref = match (start_tyref.kind(), end_tyref.kind()) {
+        let base_tyref = match (start_tyref.kind(db), end_tyref.kind(db)) {
             (TypeKind::Error, _) => end_tyref,
             (TypeKind::Integer, rhs) if rhs.is_number() => end_tyref,
             (_, _) => start_tyref,
@@ -149,10 +144,10 @@ fn constrained_ty(
     };
 
     // Require a concrete type
-    let base_ty = if base_tyref.kind() == &TypeKind::Integer {
-        db.mk_int(IntSize::Int)
+    let base_ty = if base_tyref.kind(db) == &TypeKind::Integer {
+        make::int(db, IntSize::Int)
     } else {
-        base_tyref.id()
+        base_tyref
     };
 
     let allow_dyn = if ty.allow_dyn {
@@ -169,7 +164,7 @@ fn constrained_ty(
         hir_ty::ConstrainedEnd::Any(_) => ty::EndBound::Any,
     };
 
-    db.mk_constrained(base_ty, start, end)
+    make::constrained(db, base_ty, start, end)
 }
 
 fn array_ty(
@@ -191,7 +186,7 @@ fn array_ty(
         .collect();
     let elem_ty = db.lower_hir_type(ty.elem_ty.in_library(library_id));
 
-    db.mk_array(sizing, ranges, elem_ty)
+    make::array(db, sizing, ranges, elem_ty)
 }
 
 fn enum_ty(db: &dyn TypeDatabase, hir_id: InLibrary<hir_ty::TypeId>, ty: &hir_ty::Enum) -> TypeId {
@@ -204,14 +199,14 @@ fn enum_ty(db: &dyn TypeDatabase, hir_id: InLibrary<hir_ty::TypeId>, ty: &hir_ty
         .map(|&def_id| DefId(library_id, def_id))
         .collect();
 
-    db.mk_enum(ty::WithDef::Anonymous(def_id), variants)
+    make::enum_(db, ty::WithDef::Anonymous(def_id), variants)
 }
 
 fn set_ty(db: &dyn TypeDatabase, hir_id: InLibrary<hir_ty::TypeId>, ty: &hir_ty::Set) -> TypeId {
     let library_id = hir_id.0;
     let elem_ty = db.lower_hir_type(ty.elem_ty.in_library(library_id));
     let def_id = DefId(library_id, ty.def_id);
-    db.mk_set(ty::WithDef::Anonymous(def_id), elem_ty)
+    make::set(db, ty::WithDef::Anonymous(def_id), elem_ty)
 }
 
 fn pointer_ty(
@@ -225,7 +220,7 @@ fn pointer_ty(
         hir_ty::Checked::Checked => Checked::Checked,
         hir_ty::Checked::Unchecked => Checked::Unchecked,
     };
-    db.mk_pointer(checked, target_ty)
+    make::pointer(db, checked, target_ty)
 }
 
 fn subprogram_ty(
@@ -262,7 +257,7 @@ fn subprogram_ty(
     //
     // Should be incorrect binding kind
 
-    db.mk_subprogram(ty.kind, params, result)
+    make::subprogram(db, ty.kind, params, result)
 }
 
 fn subprogram_param_list(
@@ -298,7 +293,7 @@ pub(crate) fn ty_from_item(db: &dyn TypeDatabase, item_id: InLibrary<item::ItemI
         item::ItemKind::Type(item) => type_def_ty(db, item_id, item),
         item::ItemKind::Binding(item) => bind_def_ty(db, item_id, item),
         item::ItemKind::Subprogram(item) => subprogram_item_ty(db, item_id, item),
-        item::ItemKind::Module(_) => db.mk_error(), // Modules can't be used as types directly
+        item::ItemKind::Module(_) => make::error(db), // Modules can't be used as types directly
         item::ItemKind::Import(item) => import_item_ty(db, item_id, item),
     }
 }
@@ -314,24 +309,24 @@ fn constvar_ty(
     let item_ty = match (item.type_spec, item.init_expr) {
         (Some(ty_spec), _) => {
             // From type_spec
-            db.lower_hir_type(ty_spec.in_library(item_id.0)).in_db(db)
+            db.lower_hir_type(ty_spec.in_library(item_id.0))
         }
         (_, Some(body)) => {
             // From inferred init expr
-            db.type_of((item_id.0, body).into()).in_db(db)
+            db.type_of((item_id.0, body).into())
         }
         (None, None) => {
             // No place to infer from, make an error
-            db.mk_error().in_db(db)
+            make::error(db)
         }
     };
 
     // Make the type concrete
-    if *item_ty.kind() == TypeKind::Integer {
+    if *item_ty.kind(db) == TypeKind::Integer {
         // Integer decomposes into a normal `int`
-        db.mk_int(IntSize::Int)
+        make::int(db, IntSize::Int)
     } else {
-        require_resolved_type(db, item_ty.id())
+        require_resolved_type(db, item_ty)
     }
 }
 
@@ -356,7 +351,7 @@ fn type_def_ty(
     // Wrap type inside of an `Opaque`, if required
     let maybe_opaque = |hidden_ty| {
         if is_opaque {
-            db.mk_opaque(def_id, hidden_ty)
+            make::opaque(db, def_id, hidden_ty)
         } else {
             hidden_ty
         }
@@ -367,29 +362,28 @@ fn type_def_ty(
             // Peel any aliases that are encountered
             let base_ty = db
                 .lower_hir_type((*to_ty).in_library(item_id.0))
-                .in_db(db)
-                .peel_aliases();
+                .peel_aliases(db);
 
             // Specialize based on the kind
             // TODO: Specialize type when it's a record or union
-            match base_ty.kind() {
+            match base_ty.kind(db) {
                 // Forward base types get propagated as errors, since we require a resolved definition
-                ty::TypeKind::Forward => db.mk_error(),
+                ty::TypeKind::Forward => make::error(db),
                 // Make anonymous types not anonymous anymore
                 // They don't need to be wrapped in an alias, since that would result in
                 // "`<name>` (alias of `<name>`)" during display
                 ty::TypeKind::Set(ty::WithDef::Anonymous(def_id), elem_ty) => {
-                    maybe_opaque(db.mk_set(ty::WithDef::Named(*def_id), *elem_ty))
+                    maybe_opaque(make::set(db, ty::WithDef::Named(*def_id), *elem_ty))
                 }
-                ty::TypeKind::Enum(ty::WithDef::Anonymous(def_id), variants) => {
-                    maybe_opaque(db.mk_enum(ty::WithDef::Named(*def_id), variants.clone()))
-                }
-                _ if is_opaque => db.mk_opaque(def_id, base_ty.id()),
-                _ => db.mk_alias(def_id, base_ty.id()),
+                ty::TypeKind::Enum(ty::WithDef::Anonymous(def_id), variants) => maybe_opaque(
+                    make::enum_(db, ty::WithDef::Named(*def_id), variants.clone()),
+                ),
+                _ if is_opaque => make::opaque(db, def_id, base_ty),
+                _ => make::alias(db, def_id, base_ty),
             }
         }
-        item::DefinedType::Forward(_) if is_opaque => db.mk_opaque(def_id, db.mk_forward()),
-        item::DefinedType::Forward(_) => db.mk_alias(def_id, db.mk_forward()),
+        item::DefinedType::Forward(_) if is_opaque => make::opaque(db, def_id, make::forward(db)),
+        item::DefinedType::Forward(_) => make::alias(db, def_id, make::forward(db)),
     }
 }
 
@@ -416,7 +410,7 @@ fn subprogram_item_ty(
     );
     let result_ty = require_resolved_hir_type(db, item.result.ty.in_library(library_id));
 
-    db.mk_subprogram(item.kind, param_ty, result_ty)
+    make::subprogram(db, item.kind, param_ty, result_ty)
 }
 
 fn import_item_ty(
@@ -427,7 +421,7 @@ fn import_item_ty(
     // Defer to the canonical def's ty
     match db.resolve_def(DefId(item_id.0, item.def_id)) {
         Ok(def_id) => db.type_of(def_id.into()),
-        Err(_) => db.mk_error(),
+        Err(_) => make::error(db),
     }
 }
 
@@ -463,11 +457,11 @@ pub(crate) fn ty_from_ty_field(
     type_id: InLibrary<hir_ty::TypeId>,
     _field_id: hir_ty::FieldId,
 ) -> TypeId {
-    let ty_ref = db.lower_hir_type(type_id).in_db(db);
+    let ty_ref = db.lower_hir_type(type_id);
 
-    match ty_ref.kind() {
+    match ty_ref.kind(db) {
         // Enum fields are the same type as the original enum
-        TypeKind::Enum(..) => ty_ref.id(),
+        TypeKind::Enum(..) => ty_ref,
         _ => unreachable!("missing field"),
     }
 }
@@ -505,11 +499,11 @@ fn for_counter_ty(
                 // - expr that may or may not be iterable
                 // We don't support for-each loops yet
                 // FIXME(new-features): Support for-each loop
-                db.mk_error()
+                make::error(db)
             } else {
                 // - maybe alias
                 let Some( binding_def )  = db.binding_def(bounds_expr.into()) else {
-                    return db.mk_error();
+                    return make::error(db, );
                 };
 
                 // Must be a type alias
@@ -517,35 +511,35 @@ fn for_counter_ty(
                     .symbol_kind(binding_def)
                     .is_missing_or(SymbolKind::is_type)
                 {
-                    return db.mk_error();
+                    return make::error(db);
                 }
 
                 let bounds_ty = db.type_of(binding_def.into());
 
                 // Just infer as a peeled opaque
                 // We're expecting constrained ty's to be here, so it makes sense for it to carry through
-                bounds_ty.in_db(db).peel_opaque(in_module).id()
+                bounds_ty.peel_opaque(db, in_module)
             }
         }
         stmt::ForBounds::Full(start, end) => {
             // Always infer from the start type
             // We can usually ignore the end type, except if start is not a concrete type
-            let start_ty = db.type_of((library_id, stmt_id.0, start).into()).in_db(db);
-            let end_ty = db.type_of((library_id, stmt_id.0, end).into()).in_db(db);
+            let start_ty = db.type_of((library_id, stmt_id.0, start).into());
+            let end_ty = db.type_of((library_id, stmt_id.0, end).into());
 
             // Pick whichever is the more concrete type
-            let counter_tyref = match (start_ty.kind(), end_ty.kind()) {
+            let counter_tyref = match (start_ty.kind(db), end_ty.kind(db)) {
                 (TypeKind::Error, _) => end_ty,
                 (TypeKind::Integer, rhs) if rhs.is_number() => end_ty,
                 _ => start_ty,
             };
 
             // Decompose into a concrete type
-            if counter_tyref.kind() == &TypeKind::Integer {
+            if counter_tyref.kind(db) == &TypeKind::Integer {
                 // Integer decomposes into a normal `int`
-                db.mk_int(IntSize::Int)
+                make::int(db, IntSize::Int)
             } else {
-                counter_tyref.id()
+                counter_tyref
             }
         }
     }
@@ -563,14 +557,14 @@ pub(crate) fn ty_from_expr(
     match &body.1.expr(expr_id).kind {
         expr::ExprKind::Missing => {
             // Missing, treat as error
-            db.mk_error()
+            make::error(db)
         }
         expr::ExprKind::Literal(expr) => literal_ty(db, expr),
-        expr::ExprKind::Init(_) => db.mk_error(), // always inferred from
+        expr::ExprKind::Init(_) => make::error(db), // always inferred from
         expr::ExprKind::Binary(expr) => binary_ty(db, body, expr, body_expr),
         expr::ExprKind::Unary(expr) => unary_ty(db, body, expr, body_expr),
-        expr::ExprKind::All => db.mk_error(), // Special case calling
-        expr::ExprKind::Range(_) => db.mk_error(), // FIXME: Support range expressions
+        expr::ExprKind::All => make::error(db), // Special case calling
+        expr::ExprKind::Range(_) => make::error(db), // FIXME: Support range expressions
         expr::ExprKind::Name(expr) => name_ty(db, expr_in_lib, expr),
         expr::ExprKind::Field(expr) => field_ty(db, expr_in_lib, expr),
         expr::ExprKind::Deref(expr) => deref_ty(db, expr_in_lib, expr),
@@ -580,17 +574,17 @@ pub(crate) fn ty_from_expr(
 
 fn literal_ty(db: &dyn TypeDatabase, expr: &expr::Literal) -> TypeId {
     match expr {
-        expr::Literal::Integer(_) => db.mk_integer(),
-        expr::Literal::Real(_) => db.mk_real(RealSize::Real),
-        expr::Literal::Char(_) => db.mk_char(),
+        expr::Literal::Integer(_) => make::integer(db),
+        expr::Literal::Real(_) => make::real(db, RealSize::Real),
+        expr::Literal::Char(_) => make::char(db),
         expr::Literal::CharSeq(s) => {
             let size = s.len().try_into().unwrap_or(u64::MAX);
             let size = ConstInt::from_unsigned(size, false);
             let seq_size = ty::SeqSize::Fixed(size.into());
-            db.mk_char_n(seq_size)
+            make::char_n(db, seq_size)
         }
-        expr::Literal::String(_) => db.mk_string(),
-        expr::Literal::Boolean(_) => db.mk_boolean(),
+        expr::Literal::String(_) => make::string(db),
+        expr::Literal::Boolean(_) => make::boolean(db),
     }
 }
 
@@ -635,19 +629,19 @@ fn name_ty(
             let library = db.library(body_expr.library());
             let def_id = match library.binding_resolve(*binding) {
                 symbol::Resolve::Def(local_def) => DefId(body_expr.library(), local_def),
-                symbol::Resolve::Err => return db.mk_error(),
+                symbol::Resolve::Err => return make::error(db),
             };
             let in_module = db.inside_module(body_expr.into());
 
             // Defer to result type if it's a paren-less function
-            let ty = db.type_of(def_id.into()).in_db(db);
-            let ty = ty.peel_opaque(in_module);
+            let ty = db.type_of(def_id.into());
+            let ty = ty.peel_opaque(db, in_module);
 
-            match ty.kind() {
+            match ty.kind(db) {
                 TypeKind::Subprogram(symbol::SubprogramKind::Function, None, result) => {
-                    result.in_db(db).peel_opaque(in_module).id()
+                    result.peel_opaque(db, in_module)
                 }
-                _ => ty.id(),
+                _ => ty,
             }
         }
         expr::Name::Self_ => {
@@ -668,10 +662,10 @@ fn field_ty(
 
                 // Expected behaviour to leak the hidden type (same as name_ty)
                 let in_module = db.inside_module(body_expr.into());
-                ty_id.in_db(db).peel_opaque(in_module).id()
+                ty_id.peel_opaque(db, in_module)
             })
         })
-        .unwrap_or_else(|| db.mk_error())
+        .unwrap_or_else(|| make::error(db))
 }
 
 fn deref_ty(
@@ -680,14 +674,14 @@ fn deref_ty(
     expr: &expr::Deref,
 ) -> TypeId {
     let ty = db.type_of((body_expr.map(|id| id.with_expr(expr.rhs))).into());
-    let ty_ref = ty.in_db(db).to_base_type();
+    let ty_ref = ty.to_base_type(db);
 
     // Just needs to be a pointer type, no extra special things
-    if let ty::TypeKind::Pointer(_, to_ty) = ty_ref.kind() {
+    if let ty::TypeKind::Pointer(_, to_ty) = ty_ref.kind(db) {
         let in_module = db.inside_module(body_expr.into());
-        to_ty.in_db(db).peel_opaque(in_module).id()
+        to_ty.peel_opaque(db, in_module)
     } else {
-        db.mk_error()
+        make::error(db)
     }
 }
 
@@ -700,25 +694,25 @@ fn call_expr_ty(
     // Don't need to peel opaques here, since we're guaranteed to do so via NameExpr
     // FIXME: Unify fetching call kind from typeck with here, since we may try to call a paren-less with parens
     let left = ty_from_expr(db, body, body_expr.1.with_expr(expr.lhs));
-    let calling_ty = left.in_db(db).to_base_type();
+    let calling_ty = left.to_base_type(db);
 
-    match calling_ty.kind() {
+    match calling_ty.kind(db) {
         TypeKind::Subprogram(
             symbol::SubprogramKind::Procedure | symbol::SubprogramKind::Function,
             _params,
             result,
         ) => {
             // Is void result? Error! (proc call in expr position)
-            let result = result.in_db(db);
+            let result = result;
 
-            if matches!(result.kind(), TypeKind::Void) {
-                db.mk_error()
+            if matches!(result.kind(db,), TypeKind::Void) {
+                make::error(db)
             } else {
                 let in_module = db.inside_module(body_expr.into());
 
                 // It's okay to always infer as the result type, since that gives
                 // better diagnostics
-                result.peel_opaque(in_module).id()
+                result.peel_opaque(db, in_module)
             }
         }
         TypeKind::Set(..) => {
@@ -727,7 +721,7 @@ fn call_expr_ty(
             let lhs_expr = (body_expr.0, body_expr.1.with_expr(expr.lhs));
 
             db.binding_def(lhs_expr.into())
-                .map_or_else(|| db.mk_error(), |def_id| db.type_of(def_id.into()))
+                .map_or_else(|| make::error(db), |def_id| db.type_of(def_id.into()))
         }
         TypeKind::Array(.., elem_ty) => {
             // Array indexing
@@ -736,7 +730,7 @@ fn call_expr_ty(
         }
         _ => {
             // Not a callable subprogram
-            db.mk_error()
+            make::error(db)
         }
     }
 }
@@ -761,14 +755,14 @@ pub(super) fn ty_from_body_owner(
                 }
                 item::ItemKind::Module(_) => {
                     // Modules are always procedure-like bodies
-                    db.mk_void()
+                    make::void(db)
                 }
-                _ => db.mk_error(),
+                _ => make::error(db),
             }
         }
         // Doesn't make sense to somehow infer it from a type or expr body owner
-        body::BodyOwner::Type(_) => db.mk_error(),
-        body::BodyOwner::Expr(_) => db.mk_error(),
+        body::BodyOwner::Type(_) => make::error(db),
+        body::BodyOwner::Expr(_) => make::error(db),
     }
 }
 
@@ -779,8 +773,8 @@ fn require_resolved_hir_type(db: &dyn TypeDatabase, ty: InLibrary<hir_ty::TypeId
 /// Requires that a type is resolved at this point, otherwise produces
 /// a type error
 fn require_resolved_type(db: &dyn TypeDatabase, ty: TypeId) -> TypeId {
-    if ty.in_db(db).peel_aliases().kind().is_forward() {
-        db.mk_error()
+    if ty.peel_aliases(db).kind(db).is_forward() {
+        make::error(db)
     } else {
         ty
     }

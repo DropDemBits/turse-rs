@@ -7,13 +7,11 @@ pub(crate) fn analyze_libraries(db: &dyn crate::db::HirAnalysis) -> CompileResul
     let mut messages = MessageBundle::default();
 
     // FIXME: Report cyclic dep errors
-    let source_graph = toc_source_graph::source_graph(db.upcast_to_source_graph_db())
-        .as_ref()
-        .unwrap();
-    let res = toc_hir_lowering::lower_source_graph(db.upcast_to_lowering_db());
+    let source_graph = toc_source_graph::source_graph(db.up()).as_ref().unwrap();
+    let res = toc_hir_lowering::lower_source_graph(db.up());
     res.bundle_messages(&mut messages);
 
-    for &library in source_graph.all_libraries(db.upcast_to_source_graph_db()) {
+    for &library in source_graph.all_libraries(db.up()) {
         db.typecheck_library(library).bundle_messages(&mut messages);
         db.lint_library(library).bundle_messages(&mut messages);
     }

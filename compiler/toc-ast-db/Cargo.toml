@@ -18,3 +18,4 @@ toc-paths = { workspace = true }
 toc-parser = { workspace = true }
 toc-validate = { workspace = true }
 toc-reporting = { workspace = true }
+upcast = { workspace = true }

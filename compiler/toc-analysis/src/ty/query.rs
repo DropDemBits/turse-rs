@@ -16,10 +16,7 @@ use toc_hir::{
 };
 
 use crate::db::{self, BindingSource, TypeDatabase};
-use crate::ty::{EndBound, WithDef};
-use crate::{const_eval, db::TypeInternExt};
-
-use super::{lower, Checked, IntSize, NatSize, Param, RealSize, SeqSize, TypeId, TypeKind};
+use crate::ty::{lower, make, TypeId, TypeKind};
 
 pub(crate) fn lower_hir_type(db: &dyn db::TypeDatabase, type_id: InLibrary<HirTypeId>) -> TypeId {
     lower::ty_from_hir_ty(db, type_id)
@@ -60,7 +57,7 @@ fn ty_of_def(db: &dyn db::TypeDatabase, def_id: DefId) -> TypeId {
         }
     } else {
         // No actual definition owner
-        db.mk_error()
+        make::error(db)
     }
 }
 
@@ -183,9 +180,9 @@ pub(super) fn value_produced(
         body_expr: BodyExpr,
     ) -> Result<db::ValueKind, db::NotValue> {
         let expr_ty = db.type_of((lib_id, body_expr).into());
-        let expr_ty_ref = expr_ty.in_db(db).to_base_type();
+        let expr_ty_ref = expr_ty.to_base_type(db);
 
-        match expr_ty_ref.kind() {
+        match expr_ty_ref.kind(db) {
             kind if kind.is_scalar() => Ok(ValueKind::Scalar),
             kind if !kind.is_error() => Ok(ValueKind::Reference(symbol::Mutability::Const)),
             _ => Err(NotValue::Missing),
@@ -358,10 +355,10 @@ pub(super) fn value_produced(
                             (db.type_of(lhs_expr.into()), false)
                         };
                     let in_module = db.inside_module(lhs_expr.into());
-                    let lhs_tyref = lhs_ty.in_db(db).peel_opaque(in_module).to_base_type();
+                    let lhs_tyref = lhs_ty.peel_opaque(db, in_module).to_base_type(db);
 
                     // Bail on error types
-                    if lhs_tyref.kind().is_error() {
+                    if lhs_tyref.kind(db).is_error() {
                         return Err(NotValue::Missing);
                     }
 
@@ -373,7 +370,7 @@ pub(super) fn value_produced(
 
                     // Check if lhs is callable
                     let has_parens = true;
-                    let call_kind = match lhs_tyref.kind() {
+                    let call_kind = match lhs_tyref.kind(db) {
                         TypeKind::Subprogram(toc_hir::symbol::SubprogramKind::Process, ..) => None,
                         // Parens are only potentially optional in subprograms
                         TypeKind::Subprogram(..) if !from_ty_binding => {
@@ -463,10 +460,10 @@ pub(crate) fn fields_of(
         }
         db::FieldSource::TypeAssociated(ty_id, in_module) => {
             // Fields associated with the type's definition
-            let ty_ref = ty_id.in_db(db).peel_opaque(in_module).peel_aliases();
+            let ty_ref = ty_id.peel_opaque(db, in_module).peel_aliases(db);
 
             // Only applicable for enums
-            let TypeKind::Enum(with_def, variants) = ty_ref.kind() else {
+            let TypeKind::Enum(with_def, variants) = ty_ref.kind(db, ) else {
                 return None;
             };
             let library = db.library(with_def.def_id().library());
@@ -489,9 +486,9 @@ pub(crate) fn fields_of(
         }
         db::FieldSource::TypeInstance(ty_id, in_module) => {
             // Fields on an instance of a type
-            let ty_ref = ty_id.in_db(db).peel_opaque(in_module).peel_aliases();
+            let ty_ref = ty_id.peel_opaque(db, in_module).peel_aliases(db);
 
-            match ty_ref.kind() {
+            match ty_ref.kind(db) {
                 // While an enum does have fields, it's attached to the type
                 // binding itself, not to anything with an enum type
                 TypeKind::Enum(..) => None,
@@ -601,112 +598,5 @@ pub(crate) fn exporting_def(db: &dyn TypeDatabase, bind_src: db::BindingSource) 
             }
         }
         _ => None,
-    }
-}
-
-impl<T> db::TypeInternExt for T
-where
-    T: ?Sized + db::TypeDatabase,
-{
-    fn mk_error(&self) -> TypeId {
-        TypeId::new(self.upcast_to_type_db(), TypeKind::Error)
-    }
-
-    fn mk_boolean(&self) -> TypeId {
-        TypeId::new(self.upcast_to_type_db(), TypeKind::Boolean)
-    }
-
-    fn mk_int(&self, kind: IntSize) -> TypeId {
-        TypeId::new(self.upcast_to_type_db(), TypeKind::Int(kind))
-    }
-
-    fn mk_nat(&self, kind: NatSize) -> TypeId {
-        TypeId::new(self.upcast_to_type_db(), TypeKind::Nat(kind))
-    }
-
-    fn mk_real(&self, kind: RealSize) -> TypeId {
-        TypeId::new(self.upcast_to_type_db(), TypeKind::Real(kind))
-    }
-
-    fn mk_integer(&self) -> TypeId {
-        TypeId::new(self.upcast_to_type_db(), TypeKind::Integer)
-    }
-
-    fn mk_char(&self) -> TypeId {
-        TypeId::new(self.upcast_to_type_db(), TypeKind::Char)
-    }
-
-    fn mk_string(&self) -> TypeId {
-        TypeId::new(self.upcast_to_type_db(), TypeKind::String)
-    }
-
-    fn mk_char_n(&self, seq_size: SeqSize) -> TypeId {
-        TypeId::new(self.upcast_to_type_db(), TypeKind::CharN(seq_size))
-    }
-
-    fn mk_string_n(&self, seq_size: SeqSize) -> TypeId {
-        TypeId::new(self.upcast_to_type_db(), TypeKind::StringN(seq_size))
-    }
-
-    fn mk_alias(&self, def_id: DefId, base_ty: TypeId) -> TypeId {
-        TypeId::new(self.upcast_to_type_db(), TypeKind::Alias(def_id, base_ty))
-    }
-
-    fn mk_opaque(&self, def_id: DefId, base_ty: TypeId) -> TypeId {
-        TypeId::new(self.upcast_to_type_db(), TypeKind::Opaque(def_id, base_ty))
-    }
-
-    fn mk_forward(&self) -> TypeId {
-        TypeId::new(self.upcast_to_type_db(), TypeKind::Forward)
-    }
-
-    fn mk_constrained(&self, base_ty: TypeId, start: const_eval::Const, end: EndBound) -> TypeId {
-        TypeId::new(
-            self.upcast_to_type_db(),
-            TypeKind::Constrained(base_ty, start, end),
-        )
-    }
-
-    fn mk_array(
-        &self,
-        sizing: super::ArraySizing,
-        ranges: Vec<super::TypeId>,
-        elem_ty: super::TypeId,
-    ) -> super::TypeId {
-        TypeId::new(
-            self.upcast_to_type_db(),
-            TypeKind::Array(sizing, ranges, elem_ty),
-        )
-    }
-
-    fn mk_enum(&self, with_def: WithDef, variants: Vec<DefId>) -> TypeId {
-        TypeId::new(self.upcast_to_type_db(), TypeKind::Enum(with_def, variants))
-    }
-
-    fn mk_set(&self, with_def: WithDef, elem_ty: TypeId) -> TypeId {
-        TypeId::new(self.upcast_to_type_db(), TypeKind::Set(with_def, elem_ty))
-    }
-
-    fn mk_pointer(&self, checked: Checked, target_ty: TypeId) -> TypeId {
-        TypeId::new(
-            self.upcast_to_type_db(),
-            TypeKind::Pointer(checked, target_ty),
-        )
-    }
-
-    fn mk_subprogram(
-        &self,
-        kind: symbol::SubprogramKind,
-        params: Option<Vec<Param>>,
-        result: TypeId,
-    ) -> TypeId {
-        TypeId::new(
-            self.upcast_to_type_db(),
-            TypeKind::Subprogram(kind, params, result),
-        )
-    }
-
-    fn mk_void(&self) -> TypeId {
-        TypeId::new(self.upcast_to_type_db(), TypeKind::Void)
     }
 }

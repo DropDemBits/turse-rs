@@ -169,10 +169,14 @@ pub(crate) fn evaluate_const(
                         let right_ty = db.type_of((library_id, body).into());
 
                         // FIXME: add tests with opaque tys once module exports are in const eval
-                        let left_ty = left_ty.in_db(db).peel_opaque(in_module).peel_aliases();
-                        let right_ty = right_ty.in_db(db).peel_opaque(in_module).peel_aliases();
+                        let left_ty = left_ty
+                            .peel_opaque(db.up(), in_module)
+                            .peel_aliases(db.up());
+                        let right_ty = right_ty
+                            .peel_opaque(db.up(), in_module)
+                            .peel_aliases(db.up());
 
-                        if !ty::rules::is_assignable(db, left_ty.id(), right_ty.id()) {
+                        if !ty::rules::is_assignable(db, left_ty, right_ty) {
                             // Wrong types
                             let span = library.body(body).span.lookup_in(&library);
                             return Err(ConstError::new(ErrorKind::WrongResultType, span));
@@ -180,7 +184,7 @@ pub(crate) fn evaluate_const(
 
                         // If bounds of `left` is known, check if `right` is in the range
                         if let Some((min, max)) =
-                            Option::zip(left_ty.min_int_of().ok(), left_ty.max_int_of().ok())
+                            Option::zip(left_ty.min_int_of(db).ok(), left_ty.max_int_of(db).ok())
                         {
                             // Since right is assignable into left, we can treat right as ConstInt
                             let as_ordinal = value.ordinal().ok_or_else(|| {
@@ -197,7 +201,7 @@ pub(crate) fn evaluate_const(
                         }
 
                         // Cast into the canonical value
-                        let value = match left_ty.to_base_type().kind() {
+                        let value = match left_ty.to_base_type(db.up()).kind(db.up()) {
                             ty::TypeKind::Char => value.cast_into_char().map_or_else(
                                 |err| {
                                     // Definitely the wrong type
@@ -229,11 +233,10 @@ pub(crate) fn evaluate_const(
                 let lhs_expr = (library_id, body_id, expr.lhs);
                 let lhs_tyref = db
                     .type_of(lhs_expr.into())
-                    .in_db(db)
-                    .peel_opaque(in_module)
-                    .peel_aliases();
+                    .peel_opaque(db.up(), in_module)
+                    .peel_aliases(db.up());
 
-                match lhs_tyref.kind() {
+                match lhs_tyref.kind(db.up()) {
                     ty::TypeKind::Enum(_, variants) => {
                         // Enum variants
                         let Some(library_id) = variants.first().map(|def| def.library()) else {
@@ -259,7 +262,7 @@ pub(crate) fn evaluate_const(
                                 )
                             })?;
 
-                        operand_stack.push(ConstValue::EnumVariant(lhs_tyref.id(), ordinal));
+                        operand_stack.push(ConstValue::EnumVariant(lhs_tyref, ordinal));
                     }
                     _ => {
                         // Defer to normal field lookup

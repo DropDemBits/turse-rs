@@ -5,6 +5,7 @@ use std::{borrow::Cow, path::Path};
 use camino::Utf8PathBuf;
 use toc_paths::RawPath;
 use toc_vfs::{ErrorKind, FixtureFiles, LoadError, LoadResult, LoadStatus};
+use upcast::Upcast;
 
 use crate::VfsBridge;
 
@@ -24,14 +25,11 @@ pub trait VfsDbExt {
 
 impl<DB> VfsDbExt for DB
 where
-    DB: salsa::DbWithJar<crate::Jar> + toc_paths::Db + VfsBridge,
+    DB: salsa::DbWithJar<crate::Jar> + toc_paths::Db + Upcast<dyn toc_paths::Db> + VfsBridge,
 {
     fn insert_file<P: AsRef<Path>>(&mut self, path: P, contents: &str) -> RawPath {
         // Intern the path, then add it to the db
-        let path = RawPath::new(
-            self.upcast_to_path_db(),
-            path.as_ref().to_str().unwrap().into(),
-        );
+        let path = RawPath::new(self, path.as_ref().to_str().unwrap().into());
 
         let source = crate::source_of(self, path);
         source.set_contents(self).to(contents.into());

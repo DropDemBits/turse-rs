@@ -11,3 +11,4 @@ edition.workspace = true
 [dependencies]
 salsa = { workspace = true }
 camino = { workspace = true }
+upcast = { workspace = true }

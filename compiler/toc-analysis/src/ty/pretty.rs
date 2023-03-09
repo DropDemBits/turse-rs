@@ -13,19 +13,13 @@ use crate::{
 
 use super::{ArraySizing, EndBound, NotFixedLen, PassBy, TypeId, WithDef};
 
-impl<'db, DB> fmt::Debug for TyRef<'db, DB>
-where
-    DB: db::TypeDatabase + ?Sized + 'db,
-{
+impl<'db> fmt::Debug for TyRef<'db, dyn db::TypeDatabase + 'db> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         emit_debug_ty(self.db, f, self.id)
     }
 }
 
-impl<'db, DB> fmt::Display for TyRef<'db, DB>
-where
-    DB: db::ConstEval + ?Sized + 'db,
-{
+impl<'db> fmt::Display for TyRef<'db, dyn db::ConstEval + 'db> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         emit_display_ty(self.db, f, self.id, PokeAliases::No)
     }
@@ -81,15 +75,16 @@ impl TypeKind {
     }
 }
 
-fn emit_debug_ty<'db, DB>(db: &'db DB, out: &mut dyn fmt::Write, type_id: TypeId) -> fmt::Result
-where
-    DB: db::TypeDatabase + ?Sized + 'db,
-{
-    let ty = type_id.in_db(db);
-    out.write_str(ty.kind().debug_prefix())?;
+fn emit_debug_ty(
+    db: &dyn db::TypeDatabase,
+    out: &mut dyn fmt::Write,
+    type_id: TypeId,
+) -> fmt::Result {
+    let ty = type_id;
+    out.write_str(ty.kind(db).debug_prefix())?;
 
     // Extra bits
-    match ty.kind() {
+    match ty.kind(db) {
         TypeKind::StringN(seq) | TypeKind::CharN(seq) => out.write_fmt(format_args!(" {seq:?}"))?,
         TypeKind::Alias(def_id, to) => {
             out.write_fmt(format_args!("[{def_id:?}] of "))?;
@@ -100,7 +95,7 @@ where
             emit_debug_ty(db, out, *to)?
         }
         TypeKind::Constrained(base_ty, start, end) => {
-            let base_ty = base_ty.in_db(db);
+            let base_ty = base_ty.debug(db);
             out.write_fmt(format_args!(" `{base_ty:?}` ({start:?} .. {end:?})"))?;
         }
         TypeKind::Array(_is_flexible, ranges, elem) => {
@@ -172,32 +167,29 @@ where
     Ok(())
 }
 
-fn emit_display_ty<'db, DB>(
-    db: &'db DB,
+fn emit_display_ty(
+    db: &dyn db::ConstEval,
     out: &mut dyn fmt::Write,
     type_id: TypeId,
     poke_aliases: PokeAliases,
-) -> fmt::Result
-where
-    DB: db::ConstEval + ?Sized + 'db,
-{
+) -> fmt::Result {
     let ty = {
-        let ty = type_id.in_db(db);
+        let ty = type_id;
 
-        match (poke_aliases, ty.kind()) {
-            (PokeAliases::Yes, TypeKind::Alias(_, ty)) => ty.in_db(db),
+        match (poke_aliases, ty.kind(db.up())) {
+            (PokeAliases::Yes, TypeKind::Alias(_, ty)) => *ty,
             _ => ty,
         }
     };
 
-    out.write_str(ty.kind().prefix())?;
+    out.write_str(ty.kind(db.up()).prefix())?;
 
     // Extra bits
     // FIXME: Change set display into `{Alias}` (`set of int`)
     // FIXME: Move `'s into here so that we can format like this: "`{Alias}` (alias of {type})"
     // FIXME: Consider how to deal with printing const errors
     // -> Consider not printing the mismatched error at all?
-    match ty.kind() {
+    match ty.kind(db.up()) {
         TypeKind::StringN(seq) | TypeKind::CharN(seq) => {
             out.write_char('(')?;
             match seq.fixed_len(db, Span::default()) {
@@ -227,7 +219,7 @@ where
             let eval_params = crate::const_eval::EvalParams::default();
 
             match db.evaluate_const(start.clone(), eval_params) {
-                Ok(v) => write!(out, "{v}", v = v.display(db))?,
+                Ok(v) => write!(out, "{v}", v = v.display(db.up()))?,
                 Err(err) if err.is_not_compile_time() => out.write_str("{dynamic}")?,
                 Err(_) => out.write_str("{unknown}")?,
             };
@@ -238,7 +230,7 @@ where
             // checking than pretty printing
             match end {
                 EndBound::Expr(end, _) => match db.evaluate_const(end.clone(), eval_params) {
-                    Ok(v) => write!(out, "{v}", v = v.display(db))?,
+                    Ok(v) => write!(out, "{v}", v = v.display(db.up()))?,
                     Err(err) if err.is_not_compile_time() => out.write_str("{dynamic}")?,
                     Err(_) => out.write_str("{unknown}")?,
                 },

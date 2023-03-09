@@ -23,6 +23,7 @@ salsa = { git = "https://github.com/salsa-rs/salsa/", branch = "master", package
 tracing = "0.1.37"
 tracing-subscriber = "0.3.16"
 unindent = "0.2"
+upcast = "0.1.0"
 
 # Compiler crates
 toc-analysis = { path = "compiler/toc-analysis" }

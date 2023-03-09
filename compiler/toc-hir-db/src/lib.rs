@@ -7,6 +7,7 @@
 
 use std::sync::Arc;
 
+use crate::db::InsideModule;
 use toc_hir::{
     body::{self, BodyTable},
     item::{self, ModuleTree},
@@ -15,8 +16,7 @@ use toc_hir::{
     ty::{self, TypeOwners},
 };
 use toc_source_graph::LibraryId;
-
-use crate::db::InsideModule;
+use upcast::{Upcast, UpcastFrom};
 
 pub mod db;
 mod query;
@@ -35,9 +35,9 @@ pub struct Jar(
 // These are still routed through the db trait instead of being called directly
 // since that would require changing a whole lot of places
 /// HIR tree related queries
-pub trait Db: salsa::DbWithJar<Jar> + toc_hir_lowering::Db {
-    fn upcast_to_hir_db(&self) -> &dyn Db;
-
+pub trait Db:
+    salsa::DbWithJar<Jar> + toc_hir_lowering::Db + Upcast<dyn toc_hir_lowering::Db>
+{
     /// Get the library associated with the given id
     fn library(&self, library: LibraryId) -> LoweredLibrary;
 
@@ -104,12 +104,8 @@ pub trait Db: salsa::DbWithJar<Jar> + toc_hir_lowering::Db {
 
 impl<DB> Db for DB
 where
-    DB: salsa::DbWithJar<Jar> + toc_hir_lowering::Db,
+    DB: salsa::DbWithJar<Jar> + toc_hir_lowering::Db + Upcast<dyn toc_hir_lowering::Db>,
 {
-    fn upcast_to_hir_db(&self) -> &dyn Db {
-        self
-    }
-
     fn library(&self, library: LibraryId) -> LoweredLibrary {
         query::hir_library(self, library.0)
     }
@@ -176,5 +172,14 @@ where
 
     fn symbol_kind(&self, def_id: DefId) -> Option<SymbolKind> {
         query::symbol_kind(self, def_id)
+    }
+}
+
+impl<'db, DB: Db + 'db> UpcastFrom<DB> for dyn Db + 'db {
+    fn up_from(value: &DB) -> &Self {
+        value
+    }
+    fn up_from_mut(value: &mut DB) -> &mut Self {
+        value
     }
 }

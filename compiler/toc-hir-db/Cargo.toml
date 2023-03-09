@@ -18,3 +18,4 @@ toc-span = { workspace = true }
 toc-vfs = { workspace = true }
 
 salsa = { workspace = true }
+upcast = { workspace = true }

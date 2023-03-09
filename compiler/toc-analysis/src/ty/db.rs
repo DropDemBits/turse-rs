@@ -10,19 +10,17 @@ use toc_hir::{
     symbol::{self, DefId},
     ty::TypeId as HirTypeId,
 };
+use upcast::{Upcast, UpcastFrom};
 
-use crate::{
-    const_eval,
-    ty::{self, query},
-};
+use crate::ty::{self, query};
 
 #[salsa::jar(db = TypeDatabase)]
 pub struct TypeJar(ty::TypeId);
 
 /// Type database
-pub trait TypeDatabase: salsa::DbWithJar<TypeJar> + toc_hir_db::Db {
-    fn upcast_to_type_db(&self) -> &dyn TypeDatabase;
-
+pub trait TypeDatabase:
+    salsa::DbWithJar<TypeJar> + toc_hir_db::Db + Upcast<dyn toc_hir_db::Db>
+{
     /// Converts the HIR type into an analysis form
     fn lower_hir_type(&self, type_id: InLibrary<HirTypeId>) -> ty::TypeId;
 
@@ -50,12 +48,8 @@ pub trait TypeDatabase: salsa::DbWithJar<TypeJar> + toc_hir_db::Db {
 
 impl<DB> TypeDatabase for DB
 where
-    DB: salsa::DbWithJar<TypeJar> + toc_hir_db::Db,
+    DB: salsa::DbWithJar<TypeJar> + toc_hir_db::Db + Upcast<dyn toc_hir_db::Db>,
 {
-    fn upcast_to_type_db(&self) -> &dyn TypeDatabase {
-        self
-    }
-
     fn lower_hir_type(&self, type_id: InLibrary<HirTypeId>) -> super::TypeId {
         query::lower_hir_type(self, type_id)
     }
@@ -85,44 +79,13 @@ where
     }
 }
 
-/// Helpers for working with the type interner
-pub trait TypeInternExt {
-    // Helper creators
-    fn mk_error(&self) -> ty::TypeId;
-    fn mk_boolean(&self) -> ty::TypeId;
-    fn mk_int(&self, kind: ty::IntSize) -> ty::TypeId;
-    fn mk_nat(&self, kind: ty::NatSize) -> ty::TypeId;
-    fn mk_real(&self, kind: ty::RealSize) -> ty::TypeId;
-    fn mk_integer(&self) -> ty::TypeId;
-    fn mk_char(&self) -> ty::TypeId;
-    fn mk_string(&self) -> ty::TypeId;
-    fn mk_char_n(&self, seq_size: ty::SeqSize) -> ty::TypeId;
-    fn mk_string_n(&self, seq_size: ty::SeqSize) -> ty::TypeId;
-    fn mk_alias(&self, def_id: DefId, base_ty: ty::TypeId) -> ty::TypeId;
-    fn mk_opaque(&self, def_id: DefId, base_ty: ty::TypeId) -> ty::TypeId;
-    fn mk_forward(&self) -> ty::TypeId;
-    fn mk_constrained(
-        &self,
-        base_ty: ty::TypeId,
-        start: const_eval::Const,
-        end: ty::EndBound,
-    ) -> ty::TypeId;
-    fn mk_array(
-        &self,
-        sizing: ty::ArraySizing,
-        ranges: Vec<ty::TypeId>,
-        elem_ty: ty::TypeId,
-    ) -> ty::TypeId;
-    fn mk_enum(&self, with_def: ty::WithDef, variants: Vec<DefId>) -> ty::TypeId;
-    fn mk_set(&self, with_def: ty::WithDef, elem_ty: ty::TypeId) -> ty::TypeId;
-    fn mk_pointer(&self, checked: ty::Checked, target_ty: ty::TypeId) -> ty::TypeId;
-    fn mk_subprogram(
-        &self,
-        kind: symbol::SubprogramKind,
-        params: Option<Vec<ty::Param>>,
-        result: ty::TypeId,
-    ) -> ty::TypeId;
-    fn mk_void(&self) -> ty::TypeId;
+impl<'db, DB: TypeDatabase + 'db> UpcastFrom<DB> for dyn TypeDatabase + 'db {
+    fn up_from(value: &DB) -> &Self {
+        value
+    }
+    fn up_from_mut(value: &mut DB) -> &mut Self {
+        value
+    }
 }
 
 /// Anything which can produce a type
@@ -285,10 +248,7 @@ pub enum ValueSource {
 }
 
 impl ValueSource {
-    pub fn span_of<DB>(self, db: &DB) -> toc_span::Span
-    where
-        DB: ?Sized + toc_hir_db::Db,
-    {
+    pub fn span_of(self, db: &dyn toc_hir_db::Db) -> toc_span::Span {
         match self {
             ValueSource::Def(_def_id) => {
                 unimplemented!("not sure if we need this")

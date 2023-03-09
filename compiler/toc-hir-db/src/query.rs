@@ -19,7 +19,7 @@ use crate::{db::InsideModule, Db};
 /// Get the library associated with the given id
 #[salsa::tracked]
 pub fn hir_library(db: &dyn Db, library: SourceLibrary) -> LoweredLibrary {
-    toc_hir_lowering::lower_library(db.upcast_to_lowering_db(), library)
+    toc_hir_lowering::lower_library(db.up(), library)
         .result()
         .clone()
 }
