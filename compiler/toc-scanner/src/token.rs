@@ -487,11 +487,7 @@ fn nom_number_literal(lexer: &mut logos::Lexer<TokenKind>) -> NumberKind {
     ) -> bool {
         let mut bump_count = 0;
 
-        while chars
-            .peek()
-            .map(|c| ('0'..='9').contains(c))
-            .unwrap_or_default()
-        {
+        while chars.peek().map(char::is_ascii_digit).unwrap_or_default() {
             chars.next();
             bump_count += 1;
         }
