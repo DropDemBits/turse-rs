@@ -105,17 +105,117 @@
 /// is not added to the list of expected tokens.
 macro_rules! match_token {
     (|$parser:ident| match { $($inner:tt)* }) => {
-        __match_token!(@init ($parser) { $($inner)* })
+        { __match_token!(@init ($parser) { $($inner)* }) }
     };
 }
 
 macro_rules! __match_token {
     (@init ($p:ident) { $($other:tt)* }) => {
-        __match_token!(@expand ($p) [false] { $($other)* })
+        __match_token!(@arm ($p) { $($other)* })
     };
-    (@expand ($p:ident) [$_unused:expr] { _ => $otherwise:expr $(,)? }) => {
+
+    // Specialize over groups of
+    // ...seven
+    (@arm ($p:ident) {
+        $tok1:expr => $action1:expr,
+        $tok2:expr => $action2:expr,
+        $tok3:expr => $action3:expr,
+        $tok4:expr => $action4:expr,
+        $tok5:expr => $action5:expr,
+        $tok6:expr => $action6:expr,
+        $tok7:expr => $action7:expr,
+        $($other:tt)*
+    }) => {
+        if __match_token!(@at ($p) $tok1) {
+            $action1
+        } else if __match_token!(@at ($p) $tok2) {
+            $action2
+        } else if __match_token!(@at ($p) $tok3) {
+            $action3
+        } else if __match_token!(@at ($p) $tok4) {
+            $action4
+        } else if __match_token!(@at ($p) $tok5) {
+            $action5
+        } else if __match_token!(@at ($p) $tok6) {
+            $action6
+        } else if __match_token!(@at ($p) $tok7) {
+            $action7
+        } else {
+            __match_token!(@arm ($p) { $($other)* })
+        }
+    };
+
+    // ...five
+    (@arm ($p:ident) {
+        $tok1:expr => $action1:expr,
+        $tok2:expr => $action2:expr,
+        $tok3:expr => $action3:expr,
+        $tok4:expr => $action4:expr,
+        $tok5:expr => $action5:expr,
+        $($other:tt)*
+    }) => {
+        if __match_token!(@at ($p) $tok1) {
+            $action1
+        } else if __match_token!(@at ($p) $tok2) {
+            $action2
+        } else if __match_token!(@at ($p) $tok3) {
+            $action3
+        } else if __match_token!(@at ($p) $tok4) {
+            $action4
+        } else if __match_token!(@at ($p) $tok5) {
+            $action5
+        } else {
+            __match_token!(@arm ($p) { $($other)* })
+        }
+    };
+
+    // ...three
+    (@arm ($p:ident) {
+        $tok1:expr => $action1:expr,
+        $tok2:expr => $action2:expr,
+        $tok3:expr => $action3:expr,
+        $($other:tt)*
+    }) => {
+        if __match_token!(@at ($p) $tok1) {
+            $action1
+        } else if __match_token!(@at ($p) $tok2) {
+            $action2
+        } else if __match_token!(@at ($p) $tok3) {
+            $action3
+        } else {
+            __match_token!(@arm ($p) { $($other)* })
+        }
+    };
+
+    // ...two
+    (@arm ($p:ident) {
+        $tok1:expr => $action1:expr,
+        $tok2:expr => $action2:expr,
+        $($other:tt)*
+    }) => {
+        if __match_token!(@at ($p) $tok1) {
+            $action1
+        } else if __match_token!(@at ($p) $tok2) {
+            $action2
+        } else {
+            __match_token!(@arm ($p) { $($other)* })
+        }
+    };
+
+    // Final tail arm
+    (@arm ($p:ident) { _ => $otherwise:expr $(,)? }) => {
         { $otherwise }
     };
+
+    // Default fall-through arm
+    (@arm ($p:ident) { $($other:tt)* }) => {
+        __match_token!(
+            @expand ($p)
+            [false]
+            { $($other)* }
+        )
+    };
+
     // Carry through tail `=>`
     (@expand ($p:ident) [$current:expr] { $tok:expr => $($other:tt)* }) => {
         __match_token!(
@@ -176,7 +276,7 @@ macro_rules! __match_token {
         if $match_toks {
             $action
         } else {
-            __match_token!(@expand ($p) [false] { $($other)* })
+            __match_token!(@arm ($p) { $($other)* })
         }
 
     };
@@ -184,7 +284,7 @@ macro_rules! __match_token {
         if $match_toks {
             $action
         } else {
-            __match_token!(@expand ($p) [false] { $($other)* })
+            __match_token!(@arm ($p) { $($other)* })
         }
 
     };
