@@ -132,6 +132,30 @@ macro_rules! __match_token {
         )
     };
     // Or, expand token list
+
+    // Match a trailing group of 3
+    (@expand ($p:ident) [$current:expr] { $tok_a:expr, $tok_b:expr, $tok_c:expr => $($other:tt)* }) => {
+        __match_token!(
+            @expand ($p)
+            [$current
+                || __match_token!(@at ($p) $tok_a)
+                || __match_token!(@at ($p) $tok_b)
+                || __match_token!(@at ($p) $tok_c)
+            ]
+            { => $($other)* }
+        )
+    };
+
+    // Match groups of two
+    (@expand ($p:ident) [$current:expr] { $tok_a:expr, $tok_b:expr, $($other:tt)* }) => {
+        __match_token!(
+            @expand ($p)
+            [$current || __match_token!(@at ($p) $tok_a) || __match_token!(@at ($p) $tok_b)]
+            { $($other)* }
+        )
+    };
+
+    // Single arms
     (@expand ($p:ident) [$current:expr] { $tok:expr, $($other:tt)* }) => {
         __match_token!(
             @expand ($p)
@@ -147,26 +171,6 @@ macro_rules! __match_token {
         )
     };
 
-    // Match groups of two
-    (@expand ($p:ident) [$current:expr] { $tok_a:expr, $tok_b:expr, $($other:tt)* }) => {
-        __match_token!(
-            @expand ($p)
-            [$current || __match_token!(@at ($p) $tok_a) || __match_token!(@at ($p) $tok_b)]
-            { $($other)* }
-        )
-    };
-    // Match group of 3, with terminating tail
-    (@expand ($p:ident) [$current:expr] { $tok_a:expr, $tok_b:expr, $tok_c:expr => $($other:tt)* }) => {
-        __match_token!(
-            @expand ($p)
-            [$current
-                || __match_token!(@at ($p) $tok_a)
-                || __match_token!(@at ($p) $tok_b)
-                || __match_token!(@at ($p) $tok_c)
-            ]
-            { => $($other)* }
-        )
-    };
     // Emit action
     (@expand ($p:ident) [$match_toks:expr] { => $action:expr, $($other:tt)* }) => {
         if $match_toks {
