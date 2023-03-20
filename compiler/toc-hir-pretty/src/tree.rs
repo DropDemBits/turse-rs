@@ -454,16 +454,7 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
     // Exprs //
     fn visit_literal(&self, id: BodyExpr, expr: &expr::Literal) {
         let span = self.expr_span(id);
-        // FIXME(rust-1.61.0): Debug escapes for \0 are different than previous version
-        let extra = if let expr::Literal::String(str) = expr {
-            format!(
-                "String(\"{}\")",
-                str.escape_debug().to_string().replace(r"\u{0}", r"\0")
-            )
-        } else {
-            format!("{expr:?}")
-        };
-        self.emit_node("Literal", span, Some(format_args!("{extra}")))
+        self.emit_node("Literal", span, Some(format_args!("{expr:?}")))
     }
     fn visit_init_expr(&self, id: BodyExpr, _expr: &expr::Init) {
         let span = self.expr_span(id);
