@@ -3,8 +3,6 @@
 //!
 //! [paths]: https://github.com/rust-lang/rust-analyzer/blob/27239fbb/crates/paths/src/lib.rs
 
-// FIXME(salsa-2022): consider eliding generated return ref if it's clear that it can be elided (or just add the allow)
-
 mod expansion;
 mod paths;
 
