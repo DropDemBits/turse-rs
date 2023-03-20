@@ -1,8 +1,8 @@
 //! Definition of HIR related queries (including identifier resolution)
 
-// How to generate the Library graph:
+// How to generate the Package graph:
 // We're passed a graph of `FileId`s and asked to lower them
-// `SourceRoots` -> `LibraryGraph`
+// `SourceRoots` -> `PackageGraph`
 // It's just a simple `map` operation
 
 use std::sync::Arc;
@@ -11,11 +11,11 @@ use crate::db::InsideModule;
 use toc_hir::{
     body::{self, BodyTable},
     item::{self, ModuleTree},
-    library::{InLibrary, LoweredLibrary},
+    package::{InPackage, LoweredPackage},
     symbol::{DefId, DefOwner, DefTable, SymbolKind},
     ty::{self, TypeOwners},
 };
-use toc_source_graph::LibraryId;
+use toc_source_graph::PackageId;
 use upcast::{Upcast, UpcastFrom};
 
 pub mod db;
@@ -23,7 +23,7 @@ mod query;
 
 #[salsa::jar(db = Db)]
 pub struct Jar(
-    query::hir_library,
+    query::hir_package,
     query::defs_of,
     query::bodies_of,
     query::body_owners_of,
@@ -38,24 +38,24 @@ pub struct Jar(
 pub trait Db:
     salsa::DbWithJar<Jar> + toc_hir_lowering::Db + Upcast<dyn toc_hir_lowering::Db>
 {
-    /// Get the library associated with the given id
-    fn library(&self, library: LibraryId) -> LoweredLibrary;
+    /// Get the package associated with the given id
+    fn package(&self, package: PackageId) -> LoweredPackage;
 
-    /// Gets all of the definitions in the library,
+    /// Gets all of the definitions in the package,
     /// providing a mapping between definitions and definition owners.
-    fn defs_of(&self, library: LibraryId) -> Arc<DefTable>;
+    fn defs_of(&self, package: PackageId) -> Arc<DefTable>;
 
-    /// Gets all of the body owners in the library,
+    /// Gets all of the body owners in the package,
     /// providing a mapping between bodies and body owners
-    fn body_owners_of(&self, library: LibraryId) -> Arc<BodyTable>;
+    fn body_owners_of(&self, package: PackageId) -> Arc<BodyTable>;
 
-    /// Gets all of the type owners in the library,
+    /// Gets all of the type owners in the package,
     /// providing a link between types and type owners.
-    fn type_owners_of(&self, library: LibraryId) -> Arc<TypeOwners>;
+    fn type_owners_of(&self, package: PackageId) -> Arc<TypeOwners>;
 
-    /// Gets the module tree from the library,
+    /// Gets the module tree from the package,
     /// providing a link from child modules to parent modules.
-    fn module_tree_of(&self, library: LibraryId) -> Arc<ModuleTree>;
+    fn module_tree_of(&self, package: PackageId) -> Arc<ModuleTree>;
 
     /// Gets the corresponding [`DefOwner`] to the given [`DefId`]
     ///
@@ -64,20 +64,20 @@ pub trait Db:
 
     // FIXME: Make body_owner lookup infallible
     /// Gets the corresponding [`BodyOwner`](body::BodyOwner) to the given [`BodyId`](body::BodyId)
-    fn body_owner(&self, body: InLibrary<body::BodyId>) -> Option<body::BodyOwner>;
+    fn body_owner(&self, body: InPackage<body::BodyId>) -> Option<body::BodyOwner>;
 
     /// Gets the corresponding [`TypeOwner`](ty::TypeOwner) for the given [`TypeId`](ty::TypeId)
-    fn type_owner(&self, ty: InLibrary<ty::TypeId>) -> ty::TypeOwner;
+    fn type_owner(&self, ty: InPackage<ty::TypeId>) -> ty::TypeOwner;
 
     /// Gets the parent module of the given module.
-    fn module_parent(&self, module: InLibrary<item::ModuleId>) -> Option<item::ModuleId>;
+    fn module_parent(&self, module: InPackage<item::ModuleId>) -> Option<item::ModuleId>;
 
     /// Tests if `parent` is an ancestor module of `child`.
     /// All modules are their own ancestors.
     fn is_module_ancestor(
         &self,
-        parent: InLibrary<item::ModuleId>,
-        child: InLibrary<item::ModuleId>,
+        parent: InPackage<item::ModuleId>,
+        child: InPackage<item::ModuleId>,
     ) -> bool;
 
     /// Looks up which module the given HIR node is in
@@ -87,10 +87,10 @@ pub trait Db:
     /// or `None` if it doesn't exist.
     ///
     /// This does not perform any form of definition resolution.
-    fn item_of(&self, def_id: DefId) -> Option<InLibrary<item::ItemId>>;
+    fn item_of(&self, def_id: DefId) -> Option<InPackage<item::ItemId>>;
 
-    /// Gets all of the bodies in the given library
-    fn bodies_of(&self, library: LibraryId) -> Arc<Vec<body::BodyId>>;
+    /// Gets all of the bodies in the given package
+    fn bodies_of(&self, package: PackageId) -> Arc<Vec<body::BodyId>>;
 
     /// Resolved the given `def_id` to the canonical definition (i.e. beyond any exports),
     /// or the last def before an undeclared was encountered.
@@ -106,48 +106,48 @@ impl<DB> Db for DB
 where
     DB: salsa::DbWithJar<Jar> + toc_hir_lowering::Db + Upcast<dyn toc_hir_lowering::Db>,
 {
-    fn library(&self, library: LibraryId) -> LoweredLibrary {
-        query::hir_library(self, library.0)
+    fn package(&self, package: PackageId) -> LoweredPackage {
+        query::hir_package(self, package.0)
     }
 
-    fn defs_of(&self, library: LibraryId) -> Arc<DefTable> {
-        query::defs_of(self, library.0)
+    fn defs_of(&self, package: PackageId) -> Arc<DefTable> {
+        query::defs_of(self, package.0)
     }
 
-    fn body_owners_of(&self, library: LibraryId) -> Arc<BodyTable> {
-        query::body_owners_of(self, library.0)
+    fn body_owners_of(&self, package: PackageId) -> Arc<BodyTable> {
+        query::body_owners_of(self, package.0)
     }
 
-    fn type_owners_of(&self, library: LibraryId) -> Arc<TypeOwners> {
-        query::type_owners_of(self, library.0)
+    fn type_owners_of(&self, package: PackageId) -> Arc<TypeOwners> {
+        query::type_owners_of(self, package.0)
     }
 
-    fn module_tree_of(&self, library: LibraryId) -> Arc<ModuleTree> {
-        query::module_tree_of(self, library.0)
+    fn module_tree_of(&self, package: PackageId) -> Arc<ModuleTree> {
+        query::module_tree_of(self, package.0)
     }
 
     fn def_owner(&self, def_id: DefId) -> Option<DefOwner> {
         query::def_owner(self, def_id)
     }
 
-    fn body_owner(&self, body: InLibrary<body::BodyId>) -> Option<body::BodyOwner> {
+    fn body_owner(&self, body: InPackage<body::BodyId>) -> Option<body::BodyOwner> {
         query::body_owner(self, body)
     }
 
-    fn type_owner(&self, ty: InLibrary<ty::TypeId>) -> ty::TypeOwner {
+    fn type_owner(&self, ty: InPackage<ty::TypeId>) -> ty::TypeOwner {
         query::type_owner(self, ty)
     }
 
-    fn module_parent(&self, module: InLibrary<item::ModuleId>) -> Option<item::ModuleId> {
+    fn module_parent(&self, module: InPackage<item::ModuleId>) -> Option<item::ModuleId> {
         query::module_parent(self, module)
     }
 
     fn is_module_ancestor(
         &self,
-        parent: InLibrary<item::ModuleId>,
-        child: InLibrary<item::ModuleId>,
+        parent: InPackage<item::ModuleId>,
+        child: InPackage<item::ModuleId>,
     ) -> bool {
-        // Must be from the same library
+        // Must be from the same package
         if parent.0 != child.0 {
             return false;
         }
@@ -158,12 +158,12 @@ where
         query::inside_module(self, inside_module)
     }
 
-    fn item_of(&self, def_id: DefId) -> Option<InLibrary<item::ItemId>> {
+    fn item_of(&self, def_id: DefId) -> Option<InPackage<item::ItemId>> {
         query::item_of(self, def_id)
     }
 
-    fn bodies_of(&self, library: LibraryId) -> Arc<Vec<body::BodyId>> {
-        query::bodies_of(self, library.0)
+    fn bodies_of(&self, package: PackageId) -> Arc<Vec<body::BodyId>> {
+        query::bodies_of(self, package.0)
     }
 
     fn resolve_def(&self, def_id: DefId) -> Result<DefId, DefId> {

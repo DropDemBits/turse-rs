@@ -4,7 +4,7 @@ assertion_line: 61
 expression: "\n        var *a : int\n        module z\n            export a\n        end z"
 
 ---
-Library@(dummy)
+Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(2)
     Module@(FileId(1), 0..73): "<root>"@(dummy)
       StmtBody@(FileId(1), 9..73): []

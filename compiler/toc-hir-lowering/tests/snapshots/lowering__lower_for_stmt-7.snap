@@ -3,7 +3,7 @@ source: compiler/toc_hir_lowering/tests/lowering.rs
 expression: "var implied : int for decreasing : implied end for"
 
 ---
-Library@(dummy)
+Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(1)
     Module@(FileId(1), 0..50): "<root>"@(dummy)
       StmtBody@(FileId(1), 0..50): []

@@ -4,7 +4,7 @@ assertion_line: 61
 expression: "var _ : array 1 .. *, char of int := init(1)"
 
 ---
-Library@(dummy)
+Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(1)
     Module@(FileId(1), 0..44): "<root>"@(dummy)
       StmtBody@(FileId(1), 0..44): []

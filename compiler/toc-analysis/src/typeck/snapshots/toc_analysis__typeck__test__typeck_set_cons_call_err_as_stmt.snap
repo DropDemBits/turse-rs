@@ -2,7 +2,7 @@
 source: compiler/toc_analysis/src/typeck/test.rs
 expression: "type s : set of boolean\ns()\n"
 ---
-"s"@(FileId(1), 5..6) [Type]: set[DefId(LibraryId(0), LocalDefId(1))] of boolean
+"s"@(FileId(1), 5..6) [Type]: set[DefId(PackageId(0), LocalDefId(1))] of boolean
 "s"@(FileId(1), 9..23) [Set]: <error>
 "<root>"@(dummy) [Module(No)]: <error>
 

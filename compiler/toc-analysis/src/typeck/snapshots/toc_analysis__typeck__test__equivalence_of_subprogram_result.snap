@@ -2,9 +2,9 @@
 source: compiler/toc_analysis/src/typeck/test.rs
 expression: "type fa : function () : int\nfunction fb () : int end fb\n\nvar _ : fa := fb\n"
 ---
-"fa"@(FileId(1), 5..7) [Type]: alias[DefId(LibraryId(0), LocalDefId(0))] of function ( ) -> int
+"fa"@(FileId(1), 5..7) [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of function ( ) -> int
 "fb"@(FileId(1), 37..39) [Subprogram(Function)]: function ( ) -> int
-"_"@(FileId(1), 61..62) [ConstVar(Var, No)]: alias[DefId(LibraryId(0), LocalDefId(0))] of function ( ) -> int
+"_"@(FileId(1), 61..62) [ConstVar(Var, No)]: alias[DefId(PackageId(0), LocalDefId(0))] of function ( ) -> int
 "<unnamed>"@(dummy) [Undeclared]: <error>
 "<unnamed>"@(dummy) [Undeclared]: <error>
 "<root>"@(dummy) [Module(No)]: <error>

@@ -2,6 +2,6 @@
 source: compiler/toc_analysis/src/typeck/test.rs
 expression: "var a : array 1..1 of int := init(1)"
 ---
-"a"@(FileId(1), 4..5) [ConstVar(Var, No)]: array ( range of `int` (Unevaluated(LibraryId(0), BodyId(0)) .. Expr(Unevaluated(LibraryId(0), BodyId(1)), Yes)), ) of int
+"a"@(FileId(1), 4..5) [ConstVar(Var, No)]: array ( range of `int` (Unevaluated(PackageId(0), BodyId(0)) .. Expr(Unevaluated(PackageId(0), BodyId(1)), Yes)), ) of int
 "<root>"@(dummy) [Module(No)]: <error>
 

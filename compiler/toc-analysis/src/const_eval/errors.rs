@@ -1,6 +1,6 @@
 //! Errors during constant evaluation
 use toc_hir::{
-    library::LibraryId,
+    package::PackageId,
     span::Spanned,
     symbol::{DefId, Resolve, Symbol},
 };
@@ -90,10 +90,10 @@ impl ConstError {
                     Some(kind) => kind,
                     None => return, // taken from an undeclared ident or missing expr
                 };
-                let library = db.library(def_id.library());
-                let def_info = library.local_def(def_id.local());
+                let package = db.package(def_id.package());
+                let def_info = package.local_def(def_id.local());
                 let name = def_info.name;
-                let def_span = def_info.def_at.lookup_in(&library);
+                let def_span = def_info.def_at.lookup_in(&package);
 
                 reporter
                     .error_detailed(
@@ -106,11 +106,11 @@ impl ConstError {
                     )
                     .with_note(format!("`{name}` declared here",), def_span)
             }
-            ErrorKind::NotConstExpr(NotConst::Binding(library_id, binding)) => {
+            ErrorKind::NotConstExpr(NotConst::Binding(package_id, binding)) => {
                 let name = binding.item();
-                let library = db.library(*library_id);
+                let package = db.package(*package_id);
 
-                if matches!(library.binding_resolve(*binding), Resolve::Err) {
+                if matches!(package.binding_resolve(*binding), Resolve::Err) {
                     // taken from an undeclared ident
                     return;
                 }
@@ -222,7 +222,7 @@ pub enum NotConst {
     Def(DefId),
     /// Binding, not necessarily a known def.
     /// Points to the location of the binding
-    Binding(LibraryId, Spanned<Symbol>),
+    Binding(PackageId, Spanned<Symbol>),
     /// Other expression, not nameable.
     Expr,
 }

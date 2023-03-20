@@ -21,13 +21,13 @@ mod collector;
 mod lower;
 mod resolver;
 
-use toc_hir::library::LoweredLibrary;
+use toc_hir::package::LoweredPackage;
 
-pub use lower::{lower_library, lower_source_graph};
+pub use lower::{lower_package, lower_source_graph};
 use upcast::{Upcast, UpcastFrom};
 
 #[salsa::jar(db = Db)]
-pub struct Jar(lower::lower_library, lower::lower_source_graph);
+pub struct Jar(lower::lower_package, lower::lower_source_graph);
 
 /// Trait representing a database that can store a lowered HIR tree
 pub trait Db:

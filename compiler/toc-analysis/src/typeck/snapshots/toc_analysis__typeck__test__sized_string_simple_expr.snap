@@ -2,6 +2,6 @@
 source: compiler/toc_analysis/src/typeck/test.rs
 expression: "var _ : string(1 - 1 * 1 + 2)"
 ---
-"_"@(FileId(1), 4..5) [ConstVar(Var, No)]: string_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
+"_"@(FileId(1), 4..5) [ConstVar(Var, No)]: string_n Fixed(Unevaluated(PackageId(0), BodyId(0)))
 "<root>"@(dummy) [Module(No)]: <error>
 

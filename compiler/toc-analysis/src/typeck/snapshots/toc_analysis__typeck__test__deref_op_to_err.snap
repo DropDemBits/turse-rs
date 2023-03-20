@@ -2,8 +2,8 @@
 source: compiler/toc_analysis/src/typeck/test.rs
 expression: "type p : ^\nvar ptr : p\nvar j := ^ptr\n"
 ---
-"p"@(FileId(1), 5..6) [Type]: alias[DefId(LibraryId(0), LocalDefId(0))] of pointer to <error>
-"ptr"@(FileId(1), 15..18) [ConstVar(Var, No)]: alias[DefId(LibraryId(0), LocalDefId(0))] of pointer to <error>
+"p"@(FileId(1), 5..6) [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of pointer to <error>
+"ptr"@(FileId(1), 15..18) [ConstVar(Var, No)]: alias[DefId(PackageId(0), LocalDefId(0))] of pointer to <error>
 "j"@(FileId(1), 27..28) [ConstVar(Var, No)]: <error>
 "<root>"@(dummy) [Module(No)]: <error>
 

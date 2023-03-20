@@ -2,7 +2,7 @@
 source: compiler/toc_hir_lowering/tests/lowering.rs
 expression: "\n        module z\n            export ~.a, ~.b\n            var a, b : int\n        end z\n        module y\n            export ~.*all\n            var c, d : int\n        end y\n\n        % non pervasive\n        var i : int\n        i := a\n        i := b\n\n        % pervasive\n        module x\n            var i : int\n            i := c\n            i := d\n        end x\n        "
 ---
-Library@(dummy)
+Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(9)
     Module@(FileId(1), 0..368): "<root>"@(dummy)
       StmtBody@(FileId(1), 9..359): []

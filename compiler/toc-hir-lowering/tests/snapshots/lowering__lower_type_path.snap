@@ -2,7 +2,7 @@
 source: compiler/toc_hir_lowering/tests/lowering.rs
 expression: "\n    type a : int\n    type chain: a.b.c.d.e\n    "
 ---
-Library@(dummy)
+Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(2)
     Module@(FileId(1), 0..48): "<root>"@(dummy)
       StmtBody@(FileId(1), 5..43): []

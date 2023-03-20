@@ -2,7 +2,7 @@
 source: compiler/toc_analysis/src/typeck/test.rs
 expression: "type k : int\nvar s : string\nget s : k\n"
 ---
-"k"@(FileId(1), 5..6) [Type]: alias[DefId(LibraryId(0), LocalDefId(0))] of int
+"k"@(FileId(1), 5..6) [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of int
 "s"@(FileId(1), 17..18) [ConstVar(Var, No)]: string
 "<root>"@(dummy) [Module(No)]: <error>
 

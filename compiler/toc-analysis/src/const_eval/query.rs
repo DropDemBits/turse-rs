@@ -29,16 +29,16 @@ pub(crate) fn evaluate_const(
         Op(ConstOp, toc_span::Span),
     }
 
-    let (library_id, body_id) = match expr {
+    let (package_id, body_id) = match expr {
         Const::Value(v) => return Ok(v),
         Const::Error(err) => return Err(err),
-        Const::Unevaluated(library, body) => (library, body),
-        Const::UnevaluatedExpr(library, expr) => (library, expr.0),
+        Const::Unevaluated(package, body) => (package, body),
+        Const::UnevaluatedExpr(package, expr) => (package, expr.0),
     };
 
-    let library = db.library(library_id);
-    let body = library.body(body_id);
-    let span_map = &library;
+    let package = db.package(package_id);
+    let body = package.body(body_id);
+    let span_map = &package;
 
     let root_expr = match expr {
         Const::Unevaluated(_, _) => match &body.kind {
@@ -53,7 +53,7 @@ pub(crate) fn evaluate_const(
         Const::UnevaluatedExpr(_, expr) => expr.1,
         _ => unreachable!(),
     };
-    let in_module = db.inside_module((library_id, body_id, root_expr).into());
+    let in_module = db.inside_module((package_id, body_id, root_expr).into());
 
     // Do the actual evaluation, as a stack machine
     let mut eval_stack = vec![Eval::Expr(root_expr)];
@@ -122,25 +122,25 @@ pub(crate) fn evaluate_const(
                 match name {
                     expr::Name::Name(binding) => {
                         // Resolve to canonical def first so that we aren't looking at any exports
-                        let canonical_def = match library.binding_resolve(*binding) {
+                        let canonical_def = match package.binding_resolve(*binding) {
                             toc_hir::symbol::Resolve::Def(local_def) => {
-                                db.resolve_def(DefId(library_id, local_def)).ok()
+                                db.resolve_def(DefId(package_id, local_def)).ok()
                             }
                             toc_hir::symbol::Resolve::Err => None,
                         }
                         .ok_or_else(|| {
                             // Not a const expr
                             ConstError::new(
-                                ErrorKind::NotConstExpr(NotConst::Binding(library_id, *binding)),
+                                ErrorKind::NotConstExpr(NotConst::Binding(package_id, *binding)),
                                 expr_span,
                             )
                         })?;
 
-                        let library_id = canonical_def.library();
-                        let library = db.library(library_id);
+                        let package_id = canonical_def.package();
+                        let package = db.package(package_id);
 
                         let body = db.item_of(canonical_def).and_then(|item| {
-                            match &library.item(item.1).kind {
+                            match &package.item(item.1).kind {
                                 toc_hir::item::ItemKind::ConstVar(cv)
                                     if matches!(cv.mutability, Mutability::Const) =>
                                 {
@@ -162,11 +162,11 @@ pub(crate) fn evaluate_const(
                         };
 
                         let value =
-                            db.evaluate_const(Const::from_body(library_id, body), params)?;
+                            db.evaluate_const(Const::from_body(package_id, body), params)?;
 
                         // Check that the produced value matches the real type of the def
                         let left_ty = db.type_of(canonical_def.into());
-                        let right_ty = db.type_of((library_id, body).into());
+                        let right_ty = db.type_of((package_id, body).into());
 
                         // FIXME: add tests with opaque tys once module exports are in const eval
                         let left_ty = left_ty
@@ -178,7 +178,7 @@ pub(crate) fn evaluate_const(
 
                         if !ty::rules::is_assignable(db, left_ty, right_ty) {
                             // Wrong types
-                            let span = library.body(body).span.lookup_in(&library);
+                            let span = package.body(body).span.lookup_in(&package);
                             return Err(ConstError::new(ErrorKind::WrongResultType, span));
                         }
 
@@ -189,13 +189,13 @@ pub(crate) fn evaluate_const(
                             // Since right is assignable into left, we can treat right as ConstInt
                             let as_ordinal = value.ordinal().ok_or_else(|| {
                                 // Definitely the wrong type
-                                let span = library.body(body).span.lookup_in(&library);
+                                let span = package.body(body).span.lookup_in(&package);
                                 ConstError::new(ErrorKind::WrongResultType, span)
                             })?;
 
                             if !(min..=max).contains(&as_ordinal) {
                                 // Is outside of value range
-                                let span = library.body(body).span.lookup_in(&library);
+                                let span = package.body(body).span.lookup_in(&package);
                                 return Err(ConstError::new(ErrorKind::OutsideRange, span));
                             }
                         }
@@ -205,7 +205,7 @@ pub(crate) fn evaluate_const(
                             ty::TypeKind::Char => value.cast_into_char().map_or_else(
                                 |err| {
                                     // Definitely the wrong type
-                                    let span = library.body(body).span.lookup_in(&library);
+                                    let span = package.body(body).span.lookup_in(&package);
                                     Err(err.change_span(span))
                                 },
                                 |v| Ok(ConstValue::Char(v)),
@@ -230,7 +230,7 @@ pub(crate) fn evaluate_const(
                 // Possible things:
                 // - module export (constvar reference)
                 // - enum variants (enum variant value)
-                let lhs_expr = (library_id, body_id, expr.lhs);
+                let lhs_expr = (package_id, body_id, expr.lhs);
                 let lhs_tyref = db
                     .type_of(lhs_expr.into())
                     .peel_opaque(db.up(), in_module)
@@ -239,26 +239,26 @@ pub(crate) fn evaluate_const(
                 match lhs_tyref.kind(db.up()) {
                     ty::TypeKind::Enum(_, variants) => {
                         // Enum variants
-                        let Some(library_id) = variants.first().map(|def| def.library()) else {
+                        let Some(package_id) = variants.first().map(|def| def.package()) else {
                             return Err(ConstError::new(
                                 ErrorKind::NoFields(*expr.field.item()),
-                                expr.field.span().lookup_in(&library),
+                                expr.field.span().lookup_in(&package),
                             ));
                         };
-                        let library = db.library(library_id);
+                        let package = db.package(package_id);
 
                         // Get variant ordinal
                         let ordinal = variants
                             .iter()
                             .enumerate()
                             .find_map(|(idx, def_id)| {
-                                (library.local_def(def_id.1).name == *expr.field.item())
+                                (package.local_def(def_id.1).name == *expr.field.item())
                                     .then_some(idx)
                             })
                             .ok_or_else(|| {
                                 ConstError::new(
                                     ErrorKind::NoFields(*expr.field.item()),
-                                    expr.field.span().lookup_in(&library),
+                                    expr.field.span().lookup_in(&package),
                                 )
                             })?;
 

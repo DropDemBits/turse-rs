@@ -4,7 +4,7 @@ assertion_line: 59
 expression: "\n    begin\n    var a : int\n    bind b to a\n    end"
 
 ---
-Library@(dummy)
+Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(2)
     Module@(FileId(1), 0..50): "<root>"@(dummy)
       StmtBody@(FileId(1), 5..50): []

@@ -5,14 +5,14 @@
 //! be moved into `toc_validator`
 #![allow(clippy::unnecessary_wraps)] // Top level lowering points also return Option
 
-// lower_library
+// lower_package
 // - lower_file(A)
 //   -
 // - lower_file(B)
 //   - ...
 // - ...
 
-// Library requires lowering files
+// Package requires lowering files
 // Lowering files requires lowering them as module items
 // Lowering module items involves lowering bodies
 // Lowering bodies also involves lowering bodies
@@ -26,7 +26,7 @@ mod ty;
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use toc_hir::library_graph::SourceLibrary;
+use toc_hir::package_graph::SourcePackage;
 use toc_hir::symbol::{syms, IsMonitor, IsPervasive, NodeSpan, SymbolKind};
 use toc_hir::{
     body,
@@ -42,20 +42,20 @@ use toc_span::{Span, TextRange};
 use toc_syntax::ast::{self, AstNode};
 use toc_vfs_db::SourceFile;
 
-use crate::{Db, LoweredLibrary};
+use crate::{Db, LoweredPackage};
 
-/// Lowers the given library into a HIR library.
+/// Lowers the given package into a HIR package.
 ///
 /// ## Returns
 ///
-/// Returns the [`LoweredLibrary`] of the newly lowered HIR tree.
+/// Returns the [`LoweredPackage`] of the newly lowered HIR tree.
 #[salsa::tracked]
-pub fn lower_library(db: &dyn Db, library: SourceLibrary) -> CompileResult<LoweredLibrary> {
+pub fn lower_package(db: &dyn Db, package: SourcePackage) -> CompileResult<LoweredPackage> {
     let mut messages = MessageBundle::default();
 
-    // take the library from the source graph
-    let library_root = library.root(db.up());
-    let root_source = toc_vfs_db::source_of(db.up(), library_root);
+    // take the package from the source graph
+    let package_root = package.root(db.up());
+    let root_source = toc_vfs_db::source_of(db.up(), package_root);
 
     // Report if the root file is missing
     if let Some(err) = root_source.errors(db.up()) {
@@ -67,7 +67,7 @@ pub fn lower_library(db: &dyn Db, library: SourceLibrary) -> CompileResult<Lower
         report
             .error_detailed(
                 format!("{err}"),
-                Span::new(library_root.into(), TextRange::empty(0.into())),
+                Span::new(package_root.into(), TextRange::empty(0.into())),
             )
             .finish();
         messages.aggregate(&report.finish());
@@ -88,32 +88,32 @@ pub fn lower_library(db: &dyn Db, library: SourceLibrary) -> CompileResult<Lower
         .copied()
         .collect::<Vec<_>>();
 
-    // Collect all the defs in the library
+    // Collect all the defs in the package
     let (collect_res, msgs) = crate::collector::collect_defs(db, &reachable_files).take();
     messages = messages.combine(msgs);
 
     let mut root_items = vec![];
-    let mut library = builder::LibraryBuilder::new(collect_res.spans, collect_res.defs);
+    let mut package = builder::PackageBuilder::new(collect_res.spans, collect_res.defs);
 
-    // Lower all files reachable from the library root
+    // Lower all files reachable from the package root
     for file in reachable_files {
-        let (item, msgs) = FileLowering::new(db, file, &mut library, &collect_res.node_defs)
+        let (item, msgs) = FileLowering::new(db, file, &mut package, &collect_res.node_defs)
             .lower_file()
             .take();
         messages = messages.combine(msgs);
         root_items.push((file.path(db.up()).into(), item));
     }
 
-    let library = library.freeze_root_items(root_items);
+    let package = package.freeze_root_items(root_items);
 
     // FIXME: This needs be punted to after all HIR trees are constructed,
-    // as we need to know the module exports of a foreign library
-    let (resolve_map, resolve_msgs) = crate::resolver::resolve_defs(&library).take();
+    // as we need to know the module exports of a foreign package
+    let (resolve_map, resolve_msgs) = crate::resolver::resolve_defs(&package).take();
     messages = messages.combine(resolve_msgs);
 
-    let lib = library.finish(resolve_map);
+    let pkg = package.finish(resolve_map);
 
-    CompileResult::new(Arc::new(lib), messages)
+    CompileResult::new(Arc::new(pkg), messages)
 }
 
 /// Lowers the entire source graph
@@ -125,8 +125,8 @@ pub fn lower_source_graph(db: &dyn Db) -> CompileResult<()> {
         .ok()
         .unwrap();
 
-    for &library in source_graph.all_libraries(db.up()) {
-        lower_library(db, library).bundle_messages(&mut messages);
+    for &package in source_graph.all_packages(db.up()) {
+        lower_package(db, package).bundle_messages(&mut messages);
     }
 
     CompileResult::new((), messages)
@@ -135,7 +135,7 @@ pub fn lower_source_graph(db: &dyn Db) -> CompileResult<()> {
 struct FileLowering<'ctx> {
     db: &'ctx dyn Db,
     file: SourceFile,
-    library: &'ctx mut builder::LibraryBuilder,
+    package: &'ctx mut builder::PackageBuilder,
     node_defs: &'ctx HashMap<NodeSpan, LocalDefId>,
     messages: MessageSink,
 }
@@ -144,13 +144,13 @@ impl<'ctx> FileLowering<'ctx> {
     fn new(
         db: &'ctx dyn Db,
         file: SourceFile,
-        library: &'ctx mut builder::LibraryBuilder,
+        package: &'ctx mut builder::PackageBuilder,
         node_defs: &'ctx HashMap<NodeSpan, LocalDefId>,
     ) -> Self {
         Self {
             db,
             file,
-            library,
+            package,
             node_defs,
             messages: MessageSink::new(),
         }
@@ -195,9 +195,9 @@ impl<'ctx> FileLowering<'ctx> {
 
         let (body, declared_items) = self.lower_stmt_body(root.stmt_list().unwrap(), vec![], None);
 
-        let module_def = self.library.add_def(
+        let module_def = self.package.add_def(
             *syms::Root,
-            self.library.span_table().dummy_span(),
+            self.package.span_table().dummy_span(),
             Some(SymbolKind::Module(IsMonitor::No)),
             IsPervasive::No,
         );
@@ -211,7 +211,7 @@ impl<'ctx> FileLowering<'ctx> {
             body,
         };
 
-        self.library.add_item(item::Item {
+        self.package.add_item(item::Item {
             kind: item::ItemKind::Module(module),
             def_id: module_def,
             span: module_span,
@@ -252,7 +252,7 @@ impl<'ctx> FileLowering<'ctx> {
         let span = self.intern_range(span);
 
         let body = body.finish_stmts(body_stmts, param_defs, result_name, span);
-        let body = self.library.add_body(body);
+        let body = self.package.add_body(body);
 
         (body, declared_items)
     }
@@ -264,21 +264,21 @@ impl<'ctx> FileLowering<'ctx> {
 
         // Actually make the body
         let body = body.finish_expr(root_expr);
-        self.library.add_body(body)
+        self.package.add_body(body)
     }
 
     fn lower_empty_expr_body(&mut self) -> body::BodyId {
         // Lower expr
         let expr = Expr {
             kind: ExprKind::Missing,
-            span: self.library.span_table().dummy_span(),
+            span: self.package.span_table().dummy_span(),
         };
         let mut body = builder::BodyBuilder::default();
         let root_expr = body.add_expr(expr);
 
         // Actually make the body
         let body = body.finish_expr(root_expr);
-        self.library.add_body(body)
+        self.package.add_body(body)
     }
 
     fn mk_span(&self, range: toc_span::TextRange) -> Span {
@@ -287,7 +287,7 @@ impl<'ctx> FileLowering<'ctx> {
 
     fn intern_range(&mut self, range: toc_span::TextRange) -> SpanId {
         let span = self.mk_span(range);
-        self.library.intern_span(span)
+        self.package.intern_span(span)
     }
 
     /// Constructs a [`NodeSpan`] from an AST node's [`TextRange`]
@@ -315,7 +315,7 @@ impl<'ctx> FileLowering<'ctx> {
         if names.is_empty() {
             // maintain invariant that there's at least one name
             names.push(
-                self.library
+                self.package
                     .add_def(*syms::Unnamed, no_name_span, None, IsPervasive::No),
             )
         }
@@ -361,7 +361,7 @@ impl<'ctx> FileLowering<'ctx> {
         match name {
             Some(name) => self.collect_required_name(name),
             None => self
-                .library
+                .package
                 .add_def(*syms::Unnamed, no_name_span, None, IsPervasive::No),
         }
     }

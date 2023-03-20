@@ -2,6 +2,6 @@
 source: compiler/toc_analysis/src/const_eval/test.rs
 expression: "const b := a"
 ---
-"b"@(FileId(1), 6..7) -> ConstError { kind: NotConstExpr(Binding(LibraryId(0), Spanned("a", SpanId(4)))), span: (FileId(1), 11..12) }
+"b"@(FileId(1), 6..7) -> ConstError { kind: NotConstExpr(Binding(PackageId(0), Spanned("a", SpanId(4)))), span: (FileId(1), 11..12) }
 
 

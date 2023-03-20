@@ -2,14 +2,14 @@
 source: compiler/toc_analysis/src/typeck/test.rs
 expression: "type t_f : function : int\ntype t_p : procedure\ntype t_fp : function() : int\ntype t_pp : procedure()\n\nvar f : t_f\nvar p : t_p\nvar fp : t_fp\nvar pp : t_pp\n\n% transitive\nf := fp\nfp := f\n\np := pp\npp := p\n"
 ---
-"t_f"@(FileId(1), 5..8) [Type]: alias[DefId(LibraryId(0), LocalDefId(0))] of function -> int
-"t_p"@(FileId(1), 31..34) [Type]: alias[DefId(LibraryId(0), LocalDefId(1))] of procedure -> void
-"t_fp"@(FileId(1), 52..56) [Type]: alias[DefId(LibraryId(0), LocalDefId(2))] of function ( ) -> int
-"t_pp"@(FileId(1), 81..85) [Type]: alias[DefId(LibraryId(0), LocalDefId(3))] of procedure ( ) -> void
-"f"@(FileId(1), 105..106) [ConstVar(Var, No)]: alias[DefId(LibraryId(0), LocalDefId(0))] of function -> int
-"p"@(FileId(1), 117..118) [ConstVar(Var, No)]: alias[DefId(LibraryId(0), LocalDefId(1))] of procedure -> void
-"fp"@(FileId(1), 129..131) [ConstVar(Var, No)]: alias[DefId(LibraryId(0), LocalDefId(2))] of function ( ) -> int
-"pp"@(FileId(1), 143..145) [ConstVar(Var, No)]: alias[DefId(LibraryId(0), LocalDefId(3))] of procedure ( ) -> void
+"t_f"@(FileId(1), 5..8) [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of function -> int
+"t_p"@(FileId(1), 31..34) [Type]: alias[DefId(PackageId(0), LocalDefId(1))] of procedure -> void
+"t_fp"@(FileId(1), 52..56) [Type]: alias[DefId(PackageId(0), LocalDefId(2))] of function ( ) -> int
+"t_pp"@(FileId(1), 81..85) [Type]: alias[DefId(PackageId(0), LocalDefId(3))] of procedure ( ) -> void
+"f"@(FileId(1), 105..106) [ConstVar(Var, No)]: alias[DefId(PackageId(0), LocalDefId(0))] of function -> int
+"p"@(FileId(1), 117..118) [ConstVar(Var, No)]: alias[DefId(PackageId(0), LocalDefId(1))] of procedure -> void
+"fp"@(FileId(1), 129..131) [ConstVar(Var, No)]: alias[DefId(PackageId(0), LocalDefId(2))] of function ( ) -> int
+"pp"@(FileId(1), 143..145) [ConstVar(Var, No)]: alias[DefId(PackageId(0), LocalDefId(3))] of procedure ( ) -> void
 "<unnamed>"@(dummy) [Undeclared]: <error>
 "<unnamed>"@(dummy) [Undeclared]: <error>
 "<root>"@(dummy) [Module(No)]: <error>

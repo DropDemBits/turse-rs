@@ -4,13 +4,13 @@ expression: "const N := 256\nvar c : char\nvar c5 : char(5)\nvar c257 : char(257
 ---
 "N"@(FileId(1), 6..7) [ConstVar(Const, No)]: int
 "c"@(FileId(1), 19..20) [ConstVar(Var, No)]: char
-"c5"@(FileId(1), 32..34) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(1)))
-"c257"@(FileId(1), 49..53) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(2)))
-"s5"@(FileId(1), 70..72) [ConstVar(Var, No)]: string_n Fixed(Unevaluated(LibraryId(0), BodyId(3)))
-"_e00"@(FileId(1), 90..94) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(4)))
-"_e01"@(FileId(1), 114..118) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(6)))
-"_e01"@(FileId(1), 139..143) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(8)))
-"_e02"@(FileId(1), 166..170) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(10)))
+"c5"@(FileId(1), 32..34) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(1)))
+"c257"@(FileId(1), 49..53) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(2)))
+"s5"@(FileId(1), 70..72) [ConstVar(Var, No)]: string_n Fixed(Unevaluated(PackageId(0), BodyId(3)))
+"_e00"@(FileId(1), 90..94) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(4)))
+"_e01"@(FileId(1), 114..118) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(6)))
+"_e01"@(FileId(1), 139..143) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(8)))
+"_e02"@(FileId(1), 166..170) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(10)))
 "<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 108..109: mismatched types

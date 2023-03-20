@@ -2,7 +2,7 @@
 source: compiler/toc_analysis/src/typeck/test.rs
 expression: "\n    type t : boolean\n\n    % Type operand prevents checking of type compatibility\n    var _t := - t\n    "
 ---
-"t"@(FileId(1), 10..11) [Type]: alias[DefId(LibraryId(0), LocalDefId(0))] of boolean
+"t"@(FileId(1), 10..11) [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of boolean
 "_t"@(FileId(1), 90..92) [ConstVar(Var, No)]: <error>
 "<root>"@(dummy) [Module(No)]: <error>
 

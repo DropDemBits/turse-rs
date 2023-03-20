@@ -4,7 +4,7 @@ assertion_line: 61
 expression: "proc call end call var _ := call(all)"
 
 ---
-Library@(dummy)
+Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(2)
     Module@(FileId(1), 0..37): "<root>"@(dummy)
       StmtBody@(FileId(1), 0..37): []

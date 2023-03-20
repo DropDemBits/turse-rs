@@ -2,15 +2,15 @@
 source: compiler/toc_analysis/src/typeck/test.rs
 expression: "type i : int\ntype tpi : pointer to int\ntype tpc : pointer to char\ntype tpai : pointer to i\ntype tupi : unchecked pointer to int\n\nvar v_pi : tpi\nvar v_pc : tpc\nvar v_pai : tpai\nvar v_upi : tupi\n\n% compat through aliases\nv_pi := v_pai\n\n% incompatible - different target types\nv_pi := v_pc\n\n% incompatible - different checkedness\nv_pi := v_upi\n"
 ---
-"i"@(FileId(1), 5..6) [Type]: alias[DefId(LibraryId(0), LocalDefId(0))] of int
-"tpi"@(FileId(1), 18..21) [Type]: alias[DefId(LibraryId(0), LocalDefId(1))] of pointer to int
-"tpc"@(FileId(1), 44..47) [Type]: alias[DefId(LibraryId(0), LocalDefId(2))] of pointer to char
-"tpai"@(FileId(1), 71..75) [Type]: alias[DefId(LibraryId(0), LocalDefId(3))] of pointer to alias[DefId(LibraryId(0), LocalDefId(0))] of int
-"tupi"@(FileId(1), 96..100) [Type]: alias[DefId(LibraryId(0), LocalDefId(4))] of unchecked pointer to int
-"v_pi"@(FileId(1), 133..137) [ConstVar(Var, No)]: alias[DefId(LibraryId(0), LocalDefId(1))] of pointer to int
-"v_pc"@(FileId(1), 148..152) [ConstVar(Var, No)]: alias[DefId(LibraryId(0), LocalDefId(2))] of pointer to char
-"v_pai"@(FileId(1), 163..168) [ConstVar(Var, No)]: alias[DefId(LibraryId(0), LocalDefId(3))] of pointer to alias[DefId(LibraryId(0), LocalDefId(0))] of int
-"v_upi"@(FileId(1), 180..185) [ConstVar(Var, No)]: alias[DefId(LibraryId(0), LocalDefId(4))] of unchecked pointer to int
+"i"@(FileId(1), 5..6) [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of int
+"tpi"@(FileId(1), 18..21) [Type]: alias[DefId(PackageId(0), LocalDefId(1))] of pointer to int
+"tpc"@(FileId(1), 44..47) [Type]: alias[DefId(PackageId(0), LocalDefId(2))] of pointer to char
+"tpai"@(FileId(1), 71..75) [Type]: alias[DefId(PackageId(0), LocalDefId(3))] of pointer to alias[DefId(PackageId(0), LocalDefId(0))] of int
+"tupi"@(FileId(1), 96..100) [Type]: alias[DefId(PackageId(0), LocalDefId(4))] of unchecked pointer to int
+"v_pi"@(FileId(1), 133..137) [ConstVar(Var, No)]: alias[DefId(PackageId(0), LocalDefId(1))] of pointer to int
+"v_pc"@(FileId(1), 148..152) [ConstVar(Var, No)]: alias[DefId(PackageId(0), LocalDefId(2))] of pointer to char
+"v_pai"@(FileId(1), 163..168) [ConstVar(Var, No)]: alias[DefId(PackageId(0), LocalDefId(3))] of pointer to alias[DefId(PackageId(0), LocalDefId(0))] of int
+"v_upi"@(FileId(1), 180..185) [ConstVar(Var, No)]: alias[DefId(PackageId(0), LocalDefId(4))] of unchecked pointer to int
 "<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 279..281: mismatched types

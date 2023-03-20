@@ -4,7 +4,7 @@ assertion_line: 59
 expression: "\n    procedure a : 4 + 4 end a\n    procedure b() : 6 + 8 end b\n    procedure c(k : int) : 9 + 2 end c\n    "
 
 ---
-Library@(dummy)
+Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(3)
     Module@(FileId(1), 0..106): "<root>"@(dummy)
       StmtBody@(FileId(1), 5..101): []

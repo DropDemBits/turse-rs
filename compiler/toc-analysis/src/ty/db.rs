@@ -6,7 +6,7 @@ use toc_hir::{
     body::BodyId,
     expr::{self, BodyExpr, ExprId},
     item::{self, ItemId},
-    library::{InLibrary, LibraryId},
+    package::{InPackage, PackageId},
     symbol::{self, DefId},
     ty::TypeId as HirTypeId,
 };
@@ -22,7 +22,7 @@ pub trait TypeDatabase:
     salsa::DbWithJar<TypeJar> + toc_hir_db::Db + Upcast<dyn toc_hir_db::Db>
 {
     /// Converts the HIR type into an analysis form
-    fn lower_hir_type(&self, type_id: InLibrary<HirTypeId>) -> ty::TypeId;
+    fn lower_hir_type(&self, type_id: InPackage<HirTypeId>) -> ty::TypeId;
 
     /// Gets the type of the given type source.
     fn type_of(&self, source: TypeSource) -> ty::TypeId;
@@ -50,7 +50,7 @@ impl<DB> TypeDatabase for DB
 where
     DB: salsa::DbWithJar<TypeJar> + toc_hir_db::Db + Upcast<dyn toc_hir_db::Db>,
 {
-    fn lower_hir_type(&self, type_id: InLibrary<HirTypeId>) -> super::TypeId {
+    fn lower_hir_type(&self, type_id: InPackage<HirTypeId>) -> super::TypeId {
         query::lower_hir_type(self, type_id)
     }
 
@@ -92,9 +92,9 @@ impl<'db, DB: TypeDatabase + 'db> UpcastFrom<DB> for dyn TypeDatabase + 'db {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum TypeSource {
     Def(DefId),
-    Item(LibraryId, ItemId),
-    BodyExpr(LibraryId, BodyExpr),
-    Body(LibraryId, BodyId),
+    Item(PackageId, ItemId),
+    BodyExpr(PackageId, BodyExpr),
+    Body(PackageId, BodyId),
 }
 
 impl From<DefId> for TypeSource {
@@ -103,44 +103,44 @@ impl From<DefId> for TypeSource {
     }
 }
 
-impl From<InLibrary<ItemId>> for TypeSource {
-    fn from(id: InLibrary<ItemId>) -> Self {
+impl From<InPackage<ItemId>> for TypeSource {
+    fn from(id: InPackage<ItemId>) -> Self {
         Self::Item(id.0, id.1)
     }
 }
 
-impl From<InLibrary<BodyExpr>> for TypeSource {
-    fn from(id: InLibrary<BodyExpr>) -> Self {
+impl From<InPackage<BodyExpr>> for TypeSource {
+    fn from(id: InPackage<BodyExpr>) -> Self {
         Self::BodyExpr(id.0, id.1)
     }
 }
 
-impl From<InLibrary<BodyId>> for TypeSource {
-    fn from(id: InLibrary<BodyId>) -> Self {
+impl From<InPackage<BodyId>> for TypeSource {
+    fn from(id: InPackage<BodyId>) -> Self {
         Self::Body(id.0, id.1)
     }
 }
 
-impl From<(LibraryId, BodyExpr)> for TypeSource {
-    fn from(id: (LibraryId, BodyExpr)) -> Self {
+impl From<(PackageId, BodyExpr)> for TypeSource {
+    fn from(id: (PackageId, BodyExpr)) -> Self {
         Self::BodyExpr(id.0, id.1)
     }
 }
 
-impl From<(LibraryId, BodyId, ExprId)> for TypeSource {
-    fn from(id: (LibraryId, BodyId, ExprId)) -> Self {
+impl From<(PackageId, BodyId, ExprId)> for TypeSource {
+    fn from(id: (PackageId, BodyId, ExprId)) -> Self {
         Self::BodyExpr(id.0, BodyExpr(id.1, id.2))
     }
 }
 
-impl From<(LibraryId, BodyId)> for TypeSource {
-    fn from(id: (LibraryId, BodyId)) -> Self {
+impl From<(PackageId, BodyId)> for TypeSource {
+    fn from(id: (PackageId, BodyId)) -> Self {
         Self::Body(id.0, id.1)
     }
 }
 
-impl From<(LibraryId, ItemId)> for TypeSource {
-    fn from(id: (LibraryId, ItemId)) -> Self {
+impl From<(PackageId, ItemId)> for TypeSource {
+    fn from(id: (PackageId, ItemId)) -> Self {
         Self::Item(id.0, id.1)
     }
 }
@@ -149,8 +149,8 @@ impl From<(LibraryId, ItemId)> for TypeSource {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum BindingSource {
     DefId(DefId),
-    Body(LibraryId, BodyId),
-    BodyExpr(LibraryId, BodyExpr),
+    Body(PackageId, BodyId),
+    BodyExpr(PackageId, BodyExpr),
 }
 
 impl From<symbol::DefId> for BindingSource {
@@ -159,20 +159,20 @@ impl From<symbol::DefId> for BindingSource {
     }
 }
 
-impl From<(LibraryId, BodyId)> for BindingSource {
-    fn from((lib_id, body): (LibraryId, BodyId)) -> Self {
-        Self::Body(lib_id, body)
+impl From<(PackageId, BodyId)> for BindingSource {
+    fn from((pkg_id, body): (PackageId, BodyId)) -> Self {
+        Self::Body(pkg_id, body)
     }
 }
 
-impl From<(LibraryId, expr::BodyExpr)> for BindingSource {
-    fn from(expr: (LibraryId, expr::BodyExpr)) -> Self {
+impl From<(PackageId, expr::BodyExpr)> for BindingSource {
+    fn from(expr: (PackageId, expr::BodyExpr)) -> Self {
         Self::BodyExpr(expr.0, expr.1)
     }
 }
 
-impl From<(LibraryId, BodyId, expr::ExprId)> for BindingSource {
-    fn from(expr: (LibraryId, BodyId, expr::ExprId)) -> Self {
+impl From<(PackageId, BodyId, expr::ExprId)> for BindingSource {
+    fn from(expr: (PackageId, BodyId, expr::ExprId)) -> Self {
         Self::BodyExpr(expr.0, expr::BodyExpr(expr.1, expr.2))
     }
 }
@@ -181,8 +181,8 @@ impl From<ValueSource> for BindingSource {
     fn from(src: ValueSource) -> Self {
         match src {
             ValueSource::Def(def_id) => Self::DefId(def_id),
-            ValueSource::Body(lib_id, body_id) => Self::Body(lib_id, body_id),
-            ValueSource::BodyExpr(lib_id, body_expr) => Self::BodyExpr(lib_id, body_expr),
+            ValueSource::Body(pkg_id, body_id) => Self::Body(pkg_id, body_id),
+            ValueSource::BodyExpr(pkg_id, body_expr) => Self::BodyExpr(pkg_id, body_expr),
         }
     }
 }
@@ -243,8 +243,8 @@ pub enum NotValue {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ValueSource {
     Def(DefId),
-    Body(LibraryId, BodyId),
-    BodyExpr(LibraryId, BodyExpr),
+    Body(PackageId, BodyId),
+    BodyExpr(PackageId, BodyExpr),
 }
 
 impl ValueSource {
@@ -253,13 +253,13 @@ impl ValueSource {
             ValueSource::Def(_def_id) => {
                 unimplemented!("not sure if we need this")
             }
-            ValueSource::Body(lib_id, body_id) => {
-                let library = db.library(lib_id);
-                library.body(body_id).span.lookup_in(&library)
+            ValueSource::Body(pkg_id, body_id) => {
+                let package = db.package(pkg_id);
+                package.body(body_id).span.lookup_in(&package)
             }
-            ValueSource::BodyExpr(lib_id, BodyExpr(body_id, expr_id)) => {
-                let library = db.library(lib_id);
-                library.body(body_id).expr(expr_id).span.lookup_in(&library)
+            ValueSource::BodyExpr(pkg_id, BodyExpr(body_id, expr_id)) => {
+                let package = db.package(pkg_id);
+                package.body(body_id).expr(expr_id).span.lookup_in(&package)
             }
         }
     }
@@ -271,20 +271,20 @@ impl From<DefId> for ValueSource {
     }
 }
 
-impl From<(LibraryId, BodyId)> for ValueSource {
-    fn from((lib_id, body): (LibraryId, BodyId)) -> Self {
-        Self::Body(lib_id, body)
+impl From<(PackageId, BodyId)> for ValueSource {
+    fn from((pkg_id, body): (PackageId, BodyId)) -> Self {
+        Self::Body(pkg_id, body)
     }
 }
 
-impl From<(LibraryId, BodyExpr)> for ValueSource {
-    fn from(expr: (LibraryId, BodyExpr)) -> Self {
+impl From<(PackageId, BodyExpr)> for ValueSource {
+    fn from(expr: (PackageId, BodyExpr)) -> Self {
         Self::BodyExpr(expr.0, expr.1)
     }
 }
 
-impl From<(LibraryId, BodyId, ExprId)> for ValueSource {
-    fn from(expr: (LibraryId, BodyId, ExprId)) -> Self {
+impl From<(PackageId, BodyId, ExprId)> for ValueSource {
+    fn from(expr: (PackageId, BodyId, ExprId)) -> Self {
         Self::BodyExpr(expr.0, BodyExpr(expr.1, expr.2))
     }
 }
@@ -292,8 +292,8 @@ impl From<(LibraryId, BodyId, ExprId)> for ValueSource {
 impl From<ValueSource> for TypeSource {
     fn from(src: ValueSource) -> Self {
         match src {
-            ValueSource::Body(lib_id, body_id) => Self::Body(lib_id, body_id),
-            ValueSource::BodyExpr(lib_id, body_id) => Self::BodyExpr(lib_id, body_id),
+            ValueSource::Body(pkg_id, body_id) => Self::Body(pkg_id, body_id),
+            ValueSource::BodyExpr(pkg_id, body_id) => Self::BodyExpr(pkg_id, body_id),
             ValueSource::Def(def_id) => TypeSource::Def(def_id),
         }
     }
@@ -328,7 +328,7 @@ pub enum FieldSource {
     /// with context on the module the type is accessed from
     TypeInstance(ty::TypeId, item::ModuleId),
     /// On an expression
-    BodyExpr(LibraryId, expr::BodyExpr),
+    BodyExpr(PackageId, expr::BodyExpr),
 }
 
 impl From<(DefId, item::ModuleId)> for FieldSource {
@@ -337,14 +337,14 @@ impl From<(DefId, item::ModuleId)> for FieldSource {
     }
 }
 
-impl From<(LibraryId, BodyExpr)> for FieldSource {
-    fn from(expr: (LibraryId, BodyExpr)) -> Self {
+impl From<(PackageId, BodyExpr)> for FieldSource {
+    fn from(expr: (PackageId, BodyExpr)) -> Self {
         Self::BodyExpr(expr.0, expr.1)
     }
 }
 
-impl From<(LibraryId, BodyId, ExprId)> for FieldSource {
-    fn from(expr: (LibraryId, BodyId, ExprId)) -> Self {
+impl From<(PackageId, BodyId, ExprId)> for FieldSource {
+    fn from(expr: (PackageId, BodyId, ExprId)) -> Self {
         Self::BodyExpr(expr.0, BodyExpr(expr.1, expr.2))
     }
 }

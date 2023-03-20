@@ -3,7 +3,7 @@ source: compiler/toc_hir_lowering/tests/lowering.rs
 expression: "\n    if true then\n        var a := 1\n    elsif false then\n        var a := 2\n    end if\n    "
 
 ---
-Library@(dummy)
+Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(2)
     Module@(FileId(1), 0..92): "<root>"@(dummy)
       StmtBody@(FileId(1), 5..87): []

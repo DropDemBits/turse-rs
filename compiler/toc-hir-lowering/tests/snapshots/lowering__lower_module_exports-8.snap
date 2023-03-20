@@ -2,7 +2,7 @@
 source: compiler/toc_hir_lowering/tests/lowering.rs
 expression: "\n    module z\n        export var *~. opaque all\n        var heres, tree : int\n        type again : int\n    end z"
 ---
-Library@(dummy)
+Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(4)
     Module@(FileId(1), 0..112): "<root>"@(dummy)
       StmtBody@(FileId(1), 5..112): []

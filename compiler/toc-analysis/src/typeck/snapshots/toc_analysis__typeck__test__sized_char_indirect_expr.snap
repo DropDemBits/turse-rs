@@ -3,6 +3,6 @@ source: compiler/toc_analysis/src/typeck/test.rs
 expression: "const N := 1\nvar _ : char(N)\n"
 ---
 "N"@(FileId(1), 6..7) [ConstVar(Const, No)]: int
-"_"@(FileId(1), 17..18) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(1)))
+"_"@(FileId(1), 17..18) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(1)))
 "<root>"@(dummy) [Module(No)]: <error>
 

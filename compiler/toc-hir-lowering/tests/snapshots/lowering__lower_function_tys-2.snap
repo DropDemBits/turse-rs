@@ -4,7 +4,7 @@ assertion_line: 59
 expression: "type _ : function p1   (a : int) : string"
 
 ---
-Library@(dummy)
+Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(1)
     Module@(FileId(1), 0..41): "<root>"@(dummy)
       StmtBody@(FileId(1), 0..41): []

@@ -87,13 +87,13 @@ impl super::BodyLowering<'_, '_> {
         // Allocate a generic span
         let missing = expr::Expr {
             kind: expr::ExprKind::Missing,
-            span: self.ctx.library.span_table().dummy_span(),
+            span: self.ctx.package.span_table().dummy_span(),
         };
         self.body.add_expr(missing)
     }
 
     fn unsupported_expr(&mut self, span: SpanId) -> Option<expr::ExprKind> {
-        let span = span.lookup_in(&self.ctx.library);
+        let span = span.lookup_in(&self.ctx.package);
         self.ctx.messages.error(
             "unsupported expression",
             "this expression is not supported yet",

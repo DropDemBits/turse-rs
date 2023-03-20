@@ -2,8 +2,8 @@
 source: compiler/toc_analysis/src/typeck/test.rs
 expression: "type a0 : real\nvar k : a0\nvar _ := not k % unchanged\n"
 ---
-"a0"@(FileId(1), 5..7) [Type]: alias[DefId(LibraryId(0), LocalDefId(0))] of real
-"k"@(FileId(1), 19..20) [ConstVar(Var, No)]: alias[DefId(LibraryId(0), LocalDefId(0))] of real
+"a0"@(FileId(1), 5..7) [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of real
+"k"@(FileId(1), 19..20) [ConstVar(Var, No)]: alias[DefId(PackageId(0), LocalDefId(0))] of real
 "_"@(FileId(1), 30..31) [ConstVar(Var, No)]: <error>
 "<root>"@(dummy) [Module(No)]: <error>
 

@@ -1,6 +1,6 @@
 use toc_analysis::db::HirAnalysis;
 use toc_paths::RawPath;
-use toc_source_graph::{DependencyList, RootLibraries};
+use toc_source_graph::{DependencyList, RootPackages};
 use toc_vfs_db::{SourceTable, VfsBridge, VfsDbExt};
 
 // Workaround for the `afl` crate depending on `xdg`, which isn't compilable on platforms other than linux/unix
@@ -40,17 +40,17 @@ fn run(source: &str) {
     db.insert_fixture(fixture);
 
     let root_file = RawPath::new(&db, "src/main.t".into());
-    let root_library = toc_hir::library_graph::SourceLibrary::new(
+    let root_package = toc_hir::package_graph::SourcePackage::new(
         &db,
         "main".into(),
         root_file,
-        toc_hir::library_graph::ArtifactKind::Binary,
+        toc_hir::package_graph::ArtifactKind::Binary,
         DependencyList::empty(&db),
     );
-    RootLibraries::new(&db, vec![root_library]);
+    RootPackages::new(&db, vec![root_package]);
 
     // Run full analysis
-    db.analyze_libraries();
+    db.analyze_packages();
 }
 
 #[salsa::db(

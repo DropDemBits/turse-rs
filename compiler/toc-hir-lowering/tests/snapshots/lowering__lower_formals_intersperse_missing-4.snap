@@ -4,7 +4,7 @@ assertion_line: 59
 expression: "procedure args(a, , , , b, : int) end args"
 
 ---
-Library@(dummy)
+Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(1)
     Module@(FileId(1), 0..42): "<root>"@(dummy)
       StmtBody@(FileId(1), 0..42): []

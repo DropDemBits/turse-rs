@@ -4,7 +4,7 @@ assertion_line: 59
 expression: "\n    function pass_me(\n        by_value : int,\n        var by_ref : int,\n        register by_val_to_reg : int,\n        var register by_ref_to_reg : int\n    ) : int\n    end pass_me\n    "
 
 ---
-Library@(dummy)
+Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(1)
     Module@(FileId(1), 0..184): "<root>"@(dummy)
       StmtBody@(FileId(1), 5..179): []

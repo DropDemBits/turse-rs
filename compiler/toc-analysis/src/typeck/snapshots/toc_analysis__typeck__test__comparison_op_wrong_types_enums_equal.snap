@@ -2,20 +2,20 @@
 source: compiler/toc_analysis/src/typeck/test.rs
 expression: "\n    % Different enums\n    type e1 : enum(v)\n    type e2 : enum(v)\n    var ae : e1\n    var be : e2\n    var aA : enum(v)\n    var bA : enum(v)\n\n    % should all produce boolean anyway\n    var _v_res : boolean\n\n    _v_res := ae = be\n    _v_res := be = ae\n    _v_res := aA = ae\n    _v_res := ae = aA\n    _v_res := aA = bA\n    "
 ---
-"e1"@(FileId(1), 32..34) [Type]: enum[DefId(LibraryId(0), LocalDefId(1))] ( "v"@(FileId(1), 42..43), )
+"e1"@(FileId(1), 32..34) [Type]: enum[DefId(PackageId(0), LocalDefId(1))] ( "v"@(FileId(1), 42..43), )
 "e1"@(FileId(1), 37..44) [Enum]: <error>
-"v"@(FileId(1), 42..43) [EnumVariant]: enum[DefId(LibraryId(0), LocalDefId(1))] ( "v"@(FileId(1), 42..43), )
-"e2"@(FileId(1), 54..56) [Type]: enum[DefId(LibraryId(0), LocalDefId(4))] ( "v"@(FileId(1), 64..65), )
+"v"@(FileId(1), 42..43) [EnumVariant]: enum[DefId(PackageId(0), LocalDefId(1))] ( "v"@(FileId(1), 42..43), )
+"e2"@(FileId(1), 54..56) [Type]: enum[DefId(PackageId(0), LocalDefId(4))] ( "v"@(FileId(1), 64..65), )
 "e2"@(FileId(1), 59..66) [Enum]: <error>
-"v"@(FileId(1), 64..65) [EnumVariant]: enum[DefId(LibraryId(0), LocalDefId(4))] ( "v"@(FileId(1), 64..65), )
-"ae"@(FileId(1), 75..77) [ConstVar(Var, No)]: enum[DefId(LibraryId(0), LocalDefId(1))] ( "v"@(FileId(1), 42..43), )
-"be"@(FileId(1), 91..93) [ConstVar(Var, No)]: enum[DefId(LibraryId(0), LocalDefId(4))] ( "v"@(FileId(1), 64..65), )
-"aA"@(FileId(1), 107..109) [ConstVar(Var, No)]: enum[DefId(LibraryId(0), LocalDefId(9))] ( "v"@(FileId(1), 117..118), )
+"v"@(FileId(1), 64..65) [EnumVariant]: enum[DefId(PackageId(0), LocalDefId(4))] ( "v"@(FileId(1), 64..65), )
+"ae"@(FileId(1), 75..77) [ConstVar(Var, No)]: enum[DefId(PackageId(0), LocalDefId(1))] ( "v"@(FileId(1), 42..43), )
+"be"@(FileId(1), 91..93) [ConstVar(Var, No)]: enum[DefId(PackageId(0), LocalDefId(4))] ( "v"@(FileId(1), 64..65), )
+"aA"@(FileId(1), 107..109) [ConstVar(Var, No)]: enum[DefId(PackageId(0), LocalDefId(9))] ( "v"@(FileId(1), 117..118), )
 "<anonymous>"@(FileId(1), 112..119) [Enum]: <error>
-"v"@(FileId(1), 117..118) [EnumVariant]: enum[DefId(LibraryId(0), LocalDefId(9))] ( "v"@(FileId(1), 117..118), )
-"bA"@(FileId(1), 128..130) [ConstVar(Var, No)]: enum[DefId(LibraryId(0), LocalDefId(12))] ( "v"@(FileId(1), 138..139), )
+"v"@(FileId(1), 117..118) [EnumVariant]: enum[DefId(PackageId(0), LocalDefId(9))] ( "v"@(FileId(1), 117..118), )
+"bA"@(FileId(1), 128..130) [ConstVar(Var, No)]: enum[DefId(PackageId(0), LocalDefId(12))] ( "v"@(FileId(1), 138..139), )
 "<anonymous>"@(FileId(1), 133..140) [Enum]: <error>
-"v"@(FileId(1), 138..139) [EnumVariant]: enum[DefId(LibraryId(0), LocalDefId(12))] ( "v"@(FileId(1), 138..139), )
+"v"@(FileId(1), 138..139) [EnumVariant]: enum[DefId(PackageId(0), LocalDefId(12))] ( "v"@(FileId(1), 138..139), )
 "_v_res"@(FileId(1), 190..196) [ConstVar(Var, No)]: boolean
 "<root>"@(dummy) [Module(No)]: <error>
 

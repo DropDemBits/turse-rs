@@ -3,9 +3,9 @@ source: compiler/toc_analysis/src/typeck/test.rs
 expression: "\n    % Sized charseqs\n    var c : char\n    var c_sz : char(6)\n    var s : string\n    var s_sz : string(6)\n\n    % should all produce booleans\n    var _v_res : boolean\n\n    _v_res := c >= c\n    _v_res := c >= c_sz\n    _v_res := c >= s\n    _v_res := c >= s_sz\n\n    _v_res := c_sz >= c\n    _v_res := c_sz >= c_sz\n    _v_res := c_sz >= s\n    _v_res := c_sz >= s_sz\n\n    _v_res := s >= c\n    _v_res := s >= c_sz\n    _v_res := s >= s\n    _v_res := s >= s_sz\n\n    _v_res := s_sz >= c\n    _v_res := s_sz >= c_sz\n    _v_res := s_sz >= s\n    _v_res := s_sz >= s_sz\n    "
 ---
 "c"@(FileId(1), 30..31) [ConstVar(Var, No)]: char
-"c_sz"@(FileId(1), 47..51) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
+"c_sz"@(FileId(1), 47..51) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(0)))
 "s"@(FileId(1), 70..71) [ConstVar(Var, No)]: string
-"s_sz"@(FileId(1), 89..93) [ConstVar(Var, No)]: string_n Fixed(Unevaluated(LibraryId(0), BodyId(1)))
+"s_sz"@(FileId(1), 89..93) [ConstVar(Var, No)]: string_n Fixed(Unevaluated(PackageId(0), BodyId(1)))
 "_v_res"@(FileId(1), 149..155) [ConstVar(Var, No)]: boolean
 "<root>"@(dummy) [Module(No)]: <error>
 

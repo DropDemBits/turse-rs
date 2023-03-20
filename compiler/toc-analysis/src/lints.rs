@@ -3,8 +3,8 @@
 use std::cell::{RefCell, RefMut};
 
 use toc_hir::{
-    expr, library,
-    library_graph::SourceLibrary,
+    expr, package,
+    package_graph::SourcePackage,
     visitor::{HirVisitor, Walker},
 };
 use toc_reporting::{CompileResult, MessageSink};
@@ -15,27 +15,27 @@ use crate::{db, ty};
 mod test;
 
 #[salsa::tracked(jar = crate::db::AnalysisJar)]
-pub(crate) fn lint_library(
+pub(crate) fn lint_package(
     db: &dyn db::HirAnalysis,
-    library_id: SourceLibrary,
+    package_id: SourcePackage,
 ) -> CompileResult<()> {
-    let library = db.library(library_id.into());
+    let package = db.package(package_id.into());
     let ctx = LintContext {
         _db: db,
-        _library_id: library_id.into(),
-        library,
+        _package_id: package_id.into(),
+        package,
         reporter: Default::default(),
     };
 
-    Walker::from_library(&ctx.library).visit_postorder(&ImplLimitsLint { ctx: &ctx });
+    Walker::from_package(&ctx.package).visit_postorder(&ImplLimitsLint { ctx: &ctx });
 
     CompileResult::new((), ctx.reporter.into_inner().finish())
 }
 
 struct LintContext<'db> {
     _db: &'db dyn db::HirAnalysis,
-    _library_id: library::LibraryId,
-    library: library::LoweredLibrary,
+    _package_id: package::PackageId,
+    package: package::LoweredPackage,
     reporter: RefCell<MessageSink>,
 }
 
@@ -52,8 +52,8 @@ struct ImplLimitsLint<'ctx> {
 
 impl<'ctx> HirVisitor for ImplLimitsLint<'ctx> {
     fn visit_literal(&self, id: expr::BodyExpr, expr: &expr::Literal) {
-        let span = self.ctx.library.body(id.0).expr(id.1).span;
-        let span = span.lookup_in(&self.ctx.library);
+        let span = self.ctx.package.body(id.0).expr(id.1).span;
+        let span = span.lookup_in(&self.ctx.package);
 
         // Check that all literals meet the implementation defined limits
         match expr {

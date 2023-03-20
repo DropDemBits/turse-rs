@@ -4,7 +4,7 @@ assertion_line: 61
 expression: "\n    module pervasive a\n        module b\n            module c\n                a b c\n            end c\n        end b\n    end a\n    "
 
 ---
-Library@(dummy)
+Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(3)
     Module@(FileId(1), 0..130): "<root>"@(dummy)
       StmtBody@(FileId(1), 5..125): []

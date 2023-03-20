@@ -4,7 +4,7 @@ assertion_line: 59
 expression: "type _ : function pisf (a : int, b : string, c : function _ () : int) : boolean"
 
 ---
-Library@(dummy)
+Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(1)
     Module@(FileId(1), 0..79): "<root>"@(dummy)
       StmtBody@(FileId(1), 0..79): []

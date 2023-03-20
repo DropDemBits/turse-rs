@@ -4,22 +4,22 @@ use la_arena::{Arena, Idx};
 use toc_span::{FileId, Span};
 
 use crate::{
-    body, expr, item, library,
+    body, expr, item, package,
     span::{HasSpanTable, SpanId, SpanTable},
     stmt, symbol, ty,
 };
 
-/// Builder for constructing a [`Library`]
+/// Builder for constructing a [`Package`]
 ///
-/// [`Library`]: library::Library
-pub struct LibraryBuilder {
-    library: library::Library,
+/// [`Package`]: package::Package
+pub struct PackageBuilder {
+    package: package::Package,
 }
 
-impl LibraryBuilder {
+impl PackageBuilder {
     pub fn new(span_map: SpanTable, defs: symbol::DefInfoTable) -> Self {
         Self {
-            library: library::Library {
+            package: package::Package {
                 span_map,
                 defs,
 
@@ -81,41 +81,41 @@ impl LibraryBuilder {
 
     pub fn freeze_root_items(self, root_items: Vec<(FileId, item::ItemId)>) -> Self {
         Self {
-            library: library::Library {
+            package: package::Package {
                 // Convert from vec of tuples to an index map
                 root_items: root_items.into_iter().collect(),
-                ..self.library
+                ..self.package
             },
         }
     }
 
-    pub fn finish(self, resolve_map: symbol::ResolutionMap) -> library::Library {
-        let Self { library, .. } = self;
+    pub fn finish(self, resolve_map: symbol::ResolutionMap) -> package::Package {
+        let Self { package, .. } = self;
 
-        library::Library {
+        package::Package {
             resolve_map,
-            ..library
+            ..package
         }
     }
 }
 
-impl std::ops::Deref for LibraryBuilder {
-    type Target = library::Library;
+impl std::ops::Deref for PackageBuilder {
+    type Target = package::Package;
 
     fn deref(&self) -> &Self::Target {
-        &self.library
+        &self.package
     }
 }
 
-impl std::ops::DerefMut for LibraryBuilder {
+impl std::ops::DerefMut for PackageBuilder {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.library
+        &mut self.package
     }
 }
 
-impl HasSpanTable for LibraryBuilder {
+impl HasSpanTable for PackageBuilder {
     fn span_table(&self) -> &SpanTable {
-        self.library.span_table()
+        self.package.span_table()
     }
 }
 

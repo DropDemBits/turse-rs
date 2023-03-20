@@ -3,7 +3,7 @@ source: compiler/toc_hir_lowering/tests/lowering.rs
 expression: "var _ : int _ := 18446744073709551616#0000"
 
 ---
-Library@(dummy)
+Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(1)
     Module@(FileId(1), 0..42): "<root>"@(dummy)
       StmtBody@(FileId(1), 0..42): []

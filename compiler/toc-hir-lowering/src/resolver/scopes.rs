@@ -28,12 +28,12 @@ pub(crate) enum DeclareKind {
     /// The symbol is a resolution of a forward declaration.
     Resolved(ForwardKind),
 
-    // TODO: We only care about where it's exported from, attrs can come later (library local export table?)
+    // TODO: We only care about where it's exported from, attrs can come later (package local export table?)
     /// The symbol is from an export of an item, with a [`LocalDefId`]
     /// pointing to the original item.
     ItemExport(LocalDefId),
 
-    // TODO: Shunt this info into a libray local import table/resolution map?
+    // TODO: Shunt this info into a package local import table/resolution map?
     /// The symbol is of an imported item, optionally with a [`LocalDefId`]
     /// pointing to the original item, or `None` if there isn't one.
     ItemImport(Option<LocalDefId>),

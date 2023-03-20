@@ -2,8 +2,8 @@
 source: compiler/toc_analysis/src/typeck/test.rs
 expression: "type o : int\ntype w : int\nput 1 : o : w : o\n"
 ---
-"o"@(FileId(1), 5..6) [Type]: alias[DefId(LibraryId(0), LocalDefId(0))] of int
-"w"@(FileId(1), 18..19) [Type]: alias[DefId(LibraryId(0), LocalDefId(1))] of int
+"o"@(FileId(1), 5..6) [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of int
+"w"@(FileId(1), 18..19) [Type]: alias[DefId(PackageId(0), LocalDefId(1))] of int
 "<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 34..35: cannot use `o` as an expression

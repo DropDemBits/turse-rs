@@ -1,4 +1,4 @@
-//! Collecting all defs declared in a library
+//! Collecting all defs declared in a package
 
 use std::collections::HashMap;
 

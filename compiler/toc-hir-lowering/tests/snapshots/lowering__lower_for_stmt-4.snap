@@ -3,7 +3,7 @@ source: compiler/toc_hir_lowering/tests/lowering.rs
 expression: "var wah : int for : wah by 1 end for"
 
 ---
-Library@(dummy)
+Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(1)
     Module@(FileId(1), 0..36): "<root>"@(dummy)
       StmtBody@(FileId(1), 0..36): []

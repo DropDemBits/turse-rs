@@ -4,9 +4,9 @@ use std::{collections::HashMap, fs};
 
 use camino::{Utf8Path, Utf8PathBuf};
 use toc_analysis::db::HirAnalysis;
-use toc_hir::library_graph::{DependencyList, SourceLibrary};
+use toc_hir::package_graph::{DependencyList, SourcePackage};
 use toc_paths::RawPath;
-use toc_source_graph::RootLibraries;
+use toc_source_graph::RootPackages;
 use toc_span::{FileId, Span};
 use toc_vfs_db::{SourceTable, VfsBridge};
 
@@ -35,14 +35,14 @@ fn main() {
     let root_file = RawPath::new(&db, path.try_into().unwrap());
 
     // Set the source root
-    let library_id = SourceLibrary::new(
+    let package_id = SourcePackage::new(
         &db,
         maybe_name.into(),
         root_file,
-        toc_hir::library_graph::ArtifactKind::Binary,
+        toc_hir::package_graph::ArtifactKind::Binary,
         DependencyList::empty(&db),
     );
-    RootLibraries::new(&db, vec![library_id]);
+    RootPackages::new(&db, vec![package_id]);
 
     // Dump requested information
     if let Some(dump_mode) = args.dump {
@@ -60,15 +60,15 @@ fn main() {
             config::DumpMode::Hir => {
                 use toc_hir_db::Db;
 
-                // Dump library graph
-                println!("Libraries:");
+                // Dump package graph
+                println!("Packages:");
                 let source_graph = toc_source_graph::source_graph(&db).as_ref().ok().unwrap();
 
-                for &library in source_graph.all_libraries(&db) {
-                    let file = library.root(&db);
+                for &package in source_graph.all_packages(&db) {
+                    let file = package.root(&db);
                     println!(
                         "{file:?}: {tree}",
-                        tree = toc_hir_pretty::tree::pretty_print_tree(&db.library(library.into()))
+                        tree = toc_hir_pretty::tree::pretty_print_tree(&db.package(package.into()))
                     );
                 }
             }
@@ -76,7 +76,7 @@ fn main() {
                 use toc_hir_db::Db;
 
                 let out =
-                    toc_hir_pretty::graph::pretty_print_graph(&db, |library| db.library(library));
+                    toc_hir_pretty::graph::pretty_print_graph(&db, |package| db.package(package));
                 println!("{out}");
             }
         }
@@ -84,7 +84,7 @@ fn main() {
 
     let codegen_res = if args.lint {
         // Lint-only mode
-        db.analyze_libraries().map(|_| None)
+        db.analyze_packages().map(|_| None)
     } else {
         // Do codegen
         toc_hir_codegen::generate_code(&db)

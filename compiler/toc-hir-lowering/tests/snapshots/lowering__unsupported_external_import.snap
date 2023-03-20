@@ -4,7 +4,7 @@ assertion_line: 61
 expression: import()
 
 ---
-Library@(dummy)
+Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(0)
     Module@(FileId(1), 0..8): "<root>"@(dummy)
       StmtBody@(FileId(1), 8..8): []

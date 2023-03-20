@@ -2,7 +2,7 @@
 source: compiler/toc_hir_lowering/tests/lowering.rs
 expression: "\n    type a : forward\n    begin\n        type a : int\n    end\n    type use_it : a\n    "
 ---
-Library@(dummy)
+Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(3)
     Module@(FileId(1), 0..85): "<root>"@(dummy)
       StmtBody@(FileId(1), 5..80): []

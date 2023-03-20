@@ -2,7 +2,7 @@
 source: compiler/toc_hir_lowering/tests/lowering.rs
 expression: "\nmodule _\n    export ~. waw\n    module waw\n        export ~. var sus\n        var sus : int\n    end waw\nend _\n\nmodule target\n    import waw\n    sus := 1\nend target\n    "
 ---
-Library@(dummy)
+Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(5)
     Module@(FileId(1), 0..167): "<root>"@(dummy)
       StmtBody@(FileId(1), 1..162): []

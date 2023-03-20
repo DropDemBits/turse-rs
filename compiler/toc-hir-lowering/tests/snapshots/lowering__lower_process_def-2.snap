@@ -4,7 +4,7 @@ assertion_line: 59
 expression: "\n    process empty_params()\n    end empty_params\n    "
 
 ---
-Library@(dummy)
+Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(1)
     Module@(FileId(1), 0..53): "<root>"@(dummy)
       StmtBody@(FileId(1), 5..48): []

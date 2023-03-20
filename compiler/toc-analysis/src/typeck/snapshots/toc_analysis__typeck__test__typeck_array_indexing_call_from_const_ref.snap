@@ -2,7 +2,7 @@
 source: compiler/toc_analysis/src/typeck/test.rs
 expression: "const a : array 1..* of int := init(1)\na(1) := 1"
 ---
-"a"@(FileId(1), 6..7) [ConstVar(Const, No)]: array ( range of `int` (Unevaluated(LibraryId(0), BodyId(0)) .. Unsized(1)), ) of int
+"a"@(FileId(1), 6..7) [ConstVar(Const, No)]: array ( range of `int` (Unevaluated(PackageId(0), BodyId(0)) .. Unsized(1)), ) of int
 "<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 44..46: cannot assign into expression

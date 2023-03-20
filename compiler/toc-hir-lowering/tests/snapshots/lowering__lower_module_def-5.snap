@@ -2,7 +2,7 @@
 source: compiler/toc_hir_lowering/tests/lowering.rs
 expression: "\n        var u, w, U : int\n        module a\n            export ~.all\n            var u, w, U : int\n        end a\n        "
 ---
-Library@(dummy)
+Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(7)
     Module@(FileId(1), 0..121): "<root>"@(dummy)
       StmtBody@(FileId(1), 9..112): []

@@ -1,4 +1,4 @@
-//! Library structure definitions
+//! Package structure definitions
 
 use std::sync::Arc;
 
@@ -13,18 +13,18 @@ use crate::{
     ty,
 };
 
-pub use crate::library_graph::LibraryId;
+pub use crate::package_graph::PackageId;
 
-/// A reference to a library node in a specific library
+/// A reference to a package node in a specific package
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct InLibrary<T>(pub LibraryId, pub T);
+pub struct InPackage<T>(pub PackageId, pub T);
 
-impl<T> InLibrary<T> {
-    pub fn map<U>(self, f: impl FnOnce(T) -> U) -> InLibrary<U> {
-        InLibrary(self.0, f(self.1))
+impl<T> InPackage<T> {
+    pub fn map<U>(self, f: impl FnOnce(T) -> U) -> InPackage<U> {
+        InPackage(self.0, f(self.1))
     }
 
-    pub fn library(self) -> LibraryId {
+    pub fn package(self) -> PackageId {
         self.0
     }
 
@@ -33,38 +33,38 @@ impl<T> InLibrary<T> {
     }
 }
 
-pub trait WrapInLibrary: Copy {
+pub trait WrapInPackage: Copy {
     type Output: Copy;
 
-    /// Wraps self in the context of a library
-    fn in_library(self, library: LibraryId) -> InLibrary<Self::Output>;
+    /// Wraps self in the context of a package
+    fn in_package(self, package: PackageId) -> InPackage<Self::Output>;
 }
 
-impl<T> WrapInLibrary for T
+impl<T> WrapInPackage for T
 where
     T: Copy,
 {
     type Output = T;
 
-    fn in_library(self, library: LibraryId) -> InLibrary<Self::Output> {
-        InLibrary(library, self)
+    fn in_package(self, package: PackageId) -> InPackage<Self::Output> {
+        InPackage(package, self)
     }
 }
 
-/// A `Library` represents a logical collection of files.
+/// A `Package` represents a logical collection of files.
 ///
 /// It is a conceptual group of files / units that are accessible from a
-/// specific root file. For example, all of the standard library files are
-/// grouped together under one `Library`. Similarly, the file provided during
-/// compilation serves as a root for a `Library`.
+/// specific root file. For example, all of the standard package files are
+/// grouped together under one `Package`. Similarly, the file provided during
+/// compilation serves as a root for a `Package`.
 ///
-/// `Library` stores the arena for all library local entities
+/// `Package` stores the arena for all package local entities
 /// (`Item`, `Body`, `DefInfo`, and `Type`).
-/// `Library` also stores a mapping between the library files, and the
+/// `Package` also stores a mapping between the package files, and the
 /// associated root `ItemId`s.
 #[derive(PartialEq, Eq)]
-pub struct Library {
-    /// Map between library files and root items
+pub struct Package {
+    /// Map between package files and root items
     pub root_items: IndexMap<FileId, item::ItemId>,
     /// Table of all interned spans
     pub(crate) span_map: SpanTable,
@@ -76,15 +76,15 @@ pub struct Library {
     pub(crate) resolve_map: ResolutionMap,
 }
 
-impl std::fmt::Debug for Library {
+impl std::fmt::Debug for Package {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Library")
+        f.debug_struct("Package")
             .field("root_items", &self.root_items)
             .finish_non_exhaustive()
     }
 }
 
-impl Library {
+impl Package {
     pub fn body(&self, body_id: body::BodyId) -> &body::Body {
         &self.bodies[Idx::from(body_id)]
     }
@@ -136,15 +136,15 @@ impl Library {
     }
 }
 
-impl HasSpanTable for Library {
+impl HasSpanTable for Package {
     fn span_table(&self) -> &SpanTable {
         &self.span_map
     }
 }
 
-/// Lowered [`Library`].
+/// Lowered [`Package`].
 ///
 /// Data is wrapped inside of an [`Arc`], so it is trivially cloneable.
 ///
-/// [`Library`]: crate::library::Library
-pub type LoweredLibrary = Arc<Library>;
+/// [`Package`]: crate::package::Package
+pub type LoweredPackage = Arc<Package>;

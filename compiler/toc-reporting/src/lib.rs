@@ -1,4 +1,4 @@
-//! Common message reporting for all compiler libraries
+//! Common message reporting for all compiler crates
 use std::sync::Arc;
 
 mod annotate;

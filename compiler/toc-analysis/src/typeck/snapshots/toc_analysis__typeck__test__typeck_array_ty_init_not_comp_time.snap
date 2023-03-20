@@ -3,7 +3,7 @@ source: compiler/toc_analysis/src/typeck/test.rs
 expression: "var c : int\nvar a : array 1..1 of int := init(c)"
 ---
 "c"@(FileId(1), 4..5) [ConstVar(Var, No)]: int
-"a"@(FileId(1), 16..17) [ConstVar(Var, No)]: array ( range of `int` (Unevaluated(LibraryId(0), BodyId(0)) .. Expr(Unevaluated(LibraryId(0), BodyId(1)), Yes)), ) of int
+"a"@(FileId(1), 16..17) [ConstVar(Var, No)]: array ( range of `int` (Unevaluated(PackageId(0), BodyId(0)) .. Expr(Unevaluated(PackageId(0), BodyId(1)), Yes)), ) of int
 "<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 46..47: cannot compute `c` at compile-time

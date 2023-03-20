@@ -3,7 +3,7 @@ source: compiler/toc_hir_lowering/tests/lowering.rs
 expression: "\n    var k : int\n    begin\n        const k := 1\n        const k := 2\n        const k := 3\n    end\n    begin\n        const k := 1.0\n    end\n    k := k"
 
 ---
-Library@(dummy)
+Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(5)
     Module@(FileId(1), 0..149): "<root>"@(dummy)
       StmtBody@(FileId(1), 5..149): []

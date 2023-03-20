@@ -4,7 +4,7 @@ assertion_line: 59
 expression: "\n    function a shambles : int end a\n    function b() quoi : int end b\n    function c(k : int) weh : int end c\n    "
 
 ---
-Library@(dummy)
+Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(3)
     Module@(FileId(1), 0..115): "<root>"@(dummy)
       StmtBody@(FileId(1), 5..110): []

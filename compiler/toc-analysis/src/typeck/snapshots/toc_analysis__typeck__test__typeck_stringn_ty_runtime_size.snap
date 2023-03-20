@@ -3,7 +3,7 @@ source: compiler/toc_analysis/src/typeck/test.rs
 expression: "var k : int type _ : string(k)"
 ---
 "k"@(FileId(1), 4..5) [ConstVar(Var, No)]: int
-"_"@(FileId(1), 17..18) [Type]: alias[DefId(LibraryId(0), LocalDefId(1))] of string_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
+"_"@(FileId(1), 17..18) [Type]: alias[DefId(PackageId(0), LocalDefId(1))] of string_n Fixed(Unevaluated(PackageId(0), BodyId(0)))
 "<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 28..29: cannot compute `k` at compile-time

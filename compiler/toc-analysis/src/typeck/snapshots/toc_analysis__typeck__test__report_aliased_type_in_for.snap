@@ -2,8 +2,8 @@
 source: compiler/toc_analysis/src/typeck/test.rs
 expression: "type a0 : string\nvar sa0 : a0\nvar s : string\n\nfor : sa0 .. sa0 end for\nfor : s .. sa0 end for\nfor : sa0 .. s end for\n\nfor : 1 .. sa0 end for\nfor : sa0 .. 1 end for\n"
 ---
-"a0"@(FileId(1), 5..7) [Type]: alias[DefId(LibraryId(0), LocalDefId(0))] of string
-"sa0"@(FileId(1), 21..24) [ConstVar(Var, No)]: alias[DefId(LibraryId(0), LocalDefId(0))] of string
+"a0"@(FileId(1), 5..7) [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of string
+"sa0"@(FileId(1), 21..24) [ConstVar(Var, No)]: alias[DefId(PackageId(0), LocalDefId(0))] of string
 "s"@(FileId(1), 34..35) [ConstVar(Var, No)]: string
 "<root>"@(dummy) [Module(No)]: <error>
 

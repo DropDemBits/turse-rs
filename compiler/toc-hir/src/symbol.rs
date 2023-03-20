@@ -63,7 +63,7 @@ impl From<&str> for Symbol {
 }
 
 // FIXME: This feels more like an AST or `toc_span` construct, move it elsewhere
-/// The span of a specific AST node in a [`Library`](crate::library::Library)
+/// The span of a specific AST node in a [`Package`](crate::package::Package)
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct NodeSpan(pub SpanId);
 
@@ -73,7 +73,7 @@ impl NodeSpan {
     }
 }
 
-/// Table of all [`DefInfo`]s in a [`Library`](crate::library::Library)
+/// Table of all [`DefInfo`]s in a [`Package`](crate::package::Package)
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct DefInfoTable {
     defs: Arena<DefInfo>,
@@ -367,7 +367,7 @@ pub enum DefResolve {
     Canonical,
 }
 
-/// Library-local map of bindings to their corresponding [`Resolve`]
+/// Package-local map of bindings to their corresponding [`Resolve`]
 #[derive(Debug, PartialEq, Eq, Default)]
 pub struct ResolutionMap {
     pub binding_resolves: IndexMap<Spanned<Symbol>, Resolve>,

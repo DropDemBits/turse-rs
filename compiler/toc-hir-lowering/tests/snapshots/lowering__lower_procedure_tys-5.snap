@@ -4,7 +4,7 @@ assertion_line: 59
 expression: "type _ : procedure pisp (a : int, b : string, c : procedure _ ())"
 
 ---
-Library@(dummy)
+Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(1)
     Module@(FileId(1), 0..65): "<root>"@(dummy)
       StmtBody@(FileId(1), 0..65): []

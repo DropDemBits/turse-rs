@@ -3,6 +3,6 @@ source: compiler/toc_analysis/src/typeck/test.rs
 expression: "var c : int\nvar _ : flexible array 1 .. c of int"
 ---
 "c"@(FileId(1), 4..5) [ConstVar(Var, No)]: int
-"_"@(FileId(1), 16..17) [ConstVar(Var, No)]: flexible array ( range of `int` (Unevaluated(LibraryId(0), BodyId(0)) .. Expr(Unevaluated(LibraryId(0), BodyId(1)), Yes)), ) of int
+"_"@(FileId(1), 16..17) [ConstVar(Var, No)]: flexible array ( range of `int` (Unevaluated(PackageId(0), BodyId(0)) .. Expr(Unevaluated(PackageId(0), BodyId(1)), Yes)), ) of int
 "<root>"@(dummy) [Module(No)]: <error>
 

@@ -2,7 +2,7 @@
 source: compiler/toc_analysis/src/typeck/test.rs
 expression: "type ptr : ^int\n^ptr\n"
 ---
-"ptr"@(FileId(1), 5..8) [Type]: alias[DefId(LibraryId(0), LocalDefId(0))] of pointer to int
+"ptr"@(FileId(1), 5..8) [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of pointer to int
 "<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 16..20: cannot use expression as a statement

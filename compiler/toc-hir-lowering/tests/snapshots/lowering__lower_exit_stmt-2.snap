@@ -3,7 +3,7 @@ source: compiler/toc_hir_lowering/tests/lowering.rs
 expression: "for i : 1 .. 10 exit end for"
 
 ---
-Library@(dummy)
+Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(0)
     Module@(FileId(1), 0..28): "<root>"@(dummy)
       StmtBody@(FileId(1), 0..28): []

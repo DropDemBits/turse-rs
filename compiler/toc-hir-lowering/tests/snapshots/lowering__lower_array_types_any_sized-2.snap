@@ -4,7 +4,7 @@ assertion_line: 61
 expression: "type _ : proc uwu(_ : array 1 .. *, 1 .. * of int)"
 
 ---
-Library@(dummy)
+Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(1)
     Module@(FileId(1), 0..50): "<root>"@(dummy)
       StmtBody@(FileId(1), 0..50): []

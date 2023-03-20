@@ -2,7 +2,7 @@
 source: compiler/toc_hir_lowering/tests/lowering.rs
 expression: "\n    case s of\n    label 1:\n        var a := a + 1\n    label 2, 3:\n        var a := a + 2\n    label 4:\n        var a := a + 3\n    label :\n        var a := a + 4\n    label 5:\n        var a := a + 5\n    label 6:\n        var a := a + 6\n    end case\n    "
 ---
-Library@(dummy)
+Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(6)
     Module@(FileId(1), 0..250): "<root>"@(dummy)
       StmtBody@(FileId(1), 5..245): []

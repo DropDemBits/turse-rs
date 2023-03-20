@@ -72,9 +72,9 @@ impl ConstValue {
                 let def_id = with_def.def_id();
                 let variant_def = variants.get(*ord).expect("bad ordinal for `EnumVariant`");
 
-                let library = db.library(def_id.library());
-                let ty_name = library.local_def(def_id.local()).name;
-                let variant_name = library.local_def(variant_def.local()).name;
+                let package = db.package(def_id.package());
+                let ty_name = package.local_def(def_id.local()).name;
+                let variant_name = package.local_def(variant_def.local()).name;
 
                 format!("{ty_name}.{variant_name}")
             }

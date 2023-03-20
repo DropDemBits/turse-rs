@@ -6,13 +6,13 @@ expression: "var i : int\nvar n : nat\nvar r : real\nvar c : char\nvar cn : char
 "n"@(FileId(1), 16..17) [ConstVar(Var, No)]: nat
 "r"@(FileId(1), 28..29) [ConstVar(Var, No)]: real
 "c"@(FileId(1), 41..42) [ConstVar(Var, No)]: char
-"cn"@(FileId(1), 54..56) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
+"cn"@(FileId(1), 54..56) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(0)))
 "s"@(FileId(1), 71..72) [ConstVar(Var, No)]: string
-"sn"@(FileId(1), 86..88) [ConstVar(Var, No)]: string_n Fixed(Unevaluated(LibraryId(0), BodyId(1)))
-"en"@(FileId(1), 106..108) [Type]: enum[DefId(LibraryId(0), LocalDefId(8))] ( "a"@(FileId(1), 115..116), "b"@(FileId(1), 118..119), )
+"sn"@(FileId(1), 86..88) [ConstVar(Var, No)]: string_n Fixed(Unevaluated(PackageId(0), BodyId(1)))
+"en"@(FileId(1), 106..108) [Type]: enum[DefId(PackageId(0), LocalDefId(8))] ( "a"@(FileId(1), 115..116), "b"@(FileId(1), 118..119), )
 "en"@(FileId(1), 110..120) [Enum]: <error>
-"a"@(FileId(1), 115..116) [EnumVariant]: enum[DefId(LibraryId(0), LocalDefId(8))] ( "a"@(FileId(1), 115..116), "b"@(FileId(1), 118..119), )
-"b"@(FileId(1), 118..119) [EnumVariant]: enum[DefId(LibraryId(0), LocalDefId(8))] ( "a"@(FileId(1), 115..116), "b"@(FileId(1), 118..119), )
-"ef"@(FileId(1), 125..127) [ConstVar(Var, No)]: enum[DefId(LibraryId(0), LocalDefId(8))] ( "a"@(FileId(1), 115..116), "b"@(FileId(1), 118..119), )
+"a"@(FileId(1), 115..116) [EnumVariant]: enum[DefId(PackageId(0), LocalDefId(8))] ( "a"@(FileId(1), 115..116), "b"@(FileId(1), 118..119), )
+"b"@(FileId(1), 118..119) [EnumVariant]: enum[DefId(PackageId(0), LocalDefId(8))] ( "a"@(FileId(1), 115..116), "b"@(FileId(1), 118..119), )
+"ef"@(FileId(1), 125..127) [ConstVar(Var, No)]: enum[DefId(PackageId(0), LocalDefId(8))] ( "a"@(FileId(1), 115..116), "b"@(FileId(1), 118..119), )
 "<root>"@(dummy) [Module(No)]: <error>
 

@@ -2,7 +2,7 @@
 source: compiler/toc_analysis/src/typeck/test.rs
 expression: "type t_p : procedure(a, b : int, var c : string)\nprocedure p(a, b : int, var c : string) end p\n\nvar _ : t_p := p\n"
 ---
-"t_p"@(FileId(1), 5..8) [Type]: alias[DefId(LibraryId(0), LocalDefId(0))] of procedure ( pass(value) int, pass(value) int, pass(var ref) string, ) -> void
+"t_p"@(FileId(1), 5..8) [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of procedure ( pass(value) int, pass(value) int, pass(var ref) string, ) -> void
 "a"@(FileId(1), 21..22) [Param(Value, No)]: <error>
 "b"@(FileId(1), 24..25) [Param(Value, No)]: <error>
 "c"@(FileId(1), 37..38) [Param(Reference(Var), No)]: <error>
@@ -10,7 +10,7 @@ expression: "type t_p : procedure(a, b : int, var c : string)\nprocedure p(a, b 
 "a"@(FileId(1), 61..62) [Param(Value, No)]: int
 "b"@(FileId(1), 64..65) [Param(Value, No)]: int
 "c"@(FileId(1), 77..78) [Param(Reference(Var), No)]: string
-"_"@(FileId(1), 100..101) [ConstVar(Var, No)]: alias[DefId(LibraryId(0), LocalDefId(0))] of procedure ( pass(value) int, pass(value) int, pass(var ref) string, ) -> void
+"_"@(FileId(1), 100..101) [ConstVar(Var, No)]: alias[DefId(PackageId(0), LocalDefId(0))] of procedure ( pass(value) int, pass(value) int, pass(var ref) string, ) -> void
 "<unnamed>"@(dummy) [Undeclared]: <error>
 "<unnamed>"@(dummy) [Undeclared]: <error>
 "<root>"@(dummy) [Module(No)]: <error>

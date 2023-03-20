@@ -9,8 +9,8 @@ use toc_hir::{
     body,
     expr::{self, BodyExpr},
     item,
-    library::{self, LibraryId, WrapInLibrary},
-    library_graph::SourceLibrary,
+    package::{self, PackageId, WrapInPackage},
+    package_graph::SourcePackage,
     stmt,
     stmt::BodyStmt,
     symbol::{DefId, DefOwner, IsRegister, Mutability, SubprogramKind, SymbolKind},
@@ -47,15 +47,15 @@ use crate::{
 // - Export mutability matters for mutation outside of the local unit scope, normal const/var rules apply for local units
 
 #[salsa::tracked(jar = crate::db::AnalysisJar)]
-pub(crate) fn typecheck_library(db: &dyn HirAnalysis, library: SourceLibrary) -> CompileResult<()> {
-    TypeCheck::check_library(db, library.into())
+pub(crate) fn typecheck_package(db: &dyn HirAnalysis, package: SourcePackage) -> CompileResult<()> {
+    TypeCheck::check_package(db, package.into())
 }
 
 struct TypeCheck<'db> {
     // Shared state
     db: &'db dyn HirAnalysis,
-    library_id: library::LibraryId,
-    library: library::LoweredLibrary,
+    package_id: package::PackageId,
+    package: package::LoweredPackage,
 
     // Main mutable state
     state: RefCell<TypeCheckState>,
@@ -77,26 +77,26 @@ struct TypeCheckState {
 }
 
 impl<'db> TypeCheck<'db> {
-    fn check_library(db: &'db dyn HirAnalysis, library_id: LibraryId) -> CompileResult<()> {
+    fn check_package(db: &'db dyn HirAnalysis, package_id: PackageId) -> CompileResult<()> {
         let state = TypeCheckState {
             reporter: toc_reporting::MessageSink::new(),
         };
         let state = RefCell::new(state);
-        let library = db.library(library_id);
+        let package = db.package(package_id);
 
         let typeck = Self {
             db,
-            library_id,
-            library,
+            package_id,
+            package,
 
             state,
         };
 
         // Check bodies, starting from the root
-        for body_id in db.bodies_of(library_id).iter().copied() {
+        for body_id in db.bodies_of(package_id).iter().copied() {
             use toc_hir::visitor::{WalkEvent, WalkNode, Walker};
 
-            let mut walker = Walker::from_body(&typeck.library, body_id);
+            let mut walker = Walker::from_body(&typeck.package, body_id);
 
             while let Some(peek) = walker.peek_event() {
                 // Don't walk into inner bodies, we'll enter them later on anyways
@@ -238,8 +238,8 @@ impl toc_hir::visitor::HirVisitor for TypeCheck<'_> {
 impl TypeCheck<'_> {
     fn typeck_constvar(&self, id: item::ItemId, item: &item::ConstVar) {
         let db = self.db;
-        let library = &self.library;
-        let library_id = self.library_id;
+        let package = &self.package;
+        let package_id = self.package_id;
 
         if let Some(ty_spec) = item.type_spec {
             // Type spec must be resolved at this point
@@ -257,7 +257,7 @@ impl TypeCheck<'_> {
         }
 
         if let Some(init_body) = item.init_expr {
-            self.expect_expression((library_id, init_body).into());
+            self.expect_expression((package_id, init_body).into());
         }
 
         // Check the initializer expression
@@ -267,21 +267,21 @@ impl TypeCheck<'_> {
             return;
         };
 
-        let def_id = DefId(library_id, library.item(id).def_id);
+        let def_id = DefId(package_id, package.item(id).def_id);
         let left = db.type_of(def_id.into());
-        let right = db.type_of((library_id, init).into());
+        let right = db.type_of((package_id, init).into());
 
         // Peel opaque just for assignability
-        let in_module = db.inside_module((library_id, id).into());
+        let in_module = db.inside_module((package_id, id).into());
         let left = left.peel_opaque(db.up(), in_module);
 
         // Deal with `init` exprs specially
-        if let toc_hir::body::BodyKind::Exprs(root_expr) = &library.body(init).kind {
-            let root_expr = library.body(init).expr(*root_expr);
+        if let toc_hir::body::BodyKind::Exprs(root_expr) = &package.body(init).kind {
+            let root_expr = package.body(init).expr(*root_expr);
 
             if let toc_hir::expr::ExprKind::Init(init_expr) = &root_expr.kind {
-                let spec_span = library.lookup_type(ty_spec).span.lookup_in(library);
-                let init_span = library.body(init).span.lookup_in(library);
+                let spec_span = package.lookup_type(ty_spec).span.lookup_in(package);
+                let init_span = package.body(init).span.lookup_in(package);
 
                 // Target type must support aggregate initialization, i.e. be one of the following
                 // types:
@@ -367,11 +367,11 @@ impl TypeCheck<'_> {
                                 }
                             };
 
-                            let expr_ty = db.type_of((library_id, expr).into());
+                            let expr_ty = db.type_of((package_id, expr).into());
 
                             // Must be assignable into, and be a compile-time expr
                             if !ty::rules::is_assignable(db.up(), elem_ty, expr_ty) {
-                                let expr_span = library.body(expr).span.lookup_in(library);
+                                let expr_span = package.body(expr).span.lookup_in(package);
 
                                 // points to the array spec
                                 self.report_mismatched_assign_tys(
@@ -383,7 +383,7 @@ impl TypeCheck<'_> {
                                     Some(|ty| format!("array expects type {ty}")),
                                 );
                             } else if let Err(err) = db.evaluate_const(
-                                Const::from_body(library_id, expr),
+                                Const::from_body(package_id, expr),
                                 Default::default(),
                             ) {
                                 err.report_to(db.up(), &mut self.state().reporter)
@@ -426,8 +426,8 @@ impl TypeCheck<'_> {
 
         if !ty::rules::is_assignable(db.up(), left, right) {
             // Incompatible, report it
-            let init_span = library.body(init).span.lookup_in(library);
-            let spec_span = library.lookup_type(ty_spec).span.lookup_in(library);
+            let init_span = package.body(init).span.lookup_in(package);
+            let spec_span = package.lookup_type(ty_spec).span.lookup_in(package);
 
             self.report_mismatched_assign_tys(left, right, init_span, spec_span, init_span, None);
 
@@ -451,23 +451,23 @@ impl TypeCheck<'_> {
 
     fn typeck_bind_decl(&self, id: item::ItemId, item: &item::Binding) {
         let db = self.db;
-        let bind_span = self.library.item(id).span;
-        let bind_span = bind_span.lookup_in(&self.library);
+        let bind_span = self.package.item(id).span;
+        let bind_span = bind_span.lookup_in(&self.package);
 
-        let lib_id = self.library_id;
-        let bind_to = (lib_id, item.bind_to);
+        let pkg_id = self.package_id;
+        let bind_to = (pkg_id, item.bind_to);
 
         // Require that we're binding to (mutable) storage
         let expected_value = ExpectedValue::NonRegisterRef(item.mutability);
         let value_kind = db.value_produced(bind_to.into());
         let is_register = matches!(value_kind, Ok(ValueKind::Register(_)));
 
-        let from = self.library.local_def(item.def_id).name;
+        let from = self.package.local_def(item.def_id).name;
         let bind_to_span = self
-            .library
+            .package
             .body(item.bind_to)
             .span
-            .lookup_in(&self.library);
+            .lookup_in(&self.package);
 
         self.expect_value_kind(
             expected_value,
@@ -502,7 +502,7 @@ impl TypeCheck<'_> {
             item::SubprogramExtra::None => {}
             item::SubprogramExtra::DeviceSpec(body_id)
             | item::SubprogramExtra::StackSize(body_id) => {
-                self.expect_integer_value((self.library_id, body_id).into());
+                self.expect_integer_value((self.package_id, body_id).into());
             }
         }
     }
@@ -518,7 +518,7 @@ impl TypeCheck<'_> {
             item::ImportMutability::Explicit(muta, span) => (muta, span),
         };
 
-        let canon_def = match db.resolve_def(DefId(self.library_id, item.def_id)) {
+        let canon_def = match db.resolve_def(DefId(self.package_id, item.def_id)) {
             Ok(def) => def,
             Err(_) => return,
         };
@@ -542,10 +542,10 @@ impl TypeCheck<'_> {
         };
 
         if !is_applicable {
-            let attr_span = attr_span.lookup_in(&self.library);
+            let attr_span = attr_span.lookup_in(&self.package);
 
             let (name, def_at) = {
-                let canon_lib = db.library(canon_def.0);
+                let canon_lib = db.package(canon_def.0);
                 let def_info = canon_lib.local_def(canon_def.1);
                 let name = def_info.name;
                 let def_at = def_info.def_at.lookup_in(&canon_lib);
@@ -569,21 +569,21 @@ impl TypeCheck<'_> {
     }
 
     fn typeck_assign(&self, in_body: body::BodyId, item: &stmt::Assign) {
-        let lib_id = self.library_id;
+        let pkg_id = self.package_id;
         let db = self.db;
-        let asn_span = item.asn.lookup_in(&self.library);
+        let asn_span = item.asn.lookup_in(&self.package);
 
-        let lhs = (lib_id, in_body, item.lhs);
-        let rhs = (lib_id, in_body, item.rhs);
+        let lhs = (pkg_id, in_body, item.lhs);
+        let rhs = (pkg_id, in_body, item.rhs);
 
         // Check if we're assigning into a mut ref, and from a value
         let is_lhs_ref_mut = {
             let left_span = self
-                .library
+                .package
                 .body(in_body)
                 .expr(item.lhs)
                 .span
-                .lookup_in(&self.library);
+                .lookup_in(&self.package);
 
             self.expect_value_kind(
                 ExpectedValue::Ref(Mutability::Var),
@@ -594,7 +594,7 @@ impl TypeCheck<'_> {
                 None,
             )
         };
-        let is_rhs_value = self.expect_expression((self.library_id, in_body, item.rhs).into());
+        let is_rhs_value = self.expect_expression((self.package_id, in_body, item.rhs).into());
 
         // Only report type mismatches if it's from the correct values
         if is_lhs_ref_mut && is_rhs_value {
@@ -605,9 +605,9 @@ impl TypeCheck<'_> {
             // Leave error types as "always assignable"
             if !ty::rules::is_assignable(db.up(), left, right) {
                 // Invalid types!
-                let body = self.library.body(in_body);
-                let left_span = body.expr(item.lhs).span.lookup_in(&self.library);
-                let right_span = body.expr(item.rhs).span.lookup_in(&self.library);
+                let body = self.package.body(in_body);
+                let left_span = body.expr(item.lhs).span.lookup_in(&self.package);
+                let right_span = body.expr(item.rhs).span.lookup_in(&self.package);
 
                 self.report_mismatched_assign_tys(
                     left, right, asn_span, left_span, right_span, None,
@@ -618,7 +618,7 @@ impl TypeCheck<'_> {
 
     fn typeck_put(&self, body_id: body::BodyId, stmt: &stmt::Put) {
         let db = self.db;
-        let body = self.library.body(body_id);
+        let body = self.package.body(body_id);
 
         if let Some(stream) = stmt.stream_num {
             self.check_text_io_arg(stream.in_body(body_id));
@@ -630,11 +630,11 @@ impl TypeCheck<'_> {
         });
 
         for item in items {
-            let put_tyref = db.type_of((self.library_id, body_id, item.expr).into());
+            let put_tyref = db.type_of((self.package_id, body_id, item.expr).into());
             let put_base_tyref = put_tyref.to_base_type(db.up());
-            let item_span = body.expr(item.expr).span.lookup_in(&self.library);
+            let item_span = body.expr(item.expr).span.lookup_in(&self.package);
 
-            if !self.expect_expression((self.library_id, body_id, item.expr).into()) {
+            if !self.expect_expression((self.package_id, body_id, item.expr).into()) {
                 continue;
             }
 
@@ -659,7 +659,7 @@ impl TypeCheck<'_> {
             // - Real
             if !put_base_tyref.kind(db.up()).is_number() {
                 if let Some(expr) = item.opts.precision() {
-                    let span = body.expr(expr).span.lookup_in(&self.library);
+                    let span = body.expr(expr).span.lookup_in(&self.package);
 
                     self.state()
                         .reporter
@@ -677,7 +677,7 @@ impl TypeCheck<'_> {
                 }
 
                 if let Some(expr) = item.opts.exponent_width() {
-                    let span = body.expr(expr).span.lookup_in(&self.library);
+                    let span = body.expr(expr).span.lookup_in(&self.package);
 
                     self.state()
                         .reporter
@@ -712,7 +712,7 @@ impl TypeCheck<'_> {
 
     fn typeck_get(&self, body_id: body::BodyId, stmt: &stmt::Get) {
         let db = self.db;
-        let body = self.library.body(body_id);
+        let body = self.package.body(body_id);
 
         if let Some(stream) = stmt.stream_num {
             self.check_text_io_arg(stream.in_body(body_id));
@@ -726,13 +726,13 @@ impl TypeCheck<'_> {
         for item in items {
             // Item expression must be a variable ref
             let body_expr = item.expr.in_body(body_id);
-            let ty = db.type_of((self.library_id, body_expr).into());
+            let ty = db.type_of((self.package_id, body_expr).into());
             let base_ty = ty.to_base_type(db.up());
-            let item_span = body.expr(item.expr).span.lookup_in(&self.library);
+            let item_span = body.expr(item.expr).span.lookup_in(&self.package);
 
             if !self.expect_value_kind(
                 ExpectedValue::Ref(Mutability::Var),
-                (self.library_id, body_expr).into(),
+                (self.package_id, body_expr).into(),
                 item_span,
                 item_span,
                 |thing| format!("cannot assign into {thing}"),
@@ -767,8 +767,8 @@ impl TypeCheck<'_> {
                         //
                         // For now, we'll just lower the span of the get width
                         // FIXME: Use the span of the line width token
-                        let item_span = self.library.body(body_id).expr(item.expr).span;
-                        let item_span = item_span.lookup_in(&self.library);
+                        let item_span = self.package.body(body_id).expr(item.expr).span;
+                        let item_span = item_span.lookup_in(&self.package);
 
                         self.state()
                             .reporter
@@ -787,8 +787,8 @@ impl TypeCheck<'_> {
                 // Only strings and charseqs can use exact widths
                 stmt::GetWidth::Chars(expr) => {
                     if !base_ty.kind(db.up()).is_sized_charseq() {
-                        let opt_span = self.library.body(body_id).expr(*expr).span;
-                        let opt_span = opt_span.lookup_in(&self.library);
+                        let opt_span = self.package.body(body_id).expr(*expr).span;
+                        let opt_span = opt_span.lookup_in(&self.package);
 
                         self.state()
                             .reporter
@@ -806,7 +806,7 @@ impl TypeCheck<'_> {
     }
 
     fn check_text_io_arg(&self, expr: BodyExpr) {
-        self.expect_integer_value((self.library_id, expr).into());
+        self.expect_integer_value((self.package_id, expr).into());
     }
 
     fn expect_text_io_item(&self, ty: ty::TypeId, not_ty: impl FnOnce()) -> bool {
@@ -845,7 +845,7 @@ impl TypeCheck<'_> {
         if let Some(step_by) = stmt.step_by {
             // `step_by` must evaluate to an integer type
             // ???: Does this make sense for other range types?
-            self.expect_integer_value((self.library_id, body_id, step_by).into());
+            self.expect_integer_value((self.package_id, body_id, step_by).into());
         }
 
         match stmt.bounds {
@@ -863,13 +863,13 @@ impl TypeCheck<'_> {
                 // - other
                 //   - error!
 
-                let bounds_expr = (self.library_id, body_id, expr);
+                let bounds_expr = (self.package_id, body_id, expr);
                 let bounds_span = self
-                    .library
+                    .package
                     .body(body_id)
                     .expr(expr)
                     .span
-                    .lookup_in(&self.library);
+                    .lookup_in(&self.package);
                 let in_module = db.inside_module(bounds_expr.into());
 
                 if db.value_produced(bounds_expr.into()).is_any_value() {
@@ -979,22 +979,22 @@ impl TypeCheck<'_> {
             stmt::ForBounds::Full(start, end) => {
                 // Must both be values
                 let is_start_value =
-                    self.expect_expression((self.library_id, body_id, start).into());
-                let is_end_value = self.expect_expression((self.library_id, body_id, end).into());
+                    self.expect_expression((self.package_id, body_id, start).into());
+                let is_end_value = self.expect_expression((self.package_id, body_id, end).into());
 
                 // Must both be index types
-                let start_ty = db.type_of((self.library_id, body_id, start).into());
-                let end_ty = db.type_of((self.library_id, body_id, end).into());
+                let start_ty = db.type_of((self.package_id, body_id, start).into());
+                let end_ty = db.type_of((self.package_id, body_id, end).into());
 
                 // Wrap up both types
                 let (start_ty, end_ty) = (start_ty, end_ty);
 
-                let start_span = self.library.body(body_id).expr(start).span;
-                let end_span = self.library.body(body_id).expr(end).span;
+                let start_span = self.package.body(body_id).expr(start).span;
+                let end_span = self.package.body(body_id).expr(end).span;
 
                 let (start_span, end_span) = (
-                    start_span.lookup_in(&self.library),
-                    end_span.lookup_in(&self.library),
+                    start_span.lookup_in(&self.package),
+                    end_span.lookup_in(&self.package),
                 );
 
                 let bounds_span = start_span.cover(end_span);
@@ -1069,12 +1069,12 @@ impl TypeCheck<'_> {
 
     fn typeck_exit(&self, body_id: body::BodyId, stmt: &stmt::Exit) {
         if let Some(condition_expr) = stmt.when_condition {
-            self.expect_boolean_value((self.library_id, body_id, condition_expr).into());
+            self.expect_boolean_value((self.package_id, body_id, condition_expr).into());
         }
     }
 
     fn typeck_if(&self, body_id: body::BodyId, stmt: &stmt::If) {
-        self.expect_boolean_value((self.library_id, body_id, stmt.condition).into());
+        self.expect_boolean_value((self.package_id, body_id, stmt.condition).into());
     }
 
     fn typeck_case(&self, body_id: body::BodyId, stmt: &stmt::Case) {
@@ -1089,12 +1089,12 @@ impl TypeCheck<'_> {
         // - label selectors must be compile-time exprs
         let db = self.db;
 
-        let discrim_ty = db.type_of((self.library_id, body_id, stmt.discriminant).into());
+        let discrim_ty = db.type_of((self.package_id, body_id, stmt.discriminant).into());
         let discrim_base_ty = discrim_ty.to_base_type(db.up());
-        let discrim_span = self.library.body(body_id).expr(stmt.discriminant).span;
-        let discrim_span = discrim_span.lookup_in(&self.library);
+        let discrim_span = self.package.body(body_id).expr(stmt.discriminant).span;
+        let discrim_span = discrim_span.lookup_in(&self.package);
 
-        if self.expect_expression((self.library_id, body_id, stmt.discriminant).into()) {
+        if self.expect_expression((self.package_id, body_id, stmt.discriminant).into()) {
             // Check discriminant type
             if !(discrim_base_ty.kind(db.up()).is_error()
                 || discrim_base_ty.kind(db.up()).is_index()
@@ -1129,9 +1129,9 @@ impl TypeCheck<'_> {
             })
             .flatten()
         {
-            let selector_ty = db.type_of((self.library_id, body_id, selector).into());
-            let selector_span = self.library.body(body_id).expr(selector).span;
-            let selector_span = selector_span.lookup_in(&self.library);
+            let selector_ty = db.type_of((self.package_id, body_id, selector).into());
+            let selector_span = self.package.body(body_id).expr(selector).span;
+            let selector_span = selector_span.lookup_in(&self.package);
 
             // Must match discriminant type
             if !ty::rules::is_coercible_into(db.up(), discrim_base_ty, selector_ty) {
@@ -1156,13 +1156,13 @@ impl TypeCheck<'_> {
             }
 
             // Must be a value
-            if !self.expect_expression((self.library_id, body_id, selector).into()) {
+            if !self.expect_expression((self.package_id, body_id, selector).into()) {
                 continue;
             }
 
             // Must be a compile time expression
             let res = db.evaluate_const(
-                Const::from_expr(self.library_id, expr::BodyExpr(body_id, selector)),
+                Const::from_expr(self.package_id, expr::BodyExpr(body_id, selector)),
                 Default::default(),
             );
 
@@ -1209,10 +1209,10 @@ impl TypeCheck<'_> {
         // Verify that we're in the correct statement
         let db = self.db;
         let body = id.0;
-        let span = self.library.body(id.0).stmt(id.1).span;
-        let span = span.lookup_in(&self.library);
+        let span = self.package.body(id.0).stmt(id.1).span;
+        let span = span.lookup_in(&self.package);
 
-        let result_ty = db.type_of((self.library_id, body).into());
+        let result_ty = db.type_of((self.package_id, body).into());
         let result_ty_ref = result_ty.to_base_type(db.up());
 
         if result_ty_ref.kind(db.up()).is_error() {
@@ -1233,13 +1233,13 @@ impl TypeCheck<'_> {
         // Verify matching result types
         let db = self.db;
         let body = id.0;
-        let span = self.library.body(id.0).stmt(id.1).span;
-        let span = span.lookup_in(&self.library);
+        let span = self.package.body(id.0).stmt(id.1).span;
+        let span = span.lookup_in(&self.package);
 
-        let result_ty = if let Some(owner) = db.body_owner(body.in_library(self.library_id)) {
+        let result_ty = if let Some(owner) = db.body_owner(body.in_package(self.package_id)) {
             match owner {
                 body::BodyOwner::Item(item) => {
-                    let item = self.library.item(item);
+                    let item = self.package.item(item);
 
                     // FIXME: Use the type from the `body`
                     // We currently need this route because we also need the span of the result type
@@ -1257,8 +1257,8 @@ impl TypeCheck<'_> {
 
         if let Some(hir_ty) = result_ty {
             // Peel any opaques first
-            let in_module = db.inside_module((self.library_id, hir_ty).into());
-            let result_ty = db.lower_hir_type(hir_ty.in_library(self.library_id));
+            let in_module = db.inside_module((self.package_id, hir_ty).into());
+            let result_ty = db.lower_hir_type(hir_ty.in_package(self.package_id));
             let result_ty_ref = result_ty.peel_opaque(db.up(), in_module);
 
             let result_ty = result_ty_ref;
@@ -1272,19 +1272,19 @@ impl TypeCheck<'_> {
                     span,
                 );
             } else {
-                let value_expr = (self.library_id, body, stmt.expr);
+                let value_expr = (self.package_id, body, stmt.expr);
                 let value_ty = db.type_of(value_expr.into());
 
                 // Check value compatibility
-                if !self.expect_expression((self.library_id, body, stmt.expr).into()) {
+                if !self.expect_expression((self.package_id, body, stmt.expr).into()) {
                     // Not a value (already reported)
                 } else if !ty::rules::is_assignable(db.up(), result_ty, value_ty) {
                     // Not assignable into the return type
-                    let ty_span = self.library.lookup_type(hir_ty).span;
-                    let ty_span = ty_span.lookup_in(&self.library);
+                    let ty_span = self.package.lookup_type(hir_ty).span;
+                    let ty_span = ty_span.lookup_in(&self.package);
 
-                    let value_span = self.library.body(body).expr(stmt.expr).span;
-                    let value_span = value_span.lookup_in(&self.library);
+                    let value_span = self.package.body(body).expr(stmt.expr).span;
+                    let value_span = value_span.lookup_in(&self.package);
 
                     self.report_mismatched_assign_tys(
                         result_ty,
@@ -1307,17 +1307,17 @@ impl TypeCheck<'_> {
 
     fn typeck_binary(&self, body: body::BodyId, expr: &expr::Binary) {
         let db = self.db;
-        let lib_id = self.library_id;
-        let left = db.type_of((lib_id, body, expr.lhs).into());
-        let right = db.type_of((lib_id, body, expr.rhs).into());
+        let pkg_id = self.package_id;
+        let left = db.type_of((pkg_id, body, expr.lhs).into());
+        let right = db.type_of((pkg_id, body, expr.rhs).into());
 
-        if let Err(err) = ty::rules::check_binary_op_values(db.up(), self.library_id, body, expr) {
+        if let Err(err) = ty::rules::check_binary_op_values(db.up(), self.package_id, body, expr) {
             ty::rules::report_invalid_bin_values(db.up(), err, &mut self.state().reporter);
         } else if let Err(err) = ty::rules::check_binary_op(db.up(), left, *expr.op.item(), right) {
-            let op_span = expr.op.span().lookup_in(&self.library);
-            let body = self.library.body(body);
-            let left_span = body.expr(expr.lhs).span.lookup_in(&self.library);
-            let right_span = body.expr(expr.rhs).span.lookup_in(&self.library);
+            let op_span = expr.op.span().lookup_in(&self.package);
+            let body = self.package.body(body);
+            let left_span = body.expr(expr.lhs).span.lookup_in(&self.package);
+            let right_span = body.expr(expr.rhs).span.lookup_in(&self.package);
 
             ty::rules::report_invalid_bin_op(
                 db.up(),
@@ -1332,15 +1332,15 @@ impl TypeCheck<'_> {
 
     fn typeck_unary(&self, body: body::BodyId, expr: &expr::Unary) {
         let db = self.db;
-        let lib_id = self.library_id;
-        let right = db.type_of((lib_id, body, expr.rhs).into());
+        let pkg_id = self.package_id;
+        let right = db.type_of((pkg_id, body, expr.rhs).into());
 
-        if let Err(err) = ty::rules::check_unary_op_values(db.up(), self.library_id, body, expr) {
+        if let Err(err) = ty::rules::check_unary_op_values(db.up(), self.package_id, body, expr) {
             ty::rules::report_invalid_unary_value(db.up(), err, &mut self.state().reporter);
         } else if let Err(err) = ty::rules::check_unary_op(db.up(), *expr.op.item(), right) {
-            let op_span = expr.op.span().lookup_in(&self.library);
-            let body = self.library.body(body);
-            let right_span = body.expr(expr.rhs).span.lookup_in(&self.library);
+            let op_span = expr.op.span().lookup_in(&self.package);
+            let body = self.package.body(body);
+            let right_span = body.expr(expr.rhs).span.lookup_in(&self.package);
 
             ty::rules::report_invalid_unary_op(
                 db.up(),
@@ -1358,14 +1358,14 @@ impl TypeCheck<'_> {
         // FIXME: Bail if lhs is an error type
         // FIXME: Point `in here` span at lhs / its binding def
 
-        if let Some(fields) = db.fields_of((self.library_id, id.0, expr.lhs).into()) {
+        if let Some(fields) = db.fields_of((self.package_id, id.0, expr.lhs).into()) {
             if fields.lookup(*expr.field.item()).is_none() {
                 // not a field
                 let field_name = expr.field.item();
                 self.state().reporter.error(
                     format!("no field named `{field_name}` in expression"),
                     format!("no field named `{field_name}` in here"),
-                    expr.field.span().lookup_in(&self.library),
+                    expr.field.span().lookup_in(&self.package),
                 );
             }
         } else {
@@ -1374,7 +1374,7 @@ impl TypeCheck<'_> {
             self.state().reporter.error(
                 format!("no field named `{field_name}` in expression"),
                 format!("no field named `{field_name}` in here"),
-                expr.field.span().lookup_in(&self.library),
+                expr.field.span().lookup_in(&self.package),
             );
         }
     }
@@ -1383,20 +1383,20 @@ impl TypeCheck<'_> {
         let db = self.db;
         let rhs_expr = id.with_expr(expr.rhs);
 
-        let ty = db.type_of((self.library_id, rhs_expr).into());
+        let ty = db.type_of((self.package_id, rhs_expr).into());
         let base_ty_ref = ty.to_base_type(db.up());
 
-        if !self.expect_expression((self.library_id, rhs_expr).into()) {
+        if !self.expect_expression((self.package_id, rhs_expr).into()) {
             // don't proceed to type matching
         } else if !base_ty_ref.kind(db.up()).is_pointer() && !base_ty_ref.kind(db.up()).is_error() {
             let ty = ty.display(db.up());
             let base_ty = base_ty_ref.display(db.up());
             let rhs_span = self
-                .library
+                .package
                 .body(rhs_expr.0)
                 .expr(rhs_expr.1)
                 .span
-                .lookup_in(&self.library);
+                .lookup_in(&self.package);
 
             self.state()
                 .reporter
@@ -1419,9 +1419,9 @@ impl TypeCheck<'_> {
         require_value: bool,
     ) {
         let db = self.db;
-        let lhs_expr = (self.library_id, body, lhs);
-        let lhs_span = self.library.body(body).expr(lhs).span;
-        let lhs_span = lhs_span.lookup_in(&self.library);
+        let lhs_expr = (self.package_id, body, lhs);
+        let lhs_span = self.package.body(body).expr(lhs).span;
+        let lhs_span = lhs_span.lookup_in(&self.package);
 
         // Fetch type of lhs
         // Always try to do it by `DefId` first, so that we can properly support paren-less functions
@@ -1472,8 +1472,8 @@ impl TypeCheck<'_> {
             let full_lhs_tyref = lhs_ty;
             let thing = match db.binding_def(lhs_expr.into()) {
                 Some(def_id) => {
-                    let library = db.library(def_id.0);
-                    let def_info = library.local_def(def_id.1);
+                    let package = db.package(def_id.0);
+                    let def_info = package.local_def(def_id.1);
                     let name = def_info.name;
                     format!("`{name}`")
                 }
@@ -1560,14 +1560,14 @@ impl TypeCheck<'_> {
 
     fn typeck_call_set_cons(
         &self,
-        lhs_expr: (LibraryId, body::BodyId, expr::ExprId),
+        lhs_expr: (PackageId, body::BodyId, expr::ExprId),
         lhs_span: Span,
         arg_list: &expr::ArgList,
         body_id: body::BodyId,
         elem_ty: ty::TypeId,
     ) {
         let db = self.db;
-        let body = self.library.body(body_id);
+        let body = self.package.body(body_id);
         let has_all = arg_list
             .iter()
             .enumerate()
@@ -1582,11 +1582,11 @@ impl TypeCheck<'_> {
 
             if !before_all.is_empty() || !after_all.is_empty() {
                 let all_span = self
-                    .library
+                    .package
                     .body(body_id)
                     .expr(*all_arg)
                     .span
-                    .lookup_in(&self.library);
+                    .lookup_in(&self.package);
 
                 self.state()
                     .reporter
@@ -1603,17 +1603,17 @@ impl TypeCheck<'_> {
 
         // All args must be coercible into the element type
         for arg in arg_list {
-            if !self.expect_expression((self.library_id, body_id, *arg).into()) {
+            if !self.expect_expression((self.package_id, body_id, *arg).into()) {
                 continue;
             }
 
-            let arg_ty = db.type_of((self.library_id, body_id, *arg).into());
-            let arg_span = self.library.body(body_id).expr(*arg).span;
-            let arg_span = arg_span.lookup_in(&self.library);
+            let arg_ty = db.type_of((self.package_id, body_id, *arg).into());
+            let arg_span = self.package.body(body_id).expr(*arg).span;
+            let arg_span = arg_span.lookup_in(&self.package);
 
             // Check that it isn't a range expr
             // ???: Supporting range exprs in set cons calls (not end relative)?
-            match &self.library.body(body_id).expr(*arg).kind {
+            match &self.package.body(body_id).expr(*arg).kind {
                 expr::ExprKind::All => {} // valid in set constructors
                 expr::ExprKind::Range(_) => {
                     self.state().reporter.error(
@@ -1642,7 +1642,7 @@ impl TypeCheck<'_> {
     fn typeck_call_subprogram(
         &self,
         lhs_tyref: ty::TypeId,
-        lhs_expr: (LibraryId, body::BodyId, expr::ExprId),
+        lhs_expr: (PackageId, body::BodyId, expr::ExprId),
         lhs_span: Span,
         arg_list: Option<&expr::ArgList>,
         body: body::BodyId,
@@ -1665,8 +1665,8 @@ impl TypeCheck<'_> {
             // Just referencing it bare
             let thing = match db.binding_def(lhs_expr.into()) {
                 Some(def_id) => {
-                    let library = db.library(def_id.0);
-                    let def_info = library.local_def(def_id.1);
+                    let package = db.package(def_id.0);
+                    let def_info = package.local_def(def_id.1);
                     let name = def_info.name;
                     format!("`{name}`")
                 }
@@ -1754,14 +1754,14 @@ impl TypeCheck<'_> {
             };
 
             // Check type & binding
-            let arg_expr = (self.library_id, body, *arg);
+            let arg_expr = (self.package_id, body, *arg);
             let arg_ty = db.type_of(arg_expr.into());
             let arg_value = db.value_produced(arg_expr.into());
-            let arg_span = self.library.body(body).expr(*arg).span;
-            let arg_span = arg_span.lookup_in(&self.library);
+            let arg_span = self.package.body(body).expr(*arg).span;
+            let arg_span = arg_span.lookup_in(&self.package);
 
             // Check that it isn't `all` or a range expr
-            match &self.library.body(body).expr(*arg).kind {
+            match &self.package.body(body).expr(*arg).kind {
                 expr::ExprKind::All => {
                     self.state().reporter.error(
                         "cannot use `all` here",
@@ -1850,8 +1850,8 @@ impl TypeCheck<'_> {
         ranges: &[ty::TypeId],
     ) {
         let db = self.db;
-        let library = &self.library;
-        let library_id = self.library_id;
+        let package = &self.package;
+        let package_id = self.package_id;
 
         let expecteds = ranges;
         let actuals = arg_list;
@@ -1896,11 +1896,11 @@ impl TypeCheck<'_> {
             };
 
             // Check type & binding
-            let expr_id = (library_id, body_id, actual_expr);
-            let actual_expr = library.body(body_id).expr(expr_id.2);
+            let expr_id = (package_id, body_id, actual_expr);
+            let actual_expr = package.body(body_id).expr(expr_id.2);
 
             let actual_ty = db.type_of(expr_id.into());
-            let actual_span = actual_expr.span.lookup_in(library);
+            let actual_span = actual_expr.span.lookup_in(package);
 
             // Check that it isn't `all` or a range expr
             match &actual_expr.kind {
@@ -1948,19 +1948,19 @@ impl TypeCheck<'_> {
 
     fn typeck_primitive(&self, id: toc_hir::ty::TypeId, ty_node: &toc_hir::ty::Primitive) {
         let db = self.db;
-        let ty = db.lower_hir_type(id.in_library(self.library_id));
+        let ty = db.lower_hir_type(id.in_package(self.package_id));
 
         let (expr_body, expr_span) = match ty_node {
             toc_hir::ty::Primitive::SizedChar(toc_hir::ty::SeqLength::Expr(body))
             | toc_hir::ty::Primitive::SizedString(toc_hir::ty::SeqLength::Expr(body)) => {
-                let expr_span = self.library.body(*body).span.lookup_in(&self.library);
+                let expr_span = self.package.body(*body).span.lookup_in(&self.package);
 
                 (*body, expr_span)
             }
             _ => return,
         };
 
-        if !self.expect_integer_value((self.library_id, expr_body).into()) {
+        if !self.expect_integer_value((self.package_id, expr_body).into()) {
             return;
         }
 
@@ -1989,8 +1989,8 @@ impl TypeCheck<'_> {
                 // Allow non-compile time exprs in this position, if allowed
                 if err.is_not_compile_time() && allow_dyn_size {
                     // Right now, is unsupported
-                    let ty_span = self.library.lookup_type(id).span;
-                    let ty_span = ty_span.lookup_in(&self.library);
+                    let ty_span = self.package.lookup_type(id).span;
+                    let ty_span = ty_span.lookup_in(&self.package);
 
                     self.state().reporter.error(
                         "unsupported type",
@@ -2022,20 +2022,20 @@ impl TypeCheck<'_> {
 
     fn typeck_alias(&self, id: toc_hir::ty::TypeId, ty: &toc_hir::ty::Alias) {
         let Self {
-            library,
-            library_id,
+            package,
+            package_id,
             db,
             ..
         } = self;
 
         let mut span = ty.base_def.span();
         let def_id = {
-            let in_module = db.inside_module(id.in_library(*library_id).into());
+            let in_module = db.inside_module(id.in_package(*package_id).into());
             // Walk the segment path while we still can
             let mut def_id = {
-                let library = db.library(*library_id);
-                match library.binding_resolve(ty.base_def) {
-                    toc_hir::symbol::Resolve::Def(local_def) => DefId(*library_id, local_def),
+                let package = db.package(*package_id);
+                match package.binding_resolve(ty.base_def) {
+                    toc_hir::symbol::Resolve::Def(local_def) => DefId(*package_id, local_def),
                     toc_hir::symbol::Resolve::Err => return,
                 }
             };
@@ -2049,8 +2049,8 @@ impl TypeCheck<'_> {
                     def_id = next_def;
                     span = segment.span();
                 } else {
-                    let library = db.library(def_id.0);
-                    let def_info = library.local_def(def_id.1);
+                    let package = db.package(def_id.0);
+                    let def_info = package.local_def(def_id.1);
 
                     let thing = def_info.name;
                     let field_name = segment.item();
@@ -2061,7 +2061,7 @@ impl TypeCheck<'_> {
                     self.state().reporter.error(
                         format!("no field named `{field_name}` in `{thing}`"),
                         format!("no field named `{field_name}` in here"),
-                        segment.span().lookup_in(&self.library),
+                        segment.span().lookup_in(&self.package),
                     );
 
                     return;
@@ -2074,7 +2074,7 @@ impl TypeCheck<'_> {
 
         if let Some(def_id) = def_id {
             if !db.symbol_kind(def_id).is_missing_or(SymbolKind::is_type) {
-                let span = span.lookup_in(library);
+                let span = span.lookup_in(package);
 
                 self.report_mismatched_binding(
                     SymbolKind::Type,
@@ -2090,12 +2090,12 @@ impl TypeCheck<'_> {
 
     fn typeck_constrained_ty(&self, id: toc_hir::ty::TypeId, ty: &toc_hir::ty::Constrained) {
         let db = self.db;
-        let library = &self.library;
-        let library_id = self.library_id;
+        let package = &self.package;
+        let package_id = self.package_id;
 
-        let ty_span = library.lookup_type(id).span.lookup_in(library);
+        let ty_span = package.lookup_type(id).span.lookup_in(package);
 
-        let cons_tyref = db.lower_hir_type(id.in_library(library_id));
+        let cons_tyref = db.lower_hir_type(id.in_package(package_id));
         let (base_ty, start_bound, end_bound) = match cons_tyref.kind(db.up()) {
             ty::TypeKind::Constrained(base_ty, start_bound, end_bound) => {
                 (base_ty, start_bound, end_bound)
@@ -2104,21 +2104,21 @@ impl TypeCheck<'_> {
         };
         let base_tyref = base_ty;
 
-        let start_span = library.body(ty.start).span.lookup_in(library);
+        let start_span = package.body(ty.start).span.lookup_in(package);
         let end_span = match ty.end {
-            toc_hir::ty::ConstrainedEnd::Expr(end) => library.body(end).span,
+            toc_hir::ty::ConstrainedEnd::Expr(end) => package.body(end).span,
             toc_hir::ty::ConstrainedEnd::Unsized(sz) => sz.span(),
             toc_hir::ty::ConstrainedEnd::Any(any) => any,
         };
-        let end_span = end_span.lookup_in(library);
+        let end_span = end_span.lookup_in(package);
 
         let end = match ty.end {
             toc_hir::ty::ConstrainedEnd::Expr(end) => Some(end),
             _ => None,
         };
 
-        let start_ty = db.type_of(ty.start.in_library(library_id).into());
-        let end_ty = end.map(|end| db.type_of(end.in_library(library_id).into()));
+        let start_ty = db.type_of(ty.start.in_package(package_id).into());
+        let end_ty = end.map(|end| db.type_of(end.in_package(package_id).into()));
 
         if let Some(end_ty) = end_ty {
             if !ty::rules::is_equivalent(db.up(), start_ty, end_ty) {
@@ -2229,10 +2229,10 @@ impl TypeCheck<'_> {
         const ELEM_LIMIT: u64 = u32::MAX as u64;
 
         let db = self.db;
-        let library = &self.library;
-        let library_id = self.library_id;
+        let package = &self.package;
+        let package_id = self.package_id;
 
-        let in_module = db.inside_module((self.library_id, id).into());
+        let in_module = db.inside_module((self.package_id, id).into());
         let allow_zero_size = matches!(ty.sizing, toc_hir::ty::ArraySize::Flexible);
         let mut already_big = false; // for preventing duplicate errors during count checking
 
@@ -2241,8 +2241,8 @@ impl TypeCheck<'_> {
         // - element count must be smaller than maximum element count
         // - must be positive size (or non-negative if flexible)
         for &range_hir_ty in &ty.ranges {
-            let span = library.lookup_type(range_hir_ty).span.lookup_in(library);
-            let range_ty = db.lower_hir_type(range_hir_ty.in_library(library_id));
+            let span = package.lookup_type(range_hir_ty).span.lookup_in(package);
+            let range_ty = db.lower_hir_type(range_hir_ty.in_package(package_id));
             let range_tyref = range_ty.peel_opaque(db.up(), in_module);
 
             if !range_tyref.to_base_type(db.up()).kind(db.up()).is_index() {
@@ -2315,8 +2315,8 @@ impl TypeCheck<'_> {
             return;
         }
 
-        let array_ty = db.lower_hir_type(id.in_library(library_id));
-        let array_span = library.lookup_type(id).span.lookup_in(library);
+        let array_ty = db.lower_hir_type(id.in_package(package_id));
+        let array_span = package.lookup_type(id).span.lookup_in(package);
 
         let within_limit = match array_ty.element_count(db.up()) {
             Ok(v) if v.is_positive() => v.into_u64(),
@@ -2366,17 +2366,17 @@ impl TypeCheck<'_> {
 
     fn typeck_set_ty(&self, id: toc_hir::ty::TypeId, ty: &toc_hir::ty::Set) {
         let db = self.db;
-        let in_module = db.inside_module((self.library_id, id).into());
+        let in_module = db.inside_module((self.package_id, id).into());
 
         // elem tyref should be the visible one
         let elem_tyref = db
-            .lower_hir_type(ty.elem_ty.in_library(self.library_id))
+            .lower_hir_type(ty.elem_ty.in_package(self.package_id))
             .peel_opaque(db.up(), in_module);
         let span = self
-            .library
+            .package
             .lookup_type(ty.elem_ty)
             .span
-            .lookup_in(&self.library);
+            .lookup_in(&self.package);
 
         if !elem_tyref.to_base_type(db.up()).kind(db.up()).is_index() {
             // Not an index type
@@ -2455,16 +2455,16 @@ impl TypeCheck<'_> {
         in_where: impl Fn(bool) -> String,
     ) {
         let db = self.db;
-        let library_id = self.library_id;
-        let library = &self.library;
+        let package_id = self.package_id;
+        let package = &self.package;
 
-        let ty_id = db.lower_hir_type(ty_spec.in_library(library_id));
+        let ty_id = db.lower_hir_type(ty_spec.in_package(package_id));
         let ty_ref = ty_id;
 
         // Only need to check constrained types
         // The rest are guaranteed to have a positive size
         if let ty::TypeKind::Constrained(_, _, _) = ty_ref.kind(db.up()) {
-            let ty_span = library.lookup_type(ty_spec).span.lookup_in(library);
+            let ty_span = package.lookup_type(ty_spec).span.lookup_in(package);
 
             match ty_ref.element_count(db.up()) {
                 Ok(size) if size.is_positive() && !size.is_zero() => {}
@@ -2512,12 +2512,12 @@ impl TypeCheck<'_> {
     // For now, we only check for any-sized charseq
     fn require_known_size(&self, ty_spec: toc_hir::ty::TypeId, in_where: impl Fn() -> String) {
         let db = self.db;
-        let ty_id = db.lower_hir_type(ty_spec.in_library(self.library_id));
+        let ty_id = db.lower_hir_type(ty_spec.in_package(self.package_id));
         let ty_ref = ty_id.display(db.up());
         match ty_id.kind(db.up()) {
             ty::TypeKind::CharN(ty::SeqSize::Any) | ty::TypeKind::StringN(ty::SeqSize::Any) => {
-                let ty_span = self.library.lookup_type(ty_spec).span;
-                let ty_span = ty_span.lookup_in(&self.library);
+                let ty_span = self.package.lookup_type(ty_spec).span;
+                let ty_span = ty_span.lookup_in(&self.package);
                 let place = in_where();
 
                 let things = if matches!(ty_id.kind(db.up()), ty::TypeKind::CharN(_)) {
@@ -2637,12 +2637,12 @@ impl TypeCheck<'_> {
 
         let mut state = self.state();
         let mut builder = match binding_source {
-            BindingSource::DefId(def_id @ DefId(lib_id, local_def)) => {
-                let library = db.library(lib_id);
-                let def_info = library.local_def(local_def);
+            BindingSource::DefId(def_id @ DefId(pkg_id, local_def)) => {
+                let package = db.package(pkg_id);
+                let def_info = package.local_def(local_def);
 
                 let name = def_info.name;
-                let def_at = def_info.def_at.lookup_in(&library);
+                let def_at = def_info.def_at.lookup_in(&package);
 
                 let binding_to = match db.symbol_kind(def_id) {
                     Some(kind) => kind,
@@ -2728,10 +2728,10 @@ impl TypeCheck<'_> {
                     Some(binding_to) => binding_to,
                     None => return true,
                 };
-                let def_library = db.library(def_id.0);
-                let def_info = def_library.local_def(def_id.1);
+                let def_package = db.package(def_id.0);
+                let def_info = def_package.local_def(def_id.1);
                 let name = def_info.name;
-                let def_at = def_info.def_at.lookup_in(&def_library);
+                let def_at = def_info.def_at.lookup_in(&def_package);
 
                 (format!("`{name}`"), Some((def_id, def_at, binding_to)))
             }
@@ -2755,11 +2755,11 @@ impl TypeCheck<'_> {
 
                 // FIXME: Fold into `else` branch once we make export a real item
                 if let Some(exporting_def) = db.exporting_def(value_src.into()) {
-                    let exported_library = db.library(exporting_def.0);
-                    let exported_span = exported_library
+                    let exported_package = db.package(exporting_def.0);
+                    let exported_span = exported_package
                         .local_def(exporting_def.1)
                         .def_at
-                        .lookup_in(&*exported_library);
+                        .lookup_in(&*exported_package);
 
                     builder
                         .with_error(format!("{thing} is not exported as `var`"), value_span)
@@ -2768,7 +2768,7 @@ impl TypeCheck<'_> {
                     // Use unresolved def
                     match db.def_owner(unresolved_def) {
                         Some(DefOwner::Item(item_id)) => {
-                            let def_lib = db.library(def_id.0);
+                            let def_lib = db.package(def_id.0);
 
                             match &def_lib.item(item_id).kind {
                                 item::ItemKind::Import(import) => {
@@ -2891,15 +2891,15 @@ impl TypeCheck<'_> {
 
     fn require_resolved_type(&self, ty: toc_hir::ty::TypeId) {
         let db = self.db;
-        let ty_ref = db.lower_hir_type(ty.in_library(self.library_id));
+        let ty_ref = db.lower_hir_type(ty.in_package(self.package_id));
 
         if let ty::TypeKind::Alias(def_id, to_ty) = ty_ref.kind(db.up()) {
             if to_ty.kind(db.up()).is_forward() {
-                let ty_span = self.library.lookup_type(ty).span;
-                let ty_span = ty_span.lookup_in(&self.library);
+                let ty_span = self.package.lookup_type(ty).span;
+                let ty_span = ty_span.lookup_in(&self.package);
 
-                let def_library = db.library(def_id.0);
-                let name = def_library.local_def(def_id.1).name;
+                let def_package = db.package(def_id.0);
+                let name = def_package.local_def(def_id.1).name;
 
                 self.state().reporter.error(
                     format!("`{name}` has not been resolved at this point"),

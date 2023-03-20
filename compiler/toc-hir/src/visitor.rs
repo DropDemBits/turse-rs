@@ -7,7 +7,7 @@ use toc_span::FileId;
 use crate::{
     body,
     expr::{self, BodyExpr},
-    item, library,
+    item, package,
     stmt::{self, BodyStmt},
     ty,
 };
@@ -15,7 +15,7 @@ use crate::{
 /// Visitor over all nodes in the HIR tree.
 #[allow(unused_variables)]
 pub trait HirVisitor {
-    fn visit_library(&self, library: &library::Library) {}
+    fn visit_package(&self, package: &package::Package) {}
     fn visit_file_root(&self, file: toc_span::FileId, id: item::ItemId) {}
     // Items
     fn visit_item(&self, id: item::ItemId, item: &item::Item) {}
@@ -139,7 +139,7 @@ pub enum WalkEvent<'hir> {
 
 #[derive(Debug, Clone)]
 pub enum WalkNode<'hir> {
-    Library(&'hir library::Library),
+    Package(&'hir package::Package),
     FileRoot(FileId, item::ItemId),
     Item(item::ItemId, &'hir item::Item),
     Body(body::BodyId, &'hir body::Body),
@@ -151,7 +151,7 @@ pub enum WalkNode<'hir> {
 impl WalkNode<'_> {
     pub fn visit_node(&self, visitor: &dyn HirVisitor) {
         match self {
-            WalkNode::Library(library) => visitor.visit_library(library),
+            WalkNode::Package(package) => visitor.visit_package(package),
             WalkNode::FileRoot(file, id) => visitor.visit_file_root(*file, *id),
             WalkNode::Body(id, body) => visitor.visit_body(*id, body),
             WalkNode::Item(id, item) => {
@@ -176,7 +176,7 @@ impl WalkNode<'_> {
 
 /// Walker for traversing the HIR tree, generating [`WalkEvent`]s
 pub struct Walker<'hir> {
-    lib: &'hir library::Library,
+    pkg: &'hir package::Package,
     // Events awaiting to be inserted
     pending: VecDeque<WalkEvent<'hir>>,
     // Events to process
@@ -184,21 +184,21 @@ pub struct Walker<'hir> {
 }
 
 impl<'hir> Walker<'hir> {
-    /// Starts walking the HIR from the library root
-    pub fn from_library(lib: &'hir library::Library) -> Self {
+    /// Starts walking the HIR from the package root
+    pub fn from_package(pkg: &'hir package::Package) -> Self {
         Self {
-            lib,
+            pkg,
             pending: vec![].into(),
-            process: vec![WalkEvent::Enter(WalkNode::Library(lib))].into(),
+            process: vec![WalkEvent::Enter(WalkNode::Package(pkg))].into(),
         }
     }
 
     /// Starts walking the HIR from the given body
-    pub fn from_body(lib: &'hir library::Library, body_id: body::BodyId) -> Self {
+    pub fn from_body(pkg: &'hir package::Package, body_id: body::BodyId) -> Self {
         Self {
-            lib,
+            pkg,
             pending: vec![].into(),
-            process: vec![WalkEvent::Enter(WalkNode::Body(body_id, lib.body(body_id)))].into(),
+            process: vec![WalkEvent::Enter(WalkNode::Body(body_id, pkg.body(body_id)))].into(),
         }
     }
 
@@ -222,7 +222,7 @@ impl<'hir> Walker<'hir> {
 
             // Fill up pending list with descendants
             match node {
-                WalkNode::Library(library) => self.walk_library(library),
+                WalkNode::Package(package) => self.walk_package(package),
                 WalkNode::FileRoot(_, item) => self.walk_file_root(*item),
                 WalkNode::Item(_, item) => self.walk_item(item),
                 WalkNode::Body(id, body) => self.walk_body(*id, body),
@@ -281,7 +281,7 @@ impl<'hir> Walker<'hir> {
 
     fn enter_stmt(&mut self, in_body: body::BodyId, stmt: stmt::StmtId) {
         let id = BodyStmt(in_body, stmt);
-        let stmt = self.lib.body(in_body).stmt(stmt);
+        let stmt = self.pkg.body(in_body).stmt(stmt);
         self.pending
             .push_back(WalkEvent::Enter(WalkNode::Stmt(id, stmt)));
     }
@@ -294,7 +294,7 @@ impl<'hir> Walker<'hir> {
 
     fn enter_expr(&mut self, in_body: body::BodyId, expr: expr::ExprId) {
         let id = BodyExpr(in_body, expr);
-        let expr = self.lib.body(in_body).expr(expr);
+        let expr = self.pkg.body(in_body).expr(expr);
         self.pending
             .push_back(WalkEvent::Enter(WalkNode::Expr(id, expr)));
     }
@@ -304,14 +304,14 @@ impl<'hir> Walker<'hir> {
             .push_back(WalkEvent::Enter(WalkNode::Type(id, ty)));
     }
 
-    fn walk_library(&mut self, library: &library::Library) {
-        for (&file, &item) in &library.root_items {
+    fn walk_package(&mut self, package: &package::Package) {
+        for (&file, &item) in &package.root_items {
             self.enter_item_root(file, item);
         }
     }
 
     fn walk_file_root(&mut self, item: item::ItemId) {
-        self.enter_item(item, self.lib.item(item));
+        self.enter_item(item, self.pkg.item(item));
     }
 
     fn walk_body(&mut self, id: body::BodyId, body: &'hir body::Body) {
@@ -338,58 +338,58 @@ impl<'hir> Walker<'hir> {
 
     fn walk_constvar(&mut self, node: &item::ConstVar) {
         if let Some(ty) = node.type_spec {
-            self.enter_type(ty, self.lib.lookup_type(ty));
+            self.enter_type(ty, self.pkg.lookup_type(ty));
         }
 
         if let Some(id) = node.init_expr {
-            self.enter_body(id, self.lib.body(id));
+            self.enter_body(id, self.pkg.body(id));
         }
     }
 
     fn walk_type_decl(&mut self, node: &item::Type) {
         match node.type_def {
-            item::DefinedType::Alias(ty) => self.enter_type(ty, self.lib.lookup_type(ty)),
+            item::DefinedType::Alias(ty) => self.enter_type(ty, self.pkg.lookup_type(ty)),
             item::DefinedType::Forward(_) => {}
         }
     }
 
     fn walk_bind_decl(&mut self, node: &item::Binding) {
-        self.enter_body(node.bind_to, self.lib.body(node.bind_to));
+        self.enter_body(node.bind_to, self.pkg.body(node.bind_to));
     }
 
     fn walk_subprogram_decl(&mut self, node: &item::Subprogram) {
         match node.extra {
             item::SubprogramExtra::None => {}
             item::SubprogramExtra::DeviceSpec(body) | item::SubprogramExtra::StackSize(body) => {
-                self.enter_body(body, self.lib.body(body))
+                self.enter_body(body, self.pkg.body(body))
             }
         }
 
         if let Some(params) = &node.param_list {
             for param in &params.tys {
                 let ty = param.param_ty;
-                self.enter_type(ty, self.lib.lookup_type(ty));
+                self.enter_type(ty, self.pkg.lookup_type(ty));
             }
         }
 
         let result_ty = node.result.ty;
-        self.enter_type(result_ty, self.lib.lookup_type(result_ty));
+        self.enter_type(result_ty, self.pkg.lookup_type(result_ty));
 
         for &import in &node.body.imports {
-            self.enter_item(import, self.lib.item(import))
+            self.enter_item(import, self.pkg.item(import))
         }
 
-        self.enter_body(node.body.body, self.lib.body(node.body.body));
+        self.enter_body(node.body.body, self.pkg.body(node.body.body));
     }
 
     fn walk_module(&mut self, node: &item::Module) {
         // Walk imports first
         for &import in &node.imports {
-            self.enter_item(import, self.lib.item(import))
+            self.enter_item(import, self.pkg.item(import))
         }
 
         // Then the rest of the body
-        self.enter_body(node.body, self.lib.body(node.body));
+        self.enter_body(node.body, self.pkg.body(node.body));
     }
 
     fn walk_stmt(&mut self, in_body: body::BodyId, stmt: &stmt::Stmt) {
@@ -411,7 +411,7 @@ impl<'hir> Walker<'hir> {
     }
 
     fn walk_item_stmt(&mut self, item: item::ItemId) {
-        self.enter_item(item, self.lib.item(item));
+        self.enter_item(item, self.pkg.item(item));
     }
 
     fn walk_assign(&mut self, in_body: body::BodyId, node: &stmt::Assign) {
@@ -548,7 +548,7 @@ impl<'hir> Walker<'hir> {
 
     fn walk_init_expr(&mut self, _in_body: body::BodyId, node: &expr::Init) {
         for &body_id in &node.exprs {
-            self.enter_body(body_id, self.lib.body(body_id));
+            self.enter_body(body_id, self.pkg.body(body_id));
         }
     }
 
@@ -610,43 +610,43 @@ impl<'hir> Walker<'hir> {
         match node {
             ty::Primitive::SizedChar(ty::SeqLength::Expr(id))
             | ty::Primitive::SizedString(ty::SeqLength::Expr(id)) => {
-                self.enter_body(*id, self.lib.body(*id));
+                self.enter_body(*id, self.pkg.body(*id));
             }
             _ => {}
         }
     }
 
     fn walk_constrained(&mut self, node: &ty::Constrained) {
-        self.enter_body(node.start, self.lib.body(node.start));
+        self.enter_body(node.start, self.pkg.body(node.start));
 
         if let ty::ConstrainedEnd::Expr(end) = node.end {
-            self.enter_body(end, self.lib.body(end))
+            self.enter_body(end, self.pkg.body(end))
         }
     }
 
     fn walk_array(&mut self, node: &ty::Array) {
         for range_ty in &node.ranges {
-            self.enter_type(*range_ty, self.lib.lookup_type(*range_ty));
+            self.enter_type(*range_ty, self.pkg.lookup_type(*range_ty));
         }
 
-        self.enter_type(node.elem_ty, self.lib.lookup_type(node.elem_ty));
+        self.enter_type(node.elem_ty, self.pkg.lookup_type(node.elem_ty));
     }
 
     fn walk_set(&mut self, node: &ty::Set) {
-        self.enter_type(node.elem_ty, self.lib.lookup_type(node.elem_ty));
+        self.enter_type(node.elem_ty, self.pkg.lookup_type(node.elem_ty));
     }
 
     fn walk_pointer(&mut self, node: &ty::Pointer) {
-        self.enter_type(node.ty, self.lib.lookup_type(node.ty));
+        self.enter_type(node.ty, self.pkg.lookup_type(node.ty));
     }
 
     fn walk_subprogram_ty(&mut self, ty: &ty::Subprogram) {
         if let Some(param_list) = &ty.param_list {
             for param in param_list {
-                self.enter_type(param.param_ty, self.lib.lookup_type(param.param_ty));
+                self.enter_type(param.param_ty, self.pkg.lookup_type(param.param_ty));
             }
         }
 
-        self.enter_type(ty.result_ty, self.lib.lookup_type(ty.result_ty));
+        self.enter_type(ty.result_ty, self.pkg.lookup_type(ty.result_ty));
     }
 }
