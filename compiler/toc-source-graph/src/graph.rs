@@ -32,7 +32,6 @@ pub struct SourceGraph {
 #[salsa::tracked]
 impl SourceGraph {
     #[salsa::tracked(return_ref)]
-    #[allow(clippy::needless_lifetimes)] // FIXME(salsa-2022): embed in proc-macro codegen
     pub fn all_libraries(self, db: &dyn Db) -> Vec<Library> {
         self.graph(db).keys().collect::<Vec<_>>()
     }

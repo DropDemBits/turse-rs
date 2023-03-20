@@ -395,7 +395,7 @@ fn token_to_syntax_name(token: &str) -> &str {
         "char_literal" => "CharLiteral",
         "string_literal" => "StringLiteral",
         "identifier" => "Identifier",
-        _ => unreachable!("{}", token), // FIXME(rust-1.59.0): unreachable doesn't support named capture
+        _ => unreachable!("{token}"),
     }
 }
 
