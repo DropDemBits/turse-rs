@@ -4,15 +4,15 @@ expression: "var *_ : boolean\n\nmodule m\n    export opaque e, var a\n    type 
 ---
 "_"@(FileId(1), 5..6) [ConstVar(Var, No)]: boolean
 "m"@(FileId(1), 25..26) [Module(No)]: <error>
-"e"@(FileId(1), 63..64) [Type]: opaque[DefId(LibraryId(0), LocalDefId(2))] type to enum[DefId(LibraryId(0), LocalDefId(3))] ( "a"@(FileId(1), 72..73), )
+"e"@(FileId(1), 63..64) [Type]: opaque[DefId(PackageId(0), LocalDefId(2))] type to enum[DefId(PackageId(0), LocalDefId(3))] ( "a"@(FileId(1), 72..73), )
 "e"@(FileId(1), 67..74) [Enum]: <error>
-"a"@(FileId(1), 72..73) [EnumVariant]: enum[DefId(LibraryId(0), LocalDefId(3))] ( "a"@(FileId(1), 72..73), )
-"a"@(FileId(1), 83..84) [ConstVar(Var, No)]: opaque[DefId(LibraryId(0), LocalDefId(2))] type to enum[DefId(LibraryId(0), LocalDefId(3))] ( "a"@(FileId(1), 72..73), )
-"not_ty"@(FileId(1), 167..173) [Type]: alias[DefId(LibraryId(0), LocalDefId(6))] of <error>
-"u"@(FileId(1), 191..192) [ConstVar(Var, No)]: opaque[DefId(LibraryId(0), LocalDefId(2))] type to enum[DefId(LibraryId(0), LocalDefId(3))] ( "a"@(FileId(1), 72..73), )
-"no_field"@(FileId(1), 228..236) [Type]: alias[DefId(LibraryId(0), LocalDefId(8))] of <error>
-"e"@(FileId(1), 45..46) [Export]: opaque[DefId(LibraryId(0), LocalDefId(2))] type to enum[DefId(LibraryId(0), LocalDefId(3))] ( "a"@(FileId(1), 72..73), )
-"a"@(FileId(1), 52..53) [Export]: opaque[DefId(LibraryId(0), LocalDefId(2))] type to enum[DefId(LibraryId(0), LocalDefId(3))] ( "a"@(FileId(1), 72..73), )
+"a"@(FileId(1), 72..73) [EnumVariant]: enum[DefId(PackageId(0), LocalDefId(3))] ( "a"@(FileId(1), 72..73), )
+"a"@(FileId(1), 83..84) [ConstVar(Var, No)]: opaque[DefId(PackageId(0), LocalDefId(2))] type to enum[DefId(PackageId(0), LocalDefId(3))] ( "a"@(FileId(1), 72..73), )
+"not_ty"@(FileId(1), 167..173) [Type]: alias[DefId(PackageId(0), LocalDefId(6))] of <error>
+"u"@(FileId(1), 191..192) [ConstVar(Var, No)]: opaque[DefId(PackageId(0), LocalDefId(2))] type to enum[DefId(PackageId(0), LocalDefId(3))] ( "a"@(FileId(1), 72..73), )
+"no_field"@(FileId(1), 228..236) [Type]: alias[DefId(PackageId(0), LocalDefId(8))] of <error>
+"e"@(FileId(1), 45..46) [Export]: opaque[DefId(PackageId(0), LocalDefId(2))] type to enum[DefId(PackageId(0), LocalDefId(3))] ( "a"@(FileId(1), 72..73), )
+"a"@(FileId(1), 52..53) [Export]: opaque[DefId(PackageId(0), LocalDefId(2))] type to enum[DefId(PackageId(0), LocalDefId(3))] ( "a"@(FileId(1), 72..73), )
 "<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 178..179: cannot use `a` as a type alias

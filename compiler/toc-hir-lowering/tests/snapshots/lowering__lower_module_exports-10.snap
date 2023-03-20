@@ -2,7 +2,7 @@
 source: compiler/toc_hir_lowering/tests/lowering.rs
 expression: "\n    module z\n        export var a, var b\n        type a : int\n        const b := 8080\n    end z"
 ---
-Library@(dummy)
+Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(3)
     Module@(FileId(1), 0..96): "<root>"@(dummy)
       StmtBody@(FileId(1), 5..96): []

@@ -1,5 +1,5 @@
 //! Rules for type interactions
-use toc_hir::library::LibraryId;
+use toc_hir::package::PackageId;
 use toc_hir::{body, expr};
 use toc_reporting::MessageSink;
 use toc_span::Span;
@@ -231,15 +231,15 @@ impl TypeId {
     ) -> Self {
         match self.kind(db) {
             TypeKind::Opaque(def_id, hidden_ty) => {
-                use toc_hir::library::InLibrary;
+                use toc_hir::package::InPackage;
 
-                let item_of @ InLibrary(library_id, _) =
+                let item_of @ InPackage(package_id, _) =
                     db.item_of(*def_id).expect("opaque not from type def");
                 let def_module = db.inside_module(item_of.into());
 
                 if db.is_module_ancestor(
-                    InLibrary(library_id, def_module),
-                    InLibrary(library_id, in_module),
+                    InPackage(package_id, def_module),
+                    InPackage(package_id, in_module),
                 ) {
                     // Convert into an alias type (if needed)
                     match hidden_ty.kind(db) {
@@ -815,14 +815,14 @@ pub fn is_assignable(db: &dyn db::ConstEval, left: TypeId, right: TypeId) -> boo
 /// Checks that the operands for the binary op are values, or types when appropriate
 pub fn check_binary_op_values(
     db: &dyn db::TypeDatabase,
-    library_id: LibraryId,
+    package_id: PackageId,
     body_id: body::BodyId,
     expr: &expr::Binary,
 ) -> Result<(), InvalidBinaryValues> {
     use crate::db::NotValueErrExt;
 
-    let left_src = (library_id, body_id, expr.lhs).into();
-    let right_src = (library_id, body_id, expr.rhs).into();
+    let left_src = (package_id, body_id, expr.lhs).into();
+    let right_src = (package_id, body_id, expr.rhs).into();
 
     // Only comparison ops support referring to types, but only on classes
     let lhs = db.value_produced(left_src);
@@ -831,27 +831,27 @@ pub fn check_binary_op_values(
     if lhs.is_any_value() && rhs.is_any_value() {
         Ok(())
     } else {
-        let library = db.library(library_id);
+        let package = db.package(package_id);
 
         Err(InvalidBinaryValues {
             left_info: (!lhs.is_any_value()).then(|| {
                 (
                     left_src,
-                    library
+                    package
                         .body(body_id)
                         .expr(expr.lhs)
                         .span
-                        .lookup_in(&library),
+                        .lookup_in(&package),
                 )
             }),
             right_info: (!rhs.is_any_value()).then(|| {
                 (
                     right_src,
-                    library
+                    package
                         .body(body_id)
                         .expr(expr.rhs)
                         .span
-                        .lookup_in(&library),
+                        .lookup_in(&package),
                 )
             }),
         })
@@ -861,29 +861,29 @@ pub fn check_binary_op_values(
 /// Checks that the operand for the unary op is a value
 pub fn check_unary_op_values(
     db: &dyn db::TypeDatabase,
-    library_id: LibraryId,
+    package_id: PackageId,
     body_id: body::BodyId,
     expr: &expr::Unary,
 ) -> Result<(), InvalidUnaryValue> {
     use crate::db::NotValueErrExt;
 
     // All unary ops only support value operands
-    let right_src = (library_id, body_id, expr.rhs).into();
+    let right_src = (package_id, body_id, expr.rhs).into();
     let rhs = db.value_produced(right_src);
 
     if rhs.is_any_value() {
         Ok(())
     } else {
-        let library = db.library(library_id);
+        let package = db.package(package_id);
 
         Err(InvalidUnaryValue {
             right_info: (
                 right_src,
-                library
+                package
                     .body(body_id)
                     .expr(expr.rhs)
                     .span
-                    .lookup_in(&library),
+                    .lookup_in(&package),
             ),
         })
     }
@@ -1757,8 +1757,8 @@ fn report_not_value(
 
     let binding_src = match value_src {
         db::ValueSource::Def(def_id) => def_id.into(),
-        db::ValueSource::Body(lib_id, body_id) => (lib_id, body_id).into(),
-        db::ValueSource::BodyExpr(lib_id, body_expr) => (lib_id, body_expr).into(),
+        db::ValueSource::Body(pkg_id, body_id) => (pkg_id, body_id).into(),
+        db::ValueSource::BodyExpr(pkg_id, body_expr) => (pkg_id, body_expr).into(),
     };
 
     let (binding_def, binding_to) = if let Some(def_id) = db.binding_def(binding_src) {
@@ -1771,10 +1771,10 @@ fn report_not_value(
         return;
     };
 
-    let def_library = db.library(binding_def.0);
-    let def_info = def_library.local_def(binding_def.1);
+    let def_package = db.package(binding_def.0);
+    let def_info = def_package.local_def(binding_def.1);
     let name = def_info.name;
-    let def_at = def_info.def_at.lookup_in(&def_library);
+    let def_at = def_info.def_at.lookup_in(&def_package);
 
     reporter
         .error_detailed(format!("cannot use `{name}` as an expression"), span)

@@ -6,7 +6,7 @@ use toc_hir::{
     body::{BodyId, BodyKind},
     expr::{BodyExpr, ExprId, ExprKind, Name, RangeBound},
     item::{DefinedType, ItemId, ItemKind, QualifyAs, SubprogramExtra},
-    library::Library,
+    package::Package,
     span::SpanId,
     stmt::{BodyStmt, CaseSelector, FalseBranch, ForBounds, GetWidth, Skippable, StmtId, StmtKind},
     symbol::{DefMap, DefResolve, LocalDefId, ResolutionMap, Resolve, Symbol},
@@ -26,7 +26,7 @@ pub(crate) struct UnqualifiedDef {
     export_def: LocalDefId,
 }
 
-pub(crate) fn module_exports(library: &Library) -> DefMap<Vec<UnqualifiedDef>> {
+pub(crate) fn module_exports(package: &Package) -> DefMap<Vec<UnqualifiedDef>> {
     use std::cell::RefCell;
 
     struct ExportCollector {
@@ -52,33 +52,33 @@ pub(crate) fn module_exports(library: &Library) -> DefMap<Vec<UnqualifiedDef>> {
         exports: Default::default(),
     };
 
-    visitor::Walker::from_library(library).visit_preorder(&visitor);
+    visitor::Walker::from_package(package).visit_preorder(&visitor);
 
     visitor.exports.take()
 }
 
-/// Resolves bindings in a library, producing a [`ResolutionMap`]
-pub(crate) fn resolve_defs(library: &Library) -> CompileResult<ResolutionMap> {
-    let def_exports = module_exports(library);
+/// Resolves bindings in a package, producing a [`ResolutionMap`]
+pub(crate) fn resolve_defs(package: &Package) -> CompileResult<ResolutionMap> {
+    let def_exports = module_exports(package);
 
     // Do the actual resolving process
     let mut ctx = ResolveCtx {
-        library,
+        package,
         def_exports,
         resolves: Default::default(),
         scopes: Default::default(),
         messages: Default::default(),
     };
 
-    for (_, root_item) in &library.root_items {
+    for (_, root_item) in &package.root_items {
         ctx.resolve_item(*root_item);
     }
 
     CompileResult::new(ctx.resolves, ctx.messages.finish())
 }
 
-struct ResolveCtx<'lib> {
-    library: &'lib Library,
+struct ResolveCtx<'pkg> {
+    package: &'pkg Package,
     def_exports: DefMap<Vec<UnqualifiedDef>>,
     resolves: ResolutionMap,
     scopes: ScopeTracker,
@@ -96,7 +96,7 @@ impl<'a> ResolveCtx<'a> {
                     self.messages.error(
                         format!("`{name}` is undeclared"),
                         format!("no definitions of `{name}` are in scope"),
-                        span.lookup_in(self.library),
+                        span.lookup_in(self.package),
                     );
                 }
 
@@ -112,7 +112,7 @@ impl<'a> ResolveCtx<'a> {
                         self.messages.error(
                             format!("`cannot use {name}` here"),
                             format!("`{name}` can only be used in a `post` statement"),
-                            span.lookup_in(self.library),
+                            span.lookup_in(self.package),
                         );
                     }
                 }
@@ -129,7 +129,7 @@ impl<'a> ResolveCtx<'a> {
             return;
         }
 
-        let def_info = self.library.local_def(def_id);
+        let def_info = self.package.local_def(def_id);
         let name = def_info.name;
         let span = def_info.def_at;
 
@@ -157,18 +157,18 @@ impl<'a> ResolveCtx<'a> {
 
         if let Some(old_def) = old_def {
             // Report redeclares, specializing based on what kind of declaration it is
-            let old_def_info = self.library.local_def(old_def);
+            let old_def_info = self.package.local_def(old_def);
             let old_declare = self.scopes.declare_kind(old_def);
 
-            let old_span = old_def_info.def_at.lookup_in(self.library);
-            let new_span = span.lookup_in(self.library);
+            let old_span = old_def_info.def_at.lookup_in(self.package);
+            let new_span = span.lookup_in(self.package);
 
             // Just use the name from the old def for both, since by definition they are the same
             let name = old_def_info.name;
 
             // Handles picking the right message for if it's an unqualified import or not
             fn previously_declared_here<'a>(
-                library: &'_ Library,
+                package: &'_ Package,
                 builder: toc_reporting::MessageBuilder<'a>,
                 name: Symbol,
                 declare_kind: DeclareKind,
@@ -176,8 +176,8 @@ impl<'a> ResolveCtx<'a> {
             ) -> toc_reporting::MessageBuilder<'a> {
                 match declare_kind {
                     DeclareKind::UnqualifiedImport(from_import, _) => {
-                        let import_def = library.local_def(from_import);
-                        let import_span = import_def.def_at.lookup_in(library);
+                        let import_def = package.local_def(from_import);
+                        let import_span = import_def.def_at.lookup_in(package);
                         let import_name = import_def.name;
 
                         builder
@@ -248,16 +248,16 @@ impl<'a> ResolveCtx<'a> {
                     // From an unqualified export in a local module
                     // Use the originating item as the top-level error span
                     let from_item_span = self
-                        .library
+                        .package
                         .local_def(exported_from)
                         .def_at
-                        .lookup_in(self.library);
+                        .lookup_in(self.package);
 
                     let builder = self.messages.error_detailed(
                         format!("`{name}` is already declared in the parent scope"),
                         from_item_span,
                     );
-                    previously_declared_here(self.library, builder, name, old_declare, old_span)
+                    previously_declared_here(self.package, builder, name, old_declare, old_span)
                         .with_error(format!("`{name}` exported unqualified from here"), new_span)
                         .finish();
                 }
@@ -288,7 +288,7 @@ impl<'a> ResolveCtx<'a> {
                             new_span,
                         );
                         previously_declared_here(
-                            self.library,
+                            self.package,
                             builder,
                             name,
                             old_declare,
@@ -299,8 +299,8 @@ impl<'a> ResolveCtx<'a> {
                     }
                 }
                 (DeclareKind::ItemImport(_), DeclareKind::UnqualifiedImport(from_import, _)) => {
-                    let import_def = &self.library.local_def(from_import);
-                    let import_span = import_def.def_at.lookup_in(self.library);
+                    let import_def = &self.package.local_def(from_import);
+                    let import_span = import_def.def_at.lookup_in(self.package);
                     let import_name = import_def.name;
 
                     if import_name == name {
@@ -338,12 +338,12 @@ impl<'a> ResolveCtx<'a> {
                     DeclareKind::UnqualifiedImport(new_import, _),
                 ) => {
                     // Specialize when they're both unqualified imports
-                    let import_def = self.library.local_def(old_import);
-                    let old_span = import_def.def_at.lookup_in(self.library);
+                    let import_def = self.package.local_def(old_import);
+                    let old_span = import_def.def_at.lookup_in(self.package);
                     let old_name = import_def.name;
 
-                    let import_def = self.library.local_def(new_import);
-                    let new_span = import_def.def_at.lookup_in(self.library);
+                    let import_def = self.package.local_def(new_import);
+                    let new_span = import_def.def_at.lookup_in(self.package);
                     let new_name = import_def.name;
 
                     self.messages
@@ -365,15 +365,15 @@ impl<'a> ResolveCtx<'a> {
                         .finish();
                 }
                 (_, DeclareKind::UnqualifiedImport(from_import, _)) => {
-                    let import_def = &self.library.local_def(from_import);
-                    let import_span = import_def.def_at.lookup_in(self.library);
+                    let import_def = &self.package.local_def(from_import);
+                    let import_span = import_def.def_at.lookup_in(self.package);
                     let import_name = import_def.name;
 
                     let builder = self.messages.error_detailed(
                         format!("`{name}` is already declared in this scope"),
                         import_span,
                     );
-                    previously_declared_here(self.library, builder, name, old_declare, old_span)
+                    previously_declared_here(self.package, builder, name, old_declare, old_span)
                         .with_error(
                             format!("`{name}` is an unqualified export of `{import_name}`"),
                             import_span,
@@ -389,7 +389,7 @@ impl<'a> ResolveCtx<'a> {
                         format!("`{name}` is already declared in this scope"),
                         new_span,
                     );
-                    previously_declared_here(self.library, builder, name, old_declare, old_span)
+                    previously_declared_here(self.package, builder, name, old_declare, old_span)
                         .with_error(format!("`{name}` redeclared here"), new_span)
                         .finish();
                 }
@@ -398,7 +398,7 @@ impl<'a> ResolveCtx<'a> {
     }
 
     fn is_unnamed(&self, def_id: LocalDefId) -> bool {
-        self.library.local_def(def_id).kind.is_none()
+        self.package.local_def(def_id).kind.is_none()
     }
 
     fn with_scope<R>(&mut self, kind: ScopeKind, f: impl FnOnce(&mut Self) -> R) -> R {
@@ -416,7 +416,7 @@ impl<'a> ResolveCtx<'a> {
         // Consistency with `with_scope`
         let this = self;
 
-        match &this.library.item(item_id).kind {
+        match &this.package.item(item_id).kind {
             ItemKind::ConstVar(item) => {
                 if let Some(type_id) = item.type_spec {
                     this.resolve_type(type_id);
@@ -537,7 +537,7 @@ impl<'a> ResolveCtx<'a> {
             }
             ItemKind::Import(item) => {
                 // resolve it right now
-                let def_info = &this.library.local_def(item.def_id);
+                let def_info = &this.package.local_def(item.def_id);
                 let name = def_info.name;
 
                 let imported_def = if let Some(imported_def) = this.scopes.import_sym(name) {
@@ -554,10 +554,10 @@ impl<'a> ResolveCtx<'a> {
                         .insert(item.def_id, DefResolve::Err);
 
                     let def_at = this
-                        .library
+                        .package
                         .local_def(item.def_id)
                         .def_at
-                        .lookup_in(this.library);
+                        .lookup_in(this.package);
 
                     this.messages.error(
                         format!("`{name}` could not be imported"),
@@ -624,7 +624,7 @@ impl<'a> ResolveCtx<'a> {
         // Consistency with `with_scope`
         let this = self;
 
-        match &this.library.body(body_id).kind {
+        match &this.package.body(body_id).kind {
             BodyKind::Stmts(stmts, _, _) => {
                 this.resolve_stmts(stmts, body_id);
             }
@@ -651,7 +651,7 @@ impl<'a> ResolveCtx<'a> {
         let this = self;
         let body_id = node_id.body();
 
-        match &this.library.body(node_id.body()).stmt(node_id.stmt()).kind {
+        match &this.package.body(node_id.body()).stmt(node_id.stmt()).kind {
             StmtKind::Item(item_id) => this.resolve_item(*item_id),
             StmtKind::Assign(stmt) => {
                 this.resolve_expr(stmt.lhs.in_body(body_id));
@@ -786,7 +786,7 @@ impl<'a> ResolveCtx<'a> {
         let this = self;
         let body_id = node_id.body();
 
-        match &this.library.body(body_id).expr(node_id.expr()).kind {
+        match &this.package.body(body_id).expr(node_id.expr()).kind {
             ExprKind::Missing => {}
             ExprKind::Literal(_) => {}
             ExprKind::Init(expr) => {
@@ -845,7 +845,7 @@ impl<'a> ResolveCtx<'a> {
         // Consistency with `with_scope`
         let this = self;
 
-        match &this.library.lookup_type(type_id).kind {
+        match &this.package.lookup_type(type_id).kind {
             TypeKind::Missing => {}
             TypeKind::Primitive(ty) => match ty {
                 Primitive::SizedChar(SeqLength::Expr(body_id))

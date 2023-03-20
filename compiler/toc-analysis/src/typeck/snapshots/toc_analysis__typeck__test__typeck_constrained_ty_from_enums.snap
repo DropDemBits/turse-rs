@@ -2,10 +2,10 @@
 source: compiler/toc_analysis/src/typeck/test.rs
 expression: "type e : enum(uwu, owo)\ntype c : e.uwu .. e.owo"
 ---
-"e"@(FileId(1), 5..6) [Type]: enum[DefId(LibraryId(0), LocalDefId(1))] ( "uwu"@(FileId(1), 14..17), "owo"@(FileId(1), 19..22), )
+"e"@(FileId(1), 5..6) [Type]: enum[DefId(PackageId(0), LocalDefId(1))] ( "uwu"@(FileId(1), 14..17), "owo"@(FileId(1), 19..22), )
 "e"@(FileId(1), 9..23) [Enum]: <error>
-"uwu"@(FileId(1), 14..17) [EnumVariant]: enum[DefId(LibraryId(0), LocalDefId(1))] ( "uwu"@(FileId(1), 14..17), "owo"@(FileId(1), 19..22), )
-"owo"@(FileId(1), 19..22) [EnumVariant]: enum[DefId(LibraryId(0), LocalDefId(1))] ( "uwu"@(FileId(1), 14..17), "owo"@(FileId(1), 19..22), )
-"c"@(FileId(1), 29..30) [Type]: alias[DefId(LibraryId(0), LocalDefId(4))] of range of `enum[DefId(LibraryId(0), LocalDefId(1))] ( "uwu"@(FileId(1), 14..17), "owo"@(FileId(1), 19..22), )` (Unevaluated(LibraryId(0), BodyId(0)) .. Expr(Unevaluated(LibraryId(0), BodyId(1)), No))
+"uwu"@(FileId(1), 14..17) [EnumVariant]: enum[DefId(PackageId(0), LocalDefId(1))] ( "uwu"@(FileId(1), 14..17), "owo"@(FileId(1), 19..22), )
+"owo"@(FileId(1), 19..22) [EnumVariant]: enum[DefId(PackageId(0), LocalDefId(1))] ( "uwu"@(FileId(1), 14..17), "owo"@(FileId(1), 19..22), )
+"c"@(FileId(1), 29..30) [Type]: alias[DefId(PackageId(0), LocalDefId(4))] of range of `enum[DefId(PackageId(0), LocalDefId(1))] ( "uwu"@(FileId(1), 14..17), "owo"@(FileId(1), 19..22), )` (Unevaluated(PackageId(0), BodyId(0)) .. Expr(Unevaluated(PackageId(0), BodyId(1)), No))
 "<root>"@(dummy) [Module(No)]: <error>
 

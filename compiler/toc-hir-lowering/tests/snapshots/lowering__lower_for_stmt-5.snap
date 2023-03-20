@@ -3,7 +3,7 @@ source: compiler/toc_hir_lowering/tests/lowering.rs
 expression: "\n    for woo : 1 .. 10 var k := woo end for\n    var woo := 1.0\n    "
 
 ---
-Library@(dummy)
+Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(2)
     Module@(FileId(1), 0..67): "<root>"@(dummy)
       StmtBody@(FileId(1), 5..62): []

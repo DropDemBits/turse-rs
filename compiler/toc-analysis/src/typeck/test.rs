@@ -45,16 +45,16 @@ macro_rules! test_named_group {
 }
 
 fn do_typecheck(source: &str) -> String {
-    let (db, library) = TestDb::from_source(source);
-    let typeck_res = db.typecheck_library(library);
+    let (db, package) = TestDb::from_source(source);
+    let typeck_res = db.typecheck_package(package);
     typeck_res.messages().assert_no_delayed_reports();
 
-    stringify_typeck_results(&db, library.into(), typeck_res.messages())
+    stringify_typeck_results(&db, package.into(), typeck_res.messages())
 }
 
 fn stringify_typeck_results(
     db: &TestDb,
-    library_id: toc_hir::library::LibraryId,
+    package_id: toc_hir::package::PackageId,
     messages: &MessageBundle,
 ) -> String {
     use std::fmt::Write;
@@ -63,16 +63,16 @@ fn stringify_typeck_results(
     // Pretty print typectx
     // Want: `type_of` all reachable DefIds
     // - Printed type nodes because we wanted to see the full type
-    let library = db.library(library_id);
-    for did in library.local_defs() {
-        let def_info = library.local_def(did);
+    let package = db.package(package_id);
+    for did in package.local_defs() {
+        let def_info = package.local_def(did);
         let name = def_info.name;
-        let name_span = def_info.def_at.lookup_in(&library);
+        let name_span = def_info.def_at.lookup_in(&package);
         let sym_kind = match def_info.kind {
             Some(kind) => format!("{kind:?}"),
             None => "Undeclared".to_string(),
         };
-        let ty = db.type_of(DefId(library_id, did).into()).debug(db);
+        let ty = db.type_of(DefId(package_id, did).into()).debug(db);
 
         writeln!(&mut s, "{name:?}@{name_span:?} [{sym_kind}]: {ty:?}").unwrap();
     }

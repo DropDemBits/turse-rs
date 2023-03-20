@@ -13,9 +13,9 @@ impl super::BodyLowering<'_, '_> {
             // Allocate a generic span
             let ty = ty::Type {
                 kind: ty::TypeKind::Missing,
-                span: self.ctx.library.span_table().dummy_span(),
+                span: self.ctx.package.span_table().dummy_span(),
             };
-            self.ctx.library.intern_type(ty)
+            self.ctx.package.intern_type(ty)
         })
     }
 
@@ -42,9 +42,9 @@ impl super::BodyLowering<'_, '_> {
             ast::Type::ConditionType(_) => self.unsupported_ty(span),
         }?;
 
-        let span = self.ctx.library.intern_span(span);
+        let span = self.ctx.package.intern_span(span);
         let ty = ty::Type { kind, span };
-        Some(self.ctx.library.intern_type(ty))
+        Some(self.ctx.package.intern_type(ty))
     }
 
     fn unsupported_ty(&mut self, span: Span) -> Option<ty::TypeKind> {
@@ -423,7 +423,7 @@ impl super::BodyLowering<'_, '_> {
             .map(|params| params.tys);
         let return_ty = {
             let span = self.ctx.intern_range(ty.syntax().text_range());
-            self.ctx.library.intern_type(ty::Type {
+            self.ctx.package.intern_type(ty::Type {
                 kind: ty::TypeKind::Void,
                 span,
             })

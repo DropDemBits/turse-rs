@@ -6,9 +6,9 @@ expression: "\n    proc __ (var c_any : char(*), var s_any : string(*))\n    var
 "c_any"@(FileId(1), 18..23) [Param(Reference(Var), No)]: char_n Any
 "s_any"@(FileId(1), 39..44) [Param(Reference(Var), No)]: string_n Any
 "c"@(FileId(1), 66..67) [ConstVar(Var, No)]: char
-"c_sz"@(FileId(1), 83..87) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
+"c_sz"@(FileId(1), 83..87) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(0)))
 "s"@(FileId(1), 106..107) [ConstVar(Var, No)]: string
-"s_sz"@(FileId(1), 125..129) [ConstVar(Var, No)]: string_n Fixed(Unevaluated(LibraryId(0), BodyId(1)))
+"s_sz"@(FileId(1), 125..129) [ConstVar(Var, No)]: string_n Fixed(Unevaluated(PackageId(0), BodyId(1)))
 "_t00"@(FileId(1), 177..181) [ConstVar(Var, No)]: string
 "_t02"@(FileId(1), 199..203) [ConstVar(Var, No)]: string
 "_t20"@(FileId(1), 224..228) [ConstVar(Var, No)]: string

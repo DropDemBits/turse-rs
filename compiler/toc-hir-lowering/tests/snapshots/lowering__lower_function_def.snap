@@ -4,7 +4,7 @@ assertion_line: 59
 expression: "\n    function no_params : int\n    end no_params"
 
 ---
-Library@(dummy)
+Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(1)
     Module@(FileId(1), 0..47): "<root>"@(dummy)
       StmtBody@(FileId(1), 5..47): []

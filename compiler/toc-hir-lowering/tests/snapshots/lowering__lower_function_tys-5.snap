@@ -4,7 +4,7 @@ assertion_line: 59
 expression: "type _ : function _ (function a (function a : int ) : int, proc b (proc a (proc a( proc a))), proc c) : int"
 
 ---
-Library@(dummy)
+Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(1)
     Module@(FileId(1), 0..107): "<root>"@(dummy)
       StmtBody@(FileId(1), 0..107): []

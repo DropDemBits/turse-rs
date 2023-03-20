@@ -2,7 +2,7 @@
 source: compiler/toc_hir_lowering/tests/lowering.rs
 expression: "\n    module tree\n        export a, var b, unqualified c, pervasive unqualified d, opaque e\n\n        var a, b, c, d : int\n        type e : int\n    end tree"
 ---
-Library@(dummy)
+Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(6)
     Module@(FileId(1), 0..154): "<root>"@(dummy)
       StmtBody@(FileId(1), 5..154): []

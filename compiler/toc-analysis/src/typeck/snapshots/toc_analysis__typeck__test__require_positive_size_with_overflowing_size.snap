@@ -3,7 +3,7 @@ source: compiler/toc_analysis/src/typeck/test.rs
 expression: "const min : int4 := -16#7FFFFFFF - 1\nvar _ : min..(16#7FFFFFFF + 1)\n"
 ---
 "min"@(FileId(1), 6..9) [ConstVar(Const, No)]: int4
-"_"@(FileId(1), 41..42) [ConstVar(Var, No)]: range of `int4` (Unevaluated(LibraryId(0), BodyId(1)) .. Expr(Unevaluated(LibraryId(0), BodyId(2)), No))
+"_"@(FileId(1), 41..42) [ConstVar(Var, No)]: range of `int4` (Unevaluated(PackageId(0), BodyId(1)) .. Expr(Unevaluated(PackageId(0), BodyId(2)), No))
 "<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 45..67: invalid range size

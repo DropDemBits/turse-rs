@@ -4,7 +4,7 @@ assertion_line: 59
 expression: "\n    var pervasive pv_formal, pv_inner : int\n    var norm_formal, norm_inner : int\n\n    procedure shade(pv_formal : real, norm_formal : real)\n        var _ : real\n        var norm_inner : real\n        var pv_inner : real % only this is rejected\n\n        _ := pv_formal\n        _ := pv_inner\n        _ := norm_formal\n        _ := norm_inner\n    end shade"
 
 ---
-Library@(dummy)
+Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(8)
     Module@(FileId(1), 0..353): "<root>"@(dummy)
       StmtBody@(FileId(1), 5..353): []

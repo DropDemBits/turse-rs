@@ -4,7 +4,7 @@ assertion_line: 59
 expression: "\n    procedure some_params(a, b : int)\n        % should be visible\n        var me := a + b\n    end some_params\n    "
 
 ---
-Library@(dummy)
+Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(2)
     Module@(FileId(1), 0..115): "<root>"@(dummy)
       StmtBody@(FileId(1), 5..110): []

@@ -1,6 +1,6 @@
 //! Definition of analysis queries, as well as re-exports of internal database types
 
-use toc_hir::library_graph::SourceLibrary;
+use toc_hir::package_graph::SourcePackage;
 use toc_reporting::CompileResult;
 use upcast::{Upcast, UpcastFrom};
 
@@ -10,9 +10,9 @@ pub use crate::{const_eval::db::*, ty::db::*};
 
 #[salsa::jar(db = HirAnalysis)]
 pub struct AnalysisJar(
-    query::analyze_libraries,
-    typeck::typecheck_library,
-    lints::lint_library,
+    query::analyze_packages,
+    typeck::typecheck_package,
+    lints::lint_package,
 );
 
 /// HIR Analysis queries
@@ -23,15 +23,15 @@ pub trait HirAnalysis:
     + Upcast<dyn TypeDatabase>
     + Upcast<dyn ConstEval>
 {
-    /// Performs analysis passes on all libraries
-    fn analyze_libraries(&self) -> CompileResult<()>;
+    /// Performs analysis passes on all packages
+    fn analyze_packages(&self) -> CompileResult<()>;
 
-    /// Checks the given library to ensure that all type rules are followed,
+    /// Checks the given package to ensure that all type rules are followed,
     /// and that all types are well-formed.
-    fn typecheck_library(&self, library: SourceLibrary) -> CompileResult<()>;
+    fn typecheck_package(&self, package: SourcePackage) -> CompileResult<()>;
 
-    /// Runs the lint passes over given library
-    fn lint_library(&self, library: SourceLibrary) -> CompileResult<()>;
+    /// Runs the lint passes over given package
+    fn lint_package(&self, package: SourcePackage) -> CompileResult<()>;
 }
 
 impl<DB> HirAnalysis for DB
@@ -42,16 +42,16 @@ where
         + Upcast<dyn TypeDatabase>
         + Upcast<dyn ConstEval>,
 {
-    fn analyze_libraries(&self) -> CompileResult<()> {
-        query::analyze_libraries(self)
+    fn analyze_packages(&self) -> CompileResult<()> {
+        query::analyze_packages(self)
     }
 
-    fn typecheck_library(&self, library: SourceLibrary) -> CompileResult<()> {
-        typeck::typecheck_library(self, library)
+    fn typecheck_package(&self, package: SourcePackage) -> CompileResult<()> {
+        typeck::typecheck_package(self, package)
     }
 
-    fn lint_library(&self, library: SourceLibrary) -> CompileResult<()> {
-        lints::lint_library(self, library)
+    fn lint_package(&self, package: SourcePackage) -> CompileResult<()> {
+        lints::lint_package(self, package)
     }
 }
 

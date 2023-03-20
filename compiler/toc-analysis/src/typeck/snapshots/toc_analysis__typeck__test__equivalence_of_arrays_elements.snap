@@ -2,9 +2,9 @@
 source: compiler/toc_analysis/src/typeck/test.rs
 expression: "% over array elements\nvar a : array 0+1..1 of int\nvar b : array 0+1..1 of int1\nvar c : array 0+1..1 of int % trying to make unique types\n\n% element types must be equivalent\na := b\na := c\n"
 ---
-"a"@(FileId(1), 26..27) [ConstVar(Var, No)]: array ( range of `int` (Unevaluated(LibraryId(0), BodyId(0)) .. Expr(Unevaluated(LibraryId(0), BodyId(1)), Yes)), ) of int
-"b"@(FileId(1), 54..55) [ConstVar(Var, No)]: array ( range of `int` (Unevaluated(LibraryId(0), BodyId(2)) .. Expr(Unevaluated(LibraryId(0), BodyId(3)), Yes)), ) of int1
-"c"@(FileId(1), 83..84) [ConstVar(Var, No)]: array ( range of `int` (Unevaluated(LibraryId(0), BodyId(4)) .. Expr(Unevaluated(LibraryId(0), BodyId(5)), Yes)), ) of int
+"a"@(FileId(1), 26..27) [ConstVar(Var, No)]: array ( range of `int` (Unevaluated(PackageId(0), BodyId(0)) .. Expr(Unevaluated(PackageId(0), BodyId(1)), Yes)), ) of int
+"b"@(FileId(1), 54..55) [ConstVar(Var, No)]: array ( range of `int` (Unevaluated(PackageId(0), BodyId(2)) .. Expr(Unevaluated(PackageId(0), BodyId(3)), Yes)), ) of int1
+"c"@(FileId(1), 83..84) [ConstVar(Var, No)]: array ( range of `int` (Unevaluated(PackageId(0), BodyId(4)) .. Expr(Unevaluated(PackageId(0), BodyId(5)), Yes)), ) of int
 "<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 175..177: mismatched types

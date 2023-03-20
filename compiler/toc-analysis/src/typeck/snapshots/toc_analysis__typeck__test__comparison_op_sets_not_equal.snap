@@ -2,10 +2,10 @@
 source: compiler/toc_analysis/src/typeck/test.rs
 expression: "\n    type s : set of boolean\n    var a, b : s\n\n    % should all produce booleans\n    var _v_res : boolean\n\n    _v_res := a not= b\n    _v_res := b not= a\n    "
 ---
-"s"@(FileId(1), 10..11) [Type]: set[DefId(LibraryId(0), LocalDefId(1))] of boolean
+"s"@(FileId(1), 10..11) [Type]: set[DefId(PackageId(0), LocalDefId(1))] of boolean
 "s"@(FileId(1), 14..28) [Set]: <error>
-"a"@(FileId(1), 37..38) [ConstVar(Var, No)]: set[DefId(LibraryId(0), LocalDefId(1))] of boolean
-"b"@(FileId(1), 40..41) [ConstVar(Var, No)]: set[DefId(LibraryId(0), LocalDefId(1))] of boolean
+"a"@(FileId(1), 37..38) [ConstVar(Var, No)]: set[DefId(PackageId(0), LocalDefId(1))] of boolean
+"b"@(FileId(1), 40..41) [ConstVar(Var, No)]: set[DefId(PackageId(0), LocalDefId(1))] of boolean
 "_v_res"@(FileId(1), 89..95) [ConstVar(Var, No)]: boolean
 "<root>"@(dummy) [Module(No)]: <error>
 

@@ -10,7 +10,7 @@ use toc_hir::{
     body,
     expr::{self, BodyExpr},
     item,
-    library::{self, LoweredLibrary},
+    package::{self, LoweredPackage},
     span::{HasSpanTable, SpanId, Spanned},
     stmt::{self, BodyStmt},
     symbol::{self, LocalDefId, Mutability, SubprogramKind},
@@ -18,9 +18,9 @@ use toc_hir::{
     visitor::{HirVisitor, WalkEvent, Walker},
 };
 
-pub fn pretty_print_tree(lowered: &LoweredLibrary) -> String {
+pub fn pretty_print_tree(lowered: &LoweredPackage) -> String {
     let mut output = String::new();
-    let mut walker = Walker::from_library(lowered);
+    let mut walker = Walker::from_package(lowered);
 
     let pretty = PrettyVisitor::new(&mut output, lowered);
 
@@ -42,15 +42,15 @@ pub fn pretty_print_tree(lowered: &LoweredLibrary) -> String {
 struct PrettyVisitor<'out, 'hir> {
     out: RefCell<&'out mut dyn fmt::Write>,
     indent_level: Cell<usize>,
-    library: &'hir library::Library,
+    package: &'hir package::Package,
 }
 
 impl<'out, 'hir> PrettyVisitor<'out, 'hir> {
-    fn new(out: &'out mut dyn fmt::Write, library: &'hir library::Library) -> Self {
+    fn new(out: &'out mut dyn fmt::Write, package: &'hir package::Package) -> Self {
         Self {
             out: RefCell::new(out),
             indent_level: Cell::new(0),
-            library,
+            package,
         }
     }
 
@@ -89,7 +89,7 @@ impl<'out, 'hir> PrettyVisitor<'out, 'hir> {
     }
 
     fn display_span(&self, span: SpanId) -> String {
-        let span = span.lookup_in(self.library);
+        let span = span.lookup_in(self.package);
 
         if let Some((file_id, range)) = span.into_parts() {
             format!("({file_id:?}, {range:?})")
@@ -99,7 +99,7 @@ impl<'out, 'hir> PrettyVisitor<'out, 'hir> {
     }
 
     fn display_def(&self, def_id: LocalDefId) -> String {
-        let def_info = &self.library.local_def(def_id);
+        let def_info = &self.package.local_def(def_id);
         let name = def_info.name;
         let def_span = self.display_span(def_info.def_at);
         format!("{name:?}@{def_span}")
@@ -111,9 +111,9 @@ impl<'out, 'hir> PrettyVisitor<'out, 'hir> {
     }
 
     fn display_extra_binding(&self, binding: Spanned<symbol::Symbol>) -> String {
-        match self.library.binding_resolve(binding) {
+        match self.package.binding_resolve(binding) {
             symbol::Resolve::Def(def_id) => {
-                let def_info = self.library.local_def(def_id);
+                let def_info = self.package.local_def(def_id);
                 let name = def_info.name;
                 let def_span = self.display_span(def_info.def_at);
 
@@ -129,7 +129,7 @@ impl<'out, 'hir> PrettyVisitor<'out, 'hir> {
     }
 
     fn display_extra_def_resolve(&self, local_def: symbol::LocalDefId) -> String {
-        match self.library.def_resolve(local_def) {
+        match self.package.def_resolve(local_def) {
             symbol::DefResolve::Local(local_def) => {
                 format!("local({})", self.display_def(local_def))
             }
@@ -162,27 +162,27 @@ impl<'out, 'hir> PrettyVisitor<'out, 'hir> {
     }
 
     fn item_span(&self, id: item::ItemId) -> SpanId {
-        self.library.item(id).span
+        self.package.item(id).span
     }
 
     fn body_span(&self, id: body::BodyId) -> SpanId {
-        self.library.body(id).span
+        self.package.body(id).span
     }
 
     fn stmt_span(&self, id: BodyStmt) -> SpanId {
-        self.library.body(id.0).stmt(id.1).span
+        self.package.body(id.0).stmt(id.1).span
     }
 
     fn expr_span(&self, id: BodyExpr) -> SpanId {
-        self.library.body(id.0).expr(id.1).span
+        self.package.body(id.0).expr(id.1).span
     }
 
     fn type_span(&self, id: ty::TypeId) -> SpanId {
-        self.library.lookup_type(id).span
+        self.package.lookup_type(id).span
     }
 
     fn def_of(&self, item: item::ItemId) -> LocalDefId {
-        self.library.item(item).def_id
+        self.package.item(item).def_id
     }
 
     fn indent(&self) {
@@ -199,14 +199,14 @@ impl<'out, 'hir> PrettyVisitor<'out, 'hir> {
 }
 
 impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
-    fn visit_library(&self, _library: &library::Library) {
-        self.emit_node("Library", self.library.span_table().dummy_span(), None);
+    fn visit_package(&self, _package: &package::Package) {
+        self.emit_node("Package", self.package.span_table().dummy_span(), None);
     }
 
     fn visit_file_root(&self, file: toc_span::FileId, id: item::ItemId) {
         self.emit_node(
             "Root",
-            self.library.span_table().dummy_span(),
+            self.package.span_table().dummy_span(),
             Some(format_args!("{file:?} -> {id:?}")),
         );
     }
@@ -541,7 +541,7 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
         let variants = itertools::intersperse(
             ty.variants
                 .iter()
-                .map(|&variant| self.library.local_def(variant).name.name()),
+                .map(|&variant| self.package.local_def(variant).name.name()),
             ",",
         )
         .collect::<String>();

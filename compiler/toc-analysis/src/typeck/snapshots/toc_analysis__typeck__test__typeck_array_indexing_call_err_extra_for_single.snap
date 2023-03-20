@@ -2,7 +2,7 @@
 source: compiler/toc_analysis/src/typeck/test.rs
 expression: "var a : array 1..2 of int\nvar _ := a(1,2,3,4)"
 ---
-"a"@(FileId(1), 4..5) [ConstVar(Var, No)]: array ( range of `int` (Unevaluated(LibraryId(0), BodyId(0)) .. Expr(Unevaluated(LibraryId(0), BodyId(1)), Yes)), ) of int
+"a"@(FileId(1), 4..5) [ConstVar(Var, No)]: array ( range of `int` (Unevaluated(PackageId(0), BodyId(0)) .. Expr(Unevaluated(PackageId(0), BodyId(1)), Yes)), ) of int
 "_"@(FileId(1), 30..31) [ConstVar(Var, No)]: int
 "<root>"@(dummy) [Module(No)]: <error>
 

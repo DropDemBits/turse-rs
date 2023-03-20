@@ -3,9 +3,9 @@ source: compiler/toc_analysis/src/typeck/test.rs
 expression: "const N := 256\nvar c256 : char(256)\nvar s : string\n\nvar _v00 : char(N) := c256\nvar _v01 : char(N) := s % runtime checked, always fails\n"
 ---
 "N"@(FileId(1), 6..7) [ConstVar(Const, No)]: int
-"c256"@(FileId(1), 19..23) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(1)))
+"c256"@(FileId(1), 19..23) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(1)))
 "s"@(FileId(1), 40..41) [ConstVar(Var, No)]: string
-"_v00"@(FileId(1), 56..60) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(2)))
-"_v01"@(FileId(1), 83..87) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(4)))
+"_v00"@(FileId(1), 56..60) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(2)))
+"_v01"@(FileId(1), 83..87) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(4)))
 "<root>"@(dummy) [Module(No)]: <error>
 

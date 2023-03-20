@@ -3,7 +3,7 @@
 // without any regards to the type spec.
 use std::cell::RefCell;
 
-use toc_hir::library::{LibraryId, LoweredLibrary};
+use toc_hir::package::{LoweredPackage, PackageId};
 use toc_hir_db::Db;
 use toc_reporting::{MessageBundle, MessageSink};
 use unindent::unindent;
@@ -36,32 +36,32 @@ macro_rules! for_all_const_exprs {
 }
 
 fn do_const_eval(source: &str) -> String {
-    let (db, library_id) = TestDb::from_source(source);
-    let library_id = LibraryId(library_id);
-    let library = db.library(library_id);
+    let (db, package_id) = TestDb::from_source(source);
+    let package_id = PackageId(package_id);
+    let package = db.package(package_id);
 
     // Eagerly evaluate all of the available const vars
     let const_evaluator = ConstEvaluator {
         db: &db,
-        library_id,
-        library: library.clone(),
+        package_id,
+        package: package.clone(),
         reporter: Default::default(),
         results: Default::default(),
     };
 
-    toc_hir::visitor::Walker::from_library(&library).visit_preorder(&const_evaluator);
+    toc_hir::visitor::Walker::from_package(&package).visit_preorder(&const_evaluator);
 
     struct ConstEvaluator<'db> {
         db: &'db TestDb,
-        library_id: LibraryId,
-        library: LoweredLibrary,
+        package_id: PackageId,
+        package: LoweredPackage,
         reporter: RefCell<MessageSink>,
         results: RefCell<String>,
     }
 
     impl toc_hir::visitor::HirVisitor for ConstEvaluator<'_> {
         fn visit_constvar(&self, id: toc_hir::item::ItemId, item: &toc_hir::item::ConstVar) {
-            let def_id = self.library.item(id).def_id;
+            let def_id = self.package.item(id).def_id;
             let body = if let Some(body) = item.init_expr {
                 body
             } else {
@@ -70,14 +70,14 @@ fn do_const_eval(source: &str) -> String {
 
             let eval_res = self
                 .db
-                .evaluate_const(Const::from_body(self.library_id, body), Default::default());
+                .evaluate_const(Const::from_body(self.package_id, body), Default::default());
 
             let name = {
-                let def_info = self.library.local_def(def_id);
+                let def_info = self.package.local_def(def_id);
                 format!(
                     "{:?}@{:?}",
                     def_info.name,
-                    def_info.def_at.lookup_in(&self.library)
+                    def_info.def_at.lookup_in(&self.package)
                 )
             };
 

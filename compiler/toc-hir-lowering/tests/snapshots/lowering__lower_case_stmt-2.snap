@@ -3,7 +3,7 @@ source: compiler/toc_hir_lowering/tests/lowering.rs
 expression: "case s of label: end case"
 
 ---
-Library@(dummy)
+Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(0)
     Module@(FileId(1), 0..25): "<root>"@(dummy)
       StmtBody@(FileId(1), 0..25): []

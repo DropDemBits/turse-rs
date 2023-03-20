@@ -3,7 +3,7 @@ source: compiler/toc_analysis/src/typeck/test.rs
 expression: "const max : nat1 := 1\ntype _ : -1 .. max\n"
 ---
 "max"@(FileId(1), 6..9) [ConstVar(Const, No)]: nat1
-"_"@(FileId(1), 27..28) [Type]: alias[DefId(LibraryId(0), LocalDefId(1))] of range of `nat1` (Unevaluated(LibraryId(0), BodyId(1)) .. Expr(Unevaluated(LibraryId(0), BodyId(2)), No))
+"_"@(FileId(1), 27..28) [Type]: alias[DefId(PackageId(0), LocalDefId(1))] of range of `nat1` (Unevaluated(PackageId(0), BodyId(1)) .. Expr(Unevaluated(PackageId(0), BodyId(2)), No))
 "<root>"@(dummy) [Module(No)]: <error>
 
 error in file FileId(1) at 31..33: computed value is outside the type's range

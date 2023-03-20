@@ -116,12 +116,12 @@ fn emit_debug_ty(
 
             out.write_str("( ")?;
             if !variants.is_empty() {
-                let library = db.library(def_id.0);
+                let package = db.package(def_id.0);
 
                 for variant in variants {
-                    let def_info = library.local_def(variant.1);
+                    let def_info = package.local_def(variant.1);
                     let name = def_info.name;
-                    let span = def_info.def_at.lookup_in(&library);
+                    let span = def_info.def_at.lookup_in(&package);
 
                     write!(out, "{name:?}@{span:?}, ")?;
                 }
@@ -203,15 +203,15 @@ fn emit_display_ty(
             out.write_char(')')?;
         }
         TypeKind::Alias(def_id, to) => {
-            let library = db.library(def_id.0);
-            let name = library.local_def(def_id.1).name;
+            let package = db.package(def_id.0);
+            let name = package.local_def(def_id.1).name;
             out.write_fmt(format_args!("{name} (alias of "))?;
             emit_display_ty(db, out, *to, PokeAliases::Yes)?;
             out.write_char(')')?;
         }
         TypeKind::Opaque(def_id, _) => {
-            let library = db.library(def_id.0);
-            let name = library.local_def(def_id.1).name;
+            let package = db.package(def_id.0);
+            let name = package.local_def(def_id.1).name;
             out.write_fmt(format_args!("{name} (an opaque type)"))?;
         }
         TypeKind::Constrained(_, start, end) => {
@@ -260,8 +260,8 @@ fn emit_display_ty(
                 WithDef::Named(def_id) => def_id,
                 WithDef::Anonymous(def_id) => def_id,
             };
-            let library = db.library(def_id.0);
-            let name = library.local_def(def_id.1).name;
+            let package = db.package(def_id.0);
+            let name = package.local_def(def_id.1).name;
             out.write_fmt(format_args!(" {name}"))?;
         }
         TypeKind::Set(with_def, to) => {
@@ -269,8 +269,8 @@ fn emit_display_ty(
                 WithDef::Named(def_id) => def_id,
                 WithDef::Anonymous(def_id) => def_id,
             };
-            let library = db.library(def_id.0);
-            let name = library.local_def(def_id.1).name;
+            let package = db.package(def_id.0);
+            let name = package.local_def(def_id.1).name;
             out.write_fmt(format_args!(" {name}"))?;
 
             if poke_aliases == PokeAliases::No {

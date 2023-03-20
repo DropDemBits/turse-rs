@@ -2,6 +2,6 @@
 source: compiler/toc_analysis/src/typeck/test.rs
 expression: "type _ : array 1..1 of int"
 ---
-"_"@(FileId(1), 5..6) [Type]: alias[DefId(LibraryId(0), LocalDefId(0))] of array ( range of `int` (Unevaluated(LibraryId(0), BodyId(0)) .. Expr(Unevaluated(LibraryId(0), BodyId(1)), No)), ) of int
+"_"@(FileId(1), 5..6) [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of array ( range of `int` (Unevaluated(PackageId(0), BodyId(0)) .. Expr(Unevaluated(PackageId(0), BodyId(1)), No)), ) of int
 "<root>"@(dummy) [Module(No)]: <error>
 

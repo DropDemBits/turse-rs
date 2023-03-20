@@ -1,22 +1,22 @@
-//! Input graph of all of the libraries and their dependencies
+//! Input graph of all of the packages and their dependencies
 
 mod graph;
-mod library;
+mod package;
 
 #[cfg(test)]
 mod test;
 
-pub use graph::{source_graph, CyclicDependencies, RootLibraries, SourceGraph};
-pub use library::{ArtifactKind, DependencyInfo, DependencyList, Library, LibraryId};
+pub use graph::{source_graph, CyclicDependencies, RootPackages, SourceGraph};
+pub use package::{ArtifactKind, DependencyInfo, DependencyList, Package, PackageId};
 
 #[salsa::jar(db = Db)]
 pub struct Jar(
-    library::Library,
-    graph::RootLibraries,
+    package::Package,
+    graph::RootPackages,
     graph::source_graph,
     graph::SourceGraph,
-    library::DependencyList,
-    graph::SourceGraph_all_libraries,
+    package::DependencyList,
+    graph::SourceGraph_all_packages,
 );
 
 pub trait Db: salsa::DbWithJar<Jar> {}

@@ -6,8 +6,8 @@ use toc_hir::{
     body::{self, BodyOwner, BodyTable},
     expr,
     item::{self, ModuleId, ModuleTree},
-    library::{InLibrary, Library, LoweredLibrary},
-    library_graph::SourceLibrary,
+    package::{InPackage, LoweredPackage, Package},
+    package_graph::SourcePackage,
     stmt,
     symbol::{DefId, DefOwner, DefResolve, DefTable, LocalDefId, SymbolKind},
     ty::{self, TypeOwner, TypeOwners},
@@ -16,28 +16,28 @@ use toc_hir::{
 
 use crate::{db::InsideModule, Db};
 
-/// Get the library associated with the given id
+/// Get the package associated with the given id
 #[salsa::tracked]
-pub fn hir_library(db: &dyn Db, library: SourceLibrary) -> LoweredLibrary {
-    toc_hir_lowering::lower_library(db.up(), library)
+pub fn hir_package(db: &dyn Db, package: SourcePackage) -> LoweredPackage {
+    toc_hir_lowering::lower_package(db.up(), package)
         .result()
         .clone()
 }
 
-/// Gets all of the definitions in the library,
+/// Gets all of the definitions in the package,
 /// providing a mapping between definitions and definition owners.
 #[salsa::tracked]
-pub fn defs_of(db: &dyn Db, library: SourceLibrary) -> Arc<DefTable> {
+pub fn defs_of(db: &dyn Db, package: SourcePackage) -> Arc<DefTable> {
     use toc_hir::visitor::Walker;
 
-    let library = hir_library(db, library);
+    let package = hir_package(db, package);
 
     // Collect definitions
     let def_collector = DefCollector {
         def_table: Default::default(),
-        library: &library,
+        package: &package,
     };
-    Walker::from_library(&library).visit_preorder(&def_collector);
+    Walker::from_package(&package).visit_preorder(&def_collector);
 
     Arc::new(def_collector.def_table.into_inner())
 }
@@ -49,62 +49,62 @@ pub fn def_owner(db: &dyn Db, def_id: DefId) -> Option<DefOwner> {
     db.defs_of(def_id.0).get_owner(def_id.1)
 }
 
-/// Gets all of the body owners in the library,
+/// Gets all of the body owners in the package,
 /// providing a mapping between bodies and body owners
 #[salsa::tracked]
-pub fn body_owners_of(db: &dyn Db, library: SourceLibrary) -> Arc<BodyTable> {
+pub fn body_owners_of(db: &dyn Db, package: SourcePackage) -> Arc<BodyTable> {
     use toc_hir::visitor::Walker;
 
-    let library = hir_library(db, library);
+    let package = hir_package(db, package);
 
     // Collect bodies
     let body_collector = BodyCollector {
         body_table: Default::default(),
-        _library: &library,
+        _package: &package,
     };
-    Walker::from_library(&library).visit_preorder(&body_collector);
+    Walker::from_package(&package).visit_preorder(&body_collector);
 
     Arc::new(body_collector.body_table.into_inner())
 }
 
 // FIXME: Make body_owner lookup infallible
 /// Gets the corresponding [`BodyOwner`](body::BodyOwner) to the given [`BodyId`](body::BodyId)
-pub fn body_owner(db: &dyn Db, body: InLibrary<body::BodyId>) -> Option<BodyOwner> {
+pub fn body_owner(db: &dyn Db, body: InPackage<body::BodyId>) -> Option<BodyOwner> {
     db.body_owners_of(body.0).get_owner(body.1)
 }
 
-/// Gets all of the type owners in the library,
+/// Gets all of the type owners in the package,
 /// providing a link between types and type owners.
 #[salsa::tracked]
-pub fn type_owners_of(db: &dyn Db, library: SourceLibrary) -> Arc<TypeOwners> {
+pub fn type_owners_of(db: &dyn Db, package: SourcePackage) -> Arc<TypeOwners> {
     use toc_hir::visitor::Walker;
 
-    let library = hir_library(db, library);
+    let package = hir_package(db, package);
 
     // Collect types
     let type_collector = TypeCollector {
         type_table: Default::default(),
     };
-    Walker::from_library(&library).visit_preorder(&type_collector);
+    Walker::from_package(&package).visit_preorder(&type_collector);
 
     Arc::new(type_collector.type_table.into_inner())
 }
 
 /// Gets the corresponding [`TypeOwner`](ty::TypeOwner) for the given [`TypeId`](ty::TypeId)
-pub fn type_owner(db: &dyn Db, ty: InLibrary<ty::TypeId>) -> TypeOwner {
+pub fn type_owner(db: &dyn Db, ty: InPackage<ty::TypeId>) -> TypeOwner {
     db.type_owners_of(ty.0).lookup_owner(ty.1)
 }
 
-/// Gets the module tree from the library,
+/// Gets the module tree from the package,
 /// providing a link from child modules to parent modules.
 #[salsa::tracked]
-pub fn module_tree_of(db: &dyn Db, library: SourceLibrary) -> Arc<ModuleTree> {
+pub fn module_tree_of(db: &dyn Db, package: SourcePackage) -> Arc<ModuleTree> {
     use toc_hir::visitor::{WalkEvent, WalkNode, Walker};
 
-    let library = hir_library(db, library);
+    let package = hir_package(db, package);
 
     // Need an in-line collection since we're also concerned about exit events
-    let mut walker = Walker::from_library(&library);
+    let mut walker = Walker::from_package(&package);
     let mut module_tree = ModuleTree::default();
     let mut module_path = vec![];
 
@@ -112,7 +112,7 @@ pub fn module_tree_of(db: &dyn Db, library: SourceLibrary) -> Arc<ModuleTree> {
         match event {
             WalkEvent::Enter(WalkNode::Item(item_id, item)) => {
                 if let item::ItemKind::Module(_) = &item.kind {
-                    let child_mod = ModuleId::new(&library, item_id);
+                    let child_mod = ModuleId::new(&package, item_id);
 
                     // Link to parent
                     if let Some(&parent_mod) = module_path.last() {
@@ -144,7 +144,7 @@ pub fn module_tree_of(db: &dyn Db, library: SourceLibrary) -> Arc<ModuleTree> {
 }
 
 /// Gets the parent module of the given module.
-pub fn module_parent(db: &dyn Db, module: InLibrary<ModuleId>) -> Option<ModuleId> {
+pub fn module_parent(db: &dyn Db, module: InPackage<ModuleId>) -> Option<ModuleId> {
     db.module_tree_of(module.0).parent_of(module.1)
 }
 
@@ -153,7 +153,7 @@ pub fn module_parent(db: &dyn Db, module: InLibrary<ModuleId>) -> Option<ModuleI
 #[salsa::tracked]
 pub fn is_module_ancestor(
     db: &dyn Db,
-    library: SourceLibrary,
+    package: SourcePackage,
     parent: ModuleId,
     child: ModuleId,
 ) -> bool {
@@ -163,7 +163,7 @@ pub fn is_module_ancestor(
     }
 
     // Don't need to route through query, would create redundant module tree clones
-    let module_tree = db.module_tree_of(library.into());
+    let module_tree = db.module_tree_of(package.into());
 
     // Module is only an ancestor if it's anywhere on the hierarchy
     std::iter::successors(module_tree.parent_of(child), |id| {
@@ -175,18 +175,18 @@ pub fn is_module_ancestor(
 /// Looks up which module the given HIR node is in
 pub fn inside_module(db: &dyn Db, inside_module: InsideModule) -> item::ModuleId {
     let inside_module = match inside_module {
-        InsideModule::Item(library_id, item_id) => {
+        InsideModule::Item(package_id, item_id) => {
             // We're either at a module-like, or at a plain old item
             //
             // We stop at module-likes since we're directed here via bodies,
             // and we don't need to distinguish between at module decl and inside body,
             // at least right now.
-            let library = db.library(library_id);
+            let package = db.package(package_id);
 
-            let module_id = match item::ModuleId::try_new(&library, item_id) {
+            let module_id = match item::ModuleId::try_new(&package, item_id) {
                 Some(module_id) => module_id,
                 None => db
-                    .module_tree_of(library_id)
+                    .module_tree_of(package_id)
                     .module_of(item_id)
                     .expect("missing item link"),
             };
@@ -194,30 +194,30 @@ pub fn inside_module(db: &dyn Db, inside_module: InsideModule) -> item::ModuleId
             return module_id;
         }
         // Type gets referred to the type's owner
-        InsideModule::Type(library_id, type_id) => {
-            let owner = db.type_owner(InLibrary(library_id, type_id));
+        InsideModule::Type(package_id, type_id) => {
+            let owner = db.type_owner(InPackage(package_id, type_id));
 
             match owner {
-                TypeOwner::Item(item_id) => (library_id, item_id).into(),
-                TypeOwner::Type(type_id) => (library_id, type_id).into(),
+                TypeOwner::Item(item_id) => (package_id, item_id).into(),
+                TypeOwner::Type(type_id) => (package_id, type_id).into(),
             }
         }
         // Body gets referred to the body's owner
-        InsideModule::Body(library_id, body_id) => {
+        InsideModule::Body(package_id, body_id) => {
             let owner = db
-                .body_owner(InLibrary(library_id, body_id))
+                .body_owner(InPackage(package_id, body_id))
                 .expect("missing owner");
 
             match owner {
-                BodyOwner::Item(item_id) => (library_id, item_id).into(),
-                BodyOwner::Type(type_id) => (library_id, type_id).into(),
-                BodyOwner::Expr(expr_id) => (library_id, expr_id).into(),
+                BodyOwner::Item(item_id) => (package_id, item_id).into(),
+                BodyOwner::Type(type_id) => (package_id, type_id).into(),
+                BodyOwner::Expr(expr_id) => (package_id, expr_id).into(),
             }
         }
         // Body{Stmt,Expr} gets referred to the owning body
-        InsideModule::Stmt(library_id, stmt::BodyStmt(body_id, _))
-        | InsideModule::Expr(library_id, expr::BodyExpr(body_id, _)) => {
-            (library_id, body_id).into()
+        InsideModule::Stmt(package_id, stmt::BodyStmt(body_id, _))
+        | InsideModule::Expr(package_id, expr::BodyExpr(body_id, _)) => {
+            (package_id, body_id).into()
         }
     };
 
@@ -228,34 +228,34 @@ pub fn inside_module(db: &dyn Db, inside_module: InsideModule) -> item::ModuleId
 /// or `None` if it doesn't exist.
 ///
 /// This does not perform any form of definition resolution.
-pub fn item_of(db: &dyn Db, def_id: DefId) -> Option<InLibrary<item::ItemId>> {
+pub fn item_of(db: &dyn Db, def_id: DefId) -> Option<InPackage<item::ItemId>> {
     db.def_owner(def_id).and_then(|owner| match owner {
-        DefOwner::Item(id) => Some(InLibrary(def_id.0, id)),
+        DefOwner::Item(id) => Some(InPackage(def_id.0, id)),
         _ => None,
     })
 }
 
-/// Gets all of the bodies in the given library
+/// Gets all of the bodies in the given package
 #[salsa::tracked]
-pub fn bodies_of(db: &dyn Db, library: SourceLibrary) -> Arc<Vec<body::BodyId>> {
-    let library = hir_library(db, library);
-    Arc::new(library.body_ids())
+pub fn bodies_of(db: &dyn Db, package: SourcePackage) -> Arc<Vec<body::BodyId>> {
+    let package = hir_package(db, package);
+    Arc::new(package.body_ids())
 }
 
 /// Resolved the given `def_id` to the canonical definition (i.e. beyond any exports),
 /// or the last def before an undeclared was encountered.
 pub fn resolve_def(db: &dyn Db, def_id: DefId) -> Result<DefId, DefId> {
-    // ???: How does this interact with def collecting (i.e how are we redirected to the right library)?
-    // Assuming it'd be done through `ItemExport` holding a library id to the real definition
+    // ???: How does this interact with def collecting (i.e how are we redirected to the right package)?
+    // Assuming it'd be done through `ItemExport` holding a package id to the real definition
 
     // Was doing: making def resolution fallible
     // Seems best to return the last def before we hit an undeclared
 
-    let library = db.library(def_id.library());
+    let package = db.package(def_id.package());
 
-    let next_def = match library.def_resolve(def_id.local()) {
+    let next_def = match package.def_resolve(def_id.local()) {
         // Follow the indirection
-        DefResolve::Local(local_def) => DefId(def_id.library(), local_def),
+        DefResolve::Local(local_def) => DefId(def_id.package(), local_def),
         DefResolve::External(def) => def,
         // This is the canonical def
         DefResolve::Canonical => return Ok(def_id),
@@ -272,8 +272,8 @@ pub fn resolve_def(db: &dyn Db, def_id: DefId) -> Result<DefId, DefId> {
 /// This does not perform any form of definition resolution.
 pub fn symbol_kind(db: &dyn Db, def_id: DefId) -> Option<SymbolKind> {
     // Take the binding kind from the def owner
-    let library = db.library(def_id.0);
-    let def_info = library.local_def(def_id.1);
+    let package = db.package(def_id.0);
+    let def_info = package.local_def(def_id.1);
     let kind = def_info.kind?;
 
     // Defs by this point should have been resolved by a prior
@@ -285,10 +285,10 @@ pub fn symbol_kind(db: &dyn Db, def_id: DefId) -> Option<SymbolKind> {
     Some(kind)
 }
 
-/// Library-local definition collector
+/// Package-local definition collector
 struct DefCollector<'a> {
     def_table: RefCell<DefTable>,
-    library: &'a Library,
+    package: &'a Package,
 }
 
 impl DefCollector<'_> {
@@ -307,7 +307,7 @@ impl HirVisitor for DefCollector<'_> {
         for (idx, export) in item.exports.iter().enumerate() {
             self.add_owner(
                 export.def_id,
-                DefOwner::Export(item::ModuleId::new(self.library, id), item::ExportId(idx)),
+                DefOwner::Export(item::ModuleId::new(self.package, id), item::ExportId(idx)),
             );
         }
     }
@@ -317,7 +317,7 @@ impl HirVisitor for DefCollector<'_> {
             for name in &params.names {
                 // Skip the filler args
                 // They are placeholders, and can't be named anyways
-                if self.library.local_def(*name).kind.is_none() {
+                if self.package.local_def(*name).kind.is_none() {
                     continue;
                 }
 
@@ -343,10 +343,10 @@ impl HirVisitor for DefCollector<'_> {
     }
 }
 
-/// Library-local body collector
+/// Package-local body collector
 struct BodyCollector<'a> {
     body_table: RefCell<BodyTable>,
-    _library: &'a Library,
+    _package: &'a Package,
 }
 
 impl BodyCollector<'_> {
@@ -406,7 +406,7 @@ impl HirVisitor for BodyCollector<'_> {
     }
 }
 
-/// Library-local type owner collector
+/// Package-local type owner collector
 struct TypeCollector {
     type_table: RefCell<TypeOwners>,
 }

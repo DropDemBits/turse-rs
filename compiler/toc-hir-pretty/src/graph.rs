@@ -7,14 +7,14 @@ use std::{
     ops::DerefMut,
 };
 
-use toc_hir::library::LibraryId;
+use toc_hir::package::PackageId;
 use toc_hir::symbol::{self, Symbol};
 use toc_hir::visitor::WalkNode;
 use toc_hir::{
     body,
     expr::{self, BodyExpr},
     item,
-    library::{self, LoweredLibrary},
+    package::{self, LoweredPackage},
     span::{HasSpanTable, SpanId, Spanned},
     stmt::{self, BodyStmt},
     symbol::{LocalDefId, Mutability, SubprogramKind},
@@ -26,9 +26,9 @@ const IS_LR_LAYOUT: bool = true;
 
 pub fn pretty_print_graph(
     db: &dyn toc_source_graph::Db,
-    get_library: impl Fn(LibraryId) -> LoweredLibrary,
+    get_package: impl Fn(PackageId) -> LoweredPackage,
 ) -> String {
-    let Ok(library_graph) = toc_source_graph::source_graph(db) else {
+    let Ok(package_graph) = toc_source_graph::source_graph(db) else {
         return String::new()
     };
 
@@ -47,16 +47,16 @@ pub fn pretty_print_graph(
     .unwrap();
     writeln!(output, "nodesep=0.5").unwrap();
 
-    // Define the contents of the libraries
-    for &library in library_graph.all_libraries(db) {
-        let library_id = LibraryId(library);
-        writeln!(output, r#"subgraph "cluster_{library_id:?}" {{"#).unwrap();
-        writeln!(output, r#"label="{library_id:?}""#).unwrap();
+    // Define the contents of the packages
+    for &package in package_graph.all_packages(db) {
+        let package_id = PackageId(package);
+        writeln!(output, r#"subgraph "cluster_{package_id:?}" {{"#).unwrap();
+        writeln!(output, r#"label="{package_id:?}""#).unwrap();
         writeln!(output, r##"bgcolor="#009aef22""##).unwrap();
-        let library = get_library(library_id);
-        let mut walker = Walker::from_library(&library);
+        let package = get_package(package_id);
+        let mut walker = Walker::from_package(&package);
 
-        let pretty = PrettyVisitor::new(&mut output, library_id, &library);
+        let pretty = PrettyVisitor::new(&mut output, package_id, &package);
 
         let mut visited_bodies = HashSet::new();
         let mut visited_types = HashSet::new();
@@ -82,7 +82,7 @@ pub fn pretty_print_graph(
                         let output = &mut *pretty.out.borrow_mut();
                         writeln!(
                             output,
-                            r#"subgraph "cluster_{library_id:?}:{body_id:?}" {{"#
+                            r#"subgraph "cluster_{package_id:?}:{body_id:?}" {{"#
                         )
                         .unwrap();
                         writeln!(output, r#"label="{body_id:?}""#).unwrap();
@@ -101,8 +101,8 @@ pub fn pretty_print_graph(
         writeln!(output, "}}").unwrap();
     }
 
-    // ... then the connections between libraries
-    // FIXME: walk along library graph dep edges
+    // ... then the connections between packages
+    // FIXME: walk along package graph dep edges
 
     writeln!(output, "}}").unwrap();
     output
@@ -161,20 +161,20 @@ impl Layout {
 
 struct PrettyVisitor<'out, 'hir> {
     out: RefCell<&'out mut dyn fmt::Write>,
-    library: &'hir library::Library,
-    library_id: LibraryId,
+    package: &'hir package::Package,
+    package_id: PackageId,
 }
 
 impl<'out, 'hir> PrettyVisitor<'out, 'hir> {
     fn new(
         out: &'out mut dyn fmt::Write,
-        library_id: LibraryId,
-        library: &'hir library::Library,
+        package_id: PackageId,
+        package: &'hir package::Package,
     ) -> Self {
         Self {
             out: RefCell::new(out),
-            library_id,
-            library,
+            package_id,
+            package,
         }
     }
 
@@ -215,7 +215,7 @@ impl<'out, 'hir> PrettyVisitor<'out, 'hir> {
     }
 
     fn display_span(&self, span: SpanId) -> String {
-        let span = span.lookup_in(self.library);
+        let span = span.lookup_in(self.package);
 
         if let Some((file_id, range)) = span.into_parts() {
             format!("({file_id:?}, {range:?})")
@@ -225,15 +225,15 @@ impl<'out, 'hir> PrettyVisitor<'out, 'hir> {
     }
 
     fn display_def_id(&self, def_id: LocalDefId) -> String {
-        let name = escape_def_name(self.library.local_def(def_id).name);
+        let name = escape_def_name(self.package.local_def(def_id).name);
 
         format!("'{name}'\\n({def_id:?})")
     }
 
     fn display_binding(&self, binding: Spanned<Symbol>) -> String {
-        match self.library.binding_resolve(binding) {
+        match self.package.binding_resolve(binding) {
             symbol::Resolve::Def(def_id) => {
-                let def_info = self.library.local_def(def_id);
+                let def_info = self.package.local_def(def_id);
                 let name = escape_def_name(def_info.name);
 
                 format!("'{name}'\\n({def_id:?})")
@@ -247,7 +247,7 @@ impl<'out, 'hir> PrettyVisitor<'out, 'hir> {
     }
 
     fn display_extra_def_resolve(&self, local_def: symbol::LocalDefId) -> String {
-        match self.library.def_resolve(local_def) {
+        match self.package.def_resolve(local_def) {
             symbol::DefResolve::Local(local_def) => {
                 format!("local({})", self.display_def_id(local_def))
             }
@@ -281,53 +281,53 @@ impl<'out, 'hir> PrettyVisitor<'out, 'hir> {
     }
 
     fn item_span(&self, id: item::ItemId) -> SpanId {
-        self.library.item(id).span
+        self.package.item(id).span
     }
 
     fn body_span(&self, id: body::BodyId) -> SpanId {
-        self.library.body(id).span
+        self.package.body(id).span
     }
 
     fn stmt_span(&self, id: BodyStmt) -> SpanId {
-        self.library.body(id.0).stmt(id.1).span
+        self.package.body(id.0).stmt(id.1).span
     }
 
     fn expr_span(&self, id: BodyExpr) -> SpanId {
-        self.library.body(id.0).expr(id.1).span
+        self.package.body(id.0).expr(id.1).span
     }
 
     fn type_span(&self, id: ty::TypeId) -> SpanId {
-        self.library.lookup_type(id).span
+        self.package.lookup_type(id).span
     }
 
     fn item_id(&self, item_id: item::ItemId) -> String {
-        format!(r#""{lib_id:?}:{item_id:?}""#, lib_id = self.library_id)
+        format!(r#""{pkg_id:?}:{item_id:?}""#, pkg_id = self.package_id)
     }
 
     fn body_id(&self, body_id: body::BodyId) -> String {
-        format!(r#""{lib_id:?}:{body_id:?}""#, lib_id = self.library_id)
+        format!(r#""{pkg_id:?}:{body_id:?}""#, pkg_id = self.package_id)
     }
 
     fn stmt_id(&self, BodyStmt(body_id, stmt_id): BodyStmt) -> String {
         format!(
-            r#""{lib_id:?}:{body_id:?}:{stmt_id:?}""#,
-            lib_id = self.library_id
+            r#""{pkg_id:?}:{body_id:?}:{stmt_id:?}""#,
+            pkg_id = self.package_id
         )
     }
 
     fn expr_id(&self, BodyExpr(body_id, expr_id): BodyExpr) -> String {
         format!(
-            r#""{lib_id:?}:{body_id:?}:{expr_id:?}""#,
-            lib_id = self.library_id
+            r#""{pkg_id:?}:{body_id:?}:{expr_id:?}""#,
+            pkg_id = self.package_id
         )
     }
 
     fn def_id(&self, def_id: LocalDefId) -> String {
-        format!(r#""{lib_id:?}:{def_id:?}""#, lib_id = self.library_id)
+        format!(r#""{pkg_id:?}:{def_id:?}""#, pkg_id = self.package_id)
     }
 
     fn type_id(&self, type_id: ty::TypeId) -> String {
-        format!(r#""{lib_id:?}:{type_id:?}""#, lib_id = self.library_id)
+        format!(r#""{pkg_id:?}:{type_id:?}""#, pkg_id = self.package_id)
     }
 
     fn emit_item(&self, id: item::ItemId, name: &str, layout: Layout) {
@@ -351,7 +351,7 @@ impl<'out, 'hir> PrettyVisitor<'out, 'hir> {
     }
 
     fn emit_def_info(&self, def_id: LocalDefId) {
-        let def_info = self.library.local_def(def_id);
+        let def_info = self.package.local_def(def_id);
         let name = escape_def_name(def_info.name);
 
         self.emit_node(
@@ -376,7 +376,7 @@ impl<'out, 'hir> PrettyVisitor<'out, 'hir> {
         body_id: body::BodyId,
         stmts: &[stmt::StmtId],
     ) {
-        let body = self.library.body(body_id);
+        let body = self.package.body(body_id);
         for stmt in stmts {
             // short-circuit directly to the item
             let to = if let stmt::StmtKind::Item(item_id) = &body.stmt(*stmt).kind {
@@ -390,9 +390,9 @@ impl<'out, 'hir> PrettyVisitor<'out, 'hir> {
 }
 
 impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
-    fn visit_library(&self, library: &library::Library) {
+    fn visit_package(&self, package: &package::Package) {
         // Define all of the defs nodes first
-        for def_id in library.local_defs() {
+        for def_id in package.local_defs() {
             self.emit_def_info(def_id);
         }
     }
@@ -523,7 +523,7 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
                 v_layout.push(Layout::Port("params".into()));
 
                 for (name, param) in param_list.names.iter().zip(&param_list.tys) {
-                    let def_info = self.library.local_def(*name);
+                    let def_info = self.package.local_def(*name);
                     let param_node = derived_id(self.item_id(id), &format!("param_{name:?}"));
                     self.emit_node(
                         &param_node,
@@ -548,7 +548,7 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
             self.emit_node(
                 &node_id,
                 "SubprogramParams",
-                self.library.span_table().dummy_span(),
+                self.package.span_table().dummy_span(),
                 Layout::Vbox(v_layout),
             );
 
@@ -564,10 +564,10 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
             let node_id = derived_id(self.item_id(id), "result_node");
 
             let (span_at, result_name) = if let Some(def_id) = item.result.name {
-                let def_info = self.library.local_def(def_id);
+                let def_info = self.package.local_def(def_id);
                 (def_info.def_at, self.display_def_id(def_id))
             } else {
-                (self.library.span_table().dummy_span(), "".into())
+                (self.package.span_table().dummy_span(), "".into())
             };
 
             self.emit_node(
@@ -652,7 +652,7 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
             self.emit_node(
                 &export_table,
                 "ExportTable",
-                self.library.span_table().dummy_span(),
+                self.package.span_table().dummy_span(),
                 Layout::Vbox(v_layout),
             );
 

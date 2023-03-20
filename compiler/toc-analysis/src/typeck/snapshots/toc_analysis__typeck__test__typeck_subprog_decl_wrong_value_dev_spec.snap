@@ -2,7 +2,7 @@
 source: compiler/toc_analysis/src/typeck/test.rs
 expression: "type k : real proc a : k end a"
 ---
-"k"@(FileId(1), 5..6) [Type]: alias[DefId(LibraryId(0), LocalDefId(0))] of real
+"k"@(FileId(1), 5..6) [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of real
 "a"@(FileId(1), 19..20) [Subprogram(Procedure)]: procedure -> void
 "<root>"@(dummy) [Module(No)]: <error>
 

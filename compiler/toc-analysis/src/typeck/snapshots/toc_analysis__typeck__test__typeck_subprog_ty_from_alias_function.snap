@@ -2,7 +2,7 @@
 source: compiler/toc_analysis/src/typeck/test.rs
 expression: "type sha : function (a : int, b : char) : int"
 ---
-"sha"@(FileId(1), 5..8) [Type]: alias[DefId(LibraryId(0), LocalDefId(0))] of function ( pass(value) int, pass(value) char, ) -> int
+"sha"@(FileId(1), 5..8) [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of function ( pass(value) int, pass(value) char, ) -> int
 "a"@(FileId(1), 21..22) [Param(Value, No)]: <error>
 "b"@(FileId(1), 30..31) [Param(Value, No)]: <error>
 "<unnamed>"@(dummy) [Undeclared]: <error>

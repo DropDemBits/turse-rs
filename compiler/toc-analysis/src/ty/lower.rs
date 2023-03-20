@@ -4,7 +4,7 @@ use std::convert::TryInto;
 
 use toc_hir::{
     body, expr, item,
-    library::{InLibrary, LibraryId, WrapInLibrary},
+    package::{InPackage, PackageId, WrapInPackage},
     stmt,
     symbol::{self, DefId, LocalDefId, SymbolKind},
     ty as hir_ty, OrMissingExt,
@@ -18,9 +18,9 @@ use crate::{
 
 use super::{AllowDyn, IntSize, NatSize, RealSize, SeqSize};
 
-pub(crate) fn ty_from_hir_ty(db: &dyn TypeDatabase, hir_id: InLibrary<hir_ty::TypeId>) -> TypeId {
-    let library = db.library(hir_id.0);
-    let hir_ty = library.lookup_type(hir_id.1);
+pub(crate) fn ty_from_hir_ty(db: &dyn TypeDatabase, hir_id: InPackage<hir_ty::TypeId>) -> TypeId {
+    let package = db.package(hir_id.0);
+    let hir_ty = package.lookup_type(hir_id.1);
 
     match &hir_ty.kind {
         hir_ty::TypeKind::Missing => make::error(db),
@@ -38,7 +38,7 @@ pub(crate) fn ty_from_hir_ty(db: &dyn TypeDatabase, hir_id: InLibrary<hir_ty::Ty
 
 fn primitive_ty(
     db: &dyn TypeDatabase,
-    hir_id: InLibrary<hir_ty::TypeId>,
+    hir_id: InPackage<hir_ty::TypeId>,
     ty: &hir_ty::Primitive,
 ) -> TypeId {
     // Create the correct type based off of the base primitive type
@@ -63,25 +63,25 @@ fn primitive_ty(
     }
 }
 
-fn lower_seq_len(library: LibraryId, seq_len: hir_ty::SeqLength) -> SeqSize {
+fn lower_seq_len(package: PackageId, seq_len: hir_ty::SeqLength) -> SeqSize {
     match seq_len {
         hir_ty::SeqLength::Any => SeqSize::Any,
-        hir_ty::SeqLength::Expr(body) => SeqSize::Fixed(Const::from_body(library, body)),
+        hir_ty::SeqLength::Expr(body) => SeqSize::Fixed(Const::from_body(package, body)),
     }
 }
 
 fn alias_ty(
     db: &dyn TypeDatabase,
-    hir_id: InLibrary<hir_ty::TypeId>,
+    hir_id: InPackage<hir_ty::TypeId>,
     ty: &hir_ty::Alias,
 ) -> TypeId {
     let def_id = {
         let in_module = db.inside_module(hir_id.into());
         // Walk the segment path while we still can
         let mut def_id = {
-            let library = db.library(hir_id.library());
-            match library.binding_resolve(ty.base_def) {
-                symbol::Resolve::Def(local_def) => DefId(hir_id.library(), local_def),
+            let package = db.package(hir_id.package());
+            match package.binding_resolve(ty.base_def) {
+                symbol::Resolve::Def(local_def) => DefId(hir_id.package(), local_def),
                 symbol::Resolve::Err => return make::error(db),
             }
         };
@@ -116,17 +116,17 @@ fn alias_ty(
 
 fn constrained_ty(
     db: &dyn TypeDatabase,
-    hir_id: InLibrary<hir_ty::TypeId>,
+    hir_id: InPackage<hir_ty::TypeId>,
     ty: &hir_ty::Constrained,
 ) -> TypeId {
-    let hir_id @ InLibrary(library_id, _) = hir_id;
+    let hir_id @ InPackage(package_id, _) = hir_id;
     let in_module = db.inside_module(hir_id.into());
 
     // Infer base ty (from start, or end if start isn't present / is {integer})
     let base_tyref = {
-        let start_tyref = db.type_of(ty.start.in_library(library_id).into());
+        let start_tyref = db.type_of(ty.start.in_package(package_id).into());
         let end_tyref = match ty.end {
-            hir_ty::ConstrainedEnd::Expr(end) => db.type_of(end.in_library(library_id).into()),
+            hir_ty::ConstrainedEnd::Expr(end) => db.type_of(end.in_package(package_id).into()),
             _ => make::error(db),
         };
 
@@ -155,10 +155,10 @@ fn constrained_ty(
     } else {
         AllowDyn::No
     };
-    let start = Const::from_body(library_id, ty.start);
+    let start = Const::from_body(package_id, ty.start);
     let end = match ty.end {
         hir_ty::ConstrainedEnd::Expr(end) => {
-            ty::EndBound::Expr(Const::from_body(library_id, end), allow_dyn)
+            ty::EndBound::Expr(Const::from_body(package_id, end), allow_dyn)
         }
         hir_ty::ConstrainedEnd::Unsized(sz) => ty::EndBound::Unsized(sz.item().unwrap_or(0)),
         hir_ty::ConstrainedEnd::Any(_) => ty::EndBound::Any,
@@ -169,10 +169,10 @@ fn constrained_ty(
 
 fn array_ty(
     db: &dyn TypeDatabase,
-    hir_id: InLibrary<hir_ty::TypeId>,
+    hir_id: InPackage<hir_ty::TypeId>,
     ty: &hir_ty::Array,
 ) -> TypeId {
-    let InLibrary(library_id, _) = hir_id;
+    let InPackage(package_id, _) = hir_id;
 
     let sizing = match ty.sizing {
         hir_ty::ArraySize::Flexible => ty::ArraySizing::Flexible,
@@ -182,40 +182,40 @@ fn array_ty(
     let ranges = ty
         .ranges
         .iter()
-        .map(|&range_ty| db.lower_hir_type(range_ty.in_library(library_id)))
+        .map(|&range_ty| db.lower_hir_type(range_ty.in_package(package_id)))
         .collect();
-    let elem_ty = db.lower_hir_type(ty.elem_ty.in_library(library_id));
+    let elem_ty = db.lower_hir_type(ty.elem_ty.in_package(package_id));
 
     make::array(db, sizing, ranges, elem_ty)
 }
 
-fn enum_ty(db: &dyn TypeDatabase, hir_id: InLibrary<hir_ty::TypeId>, ty: &hir_ty::Enum) -> TypeId {
-    let InLibrary(library_id, _) = hir_id;
+fn enum_ty(db: &dyn TypeDatabase, hir_id: InPackage<hir_ty::TypeId>, ty: &hir_ty::Enum) -> TypeId {
+    let InPackage(package_id, _) = hir_id;
 
-    let def_id = DefId(library_id, ty.def_id);
+    let def_id = DefId(package_id, ty.def_id);
     let variants = ty
         .variants
         .iter()
-        .map(|&def_id| DefId(library_id, def_id))
+        .map(|&def_id| DefId(package_id, def_id))
         .collect();
 
     make::enum_(db, ty::WithDef::Anonymous(def_id), variants)
 }
 
-fn set_ty(db: &dyn TypeDatabase, hir_id: InLibrary<hir_ty::TypeId>, ty: &hir_ty::Set) -> TypeId {
-    let library_id = hir_id.0;
-    let elem_ty = db.lower_hir_type(ty.elem_ty.in_library(library_id));
-    let def_id = DefId(library_id, ty.def_id);
+fn set_ty(db: &dyn TypeDatabase, hir_id: InPackage<hir_ty::TypeId>, ty: &hir_ty::Set) -> TypeId {
+    let package_id = hir_id.0;
+    let elem_ty = db.lower_hir_type(ty.elem_ty.in_package(package_id));
+    let def_id = DefId(package_id, ty.def_id);
     make::set(db, ty::WithDef::Anonymous(def_id), elem_ty)
 }
 
 fn pointer_ty(
     db: &dyn TypeDatabase,
-    hir_id: InLibrary<hir_ty::TypeId>,
+    hir_id: InPackage<hir_ty::TypeId>,
     ty: &hir_ty::Pointer,
 ) -> TypeId {
-    let library_id = hir_id.0;
-    let target_ty = db.lower_hir_type(ty.ty.in_library(library_id));
+    let package_id = hir_id.0;
+    let target_ty = db.lower_hir_type(ty.ty.in_package(package_id));
     let checked = match ty.checked {
         hir_ty::Checked::Checked => Checked::Checked,
         hir_ty::Checked::Unchecked => Checked::Unchecked,
@@ -225,12 +225,12 @@ fn pointer_ty(
 
 fn subprogram_ty(
     db: &dyn TypeDatabase,
-    hir_id: InLibrary<hir_ty::TypeId>,
+    hir_id: InPackage<hir_ty::TypeId>,
     ty: &hir_ty::Subprogram,
 ) -> TypeId {
-    let library_id = hir_id.0;
-    let params = subprogram_param_list(db, library_id, ty.param_list.as_ref());
-    let result = require_resolved_hir_type(db, ty.result_ty.in_library(library_id));
+    let package_id = hir_id.0;
+    let params = subprogram_param_list(db, package_id, ty.param_list.as_ref());
+    let result = require_resolved_hir_type(db, ty.result_ty.in_package(package_id));
 
     // NOTE(ctc-divergence): This is one of the cases where we diverge from `ctc`
     // `ctc` always promotes param-less types to ones with no parameters,
@@ -262,13 +262,13 @@ fn subprogram_ty(
 
 fn subprogram_param_list(
     db: &dyn TypeDatabase,
-    library_id: LibraryId,
+    package_id: PackageId,
     param_list: Option<&Vec<hir_ty::Parameter>>,
 ) -> Option<Vec<Param>> {
     let param_list = param_list?
         .iter()
         .map(|param| {
-            let param_ty = require_resolved_hir_type(db, param.param_ty.in_library(library_id));
+            let param_ty = require_resolved_hir_type(db, param.param_ty.in_package(package_id));
             ty::Param {
                 is_register: param.is_register,
                 pass_by: match param.pass_by {
@@ -284,9 +284,9 @@ fn subprogram_param_list(
     Some(param_list)
 }
 
-pub(crate) fn ty_from_item(db: &dyn TypeDatabase, item_id: InLibrary<item::ItemId>) -> TypeId {
-    let library = db.library(item_id.0);
-    let item = library.item(item_id.1);
+pub(crate) fn ty_from_item(db: &dyn TypeDatabase, item_id: InPackage<item::ItemId>) -> TypeId {
+    let package = db.package(item_id.0);
+    let item = package.item(item_id.1);
 
     match &item.kind {
         item::ItemKind::ConstVar(item) => constvar_ty(db, item_id, item),
@@ -300,7 +300,7 @@ pub(crate) fn ty_from_item(db: &dyn TypeDatabase, item_id: InLibrary<item::ItemI
 
 fn constvar_ty(
     db: &dyn TypeDatabase,
-    item_id: InLibrary<item::ItemId>,
+    item_id: InPackage<item::ItemId>,
     item: &item::ConstVar,
 ) -> TypeId {
     // type_collect
@@ -309,7 +309,7 @@ fn constvar_ty(
     let item_ty = match (item.type_spec, item.init_expr) {
         (Some(ty_spec), _) => {
             // From type_spec
-            db.lower_hir_type(ty_spec.in_library(item_id.0))
+            db.lower_hir_type(ty_spec.in_package(item_id.0))
         }
         (_, Some(body)) => {
             // From inferred init expr
@@ -332,15 +332,15 @@ fn constvar_ty(
 
 fn type_def_ty(
     db: &dyn TypeDatabase,
-    item_id: InLibrary<item::ItemId>,
+    item_id: InPackage<item::ItemId>,
     item: &item::Type,
 ) -> TypeId {
     let def_id = DefId(item_id.0, item.def_id);
 
     let is_opaque = {
         // Need to look at the exports to see if it's opaque
-        let library = db.library(item_id.0);
-        let module = library.module_item(db.inside_module(item_id.into()));
+        let package = db.package(item_id.0);
+        let module = package.module_item(db.inside_module(item_id.into()));
         module
             .exports_of()
             .iter()
@@ -361,7 +361,7 @@ fn type_def_ty(
         item::DefinedType::Alias(to_ty) => {
             // Peel any aliases that are encountered
             let base_ty = db
-                .lower_hir_type((*to_ty).in_library(item_id.0))
+                .lower_hir_type((*to_ty).in_package(item_id.0))
                 .peel_aliases(db);
 
             // Specialize based on the kind
@@ -389,7 +389,7 @@ fn type_def_ty(
 
 fn bind_def_ty(
     db: &dyn TypeDatabase,
-    item_id: InLibrary<item::ItemId>,
+    item_id: InPackage<item::ItemId>,
     item: &item::Binding,
 ) -> TypeId {
     // Takes the type from what it's bound to
@@ -399,23 +399,23 @@ fn bind_def_ty(
 
 fn subprogram_item_ty(
     db: &dyn TypeDatabase,
-    item_id: InLibrary<item::ItemId>,
+    item_id: InPackage<item::ItemId>,
     item: &item::Subprogram,
 ) -> TypeId {
-    let library_id = item_id.0;
+    let package_id = item_id.0;
     let param_ty = subprogram_param_list(
         db,
-        library_id,
+        package_id,
         item.param_list.as_ref().map(|params| &params.tys),
     );
-    let result_ty = require_resolved_hir_type(db, item.result.ty.in_library(library_id));
+    let result_ty = require_resolved_hir_type(db, item.result.ty.in_package(package_id));
 
     make::subprogram(db, item.kind, param_ty, result_ty)
 }
 
 fn import_item_ty(
     db: &dyn TypeDatabase,
-    item_id: InLibrary<item::ItemId>,
+    item_id: InPackage<item::ItemId>,
     item: &item::Import,
 ) -> TypeId {
     // Defer to the canonical def's ty
@@ -427,13 +427,13 @@ fn import_item_ty(
 
 pub(crate) fn ty_from_item_param(
     db: &dyn TypeDatabase,
-    param_id: InLibrary<(item::ItemId, LocalDefId)>,
+    param_id: InPackage<(item::ItemId, LocalDefId)>,
 ) -> TypeId {
     // Only from subprogram items
-    let InLibrary(library_id, (item_id, param_def)) = param_id;
-    let library = db.library(library_id);
+    let InPackage(package_id, (item_id, param_def)) = param_id;
+    let package = db.package(package_id);
 
-    let item = match &library.item(item_id).kind {
+    let item = match &package.item(item_id).kind {
         item::ItemKind::Subprogram(item) => item,
         _ => unreachable!(),
     };
@@ -449,12 +449,12 @@ pub(crate) fn ty_from_item_param(
         }
     };
 
-    require_resolved_hir_type(db, hir_ty.in_library(library_id))
+    require_resolved_hir_type(db, hir_ty.in_package(package_id))
 }
 
 pub(crate) fn ty_from_ty_field(
     db: &dyn TypeDatabase,
-    type_id: InLibrary<hir_ty::TypeId>,
+    type_id: InPackage<hir_ty::TypeId>,
     _field_id: hir_ty::FieldId,
 ) -> TypeId {
     let ty_ref = db.lower_hir_type(type_id);
@@ -466,26 +466,26 @@ pub(crate) fn ty_from_ty_field(
     }
 }
 
-pub(crate) fn ty_from_stmt(db: &dyn TypeDatabase, stmt_id: InLibrary<stmt::BodyStmt>) -> TypeId {
-    let library_id = stmt_id.0;
+pub(crate) fn ty_from_stmt(db: &dyn TypeDatabase, stmt_id: InPackage<stmt::BodyStmt>) -> TypeId {
+    let package_id = stmt_id.0;
     let stmt_id = stmt_id.1;
 
-    let library = db.library(library_id);
-    let stmt = library.body(stmt_id.0).stmt(stmt_id.1);
+    let package = db.package(package_id);
+    let stmt = package.body(stmt_id.0).stmt(stmt_id.1);
 
     match &stmt.kind {
-        stmt::StmtKind::For(stmt) => for_counter_ty(db, library_id, stmt_id, stmt),
+        stmt::StmtKind::For(stmt) => for_counter_ty(db, package_id, stmt_id, stmt),
         _ => unreachable!("not a def owner"),
     }
 }
 
 fn for_counter_ty(
     db: &dyn TypeDatabase,
-    library_id: LibraryId,
+    package_id: PackageId,
     stmt_id: stmt::BodyStmt,
     stmt: &stmt::For,
 ) -> TypeId {
-    let in_module = db.inside_module((library_id, stmt_id).into());
+    let in_module = db.inside_module((package_id, stmt_id).into());
 
     // infer the counter type from the range bounds
     match stmt.bounds {
@@ -493,7 +493,7 @@ fn for_counter_ty(
             // Bounds implied from the given expr, which could be:
             // - alias to a constrained ty
             // - expr with an iterable ty (notably, arrays)
-            let bounds_expr = (library_id, stmt_id.0, expr);
+            let bounds_expr = (package_id, stmt_id.0, expr);
 
             if db.value_produced(bounds_expr.into()).is_any_value() {
                 // - expr that may or may not be iterable
@@ -524,8 +524,8 @@ fn for_counter_ty(
         stmt::ForBounds::Full(start, end) => {
             // Always infer from the start type
             // We can usually ignore the end type, except if start is not a concrete type
-            let start_ty = db.type_of((library_id, stmt_id.0, start).into());
-            let end_ty = db.type_of((library_id, stmt_id.0, end).into());
+            let start_ty = db.type_of((package_id, stmt_id.0, start).into());
+            let end_ty = db.type_of((package_id, stmt_id.0, end).into());
 
             // Pick whichever is the more concrete type
             let counter_tyref = match (start_ty.kind(db), end_ty.kind(db)) {
@@ -547,12 +547,12 @@ fn for_counter_ty(
 
 pub(crate) fn ty_from_expr(
     db: &dyn TypeDatabase,
-    body: InLibrary<&body::Body>,
+    body: InPackage<&body::Body>,
     body_expr: expr::BodyExpr,
 ) -> TypeId {
     // FIXME: Move to using `type_of` instead of referring back to `ty_from_expr`
     let expr_id = body_expr.1;
-    let expr_in_lib = InLibrary(body.0, body_expr);
+    let expr_in_lib = InPackage(body.0, body_expr);
 
     match &body.1.expr(expr_id).kind {
         expr::ExprKind::Missing => {
@@ -590,7 +590,7 @@ fn literal_ty(db: &dyn TypeDatabase, expr: &expr::Literal) -> TypeId {
 
 fn binary_ty(
     db: &dyn TypeDatabase,
-    body: InLibrary<&body::Body>,
+    body: InPackage<&body::Body>,
     expr: &expr::Binary,
     body_expr: expr::BodyExpr,
 ) -> TypeId {
@@ -604,7 +604,7 @@ fn binary_ty(
 
 fn unary_ty(
     db: &dyn TypeDatabase,
-    body: InLibrary<&body::Body>,
+    body: InPackage<&body::Body>,
     expr: &expr::Unary,
     body_expr: expr::BodyExpr,
 ) -> TypeId {
@@ -617,7 +617,7 @@ fn unary_ty(
 
 fn name_ty(
     db: &dyn TypeDatabase,
-    body_expr: InLibrary<expr::BodyExpr>,
+    body_expr: InPackage<expr::BodyExpr>,
     expr: &expr::Name,
 ) -> TypeId {
     // Expected behaviour to leak the hidden type
@@ -626,9 +626,9 @@ fn name_ty(
     // If self, then fetch type from provided class def id?
     match expr {
         expr::Name::Name(binding) => {
-            let library = db.library(body_expr.library());
-            let def_id = match library.binding_resolve(*binding) {
-                symbol::Resolve::Def(local_def) => DefId(body_expr.library(), local_def),
+            let package = db.package(body_expr.package());
+            let def_id = match package.binding_resolve(*binding) {
+                symbol::Resolve::Def(local_def) => DefId(body_expr.package(), local_def),
                 symbol::Resolve::Err => return make::error(db),
             };
             let in_module = db.inside_module(body_expr.into());
@@ -652,7 +652,7 @@ fn name_ty(
 
 fn field_ty(
     db: &dyn TypeDatabase,
-    body_expr: InLibrary<expr::BodyExpr>,
+    body_expr: InPackage<expr::BodyExpr>,
     expr: &expr::Field,
 ) -> TypeId {
     db.fields_of((body_expr.0, body_expr.1.with_expr(expr.lhs)).into())
@@ -670,7 +670,7 @@ fn field_ty(
 
 fn deref_ty(
     db: &dyn TypeDatabase,
-    body_expr: InLibrary<expr::BodyExpr>,
+    body_expr: InPackage<expr::BodyExpr>,
     expr: &expr::Deref,
 ) -> TypeId {
     let ty = db.type_of((body_expr.map(|id| id.with_expr(expr.rhs))).into());
@@ -687,8 +687,8 @@ fn deref_ty(
 
 fn call_expr_ty(
     db: &dyn TypeDatabase,
-    body: InLibrary<&body::Body>,
-    body_expr: InLibrary<expr::BodyExpr>,
+    body: InPackage<&body::Body>,
+    body_expr: InPackage<expr::BodyExpr>,
     expr: &expr::Call,
 ) -> TypeId {
     // Don't need to peel opaques here, since we're guaranteed to do so via NameExpr
@@ -737,7 +737,7 @@ fn call_expr_ty(
 
 pub(super) fn ty_from_body_owner(
     db: &dyn TypeDatabase,
-    library_id: LibraryId,
+    package_id: PackageId,
     body_owner: Option<body::BodyOwner>,
 ) -> TypeId {
     let body_owner = body_owner.expect("all bodies should have owners");
@@ -745,13 +745,13 @@ pub(super) fn ty_from_body_owner(
     match body_owner {
         body::BodyOwner::Item(item_id) => {
             // Take from the item
-            let library = db.library(library_id);
-            let item = library.item(item_id);
+            let package = db.package(package_id);
+            let item = package.item(item_id);
 
             match &item.kind {
                 item::ItemKind::Subprogram(subprog) => {
                     // From result type
-                    db.lower_hir_type(subprog.result.ty.in_library(library_id))
+                    db.lower_hir_type(subprog.result.ty.in_package(package_id))
                 }
                 item::ItemKind::Module(_) => {
                     // Modules are always procedure-like bodies
@@ -766,7 +766,7 @@ pub(super) fn ty_from_body_owner(
     }
 }
 
-fn require_resolved_hir_type(db: &dyn TypeDatabase, ty: InLibrary<hir_ty::TypeId>) -> TypeId {
+fn require_resolved_hir_type(db: &dyn TypeDatabase, ty: InPackage<hir_ty::TypeId>) -> TypeId {
     require_resolved_type(db, db.lower_hir_type(ty))
 }
 

@@ -1,4 +1,4 @@
-//! Individual library inputs
+//! Individual package inputs
 
 use std::{collections::BTreeMap, fmt};
 
@@ -7,17 +7,17 @@ use toc_paths::RawPath;
 
 use crate::Db;
 
-/// Source information about a library
+/// Source information about a package
 #[salsa::input]
-pub struct Library {
-    /// Name of the library
+pub struct Package {
+    /// Name of the package
     #[return_ref]
     pub name: String,
-    /// Path to the main file of the library, where all of the other files are discovered from
+    /// Path to the main file of the package, where all of the other files are discovered from
     pub root: RawPath,
     /// What kind of build artifact this is
     pub artifact: ArtifactKind,
-    /// What other libraries this depends on
+    /// What other packages this depends on
     pub depends: DependencyList,
 }
 
@@ -26,14 +26,14 @@ pub struct Library {
 pub enum ArtifactKind {
     /// A runnable package. Only one of these can be selected as runnable.
     Binary,
-    /// A library package.
-    Library,
+    /// A package package.
+    Package,
 }
 
-/// What libraries a [`Library`] depends on
+/// What packages a [`Package`] depends on
 #[salsa::input]
 pub struct DependencyList {
-    depends: BTreeMap<Library, DependencyInfo>,
+    depends: BTreeMap<Package, DependencyInfo>,
 }
 
 impl DependencyList {
@@ -41,15 +41,15 @@ impl DependencyList {
         Self::new(db, Default::default())
     }
 
-    /// Adds a library to depend on
+    /// Adds a package to depend on
     #[allow(unused)]
-    pub fn add(self, db: &mut dyn Db, library: Library, info: DependencyInfo) {
+    pub fn add(self, db: &mut dyn Db, package: Package, info: DependencyInfo) {
         todo!()
     }
 
-    /// Removes a library that is currently depended on
+    /// Removes a package that is currently depended on
     #[allow(unused)]
-    pub fn remove(self, db: &mut dyn Db, library: Library) {
+    pub fn remove(self, db: &mut dyn Db, package: Package) {
         todo!()
     }
 
@@ -57,32 +57,32 @@ impl DependencyList {
     // Only relevant when we store that information
 }
 
-/// Information about a library dependency
+/// Information about a package dependency
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct DependencyInfo();
 
-/// A reference to a library in the [`SourceGraph`](crate::SourceGraph)
+/// A reference to a package in the [`SourceGraph`](crate::SourceGraph)
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(transparent)]
-pub struct LibraryId(pub Library);
+pub struct PackageId(pub Package);
 
-impl fmt::Debug for LibraryId {
+impl fmt::Debug for PackageId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_tuple("LibraryId")
+        f.debug_tuple("PackageId")
             .field(&self.0.as_id().as_u32())
             .finish()
     }
 }
 
-impl From<LibraryId> for Library {
-    fn from(value: LibraryId) -> Self {
+impl From<PackageId> for Package {
+    fn from(value: PackageId) -> Self {
         value.0
     }
 }
 
-impl From<Library> for LibraryId {
-    fn from(value: Library) -> Self {
+impl From<Package> for PackageId {
+    fn from(value: Package) -> Self {
         Self(value)
     }
 }

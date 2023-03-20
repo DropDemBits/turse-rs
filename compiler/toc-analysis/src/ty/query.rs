@@ -9,7 +9,7 @@ use toc_hir::{body, expr, OrMissingExt};
 use toc_hir::{
     body::BodyId,
     expr::BodyExpr,
-    library::{InLibrary, WrapInLibrary},
+    package::{InPackage, WrapInPackage},
     symbol,
     symbol::{DefId, DefOwner},
     ty::TypeId as HirTypeId,
@@ -18,42 +18,42 @@ use toc_hir::{
 use crate::db::{self, BindingSource, TypeDatabase};
 use crate::ty::{lower, make, TypeId, TypeKind};
 
-pub(crate) fn lower_hir_type(db: &dyn db::TypeDatabase, type_id: InLibrary<HirTypeId>) -> TypeId {
+pub(crate) fn lower_hir_type(db: &dyn db::TypeDatabase, type_id: InPackage<HirTypeId>) -> TypeId {
     lower::ty_from_hir_ty(db, type_id)
 }
 
 pub(crate) fn type_of(db: &dyn db::TypeDatabase, source: db::TypeSource) -> TypeId {
     match source {
         db::TypeSource::Def(def_id) => ty_of_def(db, def_id),
-        db::TypeSource::Item(library_id, item_id) => {
-            lower::ty_from_item(db, InLibrary(library_id, item_id))
+        db::TypeSource::Item(package_id, item_id) => {
+            lower::ty_from_item(db, InPackage(package_id, item_id))
         }
-        db::TypeSource::BodyExpr(id, expr) => ty_of_expr(db, InLibrary(id, expr)),
-        db::TypeSource::Body(id, body) => ty_of_body(db, InLibrary(id, body)),
+        db::TypeSource::BodyExpr(id, expr) => ty_of_expr(db, InPackage(id, expr)),
+        db::TypeSource::Body(id, body) => ty_of_body(db, InPackage(id, body)),
     }
 }
 
 fn ty_of_def(db: &dyn db::TypeDatabase, def_id: DefId) -> TypeId {
     if let Some(owner) = db.def_owner(def_id) {
         match owner {
-            DefOwner::Item(item_id) => lower::ty_from_item(db, InLibrary(def_id.0, item_id)),
+            DefOwner::Item(item_id) => lower::ty_from_item(db, InPackage(def_id.0, item_id)),
             DefOwner::ItemParam(item_id, param_def) => {
-                lower::ty_from_item_param(db, InLibrary(def_id.0, (item_id, param_def)))
+                lower::ty_from_item_param(db, InPackage(def_id.0, (item_id, param_def)))
             }
             DefOwner::Export(module_id, export_id) => {
                 // Refer to the corresponding exported item
-                let library = db.library(def_id.0);
+                let package = db.package(def_id.0);
 
-                let module = library.module_item(module_id);
+                let module = package.module_item(module_id);
                 let export = module.export(export_id);
                 let def_id = DefId(def_id.0, export.exported_def);
 
                 db.type_of(def_id.into())
             }
             DefOwner::Field(type_id, field_id) => {
-                lower::ty_from_ty_field(db, InLibrary(def_id.0, type_id), field_id)
+                lower::ty_from_ty_field(db, InPackage(def_id.0, type_id), field_id)
             }
-            DefOwner::Stmt(stmt_id) => lower::ty_from_stmt(db, InLibrary(def_id.0, stmt_id)),
+            DefOwner::Stmt(stmt_id) => lower::ty_from_stmt(db, InPackage(def_id.0, stmt_id)),
         }
     } else {
         // No actual definition owner
@@ -61,18 +61,18 @@ fn ty_of_def(db: &dyn db::TypeDatabase, def_id: DefId) -> TypeId {
     }
 }
 
-fn ty_of_expr(db: &dyn db::TypeDatabase, expr: InLibrary<BodyExpr>) -> TypeId {
-    let InLibrary(lib_id, body_expr @ BodyExpr(body_id, _)) = expr;
+fn ty_of_expr(db: &dyn db::TypeDatabase, expr: InPackage<BodyExpr>) -> TypeId {
+    let InPackage(pkg_id, body_expr @ BodyExpr(body_id, _)) = expr;
 
-    let library = db.library(lib_id);
-    let body = library.body(body_id);
+    let package = db.package(pkg_id);
+    let body = package.body(body_id);
 
-    lower::ty_from_expr(db, body.in_library(lib_id), body_expr)
+    lower::ty_from_expr(db, body.in_package(pkg_id), body_expr)
 }
 
-fn ty_of_body(db: &dyn db::TypeDatabase, body_id: InLibrary<BodyId>) -> TypeId {
-    let library = db.library(body_id.0);
-    let body = library.body(body_id.1);
+fn ty_of_body(db: &dyn db::TypeDatabase, body_id: InPackage<BodyId>) -> TypeId {
+    let package = db.package(body_id.0);
+    let body = package.body(body_id.1);
 
     match &body.kind {
         toc_hir::body::BodyKind::Stmts(..) => {
@@ -99,33 +99,33 @@ fn lookup_binding_def(db: &dyn TypeDatabase, bind_src: BindingSource) -> Option<
         // We don't want to perform sym-res here, since that means
         // we can't figure out if something refers to an import or not
         BindingSource::DefId(it) => Some(it),
-        BindingSource::Body(lib_id, body) => {
-            let library = db.library(lib_id);
+        BindingSource::Body(pkg_id, body) => {
+            let package = db.package(pkg_id);
 
-            match &library.body(body).kind {
+            match &package.body(body).kind {
                 // Stmt bodies never produce bindings
                 body::BodyKind::Stmts(..) => None,
                 // Defer to expr form
-                body::BodyKind::Exprs(expr) => lookup_binding_def(db, (lib_id, body, *expr).into()),
+                body::BodyKind::Exprs(expr) => lookup_binding_def(db, (pkg_id, body, *expr).into()),
             }
         }
-        BindingSource::BodyExpr(lib_id, BodyExpr(body_id, expr_id)) => {
+        BindingSource::BodyExpr(pkg_id, BodyExpr(body_id, expr_id)) => {
             // Traverse nodes until we encounter a valid binding
-            let library = db.library(lib_id);
+            let package = db.package(pkg_id);
 
             // Only name exprs and fields can produce a binding
-            match &library.body(body_id).expr(expr_id).kind {
+            match &package.body(body_id).expr(expr_id).kind {
                 expr::ExprKind::Missing => None,
                 expr::ExprKind::Name(name) => match name {
-                    expr::Name::Name(binding) => match library.binding_resolve(*binding) {
-                        symbol::Resolve::Def(local_def) => Some(DefId(lib_id, local_def)),
+                    expr::Name::Name(binding) => match package.binding_resolve(*binding) {
+                        symbol::Resolve::Def(local_def) => Some(DefId(pkg_id, local_def)),
                         symbol::Resolve::Err => None,
                     },
                     expr::Name::Self_ => todo!(),
                 },
                 expr::ExprKind::Field(field) => {
                     // Look up field's corresponding def, or treat as missing if not there
-                    db.fields_of((lib_id, body_id, field.lhs).into())
+                    db.fields_of((pkg_id, body_id, field.lhs).into())
                         .and_then(|fields| {
                             fields.lookup(*field.field.item()).map(|info| info.def_id)
                         })
@@ -176,10 +176,10 @@ pub(super) fn value_produced(
 
     fn expr_fallback(
         db: &dyn TypeDatabase,
-        lib_id: toc_hir::library::LibraryId,
+        pkg_id: toc_hir::package::PackageId,
         body_expr: BodyExpr,
     ) -> Result<db::ValueKind, db::NotValue> {
-        let expr_ty = db.type_of((lib_id, body_expr).into());
+        let expr_ty = db.type_of((pkg_id, body_expr).into());
         let expr_ty_ref = expr_ty.to_base_type(db);
 
         match expr_ty_ref.kind(db) {
@@ -191,27 +191,27 @@ pub(super) fn value_produced(
 
     match value_src {
         ValueSource::Def(def_id) => value_kind_from_binding(db, def_id),
-        ValueSource::Body(lib_id, body_id) => {
-            let library = db.library(lib_id);
-            let body = library.body(body_id);
+        ValueSource::Body(pkg_id, body_id) => {
+            let package = db.package(pkg_id);
+            let body = package.body(body_id);
 
             // Take from the main body expr
             match body.kind {
                 toc_hir::body::BodyKind::Stmts(_, _, _) => Err(NotValue::NotValue),
                 toc_hir::body::BodyKind::Exprs(expr_id) => {
-                    db.value_produced((lib_id, body_id, expr_id).into())
+                    db.value_produced((pkg_id, body_id, expr_id).into())
                 }
             }
         }
-        ValueSource::BodyExpr(lib_id, body_expr @ BodyExpr(body_id, expr_id)) => {
-            let library = db.library(lib_id);
+        ValueSource::BodyExpr(pkg_id, body_expr @ BodyExpr(body_id, expr_id)) => {
+            let package = db.package(pkg_id);
 
-            match &library.body(body_id).expr(expr_id).kind {
+            match &package.body(body_id).expr(expr_id).kind {
                 expr::ExprKind::Missing => Err(NotValue::Missing),
                 expr::ExprKind::Name(name) => match name {
                     expr::Name::Name(binding) => {
-                        let def_id = match library.binding_resolve(*binding) {
-                            symbol::Resolve::Def(local_def) => DefId(lib_id, local_def),
+                        let def_id = match package.binding_resolve(*binding) {
+                            symbol::Resolve::Def(local_def) => DefId(pkg_id, local_def),
                             symbol::Resolve::Err => return Err(NotValue::Missing),
                         };
 
@@ -219,7 +219,7 @@ pub(super) fn value_produced(
                             Some(DefOwner::Export(mod_id, export_id)) => {
                                 // Keep track of export mutability
                                 let mutability =
-                                    library.module_item(mod_id).export(export_id).mutability;
+                                    package.module_item(mod_id).export(export_id).mutability;
 
                                 // Take initially from the binding kind
                                 let kind = value_kind_from_binding(db, def_id)?;
@@ -243,7 +243,7 @@ pub(super) fn value_produced(
                                 })
                             }
                             Some(DefOwner::Item(item_id)) => {
-                                match &library.item(item_id).kind {
+                                match &package.item(item_id).kind {
                                     // Special case for imports
                                     item::ItemKind::Import(item) => {
                                         let mutability = item.mutability;
@@ -285,7 +285,7 @@ pub(super) fn value_produced(
                 expr::ExprKind::Field(field) => {
                     // Look up field's corresponding def & mutability, or treat as missing if not there
                     let (def_id, mutability) = db
-                        .fields_of((lib_id, body_id, field.lhs).into())
+                        .fields_of((pkg_id, body_id, field.lhs).into())
                         .and_then(|fields| {
                             fields
                                 .lookup(*field.field.item())
@@ -330,7 +330,7 @@ pub(super) fn value_produced(
                     // - subprog call
                     // - array indexing
                     // - pointer ascription
-                    let lhs_expr = (lib_id, body_id, expr.lhs);
+                    let lhs_expr = (pkg_id, body_id, expr.lhs);
                     let lhs_mut = db
                         .value_produced(lhs_expr.into())
                         .ok()
@@ -392,13 +392,13 @@ pub(super) fn value_produced(
                         //
                         // ???: Does this make sense? this is mostly here to prevent panicking
                         // when expecting a reference value, but we get a non-value
-                        return expr_fallback(db, lib_id, body_expr);
+                        return expr_fallback(db, pkg_id, body_expr);
                     };
 
                     match call_kind {
                         CallKind::SubprogramCall => {
                             // Defer to the default case
-                            expr_fallback(db, lib_id, body_expr)
+                            expr_fallback(db, pkg_id, body_expr)
                         }
                         CallKind::SetCons(..) => Ok(ValueKind::Reference(Mutability::Const)),
                         CallKind::ArrayIndexing(..) => {
@@ -408,7 +408,7 @@ pub(super) fn value_produced(
                 }
                 _ => {
                     // Take from the expr's type (always produces a value)
-                    expr_fallback(db, lib_id, body_expr)
+                    expr_fallback(db, pkg_id, body_expr)
                 }
             }
         }
@@ -423,9 +423,9 @@ pub(crate) fn fields_of(
         db::FieldSource::DefId(def_id, in_module) => {
             // Defer to the owning item
             let def_id = db.resolve_def(def_id).ok()?;
-            let InLibrary(library_id, item_id) = db.item_of(def_id)?;
-            let library = db.library(library_id);
-            let item = library.item(item_id);
+            let InPackage(package_id, item_id) = db.item_of(def_id)?;
+            let package = db.package(package_id);
+            let item = package.item(item_id);
 
             match &item.kind {
                 item::ItemKind::Module(item) => {
@@ -435,8 +435,8 @@ pub(crate) fn fields_of(
                         .iter()
                         .map(|export| {
                             let local_def = export.exported_def;
-                            let field_name = library.local_def(local_def).name;
-                            let def_id = DefId(library_id, local_def);
+                            let field_name = package.local_def(local_def).name;
+                            let def_id = DefId(package_id, local_def);
 
                             let info = item::FieldInfo {
                                 def_id,
@@ -452,7 +452,7 @@ pub(crate) fn fields_of(
                 }
                 _ => {
                     // Defer to the corresponding type (associated fields)
-                    let ty_id = db.type_of(DefId(library_id, item.def_id).into());
+                    let ty_id = db.type_of(DefId(package_id, item.def_id).into());
 
                     db.fields_of(db::FieldSource::TypeAssociated(ty_id, in_module))
                 }
@@ -466,12 +466,12 @@ pub(crate) fn fields_of(
             let TypeKind::Enum(with_def, variants) = ty_ref.kind(db, ) else {
                 return None;
             };
-            let library = db.library(with_def.def_id().library());
+            let package = db.package(with_def.def_id().package());
 
             let fields = variants
                 .iter()
                 .map(|&def_id| {
-                    let def_info = library.local_def(def_id.1);
+                    let def_info = package.local_def(def_id.1);
                     let field_info = item::FieldInfo {
                         def_id,
                         mutability: Mutability::Const,
@@ -496,9 +496,9 @@ pub(crate) fn fields_of(
                 _ => None,
             }
         }
-        db::FieldSource::BodyExpr(lib_id, body_expr) => {
-            let in_module = db.inside_module((lib_id, body_expr).into());
-            let binding_def = db.binding_def((lib_id, body_expr).into())?;
+        db::FieldSource::BodyExpr(pkg_id, body_expr) => {
+            let in_module = db.inside_module((pkg_id, body_expr).into());
+            let binding_def = db.binding_def((pkg_id, body_expr).into())?;
             let binding_to = db.symbol_kind(binding_def)?;
 
             match binding_to {
@@ -509,14 +509,14 @@ pub(crate) fn fields_of(
                 }
                 SymbolKind::Type => {
                     // Fields associated with the type
-                    let ty_id = db.type_of((lib_id, body_expr).into());
+                    let ty_id = db.type_of((pkg_id, body_expr).into());
 
                     db.fields_of(db::FieldSource::TypeAssociated(ty_id, in_module))
                 }
                 kind if kind.is_ref() => {
                     // To any reference
                     // Get fields based off of the type (instance fields)
-                    let ty_id = db.type_of((lib_id, body_expr).into());
+                    let ty_id = db.type_of((pkg_id, body_expr).into());
 
                     db.fields_of(db::FieldSource::TypeInstance(ty_id, in_module))
                 }
@@ -527,17 +527,17 @@ pub(crate) fn fields_of(
 }
 
 pub(crate) fn exporting_def(db: &dyn TypeDatabase, bind_src: db::BindingSource) -> Option<DefId> {
-    let (library_id, library);
+    let (package_id, package);
     let (body_id, expr_id) = match bind_src {
-        db::BindingSource::DefId(def_id @ DefId(lib_id, _)) => {
-            library_id = lib_id;
-            library = db.library(lib_id);
+        db::BindingSource::DefId(def_id @ DefId(pkg_id, _)) => {
+            package_id = pkg_id;
+            package = db.package(pkg_id);
 
             // Take from the def owner
             let export_def = if let Some(DefOwner::Export(mod_id, export_id)) = db.def_owner(def_id)
             {
-                let export_def = library.module_item(mod_id).export(export_id).def_id;
-                Some(DefId(library_id, export_def))
+                let export_def = package.module_item(mod_id).export(export_id).def_id;
+                Some(DefId(package_id, export_def))
             } else {
                 // Not an item export
                 None
@@ -545,30 +545,30 @@ pub(crate) fn exporting_def(db: &dyn TypeDatabase, bind_src: db::BindingSource) 
 
             return export_def;
         }
-        db::BindingSource::Body(lib_id, body_id) => {
-            library_id = lib_id;
-            library = db.library(lib_id);
+        db::BindingSource::Body(pkg_id, body_id) => {
+            package_id = pkg_id;
+            package = db.package(pkg_id);
 
-            match &library.body(body_id).kind {
+            match &package.body(body_id).kind {
                 body::BodyKind::Stmts(..) => return None,
                 body::BodyKind::Exprs(expr_id) => (body_id, *expr_id),
             }
         }
-        db::BindingSource::BodyExpr(lib_id, expr::BodyExpr(body_id, expr_id)) => {
-            library_id = lib_id;
-            library = db.library(lib_id);
+        db::BindingSource::BodyExpr(pkg_id, expr::BodyExpr(body_id, expr_id)) => {
+            package_id = pkg_id;
+            package = db.package(pkg_id);
             (body_id, expr_id)
         }
     };
 
     // Only name & field exprs provide access to exported defs
-    match &library.body(body_id).expr(expr_id).kind {
+    match &package.body(body_id).expr(expr_id).kind {
         expr::ExprKind::Name(expr) => {
             match expr {
                 expr::Name::Name(binding) => {
                     // Take from the def
-                    let def_id = match library.binding_resolve(*binding) {
-                        symbol::Resolve::Def(local_def) => DefId(library_id, local_def),
+                    let def_id = match package.binding_resolve(*binding) {
+                        symbol::Resolve::Def(local_def) => DefId(package_id, local_def),
                         symbol::Resolve::Err => return None,
                     };
 
@@ -579,14 +579,14 @@ pub(crate) fn exporting_def(db: &dyn TypeDatabase, bind_src: db::BindingSource) 
         }
         expr::ExprKind::Field(expr) => {
             // Peek at the def referenced by lhs
-            let lhs_def = db.binding_def((library_id, body_id, expr.lhs).into())?;
+            let lhs_def = db.binding_def((package_id, body_id, expr.lhs).into())?;
 
             if let Some(DefOwner::Item(item_id)) = db.def_owner(lhs_def) {
-                if let item::ItemKind::Module(module) = dbg!(&library.item(item_id).kind) {
+                if let item::ItemKind::Module(module) = dbg!(&package.item(item_id).kind) {
                     // Find matching export
                     module.exports.iter().find_map(|export| {
-                        let found = library.local_def(export.def_id).name == *expr.field.item();
-                        found.then_some(DefId(library_id, export.def_id))
+                        let found = package.local_def(export.def_id).name == *expr.field.item();
+                        found.then_some(DefId(package_id, export.def_id))
                     })
                 } else {
                     // Not from a module-like item

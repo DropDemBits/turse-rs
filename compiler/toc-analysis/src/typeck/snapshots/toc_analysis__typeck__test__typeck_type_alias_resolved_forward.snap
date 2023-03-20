@@ -2,8 +2,8 @@
 source: compiler/toc_analysis/src/typeck/test.rs
 expression: "type fowo : forward\ntype fowo : int\nvar _ : fowo"
 ---
-"fowo"@(FileId(1), 5..9) [Type]: alias[DefId(LibraryId(0), LocalDefId(0))] of forward
-"fowo"@(FileId(1), 25..29) [Type]: alias[DefId(LibraryId(0), LocalDefId(1))] of int
-"_"@(FileId(1), 40..41) [ConstVar(Var, No)]: alias[DefId(LibraryId(0), LocalDefId(1))] of int
+"fowo"@(FileId(1), 5..9) [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of forward
+"fowo"@(FileId(1), 25..29) [Type]: alias[DefId(PackageId(0), LocalDefId(1))] of int
+"_"@(FileId(1), 40..41) [ConstVar(Var, No)]: alias[DefId(PackageId(0), LocalDefId(1))] of int
 "<root>"@(dummy) [Module(No)]: <error>
 

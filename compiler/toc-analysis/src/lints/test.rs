@@ -13,8 +13,8 @@ macro_rules! assert_lint {
 }
 
 fn do_lint(source: &str) -> String {
-    let (db, lib) = TestDb::from_source(source);
-    let res = db.lint_library(lib);
+    let (db, pkg) = TestDb::from_source(source);
+    let res = db.lint_package(pkg);
     res.messages().assert_no_delayed_reports();
 
     stringify_lint_results(res.messages())

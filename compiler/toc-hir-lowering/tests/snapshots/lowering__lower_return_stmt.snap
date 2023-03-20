@@ -4,7 +4,7 @@ assertion_line: 59
 expression: return
 
 ---
-Library@(dummy)
+Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(0)
     Module@(FileId(1), 0..6): "<root>"@(dummy)
       StmtBody@(FileId(1), 0..6): []

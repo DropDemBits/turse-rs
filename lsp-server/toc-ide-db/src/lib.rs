@@ -8,9 +8,9 @@ use camino::Utf8PathBuf;
 use lsp_types::{Diagnostic, DiagnosticRelatedInformation, DiagnosticSeverity, Location, Position};
 use ropey::Rope;
 use toc_analysis::db::HirAnalysis;
-use toc_hir::library_graph::SourceLibrary;
+use toc_hir::package_graph::SourcePackage;
 use toc_paths::RawPath;
-use toc_source_graph::{DependencyList, RootLibraries};
+use toc_source_graph::{DependencyList, RootPackages};
 use toc_vfs::{LoadError, LoadStatus};
 use toc_vfs_db::{SourceTable, VfsBridge, VfsDbExt};
 use tracing::{error, trace};
@@ -21,7 +21,7 @@ pub type Cancellable<T = ()> = Result<T, salsa::Cancelled>;
 pub struct ServerState {
     db: LspDatabase,
     files: FileStore,
-    existing_libraries: BTreeMap<RawPath, SourceLibrary>,
+    existing_packages: BTreeMap<RawPath, SourcePackage>,
 }
 
 impl ServerState {
@@ -86,22 +86,22 @@ impl ServerState {
 
         // Setup source graph
         let roots_modified = if !removed {
-            match self.existing_libraries.entry(root_file) {
+            match self.existing_packages.entry(root_file) {
                 std::collections::btree_map::Entry::Vacant(ent) => {
                     let Some(file_name) = path.file_name() else {
                         error!("trying to update folder (from path {})", path.display());
                         return;
                     };
 
-                    let library_id = SourceLibrary::new(
+                    let package_id = SourcePackage::new(
                         db,
                         file_name.to_string_lossy().to_string(),
                         root_file,
-                        toc_hir::library_graph::ArtifactKind::Binary,
+                        toc_hir::package_graph::ArtifactKind::Binary,
                         DependencyList::empty(db),
                     );
 
-                    ent.insert(library_id);
+                    ent.insert(package_id);
                     true
                 }
                 std::collections::btree_map::Entry::Occupied(ent) => {
@@ -110,14 +110,14 @@ impl ServerState {
                 }
             }
         } else {
-            match self.existing_libraries.entry(root_file) {
+            match self.existing_packages.entry(root_file) {
                 std::collections::btree_map::Entry::Vacant(_) => {
                     // already removed, nothing needs to be updated
                     error!("{root_file:?} already was removed");
                     false
                 }
                 std::collections::btree_map::Entry::Occupied(ent) => {
-                    trace!("closing library {ent:?}");
+                    trace!("closing package {ent:?}");
                     ent.remove();
                     true
                 }
@@ -125,26 +125,22 @@ impl ServerState {
         };
 
         if roots_modified {
-            let root_libraries =
-                RootLibraries::try_get(db).unwrap_or_else(|| RootLibraries::new(db, vec![]));
+            let root_packages =
+                RootPackages::try_get(db).unwrap_or_else(|| RootPackages::new(db, vec![]));
 
             // This is than having to clone the whole source graph (since that's reconstructed anyways)
-            let all_roots = self
-                .existing_libraries
-                .values()
-                .copied()
-                .collect::<Vec<_>>();
+            let all_roots = self.existing_packages.values().copied().collect::<Vec<_>>();
 
-            root_libraries.set_roots(db).to(all_roots);
+            root_packages.set_roots(db).to(all_roots);
         }
 
         // FIXME: Recursively load in files, respecting already loaded files
         // FIXME: Deal with adding source roots that depend on files that are already source roots
     }
 
-    /// Collect diagnostics for all libraries
+    /// Collect diagnostics for all packages
     pub fn collect_diagnostics(&self) -> Cancellable<Vec<(PathBuf, Vec<Diagnostic>)>> {
-        let analyze_res = self.db.analyze_libraries();
+        let analyze_res = self.db.analyze_packages();
         let msgs = analyze_res.messages();
 
         // Note: this does noisily fail, but we don't gracefully handle panics yet

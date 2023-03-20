@@ -4,7 +4,7 @@ assertion_line: 59
 expression: "\n    function pars(a, a : int, a : int1) : int\n        var a : int2\n    end pars"
 
 ---
-Library@(dummy)
+Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(2)
     Module@(FileId(1), 0..80): "<root>"@(dummy)
       StmtBody@(FileId(1), 5..80): []

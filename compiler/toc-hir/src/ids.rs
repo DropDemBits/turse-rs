@@ -4,10 +4,10 @@ use std::fmt;
 
 use crate::{body, expr, item, stmt, symbol};
 
-use crate::library_graph::LibraryId;
+use crate::package_graph::PackageId;
 
 crate::arena_id_wrapper!(
-    /// A library local reference to a definition.
+    /// A package local reference to a definition.
     pub struct LocalDefId(symbol::DefInfo);
     /// Alias for the definition arena index
     pub(crate) type LocalDefIndex = Index;
@@ -23,12 +23,12 @@ impl LocalDefId {
     }
 }
 
-/// A library independent reference to a definition
+/// A package independent reference to a definition
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
-pub struct DefId(pub LibraryId, pub LocalDefId);
+pub struct DefId(pub PackageId, pub LocalDefId);
 
 impl DefId {
-    pub fn library(self) -> LibraryId {
+    pub fn package(self) -> PackageId {
         self.0
     }
 
@@ -39,19 +39,19 @@ impl DefId {
 
 impl fmt::Debug for DefId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let Self(lib_id, local_def) = self;
-        f.write_fmt(format_args!("DefId({lib_id:?}, {local_def:?})"))
+        let Self(pkg_id, local_def) = self;
+        f.write_fmt(format_args!("DefId({pkg_id:?}, {local_def:?})"))
     }
 }
 
 crate::arena_id_wrapper!(
-    /// A library local reference to an item.
+    /// A package local reference to an item.
     pub struct ItemId(item::Item);
     /// Alias for the item arena index
     pub(crate) type ItemIndex = Index;
 );
 
-/// A library local reference to a specific module-like item (e.g. [`Module`])
+/// A package local reference to a specific module-like item (e.g. [`Module`])
 ///
 /// [`Module`]: crate::item::Module
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -66,16 +66,16 @@ impl ModuleId {
     ///
     /// [`Item`]: crate::item::Item
     /// [`ModuleLike`]: crate::item::ModuleLike
-    pub fn new(in_library: &crate::library::Library, item_id: ItemId) -> Self {
-        Self::try_new(in_library, item_id).expect("only module-likes accepted")
+    pub fn new(in_package: &crate::package::Package, item_id: ItemId) -> Self {
+        Self::try_new(in_package, item_id).expect("only module-likes accepted")
     }
 
     /// Makes a new [`ModuleId`], returning `None` if it doesn't point to a module-like
     ///
     /// [`ModuleLike`]: crate::item::ModuleLike
-    pub fn try_new(in_library: &crate::library::Library, item_id: ItemId) -> Option<Self> {
+    pub fn try_new(in_package: &crate::package::Package, item_id: ItemId) -> Option<Self> {
         if !matches!(
-            in_library.item(item_id).kind,
+            in_package.item(item_id).kind,
             crate::item::ItemKind::Module(_)
         ) {
             return None;
@@ -95,7 +95,7 @@ impl ModuleId {
 pub struct ExportId(pub usize);
 
 crate::arena_id_wrapper!(
-    /// A library local reference to a body.
+    /// A package local reference to a body.
     pub struct BodyId(body::Body);
     /// Alias for the body arena index
     pub(crate) type BodyIndex = Index;
@@ -115,7 +115,7 @@ crate::arena_id_wrapper!(
     pub struct StmtId(stmt::Stmt);
 );
 
-/// Uniquely identifies a statement within a library
+/// Uniquely identifies a statement within a package
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct BodyStmt(pub body::BodyId, pub StmtId);
 
@@ -133,7 +133,7 @@ impl BodyStmt {
     }
 }
 
-/// Uniquely identifies an expression within a library
+/// Uniquely identifies an expression within a package
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct BodyExpr(pub BodyId, pub ExprId);
 

@@ -1,8 +1,8 @@
 //! Testing helpers
 
-use toc_hir::library_graph::SourceLibrary;
+use toc_hir::package_graph::SourcePackage;
 use toc_paths::RawPath;
-use toc_source_graph::{DependencyList, RootLibraries};
+use toc_source_graph::{DependencyList, RootPackages};
 use toc_vfs_db::{SourceTable, VfsBridge, VfsDbExt};
 
 #[salsa::db(
@@ -31,21 +31,21 @@ impl VfsBridge for TestDb {
 impl salsa::Database for TestDb {}
 
 impl TestDb {
-    pub(crate) fn from_source(source: &str) -> (Self, SourceLibrary) {
+    pub(crate) fn from_source(source: &str) -> (Self, SourcePackage) {
         let mut db = TestDb::default();
         let fixture = toc_vfs::generate_vfs(source).unwrap();
         db.insert_fixture(fixture);
 
         let root_file = RawPath::new(&db, "src/main.t".into());
-        let library = SourceLibrary::new(
+        let package = SourcePackage::new(
             &db,
             "main".into(),
             root_file,
-            toc_hir::library_graph::ArtifactKind::Binary,
+            toc_hir::package_graph::ArtifactKind::Binary,
             DependencyList::empty(&db),
         );
-        RootLibraries::new(&db, vec![library]);
+        RootPackages::new(&db, vec![package]);
 
-        (db, library)
+        (db, package)
     }
 }

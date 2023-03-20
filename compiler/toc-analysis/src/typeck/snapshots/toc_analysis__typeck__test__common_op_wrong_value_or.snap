@@ -2,7 +2,7 @@
 source: compiler/toc_analysis/src/typeck/test.rs
 expression: "\n    type t : int\n    var k : int\n\n    % Type operand prevents checking of type compatibility\n    var _tt := t or t\n    var _tk := t or k\n    var _kt := k or t\n    "
 ---
-"t"@(FileId(1), 10..11) [Type]: alias[DefId(LibraryId(0), LocalDefId(0))] of int
+"t"@(FileId(1), 10..11) [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of int
 "k"@(FileId(1), 26..27) [ConstVar(Var, No)]: int
 "_tt"@(FileId(1), 102..105) [ConstVar(Var, No)]: nat
 "_tk"@(FileId(1), 124..127) [ConstVar(Var, No)]: nat

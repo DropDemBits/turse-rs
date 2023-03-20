@@ -2,8 +2,8 @@
 source: compiler/toc_analysis/src/typeck/test.rs
 expression: "type s : set of boolean\nvar _ := s(true, false, true, false)\n"
 ---
-"s"@(FileId(1), 5..6) [Type]: set[DefId(LibraryId(0), LocalDefId(1))] of boolean
+"s"@(FileId(1), 5..6) [Type]: set[DefId(PackageId(0), LocalDefId(1))] of boolean
 "s"@(FileId(1), 9..23) [Set]: <error>
-"_"@(FileId(1), 28..29) [ConstVar(Var, No)]: set[DefId(LibraryId(0), LocalDefId(1))] of boolean
+"_"@(FileId(1), 28..29) [ConstVar(Var, No)]: set[DefId(PackageId(0), LocalDefId(1))] of boolean
 "<root>"@(dummy) [Module(No)]: <error>
 

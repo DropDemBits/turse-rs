@@ -2,16 +2,16 @@
 source: compiler/toc_analysis/src/typeck/test.rs
 expression: "type t_f : function(a, b : int, var c : string) : int\ntype t_fc : function(a, b : cheat int, var c : cheat string) : int\nvar f : t_f\nvar fc : t_fc\n\n% transitive\nf := fc\nfc := f\n"
 ---
-"t_f"@(FileId(1), 5..8) [Type]: alias[DefId(LibraryId(0), LocalDefId(0))] of function ( pass(value) int, pass(value) int, pass(var ref) string, ) -> int
+"t_f"@(FileId(1), 5..8) [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of function ( pass(value) int, pass(value) int, pass(var ref) string, ) -> int
 "a"@(FileId(1), 20..21) [Param(Value, No)]: <error>
 "b"@(FileId(1), 23..24) [Param(Value, No)]: <error>
 "c"@(FileId(1), 36..37) [Param(Reference(Var), No)]: <error>
-"t_fc"@(FileId(1), 59..63) [Type]: alias[DefId(LibraryId(0), LocalDefId(4))] of function ( pass(value) cheat int, pass(value) cheat int, pass(var ref) cheat string, ) -> int
+"t_fc"@(FileId(1), 59..63) [Type]: alias[DefId(PackageId(0), LocalDefId(4))] of function ( pass(value) cheat int, pass(value) cheat int, pass(var ref) cheat string, ) -> int
 "a"@(FileId(1), 75..76) [Param(Value, No)]: <error>
 "b"@(FileId(1), 78..79) [Param(Value, No)]: <error>
 "c"@(FileId(1), 97..98) [Param(Reference(Var), No)]: <error>
-"f"@(FileId(1), 125..126) [ConstVar(Var, No)]: alias[DefId(LibraryId(0), LocalDefId(0))] of function ( pass(value) int, pass(value) int, pass(var ref) string, ) -> int
-"fc"@(FileId(1), 137..139) [ConstVar(Var, No)]: alias[DefId(LibraryId(0), LocalDefId(4))] of function ( pass(value) cheat int, pass(value) cheat int, pass(var ref) cheat string, ) -> int
+"f"@(FileId(1), 125..126) [ConstVar(Var, No)]: alias[DefId(PackageId(0), LocalDefId(0))] of function ( pass(value) int, pass(value) int, pass(var ref) string, ) -> int
+"fc"@(FileId(1), 137..139) [ConstVar(Var, No)]: alias[DefId(PackageId(0), LocalDefId(4))] of function ( pass(value) cheat int, pass(value) cheat int, pass(var ref) cheat string, ) -> int
 "<unnamed>"@(dummy) [Undeclared]: <error>
 "<unnamed>"@(dummy) [Undeclared]: <error>
 "<root>"@(dummy) [Module(No)]: <error>

@@ -2,7 +2,7 @@
 source: compiler/toc_analysis/src/typeck/test.rs
 expression: "type kall : procedure() kall"
 ---
-"kall"@(FileId(1), 5..9) [Type]: alias[DefId(LibraryId(0), LocalDefId(0))] of procedure ( ) -> void
+"kall"@(FileId(1), 5..9) [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of procedure ( ) -> void
 "<unnamed>"@(dummy) [Undeclared]: <error>
 "<root>"@(dummy) [Module(No)]: <error>
 

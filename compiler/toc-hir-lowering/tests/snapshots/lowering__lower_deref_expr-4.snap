@@ -4,7 +4,7 @@ assertion_line: 61
 expression: "var a : int var _ := ^^^^a "
 
 ---
-Library@(dummy)
+Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(2)
     Module@(FileId(1), 0..27): "<root>"@(dummy)
       StmtBody@(FileId(1), 0..26): []

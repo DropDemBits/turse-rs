@@ -2,7 +2,7 @@
 source: compiler/toc_hir_lowering/tests/lowering.rs
 expression: "\nmodule wrap\n    export ~. unquali\n    module unquali\n        export ~. uwu\n        var uwu : int\n    end unquali\nend wrap\n\nmodule uwu\n    import unquali\nend uwu\n    "
 ---
-Library@(dummy)
+Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(5)
     Module@(FileId(1), 0..166): "<root>"@(dummy)
       StmtBody@(FileId(1), 1..161): []

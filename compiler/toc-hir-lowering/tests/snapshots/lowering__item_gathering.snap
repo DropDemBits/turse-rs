@@ -3,7 +3,7 @@ source: compiler/toc_hir_lowering/tests/lowering.rs
 expression: "\n    var a, b, c := 0\n    const d := 1\n"
 
 ---
-Library@(dummy)
+Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(4)
     Module@(FileId(1), 0..39): "<root>"@(dummy)
       StmtBody@(FileId(1), 5..38): []

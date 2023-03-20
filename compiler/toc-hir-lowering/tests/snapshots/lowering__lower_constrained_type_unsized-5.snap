@@ -4,7 +4,7 @@ assertion_line: 61
 expression: "type _ : 1 .. *"
 
 ---
-Library@(dummy)
+Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(1)
     Module@(FileId(1), 0..15): "<root>"@(dummy)
       StmtBody@(FileId(1), 0..15): []

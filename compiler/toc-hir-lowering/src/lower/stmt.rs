@@ -94,7 +94,7 @@ impl super::BodyLowering<'_, '_> {
     }
 
     fn unsupported_stmt(&mut self, span: SpanId) -> Option<stmt::StmtKind> {
-        let span = span.lookup_in(&self.ctx.library);
+        let span = span.lookup_in(&self.ctx.package);
         self.ctx.messages.error(
             "unsupported statement",
             "this statement is not handled yet",
@@ -138,7 +138,7 @@ impl super::BodyLowering<'_, '_> {
                     init_expr,
                 };
 
-                let item_id = self.ctx.library.add_item(item::Item {
+                let item_id = self.ctx.package.add_item(item::Item {
                     kind: item::ItemKind::ConstVar(const_var),
                     def_id,
                     span,
@@ -180,7 +180,7 @@ impl super::BodyLowering<'_, '_> {
             item::DefinedType::Alias(ty)
         };
 
-        let item_id = self.ctx.library.add_item(item::Item {
+        let item_id = self.ctx.package.add_item(item::Item {
             kind: item::ItemKind::Type(item::Type { def_id, type_def }),
             def_id,
             span,
@@ -208,7 +208,7 @@ impl super::BodyLowering<'_, '_> {
                     bind_to,
                 };
 
-                let item_id = self.ctx.library.add_item(item::Item {
+                let item_id = self.ctx.package.add_item(item::Item {
                     kind: item::ItemKind::Binding(binding),
                     def_id,
                     span,
@@ -243,7 +243,7 @@ impl super::BodyLowering<'_, '_> {
 
         let body = self.lower_subprog_body(decl.subprog_body().unwrap(), &param_list, None);
 
-        let item_id = self.ctx.library.add_item(item::Item {
+        let item_id = self.ctx.package.add_item(item::Item {
             kind: item::ItemKind::Subprogram(item::Subprogram {
                 kind: symbol::SubprogramKind::Procedure,
                 def_id,
@@ -270,7 +270,7 @@ impl super::BodyLowering<'_, '_> {
 
         let body = self.lower_subprog_body(decl.subprog_body().unwrap(), &param_list, result.name);
 
-        let item_id = self.ctx.library.add_item(item::Item {
+        let item_id = self.ctx.package.add_item(item::Item {
             kind: item::ItemKind::Subprogram(item::Subprogram {
                 kind: symbol::SubprogramKind::Function,
                 def_id,
@@ -300,7 +300,7 @@ impl super::BodyLowering<'_, '_> {
 
         let body = self.lower_subprog_body(decl.subprog_body().unwrap(), &param_list, None);
 
-        let item_id = self.ctx.library.add_item(item::Item {
+        let item_id = self.ctx.package.add_item(item::Item {
             kind: item::ItemKind::Subprogram(item::Subprogram {
                 kind: symbol::SubprogramKind::Process,
                 def_id,
@@ -328,9 +328,9 @@ impl super::BodyLowering<'_, '_> {
         let mut tys = vec![];
 
         // Prevent duplication of param names
-        let missing_name = self.ctx.library.add_def(
+        let missing_name = self.ctx.package.add_def(
             *syms::Unnamed,
-            self.ctx.library.span_table().dummy_span(),
+            self.ctx.package.span_table().dummy_span(),
             None,
             IsPervasive::No,
         );
@@ -400,7 +400,7 @@ impl super::BodyLowering<'_, '_> {
 
     fn none_subprog_result(&mut self, range: toc_span::TextRange) -> item::SubprogramResult {
         let span = self.ctx.intern_range(range);
-        let void_ty = self.ctx.library.intern_type(ty::Type {
+        let void_ty = self.ctx.package.intern_type(ty::Type {
             kind: ty::TypeKind::Void,
             span,
         });
@@ -472,7 +472,7 @@ impl super::BodyLowering<'_, '_> {
         let exports = self.lower_export_list(decl.export_stmt(), &declares);
 
         let span = self.ctx.intern_range(decl.syntax().text_range());
-        let item_id = self.ctx.library.add_item(item::Item {
+        let item_id = self.ctx.package.add_item(item::Item {
             def_id,
             kind: item::ItemKind::Module(item::Module {
                 as_monitor: false,
@@ -610,7 +610,7 @@ impl super::BodyLowering<'_, '_> {
             let span = self.ctx.intern_range(import.syntax().text_range());
             let def_id = self.ctx.collect_required_name(name);
 
-            let item_id = self.ctx.library.add_item(item::Item {
+            let item_id = self.ctx.package.add_item(item::Item {
                 def_id,
                 kind: item::ItemKind::Import(item::Import {
                     def_id,
@@ -637,8 +637,8 @@ impl super::BodyLowering<'_, '_> {
         let mut exported_items = IndexMap::new();
 
         for item_id in declares {
-            let item = self.ctx.library.item(*item_id);
-            let def_info = self.ctx.library.local_def(item.def_id);
+            let item = self.ctx.package.item(*item_id);
+            let def_info = self.ctx.package.local_def(item.def_id);
             exported_items.insert(def_info.name, *item_id);
         }
 
@@ -731,7 +731,7 @@ impl super::BodyLowering<'_, '_> {
             exported_items
                 .into_iter()
                 .map(|(export_name, item_id)| {
-                    let item = self.ctx.library.item(item_id);
+                    let item = self.ctx.package.item(item_id);
                     let exported_def = item.def_id;
                     let is_opaque = if !matches!(item.kind, item::ItemKind::Type(_)) {
                         // Opaque is only applicable to types
@@ -752,7 +752,7 @@ impl super::BodyLowering<'_, '_> {
                         Mutability::Const
                     };
 
-                    let def_id = self.ctx.library.add_def(
+                    let def_id = self.ctx.package.add_def(
                         export_name,
                         export_span,
                         Some(SymbolKind::Export),
@@ -808,7 +808,7 @@ impl super::BodyLowering<'_, '_> {
                     let item = exported_items.get(&name_text).copied();
 
                     if let Some(item_id) = item {
-                        let item = self.ctx.library.item(item_id);
+                        let item = self.ctx.package.item(item_id);
                         let exported_def = item.def_id;
 
                         // Report when opaqueness is not applicable
@@ -827,9 +827,9 @@ impl super::BodyLowering<'_, '_> {
                                 .unwrap();
 
                             let opaque_span = self.ctx.mk_span(opaque_attr.syntax().text_range());
-                            let def_info = self.ctx.library.local_def(item.def_id);
+                            let def_info = self.ctx.package.local_def(item.def_id);
                             let def_name = def_info.name;
-                            let def_span = def_info.def_at.lookup_in(&self.ctx.library);
+                            let def_span = def_info.def_at.lookup_in(&self.ctx.package);
 
                             self.ctx
                                 .messages
@@ -871,9 +871,9 @@ impl super::BodyLowering<'_, '_> {
                                     .unwrap();
 
                                 let var_span = self.ctx.mk_span(var_attr.syntax().text_range());
-                                let def_info = self.ctx.library.local_def(item.def_id);
+                                let def_info = self.ctx.package.local_def(item.def_id);
                                 let def_name = def_info.name;
-                                let def_span = def_info.def_at.lookup_in(&self.ctx.library);
+                                let def_span = def_info.def_at.lookup_in(&self.ctx.package);
 
                                 self.ctx
                                     .messages
@@ -892,7 +892,7 @@ impl super::BodyLowering<'_, '_> {
                             };
 
                         let export_span = self.ctx.intern_range(name_tok.text_range());
-                        let def_id = self.ctx.library.add_def(
+                        let def_id = self.ctx.package.add_def(
                             name_text,
                             export_span,
                             Some(SymbolKind::Export),
@@ -1117,7 +1117,7 @@ impl super::BodyLowering<'_, '_> {
             Some(ast::FalseBranch::ElseifStmt(stmt)) => {
                 // Also simple, just reuse our lowering of if bodies
                 let range = stmt.syntax().text_range();
-                let span = self.ctx.library.intern_span(self.ctx.mk_span(range));
+                let span = self.ctx.package.intern_span(self.ctx.mk_span(range));
                 let kind = self.lower_if_stmt_body(stmt.if_body().unwrap());
 
                 stmt::FalseBranch::ElseIf(self.body.add_stmt(stmt::Stmt { kind, span }))
@@ -1220,7 +1220,7 @@ impl super::BodyLowering<'_, '_> {
             kind: stmt::BlockKind::Normal,
             stmts,
         });
-        let span = self.ctx.library.intern_span(self.ctx.mk_span(range));
+        let span = self.ctx.package.intern_span(self.ctx.mk_span(range));
 
         self.body.add_stmt(toc_hir::stmt::Stmt { kind, span })
     }

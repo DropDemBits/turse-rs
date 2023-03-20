@@ -3,7 +3,7 @@ source: compiler/toc_hir_lowering/tests/lowering.rs
 expression: "\n    elsif true then end if\n    elif true then end if\n    elseif true then end if\n    else end if\n    "
 
 ---
-Library@(dummy)
+Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(0)
     Module@(FileId(1), 0..102): "<root>"@(dummy)
       StmtBody@(FileId(1), 5..97): []

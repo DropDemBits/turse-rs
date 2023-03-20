@@ -7,8 +7,8 @@ use indexmap::{IndexMap, IndexSet};
 use instruction::{CheckKind, RelocatableOffset};
 use toc_analysis::{db::HirAnalysis, ty};
 use toc_hir::{
-    body as hir_body, expr as hir_expr, item as hir_item, library as hir_library,
-    library::InLibrary,
+    body as hir_body, expr as hir_expr, item as hir_item, package as hir_package,
+    package::InPackage,
     stmt as hir_stmt,
     symbol::{DefId, LocalDefId},
 };
@@ -33,8 +33,8 @@ pub struct CodeBlob {
     reloc_table: Vec<RelocInfo>,
     const_bytes: Vec<u8>,
 
-    main_body: Option<(hir_library::LibraryId, hir_body::BodyId)>,
-    body_fragments: IndexMap<(hir_library::LibraryId, hir_body::BodyId), BodyCode>,
+    main_body: Option<(hir_package::PackageId, hir_body::BodyId)>,
+    body_fragments: IndexMap<(hir_package::PackageId, hir_body::BodyId), BodyCode>,
 }
 
 impl CodeBlob {
@@ -227,13 +227,13 @@ impl CodeBlob {
 
     fn reloc_to_code_body(
         &mut self,
-        library_id: hir_library::LibraryId,
+        package_id: hir_package::PackageId,
         body_id: hir_body::BodyId,
     ) -> RelocatableOffset {
         let reloc_id = self.reloc_table.len();
         self.reloc_table.push(RelocInfo {
             section: RelocSection::Code,
-            target: RelocTarget::Body(library_id, body_id),
+            target: RelocTarget::Body(package_id, body_id),
         });
 
         RelocatableOffset(reloc_id)
@@ -258,7 +258,7 @@ struct RelocInfo {
 
 enum RelocTarget {
     Offset(usize),
-    Body(hir_library::LibraryId, hir_body::BodyId),
+    Body(hir_package::PackageId, hir_body::BodyId),
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -272,39 +272,39 @@ enum RelocSection {
 /// or producing nothing if an error was encountered before code generation.
 pub fn generate_code(db: &dyn CodeGenDB) -> CompileResult<Option<CodeBlob>> {
     // Bail if there are any errors from analysis
-    let res = db.analyze_libraries();
+    let res = db.analyze_packages();
 
     if res.messages().has_errors() {
         return res.map(|_| None);
     }
 
-    // Start producing blobs for each library
-    // Only deal with one library right now
-    let lib_graph = toc_source_graph::source_graph(db.up()).as_ref().unwrap();
+    // Start producing blobs for each package
+    // Only deal with one package right now
+    let pkg_graph = toc_source_graph::source_graph(db.up()).as_ref().unwrap();
     let mut blob = CodeBlob::default();
 
-    if let Some(&library_id) = lib_graph.all_libraries(db.up()).first() {
-        let root_file = library_id.root(db.up());
+    if let Some(&package_id) = pkg_graph.all_packages(db.up()).first() {
+        let root_file = package_id.root(db.up());
 
-        // This library will act as the main file
-        let library = db.library(library_id.into());
+        // This package will act as the main file
+        let package = db.package(package_id.into());
         let main_body = {
-            let item_id = library
+            let item_id = package
                 .root_items
                 .get(&FileId::from(root_file))
                 .expect("no item for this file");
-            if let hir_item::ItemKind::Module(a) = &library.item(*item_id).kind {
+            if let hir_item::ItemKind::Module(a) = &package.item(*item_id).kind {
                 a.body
             } else {
                 unreachable!()
             }
         };
 
-        blob.main_body = Some((library_id.into(), main_body));
+        blob.main_body = Some((package_id.into(), main_body));
 
         // Generate code for each statement body
-        for body_id in library.body_ids() {
-            let body = library.body(body_id);
+        for body_id in package.body_ids() {
+            let body = package.body(body_id);
 
             match &body.kind {
                 hir_body::BodyKind::Stmts(_, params, ret_param) => {
@@ -317,8 +317,8 @@ pub fn generate_code(db: &dyn CodeGenDB) -> CompileResult<Option<CodeBlob>> {
                     let body_code = BodyCodeGenerator::generate_body(
                         db,
                         &mut blob,
-                        library_id.into(),
-                        library.as_ref(),
+                        package_id.into(),
+                        package.as_ref(),
                         body_id,
                         params,
                         *ret_param,
@@ -342,7 +342,7 @@ pub fn generate_code(db: &dyn CodeGenDB) -> CompileResult<Option<CodeBlob>> {
                     }
 
                     blob.body_fragments
-                        .insert((library_id.into(), body_id), body_code);
+                        .insert((package_id.into(), body_id), body_code);
                 }
                 hir_body::BodyKind::Exprs(_expr) => {
                     // We don't start code generation from expr bodies
@@ -402,10 +402,10 @@ impl<'a> RelocationTracker<'a> {
         let reloc_info = &self.code_blob.reloc_table[reloc_offset.0];
         let offset = match reloc_info.target {
             RelocTarget::Offset(offset) => offset,
-            RelocTarget::Body(library_id, body_id) => self
+            RelocTarget::Body(package_id, body_id) => self
                 .code_blob
                 .body_fragments
-                .get(&(library_id, body_id))
+                .get(&(package_id, body_id))
                 .map(|body| body.base_offset)
                 .expect("missing body code"),
         };
@@ -888,8 +888,8 @@ enum AssignOrder {
 
 struct BodyCodeGenerator<'a> {
     db: &'a dyn CodeGenDB,
-    library_id: hir_library::LibraryId,
-    library: &'a hir_library::Library,
+    package_id: hir_package::PackageId,
+    package: &'a hir_package::Package,
     body_id: hir_body::BodyId,
     body: &'a hir_body::Body,
     code_fragment: &'a mut CodeFragment,
@@ -903,8 +903,8 @@ impl BodyCodeGenerator<'_> {
     fn generate_body(
         db: &dyn CodeGenDB,
         code_blob: &mut CodeBlob,
-        library_id: hir_library::LibraryId,
-        library: &hir_library::Library,
+        package_id: hir_package::PackageId,
+        package: &hir_package::Package,
         body_id: hir_body::BodyId,
         param_defs: &[LocalDefId],
         ret_param: Option<LocalDefId>,
@@ -913,10 +913,10 @@ impl BodyCodeGenerator<'_> {
 
         let mut gen = BodyCodeGenerator {
             db,
-            library_id,
-            library,
+            package_id,
+            package,
             body_id,
-            body: library.body(body_id),
+            body: package.body(body_id),
             code_fragment: &mut code_fragment,
 
             code_blob,
@@ -929,7 +929,7 @@ impl BodyCodeGenerator<'_> {
 
         gen.code_fragment.emit_opcode(Opcode::PROC(0));
 
-        match &library.body(body_id).kind {
+        match &package.body(body_id).kind {
             hir_body::BodyKind::Stmts(stmts, ..) => gen.generate_stmt_list(stmts),
             hir_body::BodyKind::Exprs(expr) => gen.generate_expr(*expr),
         }
@@ -938,7 +938,7 @@ impl BodyCodeGenerator<'_> {
         {
             let item_owner = match gen
                 .db
-                .body_owner(InLibrary(gen.library_id, gen.body_id))
+                .body_owner(InPackage(gen.package_id, gen.body_id))
                 .expect("from stmt thing")
             {
                 hir_body::BodyOwner::Item(item_id) => item_id,
@@ -946,7 +946,7 @@ impl BodyCodeGenerator<'_> {
             };
             let item_ty = gen
                 .db
-                .type_of((gen.library_id, item_owner).into())
+                .type_of((gen.package_id, item_owner).into())
                 .to_base_type(gen.db.up());
 
             if matches!(
@@ -971,10 +971,10 @@ impl BodyCodeGenerator<'_> {
         // hacky workarounds for actual hacks...
         let mut gen = BodyCodeGenerator {
             db: self.db,
-            library_id: self.library_id,
-            library: self.library,
+            package_id: self.package_id,
+            package: self.package,
             body_id,
-            body: self.library.body(body_id),
+            body: self.package.body(body_id),
             code_fragment: self.code_fragment,
 
             code_blob: self.code_blob,
@@ -982,7 +982,7 @@ impl BodyCodeGenerator<'_> {
             branch_stack: vec![],
         };
 
-        match &self.library.body(body_id).kind {
+        match &self.package.body(body_id).kind {
             hir_body::BodyKind::Stmts(stmts, ..) => gen.generate_stmt_list(stmts),
             hir_body::BodyKind::Exprs(expr) => gen.generate_expr(*expr),
         }
@@ -994,14 +994,14 @@ impl BodyCodeGenerator<'_> {
         let db = self.db;
 
         let item_owner = db
-            .body_owner(InLibrary(self.library_id, self.body_id))
+            .body_owner(InPackage(self.package_id, self.body_id))
             .expect("unowned body");
         let item_owner = match item_owner {
             hir_body::BodyOwner::Item(item) => item,
             hir_body::BodyOwner::Type(_) | hir_body::BodyOwner::Expr(_) => unreachable!(),
         };
         let item_ty = db
-            .type_of((self.library_id, item_owner).into())
+            .type_of((self.package_id, item_owner).into())
             .to_base_type(self.db.up());
 
         if let ty::TypeKind::Subprogram(_, params, result_ty) = item_ty.kind(self.db.up()) {
@@ -1013,7 +1013,7 @@ impl BodyCodeGenerator<'_> {
             if !matches!(ret_ty.kind(self.db.up()), ty::TypeKind::Void) {
                 if let Some(local_def) = ret_param {
                     self.code_fragment.bind_argument(
-                        DefId(self.library_id, local_def),
+                        DefId(self.package_id, local_def),
                         arg_offset,
                         true,
                     );
@@ -1034,7 +1034,7 @@ impl BodyCodeGenerator<'_> {
                     };
 
                     self.code_fragment.bind_argument(
-                        DefId(self.library_id, *local_def),
+                        DefId(self.package_id, *local_def),
                         arg_offset,
                         indirect,
                     );
@@ -1089,7 +1089,7 @@ impl BodyCodeGenerator<'_> {
 
     fn generate_stmt(&mut self, stmt_id: hir_stmt::StmtId) {
         let stmt = self.body.stmt(stmt_id);
-        let span = stmt.span.lookup_in(self.library);
+        let span = stmt.span.lookup_in(self.package);
         self.emit_location(span);
 
         self.code_fragment.bump_temp_allocs();
@@ -1124,11 +1124,11 @@ impl BodyCodeGenerator<'_> {
         // - Store the value in the referenced expression
         let lhs_ty = self
             .db
-            .type_of((self.library_id, self.body_id, stmt.lhs).into())
+            .type_of((self.package_id, self.body_id, stmt.lhs).into())
             .to_base_type(self.db.up());
         let rhs_ty = self
             .db
-            .type_of((self.library_id, self.body_id, stmt.rhs).into())
+            .type_of((self.package_id, self.body_id, stmt.rhs).into())
             .to_base_type(self.db.up());
 
         // Evaluation order is important, side effects from the rhs are visible when looking at lhs
@@ -1184,7 +1184,7 @@ impl BodyCodeGenerator<'_> {
 
             let put_ty = self
                 .db
-                .type_of((self.library_id, self.body_id, item.expr).into())
+                .type_of((self.package_id, self.body_id, item.expr).into())
                 .to_base_type(self.db.up());
 
             let put_kind = match put_ty.kind(self.db.up()) {
@@ -1283,7 +1283,7 @@ impl BodyCodeGenerator<'_> {
 
             let get_ty = self
                 .db
-                .type_of((self.library_id, self.body_id, item.expr).into())
+                .type_of((self.package_id, self.body_id, item.expr).into())
                 .to_base_type(self.db.up());
             let ty_size = get_ty.size_of(self.db.up()).expect("type must be concrete") as u32;
 
@@ -1381,10 +1381,10 @@ impl BodyCodeGenerator<'_> {
         let descriptor_size = std::mem::size_of::<ForDescriptor>();
 
         let descriptor_slot = if let Some(counter_def) = stmt.counter_def {
-            let local = DefId(self.library_id, counter_def);
+            let local = DefId(self.package_id, counter_def);
             self.code_fragment
                 .allocate_local_space(local, descriptor_size);
-            ForDescriptorSlot::Local(DefId(self.library_id, counter_def))
+            ForDescriptorSlot::Local(DefId(self.package_id, counter_def))
         } else {
             // Reserve temporary space for the descriptor
             let temporary = self.code_fragment.allocate_temporary_space(descriptor_size);
@@ -1513,7 +1513,7 @@ impl BodyCodeGenerator<'_> {
 
         let discrim_ty = self
             .db
-            .type_of((self.library_id, self.body_id, stmt.discriminant).into())
+            .type_of((self.package_id, self.body_id, stmt.discriminant).into())
             .to_base_type(self.db.up());
 
         let coerce_to = match discrim_ty.kind(self.db.up()) {
@@ -1540,7 +1540,7 @@ impl BodyCodeGenerator<'_> {
                     for expr in exprs {
                         let expr_ty = self
                             .db
-                            .type_of((self.library_id, self.body_id, *expr).into())
+                            .type_of((self.package_id, self.body_id, *expr).into())
                             .to_base_type(self.db.up());
 
                         self.generate_coerced_expr(*expr, coerce_to);
@@ -1598,8 +1598,8 @@ impl BodyCodeGenerator<'_> {
     fn generate_stmt_result(&mut self, stmt: &hir_stmt::Result) {
         let db = self.db;
 
-        let ret_ty = db.type_of((self.library_id, self.body_id).into());
-        let expr_ty = db.type_of((self.library_id, self.body_id, stmt.expr).into());
+        let ret_ty = db.type_of((self.package_id, self.body_id).into());
+        let expr_ty = db.type_of((self.package_id, self.body_id, stmt.expr).into());
 
         // Generate return value
         self.generate_expr(stmt.expr);
@@ -1614,8 +1614,8 @@ impl BodyCodeGenerator<'_> {
     }
 
     fn generate_item(&mut self, item_id: hir_item::ItemId) {
-        let item = self.library.item(item_id);
-        let span = item.span.lookup_in(self.library);
+        let item = self.package.item(item_id);
+        let span = item.span.lookup_in(self.package);
         self.emit_location(span);
 
         match &item.kind {
@@ -1625,7 +1625,7 @@ impl BodyCodeGenerator<'_> {
             hir_item::ItemKind::Subprogram(item) => self.generate_item_subprogram(item),
             hir_item::ItemKind::Module(_) => {
                 // We already generate code for module bodies as part of walking
-                // over all of the bodies in a library
+                // over all of the bodies in a package
             }
             hir_item::ItemKind::Import(_) => {
                 // No code needs to be generated from this item
@@ -1645,21 +1645,21 @@ impl BodyCodeGenerator<'_> {
 
         let def_ty = self
             .db
-            .type_of(DefId(self.library_id, item.def_id).into())
+            .type_of(DefId(self.package_id, item.def_id).into())
             .to_base_type(self.db.up());
         self.code_fragment
-            .allocate_local(self.db, DefId(self.library_id, item.def_id), def_ty);
+            .allocate_local(self.db, DefId(self.package_id, item.def_id), def_ty);
 
         if let Some(init_body) = item.init_expr {
             eprintln!("inlining init body {init_body:?}");
             self.inline_body(init_body);
 
-            let body_ty = self.db.type_of((self.library_id, init_body).into());
+            let body_ty = self.db.type_of((self.package_id, init_body).into());
             self.generate_coerced_op(def_ty, body_ty);
 
             eprintln!("assigning def {init_body:?} to previously produced value");
             self.code_fragment
-                .emit_locate_local(DefId(self.library_id, item.def_id));
+                .emit_locate_local(DefId(self.package_id, item.def_id));
             self.generate_assign(def_ty, AssignOrder::Postcomputed);
         } else if def_ty.has_uninit(self.db.up()) {
             eprintln!(
@@ -1668,7 +1668,7 @@ impl BodyCodeGenerator<'_> {
                 def_ty.display(self.db.up())
             );
             self.code_fragment
-                .emit_locate_local(DefId(self.library_id, item.def_id));
+                .emit_locate_local(DefId(self.package_id, item.def_id));
             self.generate_assign_uninit(def_ty);
         }
     }
@@ -1679,9 +1679,9 @@ impl BodyCodeGenerator<'_> {
         // it should be treated as introducing a new var that is specially handled
         // (it's like an addr, though we need to pierce through indirections)
 
-        if let Some(aliased_def) = self.db.binding_def((self.library_id, item.bind_to).into()) {
+        if let Some(aliased_def) = self.db.binding_def((self.package_id, item.bind_to).into()) {
             self.code_fragment
-                .alias_local(aliased_def, DefId(self.library_id, item.def_id))
+                .alias_local(aliased_def, DefId(self.package_id, item.def_id))
         } else {
             todo!("indirection binding not handled yet");
         }
@@ -1690,9 +1690,9 @@ impl BodyCodeGenerator<'_> {
     fn generate_item_subprogram(&mut self, item: &hir_item::Subprogram) {
         let reloc_body = self
             .code_blob
-            .reloc_to_code_body(self.library_id, item.body.body);
+            .reloc_to_code_body(self.package_id, item.body.body);
         self.code_fragment
-            .bind_reloc_local(DefId(self.library_id, item.def_id), reloc_body);
+            .bind_reloc_local(DefId(self.package_id, item.def_id), reloc_body);
     }
 
     fn generate_coerced_expr(&mut self, expr_id: hir_expr::ExprId, coerce_to: Option<CoerceTo>) {
@@ -1700,7 +1700,7 @@ impl BodyCodeGenerator<'_> {
 
         let expr_ty = self
             .db
-            .type_of((self.library_id, self.body_id, expr_id).into());
+            .type_of((self.package_id, self.body_id, expr_id).into());
 
         self.coerce_expr_into(expr_ty, coerce_to);
     }
@@ -1787,7 +1787,7 @@ impl BodyCodeGenerator<'_> {
 
     fn generate_expr(&mut self, expr_id: hir_expr::ExprId) {
         let expr = self.body.expr(expr_id);
-        let span = expr.span.lookup_in(self.library);
+        let span = expr.span.lookup_in(self.package);
         self.emit_location(span);
 
         match &expr.kind {
@@ -1850,11 +1850,11 @@ impl BodyCodeGenerator<'_> {
 
         let lhs_ty = self
             .db
-            .type_of((self.library_id, self.body_id, expr.lhs).into())
+            .type_of((self.package_id, self.body_id, expr.lhs).into())
             .to_base_type(self.db.up());
         let rhs_ty = self
             .db
-            .type_of((self.library_id, self.body_id, expr.rhs).into())
+            .type_of((self.package_id, self.body_id, expr.rhs).into())
             .to_base_type(self.db.up());
 
         let opcode = match expr.op.item() {
@@ -2156,7 +2156,7 @@ impl BodyCodeGenerator<'_> {
 
         let rhs_ty = self
             .db
-            .type_of((self.library_id, self.body_id, expr.rhs).into())
+            .type_of((self.package_id, self.body_id, expr.rhs).into())
             .to_base_type(self.db.up());
 
         self.generate_expr(expr.rhs);
@@ -2188,13 +2188,13 @@ impl BodyCodeGenerator<'_> {
         // - Load value from the referenced def (may need to perform canonical name resolution)
         match expr {
             hir_expr::Name::Name(binding) => {
-                let def_id = self.library.binding_resolve(*binding).unwrap_def();
-                let info = self.library.local_def(def_id);
+                let def_id = self.package.binding_resolve(*binding).unwrap_def();
+                let info = self.package.local_def(def_id);
                 eprintln!("loading value from def {info:?} ({def_id:?})");
 
                 let def_ty = self
                     .db
-                    .type_of(DefId(self.library_id, def_id).into())
+                    .type_of(DefId(self.package_id, def_id).into())
                     .to_base_type(self.db.up());
 
                 if let ty::TypeKind::Subprogram(_, None, _) = def_ty.kind(self.db.up()) {
@@ -2203,7 +2203,7 @@ impl BodyCodeGenerator<'_> {
                 } else {
                     // As normal fetch
                     self.code_fragment
-                        .emit_locate_local(DefId(self.library_id, def_id));
+                        .emit_locate_local(DefId(self.package_id, def_id));
                     self.generate_fetch_value(def_ty);
                 }
             }
@@ -2222,7 +2222,7 @@ impl BodyCodeGenerator<'_> {
         drop_ret_val: bool,
     ) {
         let db = self.db;
-        let lhs_expr = (self.library_id, self.body_id, lhs);
+        let lhs_expr = (self.package_id, self.body_id, lhs);
         let lhs_ty = if let Some(def_id) = db.binding_def(lhs_expr.into()) {
             // From an item
             db.type_of(def_id.into())
@@ -2275,7 +2275,7 @@ impl BodyCodeGenerator<'_> {
             if let Some((params, args)) = params.as_ref().zip(arguments) {
                 for (param, arg) in params.iter().zip(args.iter()) {
                     let arg_expr = *arg;
-                    let arg_ty = db.type_of((self.library_id, self.body_id, arg_expr).into());
+                    let arg_ty = db.type_of((self.package_id, self.body_id, arg_expr).into());
 
                     match param.pass_by {
                         ty::PassBy::Value => {
@@ -2336,7 +2336,7 @@ impl BodyCodeGenerator<'_> {
     /// Like `generate_expr`, but for producing references to locations
     fn generate_ref_expr(&mut self, expr_id: hir_expr::ExprId) {
         let expr = self.body.expr(expr_id);
-        let span = expr.span.lookup_in(self.library);
+        let span = expr.span.lookup_in(self.package);
         self.emit_location(span);
 
         match &expr.kind {
@@ -2357,12 +2357,12 @@ impl BodyCodeGenerator<'_> {
         //   - If it's a global var, it should be from a relocatable patch to the globals space
         match expr {
             hir_expr::Name::Name(binding) => {
-                let def_id = self.library.binding_resolve(*binding).unwrap_def();
-                let info = self.library.local_def(def_id);
+                let def_id = self.package.binding_resolve(*binding).unwrap_def();
+                let info = self.package.local_def(def_id);
                 eprintln!("locating value from def {info:?} ({def_id:?})");
 
                 self.code_fragment
-                    .emit_locate_local(DefId(self.library_id, def_id))
+                    .emit_locate_local(DefId(self.package_id, def_id))
             }
             hir_expr::Name::Self_ => todo!(),
         }

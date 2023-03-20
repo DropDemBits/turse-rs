@@ -2,9 +2,9 @@
 source: compiler/toc_analysis/src/typeck/test.rs
 expression: "type a0 : real\ntype a1 : int\nvar k : a0\nvar i : int\ni := i + k % unchanged"
 ---
-"a0"@(FileId(1), 5..7) [Type]: alias[DefId(LibraryId(0), LocalDefId(0))] of real
-"a1"@(FileId(1), 20..22) [Type]: alias[DefId(LibraryId(0), LocalDefId(1))] of int
-"k"@(FileId(1), 33..34) [ConstVar(Var, No)]: alias[DefId(LibraryId(0), LocalDefId(0))] of real
+"a0"@(FileId(1), 5..7) [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of real
+"a1"@(FileId(1), 20..22) [Type]: alias[DefId(PackageId(0), LocalDefId(1))] of int
+"k"@(FileId(1), 33..34) [ConstVar(Var, No)]: alias[DefId(PackageId(0), LocalDefId(0))] of real
 "i"@(FileId(1), 44..45) [ConstVar(Var, No)]: int
 "<root>"@(dummy) [Module(No)]: <error>
 

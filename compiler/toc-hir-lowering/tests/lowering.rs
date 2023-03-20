@@ -3,13 +3,13 @@
 use if_chain::if_chain;
 use toc_hir::{
     body, expr, item,
-    library::LoweredLibrary,
-    library_graph::{DependencyList, SourceLibrary},
+    package::LoweredPackage,
+    package_graph::{DependencyList, SourcePackage},
     stmt,
 };
 use toc_paths::RawPath;
 use toc_reporting::CompileResult;
-use toc_source_graph::RootLibraries;
+use toc_source_graph::RootPackages;
 use toc_span::FileId;
 use toc_vfs_db::VfsDbExt;
 
@@ -36,7 +36,7 @@ impl toc_vfs_db::VfsBridge for TestHirDb {
 
 struct LowerResult {
     root_file: FileId,
-    hir_result: CompileResult<LoweredLibrary>,
+    hir_result: CompileResult<LoweredPackage>,
 }
 
 macro_rules! assert_lower {
@@ -56,16 +56,16 @@ fn do_lower(src: &str) -> (String, LowerResult) {
     db.insert_fixture(fixture);
 
     let root_file = RawPath::new(db, "src/main.t".into());
-    let library = SourceLibrary::new(
+    let package = SourcePackage::new(
         db,
         "main".into(),
         root_file,
-        toc_hir::library_graph::ArtifactKind::Binary,
+        toc_hir::package_graph::ArtifactKind::Binary,
         DependencyList::empty(db),
     );
-    RootLibraries::new(db, vec![library]);
+    RootPackages::new(db, vec![package]);
 
-    let lowered = toc_hir_lowering::lower_library(db, library);
+    let lowered = toc_hir_lowering::lower_package(db, package);
 
     let mut s = toc_hir_pretty::tree::pretty_print_tree(lowered.result());
     for err in lowered.messages().iter() {
@@ -90,12 +90,12 @@ macro_rules! lower_literal_value {
             hir_result,
         } = &lower_result;
 
-        let library = hir_result.result();
-        let root_item = library.item(library.root_items[root_file]);
+        let package = hir_result.result();
+        let root_item = package.item(package.root_items[root_file]);
 
         if_chain! {
             if let item::ItemKind::Module(item::Module { body, .. }) = &root_item.kind;
-            let body = library.body(*body);
+            let body = package.body(*body);
             if let body::BodyKind::Stmts(stmts, ..) = &body.kind;
             if let Some(second_stmt) = stmts.get(1);
             if let stmt::StmtKind::Assign(stmt::Assign { rhs, .. }) = &body.stmt(*second_stmt).kind;
@@ -128,8 +128,8 @@ fn item_gathering() {
         root_file,
         hir_result,
     } = res;
-    let library = hir_result.result();
-    let root_item = library.item(library.root_items[&root_file]);
+    let package = hir_result.result();
+    let root_item = package.item(package.root_items[&root_file]);
 
     if_chain! {
         if let item::ItemKind::Module(item::Module { declares, .. }) = &root_item.kind;
