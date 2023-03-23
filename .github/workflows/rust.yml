@@ -33,7 +33,7 @@ jobs:
           toolchain: ${{ matrix.toolchain }}
           components: rustfmt
       - name: Setup cache
-        uses: Swatinem/rust-cache@v1.2.0
+        uses: Swatinem/rust-cache@v2
 
       # Doing the actual work
       - name: Build
