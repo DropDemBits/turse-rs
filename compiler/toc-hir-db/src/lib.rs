@@ -11,11 +11,10 @@ use crate::db::InsideModule;
 use toc_hir::{
     body::{self, BodyTable},
     item::{self, ModuleTree},
-    package::{InPackage, LoweredPackage},
+    package::{InPackage, LoweredPackage, PackageId},
     symbol::{DefId, DefOwner, DefTable, SymbolKind},
     ty::{self, TypeOwners},
 };
-use toc_source_graph::PackageId;
 use upcast::{Upcast, UpcastFrom};
 
 pub mod db;
