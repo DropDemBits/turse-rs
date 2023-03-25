@@ -4358,6 +4358,78 @@ impl AstNode for Stmt {
     }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
+pub enum Item {
+    ConstVarDecl(ConstVarDecl),
+    TypeDecl(TypeDecl),
+    BindDecl(BindDecl),
+    ProcDecl(ProcDecl),
+    FcnDecl(FcnDecl),
+    ProcessDecl(ProcessDecl),
+    ExternalDecl(ExternalDecl),
+    ForwardDecl(ForwardDecl),
+    DeferredDecl(DeferredDecl),
+    BodyDecl(BodyDecl),
+    ModuleDecl(ModuleDecl),
+    ClassDecl(ClassDecl),
+    MonitorDecl(MonitorDecl),
+}
+impl AstNode for Item {
+    type Language = crate::Lang;
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        match syntax.kind() {
+            SyntaxKind::ConstVarDecl => Some(Self::ConstVarDecl(AstNode::cast(syntax)?)),
+            SyntaxKind::TypeDecl => Some(Self::TypeDecl(AstNode::cast(syntax)?)),
+            SyntaxKind::BindDecl => Some(Self::BindDecl(AstNode::cast(syntax)?)),
+            SyntaxKind::ProcDecl => Some(Self::ProcDecl(AstNode::cast(syntax)?)),
+            SyntaxKind::FcnDecl => Some(Self::FcnDecl(AstNode::cast(syntax)?)),
+            SyntaxKind::ProcessDecl => Some(Self::ProcessDecl(AstNode::cast(syntax)?)),
+            SyntaxKind::ExternalDecl => Some(Self::ExternalDecl(AstNode::cast(syntax)?)),
+            SyntaxKind::ForwardDecl => Some(Self::ForwardDecl(AstNode::cast(syntax)?)),
+            SyntaxKind::DeferredDecl => Some(Self::DeferredDecl(AstNode::cast(syntax)?)),
+            SyntaxKind::BodyDecl => Some(Self::BodyDecl(AstNode::cast(syntax)?)),
+            SyntaxKind::ModuleDecl => Some(Self::ModuleDecl(AstNode::cast(syntax)?)),
+            SyntaxKind::ClassDecl => Some(Self::ClassDecl(AstNode::cast(syntax)?)),
+            SyntaxKind::MonitorDecl => Some(Self::MonitorDecl(AstNode::cast(syntax)?)),
+            _ => None,
+        }
+    }
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
+            SyntaxKind::ConstVarDecl => true,
+            SyntaxKind::TypeDecl => true,
+            SyntaxKind::BindDecl => true,
+            SyntaxKind::ProcDecl => true,
+            SyntaxKind::FcnDecl => true,
+            SyntaxKind::ProcessDecl => true,
+            SyntaxKind::ExternalDecl => true,
+            SyntaxKind::ForwardDecl => true,
+            SyntaxKind::DeferredDecl => true,
+            SyntaxKind::BodyDecl => true,
+            SyntaxKind::ModuleDecl => true,
+            SyntaxKind::ClassDecl => true,
+            SyntaxKind::MonitorDecl => true,
+            _ => false,
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        match self {
+            Self::ConstVarDecl(node) => node.syntax(),
+            Self::TypeDecl(node) => node.syntax(),
+            Self::BindDecl(node) => node.syntax(),
+            Self::ProcDecl(node) => node.syntax(),
+            Self::FcnDecl(node) => node.syntax(),
+            Self::ProcessDecl(node) => node.syntax(),
+            Self::ExternalDecl(node) => node.syntax(),
+            Self::ForwardDecl(node) => node.syntax(),
+            Self::DeferredDecl(node) => node.syntax(),
+            Self::BodyDecl(node) => node.syntax(),
+            Self::ModuleDecl(node) => node.syntax(),
+            Self::ClassDecl(node) => node.syntax(),
+            Self::MonitorDecl(node) => node.syntax(),
+        }
+    }
+}
+#[derive(Debug, PartialEq, Eq, Hash)]
 pub enum Type {
     PrimType(PrimType),
     NameType(NameType),

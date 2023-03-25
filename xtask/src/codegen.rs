@@ -16,8 +16,8 @@ use lowering::ChildKind;
 pub fn do_codegen() -> Result<()> {
     let sh = Shell::new().context("failed to create the shell")?;
 
-    let grammar = project_root().join("compiler/toc_syntax/parsed_turing.ungram");
-    let out_dir = project_root().join("compiler/toc_syntax/src/");
+    let grammar = project_root().join("compiler/toc-syntax/parsed_turing.ungram");
+    let out_dir = project_root().join("compiler/toc-syntax/src/");
 
     let grammar = fs::read_to_string(grammar)?.parse()?;
     let lowered = lowering::lower_grammar(&grammar);

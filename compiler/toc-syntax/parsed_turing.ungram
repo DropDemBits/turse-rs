@@ -112,6 +112,21 @@ PPTokenBody =
 // Statements & Declarations //
 //***************************//
 
+Item = 
+  ConstVarDecl
+| TypeDecl
+| BindDecl
+| ProcDecl
+| FcnDecl
+| ProcessDecl
+| ExternalDecl
+| ForwardDecl
+| DeferredDecl
+| BodyDecl
+| ModuleDecl
+| ClassDecl
+| MonitorDecl
+
 Stmt =
   ConstVarDecl
 | TypeDecl
