@@ -3,22 +3,13 @@ use std::{iter, ops::Range};
 
 use super::nodes::*;
 use crate::{
-    ast::{helper, AstNode},
+    ast::{helper, AstNode, ExternalItemOwner},
     AssignOp, InfixOp, InvalidChar, InvalidCharsList, InvalidInt, InvalidReal, IoKind,
     LiteralParseError, LiteralValue, PrefixOp, PrimitiveKind, SyntaxElement, SyntaxKind,
     SyntaxToken,
 };
 
 // Extension Traits //
-
-pub trait ExternalItemOwner: AstNode<Language = crate::Lang> {
-    fn external_items(&self) -> Vec<ExternalItem> {
-        self.syntax()
-            .descendants()
-            .filter_map(ExternalItem::cast)
-            .collect()
-    }
-}
 
 impl ExternalItemOwner for ImportItem {}
 
