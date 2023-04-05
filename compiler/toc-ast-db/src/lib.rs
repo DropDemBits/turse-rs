@@ -5,6 +5,8 @@ pub mod span;
 
 mod source;
 
+use toc_syntax::SyntaxNode;
+use toc_vfs_db::SourceFile;
 use upcast::{Upcast, UpcastFrom};
 
 pub use crate::source::{
@@ -45,5 +47,17 @@ impl<'db, DB: Db + 'db> UpcastFrom<DB> for dyn Db + 'db {
     }
     fn up_from_mut(value: &mut DB) -> &mut Self {
         value
+    }
+}
+
+pub trait IntoAst {
+    type Db<'db>: Db + ?Sized + 'db;
+    fn ast(self, db: &Self::Db<'_>) -> SyntaxNode;
+}
+
+impl IntoAst for SourceFile {
+    type Db<'db> = dyn Db + 'db;
+    fn ast(self, db: &Self::Db<'_>) -> SyntaxNode {
+        parse_file(db, self).result().syntax()
     }
 }

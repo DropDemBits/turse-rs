@@ -1448,8 +1448,14 @@ dependencies = [
  "internment",
  "la-arena",
  "lazy_static",
+ "rustc-hash",
+ "salsa-2022",
+ "toc-ast-db",
  "toc-source-graph",
  "toc-span",
+ "toc-syntax",
+ "toc-vfs-db",
+ "upcast",
 ]
 
 [[package]]
