@@ -115,7 +115,7 @@ PPTokenBody =
 Item = 
   ConstVarDecl
 | TypeDecl
-| BindDecl
+| BindItem // BindDecl is just a simple group of BindItems
 | ProcDecl
 | FcnDecl
 | ProcessDecl

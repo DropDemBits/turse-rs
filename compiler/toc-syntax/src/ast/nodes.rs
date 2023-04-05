@@ -611,26 +611,29 @@ impl TypeDecl {
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
-pub struct BindDecl(SyntaxNode);
-impl AstNode for BindDecl {
+pub struct BindItem(SyntaxNode);
+impl AstNode for BindItem {
     type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
-            SyntaxKind::BindDecl => Some(Self(syntax)),
+            SyntaxKind::BindItem => Some(Self(syntax)),
             _ => None,
         }
     }
     fn can_cast(kind: SyntaxKind) -> bool {
         match kind {
-            SyntaxKind::BindDecl => true,
+            SyntaxKind::BindItem => true,
             _ => false,
         }
     }
     fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
-impl BindDecl {
-    pub fn bind_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwBind) }
-    pub fn bindings(&self) -> impl Iterator<Item = BindItem> + '_ { helper::nodes(&self.0) }
+impl BindItem {
+    pub fn as_var(&self) -> Option<VarAttr> { helper::node(&self.0) }
+    pub fn to_register(&self) -> Option<RegisterAttr> { helper::node(&self.0) }
+    pub fn bind_as(&self) -> Option<Name> { helper::node(&self.0) }
+    pub fn to_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwTo) }
+    pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -900,6 +903,29 @@ impl MonitorDecl {
     pub fn stmt_list(&self) -> Option<StmtList> { helper::node(&self.0) }
     pub fn post_stmt(&self) -> Option<PostStmt> { helper::node(&self.0) }
     pub fn end_group(&self) -> Option<EndGroup> { helper::node(&self.0) }
+}
+#[derive(Debug, PartialEq, Eq, Hash)]
+#[repr(transparent)]
+pub struct BindDecl(SyntaxNode);
+impl AstNode for BindDecl {
+    type Language = crate::Lang;
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        match syntax.kind() {
+            SyntaxKind::BindDecl => Some(Self(syntax)),
+            _ => None,
+        }
+    }
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
+            SyntaxKind::BindDecl => true,
+            _ => false,
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
+}
+impl BindDecl {
+    pub fn bind_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwBind) }
+    pub fn bindings(&self) -> impl Iterator<Item = BindItem> + '_ { helper::nodes(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -1788,32 +1814,6 @@ impl ExportStmt {
     pub fn l_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::LeftParen) }
     pub fn exports(&self) -> impl Iterator<Item = ExportItem> + '_ { helper::nodes(&self.0) }
     pub fn r_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::RightParen) }
-}
-#[derive(Debug, PartialEq, Eq, Hash)]
-#[repr(transparent)]
-pub struct BindItem(SyntaxNode);
-impl AstNode for BindItem {
-    type Language = crate::Lang;
-    fn cast(syntax: SyntaxNode) -> Option<Self> {
-        match syntax.kind() {
-            SyntaxKind::BindItem => Some(Self(syntax)),
-            _ => None,
-        }
-    }
-    fn can_cast(kind: SyntaxKind) -> bool {
-        match kind {
-            SyntaxKind::BindItem => true,
-            _ => false,
-        }
-    }
-    fn syntax(&self) -> &SyntaxNode { &self.0 }
-}
-impl BindItem {
-    pub fn as_var(&self) -> Option<VarAttr> { helper::node(&self.0) }
-    pub fn to_register(&self) -> Option<RegisterAttr> { helper::node(&self.0) }
-    pub fn bind_as(&self) -> Option<Name> { helper::node(&self.0) }
-    pub fn to_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwTo) }
-    pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -4361,7 +4361,7 @@ impl AstNode for Stmt {
 pub enum Item {
     ConstVarDecl(ConstVarDecl),
     TypeDecl(TypeDecl),
-    BindDecl(BindDecl),
+    BindItem(BindItem),
     ProcDecl(ProcDecl),
     FcnDecl(FcnDecl),
     ProcessDecl(ProcessDecl),
@@ -4379,7 +4379,7 @@ impl AstNode for Item {
         match syntax.kind() {
             SyntaxKind::ConstVarDecl => Some(Self::ConstVarDecl(AstNode::cast(syntax)?)),
             SyntaxKind::TypeDecl => Some(Self::TypeDecl(AstNode::cast(syntax)?)),
-            SyntaxKind::BindDecl => Some(Self::BindDecl(AstNode::cast(syntax)?)),
+            SyntaxKind::BindItem => Some(Self::BindItem(AstNode::cast(syntax)?)),
             SyntaxKind::ProcDecl => Some(Self::ProcDecl(AstNode::cast(syntax)?)),
             SyntaxKind::FcnDecl => Some(Self::FcnDecl(AstNode::cast(syntax)?)),
             SyntaxKind::ProcessDecl => Some(Self::ProcessDecl(AstNode::cast(syntax)?)),
@@ -4397,7 +4397,7 @@ impl AstNode for Item {
         match kind {
             SyntaxKind::ConstVarDecl => true,
             SyntaxKind::TypeDecl => true,
-            SyntaxKind::BindDecl => true,
+            SyntaxKind::BindItem => true,
             SyntaxKind::ProcDecl => true,
             SyntaxKind::FcnDecl => true,
             SyntaxKind::ProcessDecl => true,
@@ -4415,7 +4415,7 @@ impl AstNode for Item {
         match self {
             Self::ConstVarDecl(node) => node.syntax(),
             Self::TypeDecl(node) => node.syntax(),
-            Self::BindDecl(node) => node.syntax(),
+            Self::BindItem(node) => node.syntax(),
             Self::ProcDecl(node) => node.syntax(),
             Self::FcnDecl(node) => node.syntax(),
             Self::ProcessDecl(node) => node.syntax(),
