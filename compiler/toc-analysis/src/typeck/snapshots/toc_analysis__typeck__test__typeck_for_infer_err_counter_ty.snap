@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "% Both should fail\nfor c : 1.0 .. () var k : int := c end for\nfor c : () .. 1.0 var k : int := c end for\n"
 ---
 "c"@(FileId(1), 23..24) [ConstVar(Const, No)]: real
@@ -8,11 +8,11 @@ expression: "% Both should fail\nfor c : 1.0 .. () var k : int := c end for\nfor
 "k"@(FileId(1), 84..85) [ConstVar(Var, No)]: int
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 52..53: mismatched types
-| note in file FileId(1) for 52..53: this is of type `real`
-| note in file FileId(1) for 45..48: this is of type `int`
+error at (FileId(1), 52..53): mismatched types
+| note for (FileId(1), 52..53): this is of type `real`
+| note for (FileId(1), 45..48): this is of type `int`
 | info: `real` is not assignable into `int`
-error in file FileId(1) at 95..96: mismatched types
-| note in file FileId(1) for 95..96: this is of type `real`
-| note in file FileId(1) for 88..91: this is of type `int`
+error at (FileId(1), 95..96): mismatched types
+| note for (FileId(1), 95..96): this is of type `real`
+| note for (FileId(1), 88..91): this is of type `int`
 | info: `real` is not assignable into `int`

@@ -1,8 +1,6 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
-assertion_line: 59
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "procedure args(a, , , , : int) end args"
-
 ---
 Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(1)
@@ -21,12 +19,12 @@ Package@(dummy)
             Primitive@(FileId(1), 26..29): Int
             Void@(FileId(1), 0..30)
             StmtBody@(FileId(1), 31..31): ["a"@(FileId(1), 15..16), "<unnamed>"@(dummy), "<unnamed>"@(dummy), "<unnamed>"@(dummy)]
-error in file FileId(1) at 18..19: unexpected token
-| error in file FileId(1) for 18..19: expected identifier, but found `,`
-error in file FileId(1) at 20..21: unexpected token
-| error in file FileId(1) for 20..21: expected identifier, but found `,`
-error in file FileId(1) at 22..23: unexpected token
-| error in file FileId(1) for 22..23: expected identifier, but found `,`
-error in file FileId(1) at 24..25: unexpected token
-| error in file FileId(1) for 24..25: expected identifier, but found `:`
+error at (FileId(1), 18..19): unexpected token
+| error for (FileId(1), 18..19): expected identifier, but found `,`
+error at (FileId(1), 20..21): unexpected token
+| error for (FileId(1), 20..21): expected identifier, but found `,`
+error at (FileId(1), 22..23): unexpected token
+| error for (FileId(1), 22..23): expected identifier, but found `,`
+error at (FileId(1), 24..25): unexpected token
+| error for (FileId(1), 24..25): expected identifier, but found `:`
 

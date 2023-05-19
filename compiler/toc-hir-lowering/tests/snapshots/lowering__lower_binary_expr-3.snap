@@ -1,7 +1,6 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "const a := 1 not 1 "
-
 ---
 Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(1)
@@ -10,6 +9,6 @@ Package@(dummy)
         StmtItem@(FileId(1), 0..18): ItemId(0)
           ConstVar@(FileId(1), 0..18): const "a"@(FileId(1), 6..7)
             ExprBody@(FileId(1), 11..18)
-error in file FileId(1) at 17..18: unexpected token
-| error in file FileId(1) for 17..18: expected `in` or `=`, but found int literal
+error at (FileId(1), 17..18): unexpected token
+| error for (FileId(1), 17..18): expected `in` or `=`, but found int literal
 

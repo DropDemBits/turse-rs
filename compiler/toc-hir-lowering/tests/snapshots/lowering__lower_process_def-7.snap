@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: process end bloop
 ---
 Package@(dummy)
@@ -10,6 +10,6 @@ Package@(dummy)
           Subprogram@(FileId(1), 0..17): "<unnamed>"@(FileId(1), 0..17)
             Void@(FileId(1), 0..7)
             StmtBody@(FileId(1), 8..8): []
-error in file FileId(1) at 8..11: unexpected token
-| error in file FileId(1) for 8..11: expected identifier, but found `end`
+error at (FileId(1), 8..11): unexpected token
+| error for (FileId(1), 8..11): expected identifier, but found `end`
 

@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "const N := 1\nvar c5 : char(5)\n\nvar _e00 : char(N) := c5\n"
 ---
 "N"@(FileId(1), 6..7) [ConstVar(Const, No)]: int
@@ -7,7 +7,7 @@ expression: "const N := 1\nvar c5 : char(5)\n\nvar _e00 : char(N) := c5\n"
 "_e00"@(FileId(1), 35..39) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(2)))
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 53..55: mismatched types
-| note in file FileId(1) for 53..55: this is of type `char(5)`
-| note in file FileId(1) for 42..49: this is of type `char(1)`
+error at (FileId(1), 53..55): mismatched types
+| note for (FileId(1), 53..55): this is of type `char(5)`
+| note for (FileId(1), 42..49): this is of type `char(1)`
 | info: `char(5)` is not assignable into `char(1)`

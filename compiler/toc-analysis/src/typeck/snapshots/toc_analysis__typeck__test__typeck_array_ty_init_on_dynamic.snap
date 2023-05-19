@@ -1,11 +1,11 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var c : int\nvar a : array 1..c of int := init(1)"
 ---
 "c"@(FileId(1), 4..5) [ConstVar(Var, No)]: int
 "a"@(FileId(1), 16..17) [ConstVar(Var, No)]: array ( range of `int` (Unevaluated(PackageId(0), BodyId(0)) .. Expr(Unevaluated(PackageId(0), BodyId(1)), Yes)), ) of int
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 41..48: cannot use `init` here
-| error in file FileId(1) for 41..48: `init` initializer cannot be used for dynamically sized arrays
+error at (FileId(1), 41..48): cannot use `init` here
+| error for (FileId(1), 41..48): `init` initializer cannot be used for dynamically sized arrays
 | info: dynamically-sized `array`s cannot initialized using `init` since their size is not known at compile-time

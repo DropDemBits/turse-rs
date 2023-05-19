@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "\n    type a : forward\n    begin\n        type a : int\n    end\n    type use_it : a\n    "
 ---
 Package@(dummy)
@@ -15,7 +15,7 @@ Package@(dummy)
         StmtItem@(FileId(1), 65..80): ItemId(2)
           Type@(FileId(1), 65..80): "use_it"@(FileId(1), 70..76)
             Alias@(FileId(1), 79..80): "a"@(FileId(1), 10..11)
-error in file FileId(1) at 45..46: `a` must be resolved in the same scope
-| note in file FileId(1) for 10..11: forward declaration of `a` here
-| error in file FileId(1) for 45..46: resolution of `a` is not in the same scope
+error at (FileId(1), 45..46): `a` must be resolved in the same scope
+| note for (FileId(1), 10..11): forward declaration of `a` here
+| error for (FileId(1), 45..46): resolution of `a` is not in the same scope
 

@@ -1,10 +1,10 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "const _ : char(*)"
 ---
 "_"@(FileId(1), 6..7) [ConstVar(Const, No)]: char_n Any
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 10..17: invalid storage type
-| error in file FileId(1) for 10..17: cannot use `char(*)` in `const` declarations
+error at (FileId(1), 10..17): invalid storage type
+| error for (FileId(1), 10..17): cannot use `char(*)` in `const` declarations
 | info: `char(*)`'s refer to character sequences that do not have a fixed size known at compile-time

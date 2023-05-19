@@ -1,10 +1,10 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "const j : int := 1\nj := \n"
 ---
 "j"@(FileId(1), 6..7) [ConstVar(Const, No)]: int
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 21..23: cannot assign into `j`
-| error in file FileId(1) for 19..20: `j` is a reference to a constant, not a variable
-| note in file FileId(1) for 6..7: `j` declared here
+error at (FileId(1), 21..23): cannot assign into `j`
+| error for (FileId(1), 19..20): `j` is a reference to a constant, not a variable
+| note for (FileId(1), 6..7): `j` declared here

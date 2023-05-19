@@ -1,10 +1,10 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var _ : string(0)"
 ---
 "_"@(FileId(1), 4..5) [ConstVar(Var, No)]: string_n Fixed(Unevaluated(PackageId(0), BodyId(0)))
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 15..16: invalid character count size
-| error in file FileId(1) for 15..16: computed count is 0
+error at (FileId(1), 15..16): invalid character count size
+| error for (FileId(1), 15..16): computed count is 0
 | info: valid sizes are between 1 to 255

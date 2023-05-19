@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "\n    type a : forward\n    type a : forward\n    type use_it : a\n    type a : int\n    "
 ---
 Package@(dummy)
@@ -16,7 +16,7 @@ Package@(dummy)
         StmtItem@(FileId(1), 67..79): ItemId(3)
           Type@(FileId(1), 67..79): "a"@(FileId(1), 72..73)
             Primitive@(FileId(1), 76..79): Int
-error in file FileId(1) at 31..32: `a` is already a forward declaration
-| note in file FileId(1) for 10..11: previous forward declaration here
-| error in file FileId(1) for 31..32: new one here
+error at (FileId(1), 31..32): `a` is already a forward declaration
+| note for (FileId(1), 10..11): previous forward declaration here
+| error for (FileId(1), 31..32): new one here
 

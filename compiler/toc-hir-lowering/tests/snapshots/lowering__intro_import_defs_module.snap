@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "\n    module _\n        import nothing\n    end _"
 ---
 Package@(dummy)
@@ -10,6 +10,6 @@ Package@(dummy)
           Module@(FileId(1), 5..46): "_"@(FileId(1), 12..13)
             Import@(FileId(1), 29..36): SameAsItem unresolved
             StmtBody@(FileId(1), 41..41): []
-error in file FileId(1) at 29..36: `nothing` could not be imported
-| error in file FileId(1) for 29..36: no definitions of `nothing` found in the surrounding scope
+error at (FileId(1), 29..36): `nothing` could not be imported
+| error for (FileId(1), 29..36): no definitions of `nothing` found in the surrounding scope
 

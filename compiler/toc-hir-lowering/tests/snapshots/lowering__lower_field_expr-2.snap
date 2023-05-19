@@ -1,8 +1,6 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
-assertion_line: 61
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "\n    module a end a\n    a.\n    "
-
 ---
 Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(1)
@@ -12,6 +10,6 @@ Package@(dummy)
           Module@(FileId(1), 5..19): "a"@(FileId(1), 12..13)
             StmtBody@(FileId(1), 14..14): []
         CallStmt@(FileId(1), 24..26): [no params]
-error in file FileId(1) at 25..26: unexpected end of file
-| error in file FileId(1) for 25..26: expected identifier after here
+error at (FileId(1), 25..26): unexpected end of file
+| error for (FileId(1), 25..26): expected identifier after here
 

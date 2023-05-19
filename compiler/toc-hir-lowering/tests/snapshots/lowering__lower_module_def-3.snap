@@ -1,8 +1,6 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
-assertion_line: 61
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "\n    module pervasive a\n        module b\n            module c\n                a b c\n            end c\n        end b\n    end a\n    "
-
 ---
 Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(3)
@@ -23,6 +21,6 @@ Package@(dummy)
                             Name@(FileId(1), 80..81): "b"@(FileId(1), 80..81), undeclared
                           CallStmt@(FileId(1), 82..83): [no params]
                             Name@(FileId(1), 82..83): "c"@(FileId(1), 60..61)
-error in file FileId(1) at 80..81: `b` is undeclared
-| error in file FileId(1) for 80..81: no definitions of `b` are in scope
+error at (FileId(1), 80..81): `b` is undeclared
+| error for (FileId(1), 80..81): no definitions of `b` are in scope
 

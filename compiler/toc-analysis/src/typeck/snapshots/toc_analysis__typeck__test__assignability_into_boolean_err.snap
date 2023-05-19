@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var r : real\nvar i : int\nvar n : nat\n\nvar _e00 : boolean := 1\nvar _e01 : boolean := i\nvar _e02 : boolean := n\nvar _e03 : boolean := r\n"
 ---
 "r"@(FileId(1), 4..5) [ConstVar(Var, No)]: real
@@ -11,19 +11,19 @@ expression: "var r : real\nvar i : int\nvar n : nat\n\nvar _e00 : boolean := 1\n
 "_e03"@(FileId(1), 114..118) [ConstVar(Var, No)]: boolean
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 60..61: mismatched types
-| note in file FileId(1) for 60..61: this is of type `{integer}`
-| note in file FileId(1) for 49..56: this is of type `boolean`
+error at (FileId(1), 60..61): mismatched types
+| note for (FileId(1), 60..61): this is of type `{integer}`
+| note for (FileId(1), 49..56): this is of type `boolean`
 | info: `{integer}` is not assignable into `boolean`
-error in file FileId(1) at 84..85: mismatched types
-| note in file FileId(1) for 84..85: this is of type `int`
-| note in file FileId(1) for 73..80: this is of type `boolean`
+error at (FileId(1), 84..85): mismatched types
+| note for (FileId(1), 84..85): this is of type `int`
+| note for (FileId(1), 73..80): this is of type `boolean`
 | info: `int` is not assignable into `boolean`
-error in file FileId(1) at 108..109: mismatched types
-| note in file FileId(1) for 108..109: this is of type `nat`
-| note in file FileId(1) for 97..104: this is of type `boolean`
+error at (FileId(1), 108..109): mismatched types
+| note for (FileId(1), 108..109): this is of type `nat`
+| note for (FileId(1), 97..104): this is of type `boolean`
 | info: `nat` is not assignable into `boolean`
-error in file FileId(1) at 132..133: mismatched types
-| note in file FileId(1) for 132..133: this is of type `real`
-| note in file FileId(1) for 121..128: this is of type `boolean`
+error at (FileId(1), 132..133): mismatched types
+| note for (FileId(1), 132..133): this is of type `real`
+| note for (FileId(1), 121..128): this is of type `boolean`
 | info: `real` is not assignable into `boolean`

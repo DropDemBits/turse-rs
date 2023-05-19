@@ -1,10 +1,10 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "const min : int1 := -16#7F\ntype _ : min .. 16#80\n"
 ---
 "min"@(FileId(1), 6..9) [ConstVar(Const, No)]: int1
 "_"@(FileId(1), 32..33) [Type]: alias[DefId(PackageId(0), LocalDefId(1))] of range of `int1` (Unevaluated(PackageId(0), BodyId(1)) .. Expr(Unevaluated(PackageId(0), BodyId(2)), No))
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 43..48: computed value is outside the type's range
-| error in file FileId(1) for 43..48: `128` is larger than the largest possible `int1`
+error at (FileId(1), 43..48): computed value is outside the type's range
+| error for (FileId(1), 43..48): `128` is larger than the largest possible `int1`

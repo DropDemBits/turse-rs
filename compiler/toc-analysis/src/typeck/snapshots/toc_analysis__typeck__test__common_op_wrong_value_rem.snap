@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "\n    type t : int\n    var k : int\n\n    % Type operand prevents checking of type compatibility\n    var _tt := t rem t\n    var _tk := t rem k\n    var _kt := k rem t\n    "
 ---
 "t"@(FileId(1), 10..11) [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of int
@@ -9,15 +9,15 @@ expression: "\n    type t : int\n    var k : int\n\n    % Type operand prevents 
 "_kt"@(FileId(1), 148..151) [ConstVar(Var, No)]: int
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 109..110: cannot use `t` as an expression
-| error in file FileId(1) for 109..110: `t` is a reference to a type, not a variable
-| note in file FileId(1) for 10..11: `t` declared here
-error in file FileId(1) at 115..116: cannot use `t` as an expression
-| error in file FileId(1) for 115..116: `t` is a reference to a type, not a variable
-| note in file FileId(1) for 10..11: `t` declared here
-error in file FileId(1) at 132..133: cannot use `t` as an expression
-| error in file FileId(1) for 132..133: `t` is a reference to a type, not a variable
-| note in file FileId(1) for 10..11: `t` declared here
-error in file FileId(1) at 161..162: cannot use `t` as an expression
-| error in file FileId(1) for 161..162: `t` is a reference to a type, not a variable
-| note in file FileId(1) for 10..11: `t` declared here
+error at (FileId(1), 109..110): cannot use `t` as an expression
+| error for (FileId(1), 109..110): `t` is a reference to a type, not a variable
+| note for (FileId(1), 10..11): `t` declared here
+error at (FileId(1), 115..116): cannot use `t` as an expression
+| error for (FileId(1), 115..116): `t` is a reference to a type, not a variable
+| note for (FileId(1), 10..11): `t` declared here
+error at (FileId(1), 132..133): cannot use `t` as an expression
+| error for (FileId(1), 132..133): `t` is a reference to a type, not a variable
+| note for (FileId(1), 10..11): `t` declared here
+error at (FileId(1), 161..162): cannot use `t` as an expression
+| error for (FileId(1), 161..162): `t` is a reference to a type, not a variable
+| note for (FileId(1), 10..11): `t` declared here

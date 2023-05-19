@@ -1,10 +1,10 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var k : int\ncase 1 of label k + 1: end case\n"
 ---
 "k"@(FileId(1), 4..5) [ConstVar(Var, No)]: int
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 28..29: cannot compute `k` at compile-time
-| error in file FileId(1) for 28..29: `k` is a reference to a variable, not a constant
-| note in file FileId(1) for 4..5: `k` declared here
+error at (FileId(1), 28..29): cannot compute `k` at compile-time
+| error for (FileId(1), 28..29): `k` is a reference to a variable, not a constant
+| note for (FileId(1), 4..5): `k` declared here

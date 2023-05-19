@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "\n    begin\n    bind to 1, k to\n    end"
 ---
 Package@(dummy)
@@ -14,8 +14,8 @@ Package@(dummy)
           StmtItem@(FileId(1), 15..30): ItemId(1)
             Bind@(FileId(1), 26..30): const "k"@(FileId(1), 26..27)
               ExprBody@(dummy)
-error in file FileId(1) at 20..22: unexpected token
-| error in file FileId(1) for 20..22: expected identifier, but found `to`
-error in file FileId(1) at 35..38: unexpected token
-| error in file FileId(1) for 35..38: expected expression, but found `end`
+error at (FileId(1), 20..22): unexpected token
+| error for (FileId(1), 20..22): expected identifier, but found `to`
+error at (FileId(1), 35..38): unexpected token
+| error for (FileId(1), 35..38): expected expression, but found `end`
 

@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "type s : set of boolean\nvar _ := s(1, 2, 3)\n"
 ---
 "s"@(FileId(1), 5..6) [Type]: set[DefId(PackageId(0), LocalDefId(1))] of boolean
@@ -7,15 +7,15 @@ expression: "type s : set of boolean\nvar _ := s(1, 2, 3)\n"
 "_"@(FileId(1), 28..29) [ConstVar(Var, No)]: set[DefId(PackageId(0), LocalDefId(1))] of boolean
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 35..36: mismatched types
-| note in file FileId(1) for 35..36: this is of type `{integer}`
-| note in file FileId(1) for 35..36: parameter expects type `boolean`
+error at (FileId(1), 35..36): mismatched types
+| note for (FileId(1), 35..36): this is of type `{integer}`
+| note for (FileId(1), 35..36): parameter expects type `boolean`
 | info: `{integer}` is not assignable into `boolean`
-error in file FileId(1) at 38..39: mismatched types
-| note in file FileId(1) for 38..39: this is of type `{integer}`
-| note in file FileId(1) for 38..39: parameter expects type `boolean`
+error at (FileId(1), 38..39): mismatched types
+| note for (FileId(1), 38..39): this is of type `{integer}`
+| note for (FileId(1), 38..39): parameter expects type `boolean`
 | info: `{integer}` is not assignable into `boolean`
-error in file FileId(1) at 41..42: mismatched types
-| note in file FileId(1) for 41..42: this is of type `{integer}`
-| note in file FileId(1) for 41..42: parameter expects type `boolean`
+error at (FileId(1), 41..42): mismatched types
+| note for (FileId(1), 41..42): this is of type `{integer}`
+| note for (FileId(1), 41..42): parameter expects type `boolean`
 | info: `{integer}` is not assignable into `boolean`

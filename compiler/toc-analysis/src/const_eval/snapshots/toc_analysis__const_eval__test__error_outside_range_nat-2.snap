@@ -1,8 +1,6 @@
 ---
-source: compiler/toc_analysis/src/const_eval/test.rs
-assertion_line: 13
+source: compiler/toc-analysis/src/const_eval/test.rs
 expression: "const v0 : nat2 := -1\nconst v1 : nat2 := 0\nconst v2 : nat2 := 16#ffff\nconst v3 : nat2 := 16#10000\nconst _ := v0\nconst _ := v1\nconst _ := v2\nconst _ := v3\n"
-
 ---
 "v0"@(FileId(1), 6..8) -> Integer(ConstInt { magnitude: 1, sign: Negative, width: As32 })
 "v1"@(FileId(1), 28..30) -> Integer(ConstInt { magnitude: 0, sign: Positive, width: As32 })
@@ -13,8 +11,8 @@ expression: "const v0 : nat2 := -1\nconst v1 : nat2 := 0\nconst v2 : nat2 := 16#
 "_"@(FileId(1), 132..133) -> Integer(ConstInt { magnitude: 65535, sign: Positive, width: As32 })
 "_"@(FileId(1), 146..147) -> ConstError { kind: OutsideRange, span: (FileId(1), 89..97) }
 
-error in file FileId(1) at 19..21: cannot compute expression at compile-time
-| error in file FileId(1) for 19..21: value is outside of the type's range
-error in file FileId(1) at 89..97: cannot compute expression at compile-time
-| error in file FileId(1) for 89..97: value is outside of the type's range
+error at (FileId(1), 19..21): cannot compute expression at compile-time
+| error for (FileId(1), 19..21): value is outside of the type's range
+error at (FileId(1), 89..97): cannot compute expression at compile-time
+| error for (FileId(1), 89..97): value is outside of the type's range
 

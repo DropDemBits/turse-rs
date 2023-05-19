@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: get a*a
 ---
 Package@(dummy)
@@ -10,6 +10,6 @@ Package@(dummy)
           Binary@(FileId(1), 4..7): Mul
             Name@(FileId(1), 4..5): "a"@(FileId(1), 4..5), undeclared
             Name@(FileId(1), 6..7): "a"@(FileId(1), 6..7), undeclared
-error in file FileId(1) at 4..5: `a` is undeclared
-| error in file FileId(1) for 4..5: no definitions of `a` are in scope
+error at (FileId(1), 4..5): `a` is undeclared
+| error for (FileId(1), 4..5): no definitions of `a` are in scope
 

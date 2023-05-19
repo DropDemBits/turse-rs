@@ -1,8 +1,6 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
-assertion_line: 59
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "\n    function pars() res : int\n        var res : int1\n    end pars"
-
 ---
 Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(2)
@@ -15,7 +13,7 @@ Package@(dummy)
               StmtItem@(FileId(1), 39..53): ItemId(0)
                 ConstVar@(FileId(1), 39..53): var "res"@(FileId(1), 43..46)
                   Primitive@(FileId(1), 49..53): Int1
-error in file FileId(1) at 43..46: `res` is already declared in this scope
-| note in file FileId(1) for 21..24: `res` previously declared here
-| error in file FileId(1) for 43..46: `res` redeclared here
+error at (FileId(1), 43..46): `res` is already declared in this scope
+| note for (FileId(1), 21..24): `res` previously declared here
+| error for (FileId(1), 43..46): `res` redeclared here
 

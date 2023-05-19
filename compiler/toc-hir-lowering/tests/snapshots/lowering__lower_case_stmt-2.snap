@@ -1,7 +1,6 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "case s of label: end case"
-
 ---
 Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(0)
@@ -9,8 +8,8 @@ Package@(dummy)
       StmtBody@(FileId(1), 0..25): []
         Case@(FileId(1), 0..25)
           Name@(FileId(1), 5..6): "s"@(FileId(1), 5..6), undeclared
-error in file FileId(1) at 5..6: `s` is undeclared
-| error in file FileId(1) for 5..6: no definitions of `s` are in scope
-error in file FileId(1) at 10..17: cannot have a default `label` arm as the first `case` arm
-| error in file FileId(1) for 10..17: First `label` arm must have at least one selector expression
+error at (FileId(1), 5..6): `s` is undeclared
+| error for (FileId(1), 5..6): no definitions of `s` are in scope
+error at (FileId(1), 10..17): cannot have a default `label` arm as the first `case` arm
+| error for (FileId(1), 10..17): First `label` arm must have at least one selector expression
 

@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "type : forward"
 ---
 Package@(dummy)
@@ -8,6 +8,6 @@ Package@(dummy)
       StmtBody@(FileId(1), 0..14): []
         StmtItem@(FileId(1), 0..14): ItemId(0)
           Type@(FileId(1), 0..14): forward "<unnamed>"@(FileId(1), 0..14)
-error in file FileId(1) at 5..6: unexpected token
-| error in file FileId(1) for 5..6: expected identifier, but found `:`
+error at (FileId(1), 5..6): unexpected token
+| error for (FileId(1), 5..6): expected identifier, but found `:`
 

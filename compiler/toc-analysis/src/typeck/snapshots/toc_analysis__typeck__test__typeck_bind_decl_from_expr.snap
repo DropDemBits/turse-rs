@@ -1,9 +1,9 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "begin\nbind you to false\nend"
 ---
 "you"@(FileId(1), 11..14) [Binding(Const, No)]: boolean
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 11..23: cannot bind `you` to expression
-| error in file FileId(1) for 18..23: not a reference to a variable
+error at (FileId(1), 11..23): cannot bind `you` to expression
+| error for (FileId(1), 18..23): not a reference to a variable

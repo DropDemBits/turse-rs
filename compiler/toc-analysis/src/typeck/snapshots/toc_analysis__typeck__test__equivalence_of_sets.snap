@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "type sb : set of boolean\ntype sc : set of char\ntype sc2 : set of char\n\nvar v_sb : sb\nvar v_sc : sc\nvar v_sc2 : sc2\nvar v_anon : set of char\n\n% compat\nv_sb := v_sb\nv_sc := v_sc\nv_sc2 := v_sc2\n\n% incompatible - different elem types\nv_sc := v_sb\n% incompatible - different def locations\nv_sc := v_sc2\nv_sc := v_anon\n\n% compatible through aliases\ntype asc : sc\nvar v_asc : asc\nv_sc := v_asc\n"
 ---
 "sb"@(FileId(1), 5..7) [Type]: set[DefId(PackageId(0), LocalDefId(1))] of boolean
@@ -17,15 +17,15 @@ expression: "type sb : set of boolean\ntype sc : set of char\ntype sc2 : set of 
 "v_asc"@(FileId(1), 361..366) [ConstVar(Var, No)]: alias[DefId(PackageId(0), LocalDefId(11))] of set[DefId(PackageId(0), LocalDefId(3))] of char
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 235..237: mismatched types
-| note in file FileId(1) for 238..242: this is of type `set sb (of boolean)`
-| note in file FileId(1) for 230..234: this is of type `set sc (of char)`
+error at (FileId(1), 235..237): mismatched types
+| note for (FileId(1), 238..242): this is of type `set sb (of boolean)`
+| note for (FileId(1), 230..234): this is of type `set sc (of char)`
 | info: `set sb (of boolean)` is not assignable into `set sc (of char)`
-error in file FileId(1) at 289..291: mismatched types
-| note in file FileId(1) for 292..297: this is of type `set sc2 (of char)`
-| note in file FileId(1) for 284..288: this is of type `set sc (of char)`
+error at (FileId(1), 289..291): mismatched types
+| note for (FileId(1), 292..297): this is of type `set sc2 (of char)`
+| note for (FileId(1), 284..288): this is of type `set sc (of char)`
 | info: `set sc2 (of char)` is not assignable into `set sc (of char)`
-error in file FileId(1) at 303..305: mismatched types
-| note in file FileId(1) for 306..312: this is of type `set <anonymous> (of char)`
-| note in file FileId(1) for 298..302: this is of type `set sc (of char)`
+error at (FileId(1), 303..305): mismatched types
+| note for (FileId(1), 306..312): this is of type `set <anonymous> (of char)`
+| note for (FileId(1), 298..302): this is of type `set sc (of char)`
 | info: `set <anonymous> (of char)` is not assignable into `set sc (of char)`

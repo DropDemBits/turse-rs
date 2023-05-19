@@ -1,8 +1,6 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
-assertion_line: 59
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "proc call end call var _ := call(1,,)"
-
 ---
 Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(2)
@@ -18,8 +16,8 @@ Package@(dummy)
               CallExpr@(FileId(1), 28..37): [...]
                 Name@(FileId(1), 28..32): "call"@(FileId(1), 5..9)
                 Literal@(FileId(1), 33..34): Integer(1)
-error in file FileId(1) at 35..36: unexpected token
-| error in file FileId(1) for 35..36: expected expression, but found `,`
-error in file FileId(1) at 36..37: unexpected token
-| error in file FileId(1) for 36..37: expected expression, but found `)`
+error at (FileId(1), 35..36): unexpected token
+| error for (FileId(1), 35..36): expected expression, but found `,`
+error at (FileId(1), 36..37): unexpected token
+| error for (FileId(1), 36..37): expected expression, but found `)`
 

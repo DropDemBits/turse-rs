@@ -1,10 +1,10 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "type _ : flexible array 1..-1 of int"
 ---
 "_"@(FileId(1), 5..6) [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of flexible array ( range of `int` (Unevaluated(PackageId(0), BodyId(0)) .. Expr(Unevaluated(PackageId(0), BodyId(1)), No)), ) of int
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 24..29: element range is too small
-| note in file FileId(1) for 24..29: computed range size is -1
-| error in file FileId(1) for 24..29: negative sized ranges cannot be used in `array` types
+error at (FileId(1), 24..29): element range is too small
+| note for (FileId(1), 24..29): computed range size is -1
+| error for (FileId(1), 24..29): negative sized ranges cannot be used in `array` types

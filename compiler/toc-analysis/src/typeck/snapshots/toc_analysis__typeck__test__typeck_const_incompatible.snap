@@ -1,11 +1,11 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "const k : char := 20"
 ---
 "k"@(FileId(1), 6..7) [ConstVar(Const, No)]: char
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 18..20: mismatched types
-| note in file FileId(1) for 18..20: this is of type `{integer}`
-| note in file FileId(1) for 10..14: this is of type `char`
+error at (FileId(1), 18..20): mismatched types
+| note for (FileId(1), 18..20): this is of type `{integer}`
+| note for (FileId(1), 10..14): this is of type `char`
 | info: `{integer}` is not assignable into `char`

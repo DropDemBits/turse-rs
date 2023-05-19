@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "type s : set of boolean\ntype b : boolean\nvar _ := s(b)\n"
 ---
 "s"@(FileId(1), 5..6) [Type]: set[DefId(PackageId(0), LocalDefId(1))] of boolean
@@ -8,6 +8,6 @@ expression: "type s : set of boolean\ntype b : boolean\nvar _ := s(b)\n"
 "_"@(FileId(1), 45..46) [ConstVar(Var, No)]: set[DefId(PackageId(0), LocalDefId(1))] of boolean
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 52..53: cannot use `b` as an expression
-| error in file FileId(1) for 52..53: `b` is a reference to a type, not a variable
-| note in file FileId(1) for 29..30: `b` declared here
+error at (FileId(1), 52..53): cannot use `b` as an expression
+| error for (FileId(1), 52..53): `b` is a reference to a type, not a variable
+| note for (FileId(1), 29..30): `b` declared here

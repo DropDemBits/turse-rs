@@ -1,8 +1,6 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
-assertion_line: 59
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "\n    var pervasive pv_formal, pv_inner : int\n    var norm_formal, norm_inner : int\n\n    procedure shade(pv_formal : real, norm_formal : real)\n        var _ : real\n        var norm_inner : real\n        var pv_inner : real % only this is rejected\n\n        _ := pv_formal\n        _ := pv_inner\n        _ := norm_formal\n        _ := norm_inner\n    end shade"
-
 ---
 Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(8)
@@ -50,7 +48,7 @@ Package@(dummy)
               Assign@(FileId(1), 324..339)
                 Name@(FileId(1), 324..325): "_"@(FileId(1), 154..155)
                 Name@(FileId(1), 329..339): "norm_inner"@(FileId(1), 175..185)
-error in file FileId(1) at 205..213: `pv_inner` is already declared in this scope
-| note in file FileId(1) for 30..38: `pv_inner` previously declared here
-| error in file FileId(1) for 205..213: `pv_inner` redeclared here
+error at (FileId(1), 205..213): `pv_inner` is already declared in this scope
+| note for (FileId(1), 30..38): `pv_inner` previously declared here
+| error for (FileId(1), 205..213): `pv_inner` redeclared here
 

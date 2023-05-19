@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "type tp : proc(var _ : array 1 .. * of int)\nvar a : array 1 .. 3 of int\nvar b : array 2 .. 3 of int\nvar p : tp\n\n% only coercible if start bound is the same\np(a) % success\np(b) % fail\n"
 ---
 "tp"@(FileId(1), 5..7) [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of procedure ( pass(var ref) array ( range of `int` (Unevaluated(PackageId(0), BodyId(0)) .. Any), ) of int, ) -> void
@@ -10,7 +10,7 @@ expression: "type tp : proc(var _ : array 1 .. * of int)\nvar a : array 1 .. 3 o
 "<unnamed>"@(dummy) [Undeclared]: <error>
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 173..174: mismatched types
-| note in file FileId(1) for 173..174: this is of type `array 2 .. 3 of int`
-| note in file FileId(1) for 173..174: parameter expects type `array 1 .. * of int`
+error at (FileId(1), 173..174): mismatched types
+| note for (FileId(1), 173..174): this is of type `array 2 .. 3 of int`
+| note for (FileId(1), 173..174): parameter expects type `array 1 .. * of int`
 | info: `array 2 .. 3 of int` is not equivalent to `array 1 .. * of int`

@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "procedure lime() end lime\nvar res := lime()\n"
 ---
 "lime"@(FileId(1), 10..14) [Subprogram(Procedure)]: procedure ( ) -> void
@@ -7,5 +7,5 @@ expression: "procedure lime() end lime\nvar res := lime()\n"
 "<unnamed>"@(dummy) [Undeclared]: <error>
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 37..41: cannot call procedure here
-| error in file FileId(1) for 37..41: procedure calls cannot be used as expressions
+error at (FileId(1), 37..41): cannot call procedure here
+| error for (FileId(1), 37..41): procedure calls cannot be used as expressions

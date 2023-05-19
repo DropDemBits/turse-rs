@@ -1,10 +1,10 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "type p : procedure\nvar i : p\nget i\n"
 ---
 "p"@(FileId(1), 5..6) [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of procedure -> void
 "i"@(FileId(1), 23..24) [ConstVar(Var, No)]: alias[DefId(PackageId(0), LocalDefId(0))] of procedure -> void
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 33..34: invalid get type
-| error in file FileId(1) for 33..34: cannot get a value of `p (alias of procedure)`
+error at (FileId(1), 33..34): invalid get type
+| error for (FileId(1), 33..34): cannot get a value of `p (alias of procedure)`

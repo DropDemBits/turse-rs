@@ -1,9 +1,9 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var a : array 1..3 of int := init(1,2,3,4,5)"
 ---
 "a"@(FileId(1), 4..5) [ConstVar(Var, No)]: array ( range of `int` (Unevaluated(PackageId(0), BodyId(0)) .. Expr(Unevaluated(PackageId(0), BodyId(1)), Yes)), ) of int
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 29..44: expected 3 elements, found 5
-| error in file FileId(1) for 29..44: `init` list has 2 extra elements
+error at (FileId(1), 29..44): expected 3 elements, found 5
+| error for (FileId(1), 29..44): `init` list has 2 extra elements

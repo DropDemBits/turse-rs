@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "\n    var b : boolean\n    var r : real\n    var i : int\n    var n : nat\n    var _bi := b or i\n    var _bn := b or n\n    var _ib := i or b\n    var _nb := n or b\n    var _ri := r or i\n    var _rn := r or n\n    var _ir := i or r\n    var _nr := n or r\n"
 ---
 "b"@(FileId(1), 9..10) [ConstVar(Var, No)]: boolean
@@ -16,43 +16,43 @@ expression: "\n    var b : boolean\n    var r : real\n    var i : int\n    var n
 "_nr"@(FileId(1), 232..235) [ConstVar(Var, No)]: <error>
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 87..89: mismatched types for logical `or`
-| note in file FileId(1) for 90..91: this is of type `int`
-| note in file FileId(1) for 85..86: this is of type `boolean`
-| error in file FileId(1) for 87..89: `boolean` cannot be `or`ed by `int`
+error at (FileId(1), 87..89): mismatched types for logical `or`
+| note for (FileId(1), 90..91): this is of type `int`
+| note for (FileId(1), 85..86): this is of type `boolean`
+| error for (FileId(1), 87..89): `boolean` cannot be `or`ed by `int`
 | info: operands must both be integers or booleans
-error in file FileId(1) at 109..111: mismatched types for logical `or`
-| note in file FileId(1) for 112..113: this is of type `nat`
-| note in file FileId(1) for 107..108: this is of type `boolean`
-| error in file FileId(1) for 109..111: `boolean` cannot be `or`ed by `nat`
+error at (FileId(1), 109..111): mismatched types for logical `or`
+| note for (FileId(1), 112..113): this is of type `nat`
+| note for (FileId(1), 107..108): this is of type `boolean`
+| error for (FileId(1), 109..111): `boolean` cannot be `or`ed by `nat`
 | info: operands must both be integers or booleans
-error in file FileId(1) at 131..133: mismatched types for logical `or`
-| note in file FileId(1) for 134..135: this is of type `boolean`
-| note in file FileId(1) for 129..130: this is of type `int`
-| error in file FileId(1) for 131..133: `int` cannot be `or`ed by `boolean`
+error at (FileId(1), 131..133): mismatched types for logical `or`
+| note for (FileId(1), 134..135): this is of type `boolean`
+| note for (FileId(1), 129..130): this is of type `int`
+| error for (FileId(1), 131..133): `int` cannot be `or`ed by `boolean`
 | info: operands must both be integers or booleans
-error in file FileId(1) at 153..155: mismatched types for logical `or`
-| note in file FileId(1) for 156..157: this is of type `boolean`
-| note in file FileId(1) for 151..152: this is of type `nat`
-| error in file FileId(1) for 153..155: `nat` cannot be `or`ed by `boolean`
+error at (FileId(1), 153..155): mismatched types for logical `or`
+| note for (FileId(1), 156..157): this is of type `boolean`
+| note for (FileId(1), 151..152): this is of type `nat`
+| error for (FileId(1), 153..155): `nat` cannot be `or`ed by `boolean`
 | info: operands must both be integers or booleans
-error in file FileId(1) at 175..177: mismatched types for bitwise `or`
-| note in file FileId(1) for 178..179: this is of type `int`
-| note in file FileId(1) for 173..174: this is of type `real`
-| error in file FileId(1) for 175..177: `real` cannot be `or`ed bitwise by `int`
+error at (FileId(1), 175..177): mismatched types for bitwise `or`
+| note for (FileId(1), 178..179): this is of type `int`
+| note for (FileId(1), 173..174): this is of type `real`
+| error for (FileId(1), 175..177): `real` cannot be `or`ed bitwise by `int`
 | info: operands must both be integers or booleans
-error in file FileId(1) at 197..199: mismatched types for bitwise `or`
-| note in file FileId(1) for 200..201: this is of type `nat`
-| note in file FileId(1) for 195..196: this is of type `real`
-| error in file FileId(1) for 197..199: `real` cannot be `or`ed bitwise by `nat`
+error at (FileId(1), 197..199): mismatched types for bitwise `or`
+| note for (FileId(1), 200..201): this is of type `nat`
+| note for (FileId(1), 195..196): this is of type `real`
+| error for (FileId(1), 197..199): `real` cannot be `or`ed bitwise by `nat`
 | info: operands must both be integers or booleans
-error in file FileId(1) at 219..221: mismatched types for bitwise `or`
-| note in file FileId(1) for 222..223: this is of type `real`
-| note in file FileId(1) for 217..218: this is of type `int`
-| error in file FileId(1) for 219..221: `int` cannot be `or`ed bitwise by `real`
+error at (FileId(1), 219..221): mismatched types for bitwise `or`
+| note for (FileId(1), 222..223): this is of type `real`
+| note for (FileId(1), 217..218): this is of type `int`
+| error for (FileId(1), 219..221): `int` cannot be `or`ed bitwise by `real`
 | info: operands must both be integers or booleans
-error in file FileId(1) at 241..243: mismatched types for bitwise `or`
-| note in file FileId(1) for 244..245: this is of type `real`
-| note in file FileId(1) for 239..240: this is of type `nat`
-| error in file FileId(1) for 241..243: `nat` cannot be `or`ed bitwise by `real`
+error at (FileId(1), 241..243): mismatched types for bitwise `or`
+| note for (FileId(1), 244..245): this is of type `real`
+| note for (FileId(1), 239..240): this is of type `nat`
+| error for (FileId(1), 241..243): `nat` cannot be `or`ed bitwise by `real`
 | info: operands must both be integers or booleans

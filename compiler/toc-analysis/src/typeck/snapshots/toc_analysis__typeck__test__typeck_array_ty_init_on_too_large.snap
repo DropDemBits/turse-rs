@@ -1,14 +1,14 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "const mx : nat4 := 16#FFFFFFFF\nvar a : array 0..mx, 0..mx of int := init(1,2,3)"
 ---
 "mx"@(FileId(1), 6..8) [ConstVar(Const, No)]: nat4
 "a"@(FileId(1), 35..36) [ConstVar(Var, No)]: array ( range of `nat4` (Unevaluated(PackageId(0), BodyId(1)) .. Expr(Unevaluated(PackageId(0), BodyId(2)), Yes)), range of `nat4` (Unevaluated(PackageId(0), BodyId(3)) .. Expr(Unevaluated(PackageId(0), BodyId(4)), Yes)), ) of int
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 39..64: `array` has too many elements
-| error in file FileId(1) for 39..64: overflow while computing element count
-error in file FileId(1) at 45..50: invalid range size
-| error in file FileId(1) for 45..50: range size is too large
-error in file FileId(1) at 52..57: invalid range size
-| error in file FileId(1) for 52..57: range size is too large
+error at (FileId(1), 39..64): `array` has too many elements
+| error for (FileId(1), 39..64): overflow while computing element count
+error at (FileId(1), 45..50): invalid range size
+| error for (FileId(1), 45..50): range size is too large
+error at (FileId(1), 52..57): invalid range size
+| error for (FileId(1), 52..57): range size is too large

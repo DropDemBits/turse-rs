@@ -1,7 +1,6 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "\n    var k : int\n    begin\n        const k := 1\n        const k := 2\n        const k := 3\n    end\n    begin\n        const k := 1.0\n    end\n    k := k"
-
 ---
 Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(5)
@@ -31,16 +30,16 @@ Package@(dummy)
         Assign@(FileId(1), 143..149)
           Name@(FileId(1), 143..144): "k"@(FileId(1), 9..10)
           Name@(FileId(1), 148..149): "k"@(FileId(1), 9..10)
-error in file FileId(1) at 41..42: `k` is already declared in this scope
-| note in file FileId(1) for 9..10: `k` previously declared here
-| error in file FileId(1) for 41..42: `k` redeclared here
-error in file FileId(1) at 62..63: `k` is already declared in this scope
-| note in file FileId(1) for 41..42: `k` previously declared here
-| error in file FileId(1) for 62..63: `k` redeclared here
-error in file FileId(1) at 83..84: `k` is already declared in this scope
-| note in file FileId(1) for 62..63: `k` previously declared here
-| error in file FileId(1) for 83..84: `k` redeclared here
-error in file FileId(1) at 122..123: `k` is already declared in this scope
-| note in file FileId(1) for 9..10: `k` previously declared here
-| error in file FileId(1) for 122..123: `k` redeclared here
+error at (FileId(1), 41..42): `k` is already declared in this scope
+| note for (FileId(1), 9..10): `k` previously declared here
+| error for (FileId(1), 41..42): `k` redeclared here
+error at (FileId(1), 62..63): `k` is already declared in this scope
+| note for (FileId(1), 41..42): `k` previously declared here
+| error for (FileId(1), 62..63): `k` redeclared here
+error at (FileId(1), 83..84): `k` is already declared in this scope
+| note for (FileId(1), 62..63): `k` previously declared here
+| error for (FileId(1), 83..84): `k` redeclared here
+error at (FileId(1), 122..123): `k` is already declared in this scope
+| note for (FileId(1), 9..10): `k` previously declared here
+| error for (FileId(1), 122..123): `k` redeclared here
 

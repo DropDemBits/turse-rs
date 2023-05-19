@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "a := a"
 ---
 Package@(dummy)
@@ -9,6 +9,6 @@ Package@(dummy)
         Assign@(FileId(1), 0..6)
           Name@(FileId(1), 0..1): "a"@(FileId(1), 0..1), undeclared
           Name@(FileId(1), 5..6): "a"@(FileId(1), 5..6), undeclared
-error in file FileId(1) at 0..1: `a` is undeclared
-| error in file FileId(1) for 0..1: no definitions of `a` are in scope
+error at (FileId(1), 0..1): `a` is undeclared
+| error for (FileId(1), 0..1): no definitions of `a` are in scope
 

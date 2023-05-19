@@ -1,8 +1,6 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
-assertion_line: 61
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "var _ : array 1 .. *, char,,char of int := init(1)"
-
 ---
 Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(1)
@@ -19,10 +17,10 @@ Package@(dummy)
               InitExpr@(FileId(1), 43..50)
                 ExprBody@(FileId(1), 48..49)
                   Literal@(FileId(1), 48..49): Integer(1)
-error in file FileId(1) at 14..20: extra ranges specified
-| error in file FileId(1) for 22..32: extra ranges after
-| note in file FileId(1) for 14..20: this must be the only range present
+error at (FileId(1), 14..20): extra ranges specified
+| error for (FileId(1), 22..32): extra ranges after
+| note for (FileId(1), 14..20): this must be the only range present
 | info: `init`-sized arrays must have this range be the only range present
-error in file FileId(1) at 27..28: unexpected token
-| error in file FileId(1) for 27..28: expected type specifier, but found `,`
+error at (FileId(1), 27..28): unexpected token
+| error for (FileId(1), 27..28): expected type specifier, but found `,`
 

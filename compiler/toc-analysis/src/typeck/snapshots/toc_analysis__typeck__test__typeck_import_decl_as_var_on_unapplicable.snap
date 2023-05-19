@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "const outer : int\nmodule _\n    import var outer\n    outer := 6 % this should still be fine, since we take the specified mut for its word\nend _\n"
 ---
 "outer"@(FileId(1), 6..11) [ConstVar(Const, No)]: int
@@ -7,6 +7,6 @@ expression: "const outer : int\nmodule _\n    import var outer\n    outer := 6 %
 "outer"@(FileId(1), 42..47) [Import]: int
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 38..41: cannot use `var` here
-| error in file FileId(1) for 38..41: `var` can only be applied to variables
-| note in file FileId(1) for 6..11: `outer` declared here
+error at (FileId(1), 38..41): cannot use `var` here
+| error for (FileId(1), 38..41): `var` can only be applied to variables
+| note for (FileId(1), 6..11): `outer` declared here

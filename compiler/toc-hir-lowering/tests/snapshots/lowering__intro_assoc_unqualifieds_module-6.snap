@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "\nmodule wrap\n    export ~. uwu\n    module uwu\n        export ~. uwu\n        var uwu : int\n    end uwu\nend wrap\n\nmodule target\n    import uwu\nend target\n    "
 ---
 Package@(dummy)
@@ -19,12 +19,12 @@ Package@(dummy)
           Module@(FileId(1), 112..151): "target"@(FileId(1), 119..125)
             Import@(FileId(1), 137..140): SameAsItem local("uwu"@(FileId(1), 27..30))
             StmtBody@(FileId(1), 141..141): []
-error in file FileId(1) at 80..83: `uwu` is already declared in this scope
-| note in file FileId(1) for 42..45: `uwu` previously declared here
-| error in file FileId(1) for 80..83: `uwu` redeclared here
-error in file FileId(1) at 80..83: `uwu` is already declared in the parent scope
-| note in file FileId(1) for 42..45: `uwu` previously declared here
-| error in file FileId(1) for 64..67: `uwu` exported unqualified from here
-error in file FileId(1) at 137..140: `uwu` is already declared in this import
-| error in file FileId(1) for 137..140: `uwu` is imported here, and it has an unqualified export of the same name
+error at (FileId(1), 80..83): `uwu` is already declared in this scope
+| note for (FileId(1), 42..45): `uwu` previously declared here
+| error for (FileId(1), 80..83): `uwu` redeclared here
+error at (FileId(1), 80..83): `uwu` is already declared in the parent scope
+| note for (FileId(1), 42..45): `uwu` previously declared here
+| error for (FileId(1), 64..67): `uwu` exported unqualified from here
+error at (FileId(1), 137..140): `uwu` is already declared in this import
+| error for (FileId(1), 137..140): `uwu` is imported here, and it has an unqualified export of the same name
 

@@ -1,8 +1,6 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
-assertion_line: 61
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "\n        var *a : int\n        module z\n            export a\n        end z"
-
 ---
 Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(2)
@@ -14,6 +12,6 @@ Package@(dummy)
         StmtItem@(FileId(1), 30..73): ItemId(1)
           Module@(FileId(1), 30..73): "z"@(FileId(1), 37..38)
             StmtBody@(FileId(1), 68..68): []
-error in file FileId(1) at 58..59: exported symbol `a` has not been declared
-| error in file FileId(1) for 58..59: not declared at the top level of this module
+error at (FileId(1), 58..59): exported symbol `a` has not been declared
+| error for (FileId(1), 58..59): not declared at the top level of this module
 

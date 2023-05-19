@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "procedure boop(a, b : int, var c : int) end boop\nboop(1, 2, 3)\n"
 ---
 "boop"@(FileId(1), 10..14) [Subprogram(Procedure)]: procedure ( pass(value) int, pass(value) int, pass(var ref) int, ) -> void
@@ -9,5 +9,5 @@ expression: "procedure boop(a, b : int, var c : int) end boop\nboop(1, 2, 3)\n"
 "<unnamed>"@(dummy) [Undeclared]: <error>
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 60..61: cannot pass expression to this parameter
-| error in file FileId(1) for 60..61: not a reference to a variable
+error at (FileId(1), 60..61): cannot pass expression to this parameter
+| error for (FileId(1), 60..61): not a reference to a variable

@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "\n    % Different enums\n    type e1 : enum(v)\n    type e2 : enum(v)\n    var ae : e1\n    var be : e2\n    var aA : enum(v)\n    var bA : enum(v)\n\n    % should all produce boolean anyway\n    var _v_res : boolean\n\n    _v_res := ae <= be\n    _v_res := be <= ae\n    _v_res := aA <= ae\n    _v_res := ae <= aA\n    _v_res := aA <= bA\n    "
 ---
 "e1"@(FileId(1), 32..34) [Type]: enum[DefId(PackageId(0), LocalDefId(1))] ( "v"@(FileId(1), 42..43), )
@@ -19,28 +19,28 @@ expression: "\n    % Different enums\n    type e1 : enum(v)\n    type e2 : enum(
 "_v_res"@(FileId(1), 190..196) [ConstVar(Var, No)]: boolean
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 225..227: mismatched types for `<=`
-| note in file FileId(1) for 228..230: this is of type `enum e2`
-| note in file FileId(1) for 222..224: this is of type `enum e1`
-| error in file FileId(1) for 225..227: `enum e1` cannot be compared to `enum e2`
+error at (FileId(1), 225..227): mismatched types for `<=`
+| note for (FileId(1), 228..230): this is of type `enum e2`
+| note for (FileId(1), 222..224): this is of type `enum e1`
+| error for (FileId(1), 225..227): `enum e1` cannot be compared to `enum e2`
 | info: operands must both be the same type
-error in file FileId(1) at 248..250: mismatched types for `<=`
-| note in file FileId(1) for 251..253: this is of type `enum e1`
-| note in file FileId(1) for 245..247: this is of type `enum e2`
-| error in file FileId(1) for 248..250: `enum e2` cannot be compared to `enum e1`
+error at (FileId(1), 248..250): mismatched types for `<=`
+| note for (FileId(1), 251..253): this is of type `enum e1`
+| note for (FileId(1), 245..247): this is of type `enum e2`
+| error for (FileId(1), 248..250): `enum e2` cannot be compared to `enum e1`
 | info: operands must both be the same type
-error in file FileId(1) at 271..273: mismatched types for `<=`
-| note in file FileId(1) for 274..276: this is of type `enum e1`
-| note in file FileId(1) for 268..270: this is of type `enum <anonymous>`
-| error in file FileId(1) for 271..273: `enum <anonymous>` cannot be compared to `enum e1`
+error at (FileId(1), 271..273): mismatched types for `<=`
+| note for (FileId(1), 274..276): this is of type `enum e1`
+| note for (FileId(1), 268..270): this is of type `enum <anonymous>`
+| error for (FileId(1), 271..273): `enum <anonymous>` cannot be compared to `enum e1`
 | info: operands must both be the same type
-error in file FileId(1) at 294..296: mismatched types for `<=`
-| note in file FileId(1) for 297..299: this is of type `enum <anonymous>`
-| note in file FileId(1) for 291..293: this is of type `enum e1`
-| error in file FileId(1) for 294..296: `enum e1` cannot be compared to `enum <anonymous>`
+error at (FileId(1), 294..296): mismatched types for `<=`
+| note for (FileId(1), 297..299): this is of type `enum <anonymous>`
+| note for (FileId(1), 291..293): this is of type `enum e1`
+| error for (FileId(1), 294..296): `enum e1` cannot be compared to `enum <anonymous>`
 | info: operands must both be the same type
-error in file FileId(1) at 317..319: mismatched types for `<=`
-| note in file FileId(1) for 320..322: this is of type `enum <anonymous>`
-| note in file FileId(1) for 314..316: this is of type `enum <anonymous>`
-| error in file FileId(1) for 317..319: `enum <anonymous>` cannot be compared to `enum <anonymous>`
+error at (FileId(1), 317..319): mismatched types for `<=`
+| note for (FileId(1), 320..322): this is of type `enum <anonymous>`
+| note for (FileId(1), 314..316): this is of type `enum <anonymous>`
+| error for (FileId(1), 317..319): `enum <anonymous>` cannot be compared to `enum <anonymous>`
 | info: operands must both be the same type

@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var i : int\nvar n : nat\nvar r : real\nvar c : char\nvar b: boolean\ntype en: enum(a, b) var ef : en\n\nget i : 0\nget n : 0\nget r : 0\nget c : 0\nget b : 0\nget ef : 0\n"
 ---
 "i"@(FileId(1), 4..5) [ConstVar(Var, No)]: int
@@ -14,27 +14,27 @@ expression: "var i : int\nvar n : nat\nvar r : real\nvar c : char\nvar b: boolea
 "ef"@(FileId(1), 89..91) [ConstVar(Var, No)]: enum[DefId(PackageId(0), LocalDefId(6))] ( "a"@(FileId(1), 79..80), "b"@(FileId(1), 82..83), )
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 106..107: invalid get option
-| note in file FileId(1) for 102..103: cannot specify character width for `int`
-| error in file FileId(1) for 106..107: this is the invalid option
+error at (FileId(1), 106..107): invalid get option
+| note for (FileId(1), 102..103): cannot specify character width for `int`
+| error for (FileId(1), 106..107): this is the invalid option
 | info: character width can only be specified for `string` and `char(N)` types
-error in file FileId(1) at 116..117: invalid get option
-| note in file FileId(1) for 112..113: cannot specify character width for `nat`
-| error in file FileId(1) for 116..117: this is the invalid option
+error at (FileId(1), 116..117): invalid get option
+| note for (FileId(1), 112..113): cannot specify character width for `nat`
+| error for (FileId(1), 116..117): this is the invalid option
 | info: character width can only be specified for `string` and `char(N)` types
-error in file FileId(1) at 126..127: invalid get option
-| note in file FileId(1) for 122..123: cannot specify character width for `real`
-| error in file FileId(1) for 126..127: this is the invalid option
+error at (FileId(1), 126..127): invalid get option
+| note for (FileId(1), 122..123): cannot specify character width for `real`
+| error for (FileId(1), 126..127): this is the invalid option
 | info: character width can only be specified for `string` and `char(N)` types
-error in file FileId(1) at 136..137: invalid get option
-| note in file FileId(1) for 132..133: cannot specify character width for `char`
-| error in file FileId(1) for 136..137: this is the invalid option
+error at (FileId(1), 136..137): invalid get option
+| note for (FileId(1), 132..133): cannot specify character width for `char`
+| error for (FileId(1), 136..137): this is the invalid option
 | info: character width can only be specified for `string` and `char(N)` types
-error in file FileId(1) at 146..147: invalid get option
-| note in file FileId(1) for 142..143: cannot specify character width for `boolean`
-| error in file FileId(1) for 146..147: this is the invalid option
+error at (FileId(1), 146..147): invalid get option
+| note for (FileId(1), 142..143): cannot specify character width for `boolean`
+| error for (FileId(1), 146..147): this is the invalid option
 | info: character width can only be specified for `string` and `char(N)` types
-error in file FileId(1) at 157..158: invalid get option
-| note in file FileId(1) for 152..154: cannot specify character width for `enum en`
-| error in file FileId(1) for 157..158: this is the invalid option
+error at (FileId(1), 157..158): invalid get option
+| note for (FileId(1), 152..154): cannot specify character width for `enum en`
+| error for (FileId(1), 157..158): this is the invalid option
 | info: character width can only be specified for `string` and `char(N)` types

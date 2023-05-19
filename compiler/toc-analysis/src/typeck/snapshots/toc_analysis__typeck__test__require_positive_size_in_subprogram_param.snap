@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "proc p(_:1..0) end p"
 ---
 "p"@(FileId(1), 5..6) [Subprogram(Procedure)]: procedure ( pass(value) range of `int` (Unevaluated(PackageId(0), BodyId(0)) .. Expr(Unevaluated(PackageId(0), BodyId(1)), No)), ) -> void
@@ -7,6 +7,6 @@ expression: "proc p(_:1..0) end p"
 "<unnamed>"@(dummy) [Undeclared]: <error>
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 9..13: element range is too small
-| note in file FileId(1) for 9..13: computed range size is 0
-| error in file FileId(1) for 9..13: zero sized ranges cannot be used in `procedure` declarations
+error at (FileId(1), 9..13): element range is too small
+| note for (FileId(1), 9..13): computed range size is 0
+| error for (FileId(1), 9..13): zero sized ranges cannot be used in `procedure` declarations

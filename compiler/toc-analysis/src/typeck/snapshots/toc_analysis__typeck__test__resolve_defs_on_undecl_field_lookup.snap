@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "module base\n    export ~. tail\nend base\n\nmodule target\n    import tail\n    tail.truce\nend target\n"
 ---
 "base"@(FileId(1), 7..11) [Module(No)]: <error>
@@ -7,5 +7,5 @@ expression: "module base\n    export ~. tail\nend base\n\nmodule target\n    imp
 "tail"@(FileId(1), 66..70) [Import]: <error>
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 80..85: no field named `truce` in expression
-| error in file FileId(1) for 80..85: no field named `truce` in here
+error at (FileId(1), 80..85): no field named `truce` in expression
+| error for (FileId(1), 80..85): no field named `truce` in here

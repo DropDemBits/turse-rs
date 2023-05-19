@@ -1,8 +1,6 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
-assertion_line: 61
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "var _ : array 1 .. * of int := 2"
-
 ---
 Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(1)
@@ -17,6 +15,6 @@ Package@(dummy)
               Primitive@(FileId(1), 24..27): Int
             ExprBody@(FileId(1), 31..32)
               Literal@(FileId(1), 31..32): Integer(2)
-error in file FileId(1) at 14..20: unsized range types require an `init` initializer
-| error in file FileId(1) for 31..32: not an `init` expression
+error at (FileId(1), 14..20): unsized range types require an `init` initializer
+| error for (FileId(1), 31..32): not an `init` expression
 

@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "type t_p : procedure(a, b : int, var c : string)\nprocedure p(a, b : int, c : string) end p\n\nvar _ : t_p := p\n"
 ---
 "t_p"@(FileId(1), 5..8) [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of procedure ( pass(value) int, pass(value) int, pass(var ref) string, ) -> void
@@ -15,7 +15,7 @@ expression: "type t_p : procedure(a, b : int, var c : string)\nprocedure p(a, b 
 "<unnamed>"@(dummy) [Undeclared]: <error>
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 107..108: mismatched types
-| note in file FileId(1) for 107..108: this is of type `procedure (int, int, string)`
-| note in file FileId(1) for 100..103: this is of type `t_p (alias of procedure (int, int, var : string))`
+error at (FileId(1), 107..108): mismatched types
+| note for (FileId(1), 107..108): this is of type `procedure (int, int, string)`
+| note for (FileId(1), 100..103): this is of type `t_p (alias of procedure (int, int, var : string))`
 | info: `procedure (int, int, string)` is not assignable into `procedure (int, int, var : string)`

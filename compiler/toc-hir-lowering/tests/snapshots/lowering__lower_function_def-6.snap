@@ -1,8 +1,6 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
-assertion_line: 59
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "\n    function pars(a, a : int, a : int1) : int\n        var a : int2\n    end pars"
-
 ---
 Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(2)
@@ -22,13 +20,13 @@ Package@(dummy)
               StmtItem@(FileId(1), 55..67): ItemId(0)
                 ConstVar@(FileId(1), 55..67): var "a"@(FileId(1), 59..60)
                   Primitive@(FileId(1), 63..67): Int2
-error in file FileId(1) at 22..23: `a` is already declared in this scope
-| note in file FileId(1) for 19..20: `a` previously declared here
-| error in file FileId(1) for 22..23: `a` redeclared here
-error in file FileId(1) at 31..32: `a` is already declared in this scope
-| note in file FileId(1) for 22..23: `a` previously declared here
-| error in file FileId(1) for 31..32: `a` redeclared here
-error in file FileId(1) at 59..60: `a` is already declared in this scope
-| note in file FileId(1) for 31..32: `a` previously declared here
-| error in file FileId(1) for 59..60: `a` redeclared here
+error at (FileId(1), 22..23): `a` is already declared in this scope
+| note for (FileId(1), 19..20): `a` previously declared here
+| error for (FileId(1), 22..23): `a` redeclared here
+error at (FileId(1), 31..32): `a` is already declared in this scope
+| note for (FileId(1), 22..23): `a` previously declared here
+| error for (FileId(1), 31..32): `a` redeclared here
+error at (FileId(1), 59..60): `a` is already declared in this scope
+| note for (FileId(1), 31..32): `a` previously declared here
+| error for (FileId(1), 59..60): `a` redeclared here
 

@@ -1,10 +1,10 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var _ : string(*)"
 ---
 "_"@(FileId(1), 4..5) [ConstVar(Var, No)]: string_n Any
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 8..17: invalid storage type
-| error in file FileId(1) for 8..17: cannot use `string(*)` in `var` declarations
+error at (FileId(1), 8..17): invalid storage type
+| error for (FileId(1), 8..17): cannot use `string(*)` in `var` declarations
 | info: `string(*)`'s refer to strings that do not have a fixed size known at compile-time

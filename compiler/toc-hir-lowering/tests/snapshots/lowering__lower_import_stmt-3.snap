@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "\n    var a : int\n    module _\n        import forward a\n    end _"
 ---
 Package@(dummy)
@@ -13,8 +13,8 @@ Package@(dummy)
           Module@(FileId(1), 21..64): "_"@(FileId(1), 28..29)
             Import@(FileId(1), 45..54): SameAsItem local("a"@(FileId(1), 9..10))
             StmtBody@(FileId(1), 59..59): []
-error in file FileId(1) at 45..52: unsupported import attribute
-| error in file FileId(1) for 45..52: `forward` imports are not supported yet
-error in file FileId(1) at 45..52: cannot use `forward` attribute here
-| error in file FileId(1) for 45..52: `forward` attribute can only be used in `forward` declarations
+error at (FileId(1), 45..52): unsupported import attribute
+| error for (FileId(1), 45..52): `forward` imports are not supported yet
+error at (FileId(1), 45..52): cannot use `forward` attribute here
+| error for (FileId(1), 45..52): `forward` attribute can only be used in `forward` declarations
 

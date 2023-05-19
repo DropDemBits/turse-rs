@@ -1,8 +1,8 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: result 0
 ---
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 0..8: cannot use `result` here
-| error in file FileId(1) for 0..8: `result` statement is only allowed in function bodies
+error at (FileId(1), 0..8): cannot use `result` here
+| error for (FileId(1), 0..8): `result` statement is only allowed in function bodies

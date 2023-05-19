@@ -1,8 +1,6 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
-assertion_line: 61
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "var a : int a := init(1, 2, 3, 4)"
-
 ---
 Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(1)
@@ -22,6 +20,6 @@ Package@(dummy)
               Literal@(FileId(1), 28..29): Integer(3)
             ExprBody@(FileId(1), 31..32)
               Literal@(FileId(1), 31..32): Integer(4)
-error in file FileId(1) at 17..33: cannot use `init` expression here
-| error in file FileId(1) for 17..33: `init` expression can only be used as a `const` or `var` initializer
+error at (FileId(1), 17..33): cannot use `init` expression here
+| error for (FileId(1), 17..33): `init` expression can only be used as a `const` or `var` initializer
 

@@ -1,10 +1,10 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "function sha : char(*) end sha"
 ---
 "sha"@(FileId(1), 9..12) [Subprogram(Function)]: function -> char_n Any
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 15..22: invalid storage type
-| error in file FileId(1) for 15..22: cannot use `char(*)` in `function` declarations
+error at (FileId(1), 15..22): invalid storage type
+| error for (FileId(1), 15..22): cannot use `char(*)` in `function` declarations
 | info: `char(*)`'s refer to character sequences that do not have a fixed size known at compile-time

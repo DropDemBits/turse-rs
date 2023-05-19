@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "type a : int\nprocedure boop(a, b : int, var c : int) end boop\nboop(1, a, a)\n"
 ---
 "a"@(FileId(1), 5..6) [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of int
@@ -10,9 +10,9 @@ expression: "type a : int\nprocedure boop(a, b : int, var c : int) end boop\nboo
 "<unnamed>"@(dummy) [Undeclared]: <error>
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 70..71: cannot pass `a` to this parameter
-| error in file FileId(1) for 70..71: `a` is a reference to a type, not a variable
-| note in file FileId(1) for 5..6: `a` declared here
-error in file FileId(1) at 73..74: cannot pass `a` to this parameter
-| error in file FileId(1) for 73..74: `a` is a reference to a type, not a variable
-| note in file FileId(1) for 5..6: `a` declared here
+error at (FileId(1), 70..71): cannot pass `a` to this parameter
+| error for (FileId(1), 70..71): `a` is a reference to a type, not a variable
+| note for (FileId(1), 5..6): `a` declared here
+error at (FileId(1), 73..74): cannot pass `a` to this parameter
+| error for (FileId(1), 73..74): `a` is a reference to a type, not a variable
+| note for (FileId(1), 5..6): `a` declared here

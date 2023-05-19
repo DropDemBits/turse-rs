@@ -1,11 +1,11 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "const a : int type k : a"
 ---
 "a"@(FileId(1), 6..7) [ConstVar(Const, No)]: int
 "k"@(FileId(1), 19..20) [Type]: alias[DefId(PackageId(0), LocalDefId(1))] of <error>
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 23..24: cannot use `a` as a type alias
-| error in file FileId(1) for 23..24: `a` is a reference to a constant, not a type
-| note in file FileId(1) for 6..7: `a` declared here
+error at (FileId(1), 23..24): cannot use `a` as a type alias
+| error for (FileId(1), 23..24): `a` is a reference to a constant, not a type
+| note for (FileId(1), 6..7): `a` declared here

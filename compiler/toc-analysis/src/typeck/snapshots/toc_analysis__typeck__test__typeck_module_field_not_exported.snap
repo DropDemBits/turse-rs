@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "module a export b var b : int end a\nvar k := a.c\n"
 ---
 "a"@(FileId(1), 7..8) [Module(No)]: <error>
@@ -8,5 +8,5 @@ expression: "module a export b var b : int end a\nvar k := a.c\n"
 "b"@(FileId(1), 16..17) [Export]: int
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 47..48: no field named `c` in expression
-| error in file FileId(1) for 47..48: no field named `c` in here
+error at (FileId(1), 47..48): no field named `c` in expression
+| error for (FileId(1), 47..48): no field named `c` in here

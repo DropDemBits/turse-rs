@@ -1,7 +1,6 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "const a := '"
-
 ---
 Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(1)
@@ -10,6 +9,6 @@ Package@(dummy)
         StmtItem@(FileId(1), 0..12): ItemId(0)
           ConstVar@(FileId(1), 0..12): const "a"@(FileId(1), 6..7)
             ExprBody@(FileId(1), 11..12)
-error in file FileId(1) at 11..12: invalid char literal
-| error in file FileId(1) for 11..12: missing terminator character
+error at (FileId(1), 11..12): invalid char literal
+| error for (FileId(1), 11..12): missing terminator character
 

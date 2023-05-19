@@ -1,10 +1,10 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var s : real\nget : s, skip\n"
 ---
 "s"@(FileId(1), 4..5) [ConstVar(Var, No)]: real
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 19..20: mismatched types
-| note in file FileId(1) for 19..20: this is of type `real`
+error at (FileId(1), 19..20): mismatched types
+| note for (FileId(1), 19..20): this is of type `real`
 | info: `real` is not an integer type

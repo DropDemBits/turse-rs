@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: proc end
 ---
 Package@(dummy)
@@ -10,6 +10,6 @@ Package@(dummy)
           Subprogram@(FileId(1), 0..8): "<unnamed>"@(FileId(1), 0..8)
             Void@(FileId(1), 0..4)
             StmtBody@(FileId(1), 5..5): []
-error in file FileId(1) at 5..8: unexpected token
-| error in file FileId(1) for 5..8: expected identifier, but found `end`
+error at (FileId(1), 5..8): unexpected token
+| error for (FileId(1), 5..8): expected identifier, but found `end`
 

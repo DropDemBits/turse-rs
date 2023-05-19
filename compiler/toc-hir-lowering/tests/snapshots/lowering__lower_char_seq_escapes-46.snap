@@ -1,7 +1,6 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "var _ : int _ := \"\\"
-
 ---
 Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(1)
@@ -13,7 +12,7 @@ Package@(dummy)
         Assign@(FileId(1), 12..19)
           Name@(FileId(1), 12..13): "_"@(FileId(1), 4..5)
           Literal@(FileId(1), 17..19): String("")
-error in file FileId(1) at 17..19: invalid string literal
-| error in file FileId(1) for 18..19: unknown backslash escape
-| error in file FileId(1) for 17..19: missing terminator character
+error at (FileId(1), 17..19): invalid string literal
+| error for (FileId(1), 18..19): unknown backslash escape
+| error for (FileId(1), 17..19): missing terminator character
 

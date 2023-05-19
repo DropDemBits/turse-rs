@@ -1,7 +1,6 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "var _ : int _ := \"\\u200000\""
-
 ---
 Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(1)
@@ -13,6 +12,6 @@ Package@(dummy)
         Assign@(FileId(1), 12..27)
           Name@(FileId(1), 12..13): "_"@(FileId(1), 4..5)
           Literal@(FileId(1), 17..27): String("�")
-error in file FileId(1) at 17..27: invalid string literal
-| error in file FileId(1) for 18..26: unicode codepoint value is greater than U+10FFFF
+error at (FileId(1), 17..27): invalid string literal
+| error for (FileId(1), 18..26): unicode codepoint value is greater than U+10FFFF
 

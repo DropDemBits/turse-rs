@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "% crashed because we we weren't poking through resolution\nmodule indirection\n    export ~. lhs\n    module lhs\n        export field\n        var field : int\n    end lhs\nend indirection\n\n% triggers `exporting_def` with an indirect lhs def\nlhs.field := 6\n"
 ---
 "indirection"@(FileId(1), 65..76) [Module(No)]: <error>
@@ -9,6 +9,6 @@ expression: "% crashed because we we weren't poking through resolution\nmodule i
 "lhs"@(FileId(1), 91..94) [Export]: <error>
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 246..248: cannot assign into `field`
-| error in file FileId(1) for 236..245: `field` is not exported as `var`
-| note in file FileId(1) for 125..130: `field` exported from here
+error at (FileId(1), 246..248): cannot assign into `field`
+| error for (FileId(1), 236..245): `field` is not exported as `var`
+| note for (FileId(1), 125..130): `field` exported from here

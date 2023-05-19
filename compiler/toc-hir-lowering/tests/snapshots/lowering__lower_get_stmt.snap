@@ -1,7 +1,6 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: get a
-
 ---
 Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(0)
@@ -9,6 +8,6 @@ Package@(dummy)
       StmtBody@(FileId(1), 0..5): []
         Get@(FileId(1), 0..5)
           Name@(FileId(1), 4..5): "a"@(FileId(1), 4..5), undeclared
-error in file FileId(1) at 4..5: `a` is undeclared
-| error in file FileId(1) for 4..5: no definitions of `a` are in scope
+error at (FileId(1), 4..5): `a` is undeclared
+| error for (FileId(1), 4..5): no definitions of `a` are in scope
 

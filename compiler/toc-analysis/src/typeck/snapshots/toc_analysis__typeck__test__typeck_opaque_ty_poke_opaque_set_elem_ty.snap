@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "module m\n    export opaque ~.* t, ~.* s, make\n    type t : char\n    type s : set of t\n    fcn make(c : char) : t result c end make\nend m\n\n% both should fail, is strictly opaque\ntype xs : set of t\nvar vs : s := s('i')\n\n% should succeed\nvar _ : boolean := m.make('i') in vs\n"
 ---
 "m"@(FileId(1), 7..8) [Module(No)]: <error>
@@ -18,10 +18,10 @@ expression: "module m\n    export opaque ~.* t, ~.* s, make\n    type t : char\n
 "make"@(FileId(1), 41..45) [Export]: function ( pass(value) char, ) -> opaque[DefId(PackageId(0), LocalDefId(1))] type to char
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 194..195: mismatched types
-| error in file FileId(1) for 194..195: `t (an opaque type)` is not an index type
+error at (FileId(1), 194..195): mismatched types
+| error for (FileId(1), 194..195): `t (an opaque type)` is not an index type
 | info: an index type is an integer, a `boolean`, a `char`, an enumerated type, or a range
-error in file FileId(1) at 212..215: mismatched types
-| note in file FileId(1) for 212..215: this is of type `char`
-| note in file FileId(1) for 212..215: parameter expects type `t (an opaque type)`
+error at (FileId(1), 212..215): mismatched types
+| note for (FileId(1), 212..215): this is of type `char`
+| note for (FileId(1), 212..215): parameter expects type `t (an opaque type)`
 | info: `char` is not assignable into `t (an opaque type)`

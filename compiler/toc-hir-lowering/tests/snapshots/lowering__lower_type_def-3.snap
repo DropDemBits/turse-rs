@@ -1,8 +1,6 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
-assertion_line: 59
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "type alias : "
-
 ---
 Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(1)
@@ -10,6 +8,6 @@ Package@(dummy)
       StmtBody@(FileId(1), 0..12): []
         StmtItem@(FileId(1), 0..12): ItemId(0)
           Type@(FileId(1), 0..12): "alias"@(FileId(1), 5..10)
-error in file FileId(1) at 11..12: unexpected end of file
-| error in file FileId(1) for 11..12: expected type specifier after here
+error at (FileId(1), 11..12): unexpected end of file
+| error for (FileId(1), 11..12): expected type specifier after here
 

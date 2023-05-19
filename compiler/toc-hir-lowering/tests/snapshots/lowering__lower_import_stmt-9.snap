@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "\n    module _\n        import _\n    end _\n    "
 ---
 Package@(dummy)
@@ -10,7 +10,7 @@ Package@(dummy)
           Module@(FileId(1), 5..40): "_"@(FileId(1), 12..13)
             Import@(FileId(1), 29..30): SameAsItem local("_"@(FileId(1), 12..13))
             StmtBody@(FileId(1), 35..35): []
-error in file FileId(1) at 29..30: `_` is already declared in this scope
-| note in file FileId(1) for 12..13: `_` previously declared here
-| error in file FileId(1) for 29..30: `_` imported here
+error at (FileId(1), 29..30): `_` is already declared in this scope
+| note for (FileId(1), 12..13): `_` previously declared here
+| error for (FileId(1), 29..30): `_` imported here
 

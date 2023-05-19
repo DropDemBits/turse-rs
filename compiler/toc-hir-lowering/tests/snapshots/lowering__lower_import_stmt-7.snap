@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "\n    var a : int\n    proc _\n        import a, a\n    end _"
 ---
 Package@(dummy)
@@ -14,7 +14,7 @@ Package@(dummy)
             Void@(FileId(1), 21..27)
             Import@(FileId(1), 43..44): SameAsItem local("a"@(FileId(1), 9..10))
             StmtBody@(FileId(1), 52..52): []
-error in file FileId(1) at 46..47: import item is ignored
-| error in file FileId(1) for 46..47: `a` is already imported...
-| note in file FileId(1) for 43..44: by this import
+error at (FileId(1), 46..47): import item is ignored
+| error for (FileId(1), 46..47): `a` is already imported...
+| note for (FileId(1), 43..44): by this import
 

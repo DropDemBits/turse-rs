@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "procedure args(var : int) end args"
 ---
 Package@(dummy)
@@ -11,6 +11,6 @@ Package@(dummy)
             Primitive@(FileId(1), 21..24): Int
             Void@(FileId(1), 0..25)
             StmtBody@(FileId(1), 26..26): ["<unnamed>"@(dummy)]
-error in file FileId(1) at 19..20: unexpected token
-| error in file FileId(1) for 19..20: expected identifier, but found `:`
+error at (FileId(1), 19..20): unexpected token
+| error for (FileId(1), 19..20): expected identifier, but found `:`
 

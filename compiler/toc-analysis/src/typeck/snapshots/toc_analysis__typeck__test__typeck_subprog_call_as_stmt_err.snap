@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "function key() : int end key\nprocedure lime() end lime\n% can't be used like this, need paren\nkey lime\n"
 ---
 "key"@(FileId(1), 9..12) [Subprogram(Function)]: function ( ) -> int
@@ -8,7 +8,7 @@ expression: "function key() : int end key\nprocedure lime() end lime\n% can't be
 "<unnamed>"@(dummy) [Undeclared]: <error>
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 93..96: cannot use `key` as a statement
-| error in file FileId(1) for 93..96: `key` is callable, but requires adding `()` after here
-error in file FileId(1) at 97..101: cannot use `lime` as a statement
-| error in file FileId(1) for 97..101: `lime` is callable, but requires adding `()` after here
+error at (FileId(1), 93..96): cannot use `key` as a statement
+| error for (FileId(1), 93..96): `key` is callable, but requires adding `()` after here
+error at (FileId(1), 97..101): cannot use `lime` as a statement
+| error for (FileId(1), 97..101): `lime` is callable, but requires adding `()` after here
