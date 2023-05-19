@@ -9,9 +9,8 @@ mod source;
 use std::sync::Arc;
 
 use source::Source;
-use toc_reporting::CompileResult;
+use toc_reporting::{CompileResult, FileRange};
 use toc_scanner::Scanner;
-use toc_span::FileId;
 use toc_syntax::SyntaxNode;
 
 use rowan::GreenNode;
@@ -21,11 +20,11 @@ use crate::sink::Sink;
 pub use depends::{Dependency, ExternalLink, ExternalLinks, FileDepends};
 
 /// Parse a regular file into a [`ParseTree`]
-pub fn parse(file: FileId, source: &str) -> CompileResult<ParseTree> {
-    let (tokens, scanner_msgs) = Scanner::new(file, source).collect_all();
+pub fn parse(source: &str) -> CompileResult<ParseTree, FileRange> {
+    let (tokens, scanner_msgs) = Scanner::new(source).collect_all();
 
     let source = Source::new(&tokens);
-    let parser = parser::Parser::new(file, source);
+    let parser = parser::Parser::new(source);
     let (events, parser_msgs) = parser.parse();
     let sink = Sink::new(&tokens, events, scanner_msgs.combine(parser_msgs));
 
@@ -33,8 +32,8 @@ pub fn parse(file: FileId, source: &str) -> CompileResult<ParseTree> {
 }
 
 /// Parse the dependencies of a file
-pub fn parse_depends(file: FileId, syntax: SyntaxNode) -> CompileResult<Arc<FileDepends>> {
-    depends::gather_dependencies(file, syntax)
+pub fn parse_depends(syntax: SyntaxNode) -> CompileResult<Arc<FileDepends>, FileRange> {
+    depends::gather_dependencies(syntax)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -64,8 +63,7 @@ impl ParseTree {
 pub(crate) fn check(source: &str, expected: expect_test::Expect) {
     use std::fmt::Write;
 
-    let dummy_file = FileId::dummy(0);
-    let res = parse(dummy_file, source);
+    let res = parse(source);
 
     let mut debug_tree = res.result().dump_tree();
 

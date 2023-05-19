@@ -531,12 +531,12 @@ mod test {
                   Comment@15..28 "/* skipped */"
                   Whitespace@28..29 " "
                   Comment@29..42 "% skipped too"
-                error in file FileId(1) at 9..10: invalid character
-                | error in file FileId(1) for 9..10: here
-                error in file FileId(1) at 10..11: invalid character
-                | error in file FileId(1) for 10..11: here
-                error in file FileId(1) at 11..12: invalid character
-                | error in file FileId(1) for 11..12: here"#]],
+                error at 9..10: invalid character
+                | error for 9..10: here
+                error at 10..11: invalid character
+                | error for 10..11: here
+                error at 11..12: invalid character
+                | error for 11..12: here"#]],
         );
     }
 
@@ -559,8 +559,8 @@ mod test {
                   Comment@9..26 "/* some trivia */"
                   Whitespace@26..31 "     "
                   Comment@31..48 "% and more trivia"
-                error in file FileId(1) at 6..8: unexpected end of file
-                | error in file FileId(1) for 6..8: expected expression after here"#]],
+                error at 6..8: unexpected end of file
+                | error for 6..8: expected expression after here"#]],
         );
     }
 }

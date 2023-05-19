@@ -84,8 +84,8 @@ fn report_not_a_stmt() {
               StmtList@0..9
                 Error@0..9
                   KwPervasive@0..9 "pervasive"
-            error in file FileId(1) at 0..9: unexpected token
-            | error in file FileId(1) for 0..9: expected statement, but found `pervasive`"#]],
+            error at 0..9: unexpected token
+            | error for 0..9: expected statement, but found `pervasive`"#]],
     );
 }
 
@@ -98,8 +98,8 @@ fn recover_just_assign() {
               StmtList@0..2
                 Error@0..2
                   Assign@0..2 ":="
-            error in file FileId(1) at 0..2: unexpected token
-            | error in file FileId(1) for 0..2: expected statement, but found `:=`"#]],
+            error at 0..2: unexpected token
+            | error for 0..2: expected statement, but found `:=`"#]],
     )
 }
 
@@ -113,8 +113,8 @@ fn recover_just_var() {
                 ConstVarDecl@0..3
                   KwVar@0..3 "var"
                   NameList@3..3
-            error in file FileId(1) at 0..3: unexpected end of file
-            | error in file FileId(1) for 0..3: expected identifier after here"#]],
+            error at 0..3: unexpected end of file
+            | error for 0..3: expected identifier after here"#]],
     )
 }
 
@@ -193,8 +193,8 @@ fn parse_var_decl_with_alt_eq() {
                   Whitespace@13..14 " "
                   LiteralExpr@14..15
                     IntLiteral@14..15 "1"
-            warn in file FileId(1) at 12..13: `=` found
-            | warn in file FileId(1) for 12..13: assuming it to be `:=`"#]],
+            warn at 12..13: `=` found
+            | warn for 12..13: assuming it to be `:=`"#]],
     )
 }
 
@@ -221,8 +221,8 @@ fn parse_const_decl_with_alt_eq() {
                   Whitespace@15..16 " "
                   LiteralExpr@16..17
                     IntLiteral@16..17 "1"
-            warn in file FileId(1) at 14..15: `=` found
-            | warn in file FileId(1) for 14..15: assuming it to be `:=`"#]],
+            warn at 14..15: `=` found
+            | warn for 14..15: assuming it to be `:=`"#]],
     )
 }
 
@@ -364,8 +364,8 @@ fn recover_const_decl_no_init() {
                   Whitespace@9..10 " "
                   PrimType@10..13
                     KwInt@10..13 "int"
-            error in file FileId(1) at 10..13: unexpected end of file
-            | error in file FileId(1) for 10..13: expected `:=` after here"#]],
+            error at 10..13: unexpected end of file
+            | error for 10..13: expected `:=` after here"#]],
     )
 }
 
@@ -424,8 +424,8 @@ fn recover_not_name_in_var_decl_multiple_names() {
                   Whitespace@15..16 " "
                   LiteralExpr@16..17
                     IntLiteral@16..17 "1"
-            error in file FileId(1) at 7..9: unexpected token
-            | error in file FileId(1) for 7..9: expected identifier, but found `to`"#]],
+            error at 7..9: unexpected token
+            | error for 7..9: expected identifier, but found `to`"#]],
     );
 }
 
@@ -447,8 +447,8 @@ fn recover_not_name_in_var_decl() {
                   Whitespace@9..10 " "
                   LiteralExpr@10..11
                     IntLiteral@10..11 "1"
-            error in file FileId(1) at 4..6: unexpected token
-            | error in file FileId(1) for 4..6: expected identifier, but found `to`"#]],
+            error at 4..6: unexpected token
+            | error for 4..6: expected identifier, but found `to`"#]],
     );
 }
 
@@ -465,8 +465,8 @@ fn recover_bare_var_decl() {
                   NameList@4..5
                     Name@4..5
                       Identifier@4..5 "a"
-            error in file FileId(1) at 4..5: unexpected end of file
-            | error in file FileId(1) for 4..5: expected `,`, `:` or `:=` after here"#]],
+            error at 4..5: unexpected end of file
+            | error for 4..5: expected `,`, `:` or `:=` after here"#]],
     )
 }
 
@@ -483,8 +483,8 @@ fn recover_bare_const_decl() {
                   NameList@6..7
                     Name@6..7
                       Identifier@6..7 "a"
-            error in file FileId(1) at 6..7: unexpected end of file
-            | error in file FileId(1) for 6..7: expected `,`, `:` or `:=` after here"#]],
+            error at 6..7: unexpected end of file
+            | error for 6..7: expected `,`, `:` or `:=` after here"#]],
     )
 }
 
@@ -508,8 +508,8 @@ fn recover_var_decl_missing_ty() {
                   Whitespace@10..11 " "
                   LiteralExpr@11..12
                     IntLiteral@11..12 "1"
-            error in file FileId(1) at 8..10: unexpected token
-            | error in file FileId(1) for 8..10: expected type specifier, but found `:=`"#]],
+            error at 8..10: unexpected token
+            | error for 8..10: expected type specifier, but found `:=`"#]],
     )
 }
 
@@ -536,8 +536,8 @@ fn recover_var_decl_not_a_ty() {
                   Whitespace@13..14 " "
                   LiteralExpr@14..15
                     IntLiteral@14..15 "1"
-            error in file FileId(1) at 8..10: unexpected token
-            | error in file FileId(1) for 8..10: expected type specifier, but found `to`"#]],
+            error at 8..10: unexpected token
+            | error for 8..10: expected type specifier, but found `to`"#]],
     )
 }
 
@@ -556,8 +556,8 @@ fn recover_var_decl_missing_name() {
                   Whitespace@5..6 " "
                   PrimType@6..9
                     KwInt@6..9 "int"
-            error in file FileId(1) at 4..5: unexpected token
-            | error in file FileId(1) for 4..5: expected identifier, but found `:`"#]],
+            error at 4..5: unexpected token
+            | error for 4..5: expected identifier, but found `:`"#]],
     );
 }
 
@@ -580,8 +580,8 @@ fn recover_var_decl_missing_final_name() {
                   Whitespace@8..9 " "
                   PrimType@9..12
                     KwInt@9..12 "int"
-            error in file FileId(1) at 7..8: unexpected token
-            | error in file FileId(1) for 7..8: expected identifier, but found `:`"#]],
+            error at 7..8: unexpected token
+            | error for 7..8: expected identifier, but found `:`"#]],
     );
 }
 
@@ -680,8 +680,8 @@ fn recover_on_var() {
                   Whitespace@20..21 " "
                   LiteralExpr@21..22
                     IntLiteral@21..22 "1"
-            error in file FileId(1) at 12..15: unexpected token
-            | error in file FileId(1) for 12..15: expected expression, but found `var`"#]],
+            error at 12..15: unexpected token
+            | error for 12..15: expected expression, but found `var`"#]],
     );
 }
 
@@ -712,8 +712,8 @@ fn recover_on_const() {
                   Whitespace@20..21 " "
                   LiteralExpr@21..22
                     IntLiteral@21..22 "1"
-            error in file FileId(1) at 10..15: unexpected token
-            | error in file FileId(1) for 10..15: expected expression, but found `const`"#]],
+            error at 10..15: unexpected token
+            | error for 10..15: expected expression, but found `const`"#]],
     );
 }
 
@@ -1061,14 +1061,14 @@ fn recover_not_weird_asn_op() {
                 CallStmt@11..12
                   LiteralExpr@11..12
                     IntLiteral@11..12 "1"
-            error in file FileId(1) at 2..5: unexpected token
-            | error in file FileId(1) for 2..5: expected statement, but found `not`
-            error in file FileId(1) at 5..6: unexpected token
-            | error in file FileId(1) for 5..6: expected statement, but found `=`
-            error in file FileId(1) at 6..7: unexpected token
-            | error in file FileId(1) for 6..7: expected statement, but found `=`
-            error in file FileId(1) at 7..10: unexpected token
-            | error in file FileId(1) for 7..10: expected statement, but found `not`"#]],
+            error at 2..5: unexpected token
+            | error for 2..5: expected statement, but found `not`
+            error at 5..6: unexpected token
+            | error for 5..6: expected statement, but found `=`
+            error at 6..7: unexpected token
+            | error for 6..7: expected statement, but found `=`
+            error at 7..10: unexpected token
+            | error for 7..10: expected statement, but found `not`"#]],
     );
     check(
         "a ~==~ 1",
@@ -1092,14 +1092,14 @@ fn recover_not_weird_asn_op() {
                 CallStmt@7..8
                   LiteralExpr@7..8
                     IntLiteral@7..8 "1"
-            error in file FileId(1) at 2..3: unexpected token
-            | error in file FileId(1) for 2..3: expected statement, but found `~`
-            error in file FileId(1) at 3..4: unexpected token
-            | error in file FileId(1) for 3..4: expected statement, but found `=`
-            error in file FileId(1) at 4..5: unexpected token
-            | error in file FileId(1) for 4..5: expected statement, but found `=`
-            error in file FileId(1) at 5..6: unexpected token
-            | error in file FileId(1) for 5..6: expected statement, but found `~`"#]],
+            error at 2..3: unexpected token
+            | error for 2..3: expected statement, but found `~`
+            error at 3..4: unexpected token
+            | error for 3..4: expected statement, but found `=`
+            error at 4..5: unexpected token
+            | error for 4..5: expected statement, but found `=`
+            error at 5..6: unexpected token
+            | error for 5..6: expected statement, but found `~`"#]],
     );
 }
 
@@ -1122,8 +1122,8 @@ fn recover_not_a_compound_asn_op() {
                 CallStmt@5..6
                   LiteralExpr@5..6
                     IntLiteral@5..6 "1"
-            error in file FileId(1) at 2..4: unexpected token
-            | error in file FileId(1) for 2..4: expected statement, but found `<=`"#]],
+            error at 2..4: unexpected token
+            | error for 2..4: expected statement, but found `<=`"#]],
     );
     check(
         "a <== 1",
@@ -1143,10 +1143,10 @@ fn recover_not_a_compound_asn_op() {
                 CallStmt@6..7
                   LiteralExpr@6..7
                     IntLiteral@6..7 "1"
-            error in file FileId(1) at 2..4: unexpected token
-            | error in file FileId(1) for 2..4: expected statement, but found `<=`
-            error in file FileId(1) at 4..5: unexpected token
-            | error in file FileId(1) for 4..5: expected statement, but found `=`"#]],
+            error at 2..4: unexpected token
+            | error for 2..4: expected statement, but found `<=`
+            error at 4..5: unexpected token
+            | error for 4..5: expected statement, but found `=`"#]],
     );
     check(
         "a >= 1",
@@ -1164,8 +1164,8 @@ fn recover_not_a_compound_asn_op() {
                 CallStmt@5..6
                   LiteralExpr@5..6
                     IntLiteral@5..6 "1"
-            error in file FileId(1) at 2..4: unexpected token
-            | error in file FileId(1) for 2..4: expected statement, but found `>=`"#]],
+            error at 2..4: unexpected token
+            | error for 2..4: expected statement, but found `>=`"#]],
     );
     check(
         "a >== 1",
@@ -1185,10 +1185,10 @@ fn recover_not_a_compound_asn_op() {
                 CallStmt@6..7
                   LiteralExpr@6..7
                     IntLiteral@6..7 "1"
-            error in file FileId(1) at 2..4: unexpected token
-            | error in file FileId(1) for 2..4: expected statement, but found `>=`
-            error in file FileId(1) at 4..5: unexpected token
-            | error in file FileId(1) for 4..5: expected statement, but found `=`"#]],
+            error at 2..4: unexpected token
+            | error for 2..4: expected statement, but found `>=`
+            error at 4..5: unexpected token
+            | error for 4..5: expected statement, but found `=`"#]],
     );
 
     // these are not compound ops in `toc`
@@ -1212,12 +1212,12 @@ fn recover_not_a_compound_asn_op() {
                 CallStmt@6..7
                   LiteralExpr@6..7
                     IntLiteral@6..7 "1"
-            error in file FileId(1) at 2..3: unexpected token
-            | error in file FileId(1) for 2..3: expected statement, but found `~`
-            error in file FileId(1) at 3..4: unexpected token
-            | error in file FileId(1) for 3..4: expected statement, but found `=`
-            error in file FileId(1) at 4..5: unexpected token
-            | error in file FileId(1) for 4..5: expected statement, but found `=`"#]],
+            error at 2..3: unexpected token
+            | error for 2..3: expected statement, but found `~`
+            error at 3..4: unexpected token
+            | error for 3..4: expected statement, but found `=`
+            error at 4..5: unexpected token
+            | error for 4..5: expected statement, but found `=`"#]],
     );
     check(
         "a not== 1",
@@ -1239,12 +1239,12 @@ fn recover_not_a_compound_asn_op() {
                 CallStmt@8..9
                   LiteralExpr@8..9
                     IntLiteral@8..9 "1"
-            error in file FileId(1) at 2..5: unexpected token
-            | error in file FileId(1) for 2..5: expected statement, but found `not`
-            error in file FileId(1) at 5..6: unexpected token
-            | error in file FileId(1) for 5..6: expected statement, but found `=`
-            error in file FileId(1) at 6..7: unexpected token
-            | error in file FileId(1) for 6..7: expected statement, but found `=`"#]],
+            error at 2..5: unexpected token
+            | error for 2..5: expected statement, but found `not`
+            error at 5..6: unexpected token
+            | error for 5..6: expected statement, but found `=`
+            error at 6..7: unexpected token
+            | error for 6..7: expected statement, but found `=`"#]],
     );
     check(
         "a not in= 1",
@@ -1267,12 +1267,12 @@ fn recover_not_a_compound_asn_op() {
                 CallStmt@10..11
                   LiteralExpr@10..11
                     IntLiteral@10..11 "1"
-            error in file FileId(1) at 2..5: unexpected token
-            | error in file FileId(1) for 2..5: expected statement, but found `not`
-            error in file FileId(1) at 6..8: unexpected token
-            | error in file FileId(1) for 6..8: expected statement, but found `in`
-            error in file FileId(1) at 8..9: unexpected token
-            | error in file FileId(1) for 8..9: expected statement, but found `=`"#]],
+            error at 2..5: unexpected token
+            | error for 2..5: expected statement, but found `not`
+            error at 6..8: unexpected token
+            | error for 6..8: expected statement, but found `in`
+            error at 8..9: unexpected token
+            | error for 8..9: expected statement, but found `=`"#]],
     );
     check(
         "a ~in= 1",
@@ -1294,12 +1294,12 @@ fn recover_not_a_compound_asn_op() {
                 CallStmt@7..8
                   LiteralExpr@7..8
                     IntLiteral@7..8 "1"
-            error in file FileId(1) at 2..3: unexpected token
-            | error in file FileId(1) for 2..3: expected statement, but found `~`
-            error in file FileId(1) at 3..5: unexpected token
-            | error in file FileId(1) for 3..5: expected statement, but found `in`
-            error in file FileId(1) at 5..6: unexpected token
-            | error in file FileId(1) for 5..6: expected statement, but found `=`"#]],
+            error at 2..3: unexpected token
+            | error for 2..3: expected statement, but found `~`
+            error at 3..5: unexpected token
+            | error for 3..5: expected statement, but found `in`
+            error at 5..6: unexpected token
+            | error for 5..6: expected statement, but found `=`"#]],
     );
     check(
         "a in= 1",
@@ -1319,10 +1319,10 @@ fn recover_not_a_compound_asn_op() {
                 CallStmt@6..7
                   LiteralExpr@6..7
                     IntLiteral@6..7 "1"
-            error in file FileId(1) at 2..4: unexpected token
-            | error in file FileId(1) for 2..4: expected statement, but found `in`
-            error in file FileId(1) at 4..5: unexpected token
-            | error in file FileId(1) for 4..5: expected statement, but found `=`"#]],
+            error at 2..4: unexpected token
+            | error for 2..4: expected statement, but found `in`
+            error at 4..5: unexpected token
+            | error for 4..5: expected statement, but found `=`"#]],
     );
     check(
         "a == 1",
@@ -1342,10 +1342,10 @@ fn recover_not_a_compound_asn_op() {
                 CallStmt@5..6
                   LiteralExpr@5..6
                     IntLiteral@5..6 "1"
-            warn in file FileId(1) at 2..3: `=` found
-            | warn in file FileId(1) for 2..3: assuming it to be `:=`
-            error in file FileId(1) at 3..4: unexpected token
-            | error in file FileId(1) for 3..4: expected expression, but found `=`"#]],
+            warn at 2..3: `=` found
+            | warn for 2..3: assuming it to be `:=`
+            error at 3..4: unexpected token
+            | error for 3..4: expected expression, but found `=`"#]],
     );
 }
 
@@ -1371,8 +1371,8 @@ fn recover_missing_eq_in_asn_op() {
                   NameExpr@6..7
                     Name@6..7
                       Identifier@6..7 "a"
-            error in file FileId(1) at 4..5: unexpected token
-            | error in file FileId(1) for 4..5: expected `=`, but found int literal"#]],
+            error at 4..5: unexpected token
+            | error for 4..5: expected `=`, but found int literal"#]],
     );
 }
 
@@ -1393,8 +1393,8 @@ fn recover_eq_instead_of_asn() {
                   Whitespace@3..4 " "
                   LiteralExpr@4..5
                     IntLiteral@4..5 "1"
-            warn in file FileId(1) at 2..3: `=` found
-            | warn in file FileId(1) for 2..3: assuming it to be `:=`"#]],
+            warn at 2..3: `=` found
+            | warn for 2..3: assuming it to be `:=`"#]],
     );
 }
 
@@ -1498,8 +1498,8 @@ fn recover_type_decl_missing_type() {
                   Whitespace@6..7 " "
                   Colon@7..8 ":"
               Whitespace@8..9 " "
-            error in file FileId(1) at 7..8: unexpected end of file
-            | error in file FileId(1) for 7..8: expected type specifier after here"#]],
+            error at 7..8: unexpected end of file
+            | error for 7..8: expected type specifier after here"#]],
     );
 }
 
@@ -1517,8 +1517,8 @@ fn recover_type_decl_missing_name() {
                   Whitespace@6..7 " "
                   PrimType@7..10
                     KwInt@7..10 "int"
-            error in file FileId(1) at 5..6: unexpected token
-            | error in file FileId(1) for 5..6: expected identifier, but found `:`"#]],
+            error at 5..6: unexpected token
+            | error for 5..6: expected identifier, but found `:`"#]],
     );
 }
 
@@ -1536,8 +1536,8 @@ fn recover_type_decl_missing_colon() {
                     Identifier@5..6 "a"
                   Whitespace@6..7 " "
                   KwForward@7..14 "forward"
-            error in file FileId(1) at 7..14: unexpected token
-            | error in file FileId(1) for 7..14: expected `:`, but found `forward`"#]],
+            error at 7..14: unexpected token
+            | error for 7..14: expected `:`, but found `forward`"#]],
     );
 }
 
@@ -1553,8 +1553,8 @@ fn recover_type_decl_missing_colon_and_type() {
                   Whitespace@4..5 " "
                   Name@5..6
                     Identifier@5..6 "a"
-            error in file FileId(1) at 5..6: unexpected end of file
-            | error in file FileId(1) for 5..6: expected `:` after here"#]],
+            error at 5..6: unexpected end of file
+            | error for 5..6: expected `:` after here"#]],
     );
 }
 
@@ -1567,8 +1567,8 @@ fn recover_just_type() {
               StmtList@0..4
                 TypeDecl@0..4
                   KwType@0..4 "type"
-            error in file FileId(1) at 0..4: unexpected end of file
-            | error in file FileId(1) for 0..4: expected identifier after here"#]],
+            error at 0..4: unexpected end of file
+            | error for 0..4: expected identifier after here"#]],
     );
 }
 
@@ -1598,8 +1598,8 @@ fn recover_on_type() {
                   Whitespace@18..19 " "
                   PrimType@19..22
                     KwInt@19..22 "int"
-            error in file FileId(1) at 10..14: unexpected token
-            | error in file FileId(1) for 10..14: expected expression, but found `type`"#]],
+            error at 10..14: unexpected token
+            | error for 10..14: expected expression, but found `type`"#]],
     );
 }
 
@@ -1669,8 +1669,8 @@ fn recover_on_block_stmt() {
                   StmtList@15..15
                   EndGroup@15..18
                     KwEnd@15..18 "end"
-            error in file FileId(1) at 9..14: unexpected token
-            | error in file FileId(1) for 9..14: expected expression, but found `begin`"#]],
+            error at 9..14: unexpected token
+            | error for 9..14: expected expression, but found `begin`"#]],
     );
 }
 
@@ -1817,10 +1817,10 @@ fn parse_if_chained_alternates() {
                     KwEnd@45..48 "end"
                     Whitespace@48..49 " "
                     KwIf@49..51 "if"
-            warn in file FileId(1) at 13..19: `elseif` found
-            | warn in file FileId(1) for 13..19: assuming it to be `elsif`
-            warn in file FileId(1) at 30..34: `elif` found
-            | warn in file FileId(1) for 30..34: assuming it to be `elsif`"#]],
+            warn at 13..19: `elseif` found
+            | warn for 13..19: assuming it to be `elsif`
+            warn at 30..34: `elif` found
+            | warn for 30..34: assuming it to be `elsif`"#]],
     );
 }
 
@@ -1842,8 +1842,8 @@ fn recover_if_stmt_missing_condition() {
                     KwEnd@8..11 "end"
                     Whitespace@11..12 " "
                     KwIf@12..14 "if"
-            error in file FileId(1) at 3..7: unexpected token
-            | error in file FileId(1) for 3..7: expected expression, but found `then`"#]],
+            error at 3..7: unexpected token
+            | error for 3..7: expected expression, but found `then`"#]],
     );
 }
 
@@ -1866,8 +1866,8 @@ fn recover_if_stmt_missing_then() {
                     KwEnd@8..11 "end"
                     Whitespace@11..12 " "
                     KwIf@12..14 "if"
-            error in file FileId(1) at 8..11: unexpected token
-            | error in file FileId(1) for 8..11: expected `then`, but found `end`"#]],
+            error at 8..11: unexpected token
+            | error for 8..11: expected `then`, but found `end`"#]],
     );
 }
 
@@ -1888,8 +1888,8 @@ fn recover_if_stmt_missing_end() {
                     KwThen@8..12 "then"
                     StmtList@12..12
                   EndGroup@12..12
-            error in file FileId(1) at 8..12: unexpected end of file
-            | error in file FileId(1) for 8..12: expected `else`, `elsif` or `end` after here"#]],
+            error at 8..12: unexpected end of file
+            | error for 8..12: expected `else`, `elsif` or `end` after here"#]],
     );
 }
 
@@ -1912,8 +1912,8 @@ fn parse_if_alternate_end() {
                     StmtList@13..13
                   EndGroup@13..18
                     KwEndIf@13..18 "endif"
-            warn in file FileId(1) at 13..18: `endif` found
-            | warn in file FileId(1) for 13..18: assuming it to be `end if`"#]],
+            warn at 13..18: `endif` found
+            | warn for 13..18: assuming it to be `end if`"#]],
     );
 }
 
@@ -1962,8 +1962,8 @@ fn parse_elseif_alternates_stmt() {
                     KwEnd@17..20 "end"
                     Whitespace@20..21 " "
                     KwIf@21..23 "if"
-            warn in file FileId(1) at 0..6: `elseif` found
-            | warn in file FileId(1) for 0..6: assuming it to be `elsif`"#]],
+            warn at 0..6: `elseif` found
+            | warn for 0..6: assuming it to be `elsif`"#]],
     );
     check(
         "elif true then end if",
@@ -1984,8 +1984,8 @@ fn parse_elseif_alternates_stmt() {
                     KwEnd@15..18 "end"
                     Whitespace@18..19 " "
                     KwIf@19..21 "if"
-            warn in file FileId(1) at 0..4: `elif` found
-            | warn in file FileId(1) for 0..4: assuming it to be `elsif`"#]],
+            warn at 0..4: `elif` found
+            | warn for 0..4: assuming it to be `elsif`"#]],
     );
 }
 
@@ -2008,8 +2008,8 @@ fn parse_elseif_alternate_end() {
                     StmtList@16..16
                   EndGroup@16..21
                     KwEndIf@16..21 "endif"
-            warn in file FileId(1) at 16..21: `endif` found
-            | warn in file FileId(1) for 16..21: assuming it to be `end if`"#]],
+            warn at 16..21: `endif` found
+            | warn for 16..21: assuming it to be `end if`"#]],
     );
 }
 
@@ -2104,8 +2104,8 @@ fn recover_if_stmt_multiple_elses() {
                             Whitespace@26..27 " "
                             KwIf@27..29 "if"
                   EndGroup@29..29
-            error in file FileId(1) at 27..29: unexpected end of file
-            | error in file FileId(1) for 27..29: expected `end` after here"#]],
+            error at 27..29: unexpected end of file
+            | error for 27..29: expected `end` after here"#]],
     );
 }
 
@@ -2139,8 +2139,8 @@ fn recover_on_if() {
                     KwEnd@23..26 "end"
                     Whitespace@26..27 " "
                     KwIf@27..29 "if"
-            error in file FileId(1) at 10..12: unexpected token
-            | error in file FileId(1) for 10..12: expected expression, but found `if`"#]],
+            error at 10..12: unexpected token
+            | error for 10..12: expected expression, but found `if`"#]],
     );
 }
 
@@ -2168,8 +2168,8 @@ fn recover_on_else() {
                     KwEnd@15..18 "end"
                     Whitespace@18..19 " "
                     KwIf@19..21 "if"
-            error in file FileId(1) at 10..14: unexpected token
-            | error in file FileId(1) for 10..14: expected expression, but found `else`"#]],
+            error at 10..14: unexpected token
+            | error for 10..14: expected expression, but found `else`"#]],
     );
 }
 
@@ -2203,10 +2203,10 @@ fn recover_on_elseif() {
                     KwEnd@27..30 "end"
                     Whitespace@30..31 " "
                     KwIf@31..33 "if"
-            error in file FileId(1) at 10..16: unexpected token
-            | error in file FileId(1) for 10..16: expected expression, but found `elseif`
-            warn in file FileId(1) at 10..16: `elseif` found
-            | warn in file FileId(1) for 10..16: assuming it to be `elsif`"#]],
+            error at 10..16: unexpected token
+            | error for 10..16: expected expression, but found `elseif`
+            warn at 10..16: `elseif` found
+            | warn for 10..16: assuming it to be `elsif`"#]],
     );
 }
 
@@ -2240,8 +2240,8 @@ fn recover_on_elsif() {
                     KwEnd@26..29 "end"
                     Whitespace@29..30 " "
                     KwIf@30..32 "if"
-            error in file FileId(1) at 10..15: unexpected token
-            | error in file FileId(1) for 10..15: expected expression, but found `elsif`"#]],
+            error at 10..15: unexpected token
+            | error for 10..15: expected expression, but found `elsif`"#]],
     );
 }
 
@@ -2275,10 +2275,10 @@ fn recover_on_elif() {
                     KwEnd@25..28 "end"
                     Whitespace@28..29 " "
                     KwIf@29..31 "if"
-            error in file FileId(1) at 10..14: unexpected token
-            | error in file FileId(1) for 10..14: expected expression, but found `elif`
-            warn in file FileId(1) at 10..14: `elif` found
-            | warn in file FileId(1) for 10..14: assuming it to be `elsif`"#]],
+            error at 10..14: unexpected token
+            | error for 10..14: expected expression, but found `elif`
+            warn at 10..14: `elif` found
+            | warn for 10..14: assuming it to be `elsif`"#]],
     );
 }
 
@@ -2306,10 +2306,10 @@ fn recover_begin_missing_end_in_if() {
                         EndGroup@16..16
                   EndGroup@16..21
                     KwEndIf@16..21 "endif"
-            error in file FileId(1) at 16..21: unexpected token
-            | error in file FileId(1) for 16..21: expected `end`, but found `endif`
-            warn in file FileId(1) at 16..21: `endif` found
-            | warn in file FileId(1) for 16..21: assuming it to be `end if`"#]],
+            error at 16..21: unexpected token
+            | error for 16..21: expected `end`, but found `endif`
+            warn at 16..21: `endif` found
+            | warn for 16..21: assuming it to be `end if`"#]],
     );
 }
 
@@ -2327,8 +2327,8 @@ fn recover_begin_with_endloop() {
                   EndGroup@6..6
                 Error@6..13
                   KwEndLoop@6..13 "endloop"
-            error in file FileId(1) at 6..13: unexpected token
-            | error in file FileId(1) for 6..13: expected `end`, but found `endloop`"#]],
+            error at 6..13: unexpected token
+            | error for 6..13: expected `end`, but found `endloop`"#]],
     );
 }
 
@@ -2346,8 +2346,8 @@ fn recover_begin_with_endfor() {
                   EndGroup@6..6
                 Error@6..12
                   KwEndFor@6..12 "endfor"
-            error in file FileId(1) at 6..12: unexpected token
-            | error in file FileId(1) for 6..12: expected `end`, but found `endfor`"#]],
+            error at 6..12: unexpected token
+            | error for 6..12: expected `end`, but found `endfor`"#]],
     );
 }
 
@@ -2365,8 +2365,8 @@ fn recover_begin_with_endcase() {
                   EndGroup@6..6
                 Error@6..13
                   KwEndCase@6..13 "endcase"
-            error in file FileId(1) at 6..13: unexpected token
-            | error in file FileId(1) for 6..13: expected `end`, but found `endcase`"#]],
+            error at 6..13: unexpected token
+            | error for 6..13: expected `end`, but found `endcase`"#]],
     );
 }
 
@@ -2406,8 +2406,8 @@ fn recover_just_invariant() {
               StmtList@0..9
                 InvariantStmt@0..9
                   KwInvariant@0..9 "invariant"
-            error in file FileId(1) at 0..9: unexpected end of file
-            | error in file FileId(1) for 0..9: expected expression after here"#]],
+            error at 0..9: unexpected end of file
+            | error for 0..9: expected expression after here"#]],
     );
 }
 
@@ -2429,8 +2429,8 @@ fn recover_on_invariant() {
                 Whitespace@8..10 " \n"
                 InvariantStmt@10..19
                   KwInvariant@10..19 "invariant"
-            error in file FileId(1) at 10..19: unexpected token
-            | error in file FileId(1) for 10..19: expected expression, but found `invariant`"#]],
+            error at 10..19: unexpected token
+            | error for 10..19: expected expression, but found `invariant`"#]],
     );
 }
 
@@ -2470,8 +2470,8 @@ fn recover_just_assert() {
               StmtList@0..6
                 AssertStmt@0..6
                   KwAssert@0..6 "assert"
-            error in file FileId(1) at 0..6: unexpected end of file
-            | error in file FileId(1) for 0..6: expected expression after here"#]],
+            error at 0..6: unexpected end of file
+            | error for 0..6: expected expression after here"#]],
     );
 }
 
@@ -2496,8 +2496,8 @@ fn recover_on_assert() {
                   Whitespace@16..17 " "
                   LiteralExpr@17..21
                     KwTrue@17..21 "true"
-            error in file FileId(1) at 10..16: unexpected token
-            | error in file FileId(1) for 10..16: expected expression, but found `assert`"#]],
+            error at 10..16: unexpected token
+            | error for 10..16: expected expression, but found `assert`"#]],
     );
 }
 
@@ -2542,8 +2542,8 @@ fn recover_just_signal() {
               StmtList@0..6
                 SignalStmt@0..6
                   KwSignal@0..6 "signal"
-            error in file FileId(1) at 0..6: unexpected end of file
-            | error in file FileId(1) for 0..6: expected expression after here"#]],
+            error at 0..6: unexpected end of file
+            | error for 0..6: expected expression after here"#]],
     );
 }
 
@@ -2569,8 +2569,8 @@ fn recover_on_signal() {
                   NameExpr@17..18
                     Name@17..18
                       Identifier@17..18 "a"
-            error in file FileId(1) at 10..16: unexpected token
-            | error in file FileId(1) for 10..16: expected expression, but found `signal`"#]],
+            error at 10..16: unexpected token
+            | error for 10..16: expected expression, but found `signal`"#]],
     );
 }
 
@@ -2610,8 +2610,8 @@ fn recover_just_pause() {
               StmtList@0..5
                 PauseStmt@0..5
                   KwPause@0..5 "pause"
-            error in file FileId(1) at 0..5: unexpected end of file
-            | error in file FileId(1) for 0..5: expected expression after here"#]],
+            error at 0..5: unexpected end of file
+            | error for 0..5: expected expression after here"#]],
     );
 }
 
@@ -2636,8 +2636,8 @@ fn recover_on_pause() {
                   Whitespace@15..16 " "
                   LiteralExpr@16..17
                     IntLiteral@16..17 "3"
-            error in file FileId(1) at 10..15: unexpected token
-            | error in file FileId(1) for 10..15: expected expression, but found `pause`"#]],
+            error at 10..15: unexpected token
+            | error for 10..15: expected expression, but found `pause`"#]],
     );
 }
 
@@ -2665,8 +2665,8 @@ fn recover_just_result() {
               StmtList@0..6
                 ResultStmt@0..6
                   KwResult@0..6 "result"
-            error in file FileId(1) at 0..6: unexpected end of file
-            | error in file FileId(1) for 0..6: expected expression after here"#]],
+            error at 0..6: unexpected end of file
+            | error for 0..6: expected expression after here"#]],
     );
 }
 
@@ -2691,8 +2691,8 @@ fn recover_on_result() {
                   Whitespace@16..17 " "
                   LiteralExpr@17..18
                     IntLiteral@17..18 "2"
-            error in file FileId(1) at 10..16: unexpected token
-            | error in file FileId(1) for 10..16: expected expression, but found `result`"#]],
+            error at 10..16: unexpected token
+            | error for 10..16: expected expression, but found `result`"#]],
     );
 }
 
@@ -2726,8 +2726,8 @@ fn recover_on_return() {
                 Whitespace@8..10 " \n"
                 ReturnStmt@10..16
                   KwReturn@10..16 "return"
-            error in file FileId(1) at 10..16: unexpected token
-            | error in file FileId(1) for 10..16: expected expression, but found `return`"#]],
+            error at 10..16: unexpected token
+            | error for 10..16: expected expression, but found `return`"#]],
     );
 }
 
@@ -2761,8 +2761,8 @@ fn recover_on_checked() {
                 Whitespace@8..10 " \n"
                 CheckednessStmt@10..17
                   KwChecked@10..17 "checked"
-            error in file FileId(1) at 10..17: unexpected token
-            | error in file FileId(1) for 10..17: expected expression, but found `checked`"#]],
+            error at 10..17: unexpected token
+            | error for 10..17: expected expression, but found `checked`"#]],
     );
 }
 
@@ -2796,8 +2796,8 @@ fn recover_on_unchecked() {
                 Whitespace@8..10 " \n"
                 CheckednessStmt@10..19
                   KwUnchecked@10..19 "unchecked"
-            error in file FileId(1) at 10..19: unexpected token
-            | error in file FileId(1) for 10..19: expected expression, but found `unchecked`"#]],
+            error at 10..19: unexpected token
+            | error for 10..19: expected expression, but found `unchecked`"#]],
     );
 }
 
@@ -2882,8 +2882,8 @@ fn parse_loop_stmt_alt_end() {
                   StmtList@5..5
                   EndGroup@5..12
                     KwEndLoop@5..12 "endloop"
-            warn in file FileId(1) at 5..12: `endloop` found
-            | warn in file FileId(1) for 5..12: assuming it to be `end loop`"#]],
+            warn at 5..12: `endloop` found
+            | warn for 5..12: assuming it to be `end loop`"#]],
     );
 }
 
@@ -2907,8 +2907,8 @@ fn recover_loop_stmt_missing_tail_loop() {
                   StmtList@15..15
                   EndGroup@15..18
                     KwEnd@15..18 "end"
-            error in file FileId(1) at 9..14: unexpected token
-            | error in file FileId(1) for 9..14: expected `loop`, but found `begin`"#]],
+            error at 9..14: unexpected token
+            | error for 9..14: expected `loop`, but found `begin`"#]],
     );
 }
 
@@ -2930,8 +2930,8 @@ fn recover_just_loop() {
                       EndGroup@11..14
                         KwEnd@11..14 "end"
                   EndGroup@14..14
-            error in file FileId(1) at 11..14: unexpected end of file
-            | error in file FileId(1) for 11..14: expected `end` after here"#]],
+            error at 11..14: unexpected end of file
+            | error for 11..14: expected `end` after here"#]],
     );
 }
 
@@ -2959,8 +2959,8 @@ fn recover_on_loop() {
                     KwEnd@15..18 "end"
                     Whitespace@18..19 " "
                     KwLoop@19..23 "loop"
-            error in file FileId(1) at 10..14: unexpected token
-            | error in file FileId(1) for 10..14: expected expression, but found `loop`"#]],
+            error at 10..14: unexpected token
+            | error for 10..14: expected expression, but found `loop`"#]],
     );
 }
 
@@ -3004,8 +3004,8 @@ fn recover_exit_stmt_with_when_missing_expr() {
                   KwExit@0..4 "exit"
                   Whitespace@4..5 " "
                   KwWhen@5..9 "when"
-            error in file FileId(1) at 5..9: unexpected end of file
-            | error in file FileId(1) for 5..9: expected expression after here"#]],
+            error at 5..9: unexpected end of file
+            | error for 5..9: expected expression after here"#]],
     );
 }
 
@@ -3027,8 +3027,8 @@ fn recover_on_exit() {
                 Whitespace@8..10 " \n"
                 ExitStmt@10..14
                   KwExit@10..14 "exit"
-            error in file FileId(1) at 10..14: unexpected token
-            | error in file FileId(1) for 10..14: expected expression, but found `exit`"#]],
+            error at 10..14: unexpected token
+            | error for 10..14: expected expression, but found `exit`"#]],
     );
 }
 
@@ -3115,8 +3115,8 @@ fn parse_for_loop_alt_end() {
                   EndGroup@47..53
                     KwEndFor@47..53 "endfor"
               Whitespace@53..58 "\n    "
-            warn in file FileId(1) at 47..53: `endfor` found
-            | warn in file FileId(1) for 47..53: assuming it to be `end for`"#]],
+            warn at 47..53: `endfor` found
+            | warn for 47..53: assuming it to be `end for`"#]],
     );
 }
 
@@ -3335,8 +3335,8 @@ fn recover_for_loop_missing_left_bound() {
                     Whitespace@48..49 " "
                     KwFor@49..52 "for"
               Whitespace@52..57 "\n    "
-            error in file FileId(1) at 13..15: unexpected token
-            | error in file FileId(1) for 13..15: expected expression, but found `..`"#]],
+            error at 13..15: unexpected token
+            | error for 13..15: expected expression, but found `..`"#]],
     );
 }
 
@@ -3424,8 +3424,8 @@ fn recover_for_loop_missing_right_bound() {
                     Whitespace@48..49 " "
                     KwFor@49..52 "for"
               Whitespace@52..57 "\n    "
-            error in file FileId(1) at 26..35: unexpected token
-            | error in file FileId(1) for 26..35: expected expression, but found `invariant`"#]],
+            error at 26..35: unexpected token
+            | error for 26..35: expected expression, but found `invariant`"#]],
     );
 }
 
@@ -3447,8 +3447,8 @@ fn recover_for_loop_no_bounds() {
                     KwEnd@6..9 "end"
                     Whitespace@9..10 " "
                     KwFor@10..13 "for"
-            error in file FileId(1) at 6..9: unexpected token
-            | error in file FileId(1) for 6..9: expected expression, but found `end`"#]],
+            error at 6..9: unexpected token
+            | error for 6..9: expected expression, but found `end`"#]],
     );
 }
 
@@ -3468,10 +3468,10 @@ fn recover_for_loop_no_bounds_and_alt_end() {
                   StmtList@6..6
                   EndGroup@6..12
                     KwEndFor@6..12 "endfor"
-            error in file FileId(1) at 6..12: unexpected token
-            | error in file FileId(1) for 6..12: expected expression, but found `endfor`
-            warn in file FileId(1) at 6..12: `endfor` found
-            | warn in file FileId(1) for 6..12: assuming it to be `end for`"#]],
+            error at 6..12: unexpected token
+            | error for 6..12: expected expression, but found `endfor`
+            warn at 6..12: `endfor` found
+            | warn for 6..12: assuming it to be `end for`"#]],
     );
 }
 
@@ -3526,8 +3526,8 @@ fn recover_on_for_loop() {
                     Whitespace@63..64 " "
                     KwFor@64..67 "for"
               Whitespace@67..72 "\n    "
-            error in file FileId(1) at 18..21: unexpected token
-            | error in file FileId(1) for 18..21: expected expression, but found `for`"#]],
+            error at 18..21: unexpected token
+            | error for 18..21: expected expression, but found `for`"#]],
     );
 }
 
@@ -3631,8 +3631,8 @@ fn parse_case_stmt_alt_end() {
                     StmtList@35..35
                   EndGroup@35..42
                     KwEndCase@35..42 "endcase"
-            warn in file FileId(1) at 35..42: `endcase` found
-            | warn in file FileId(1) for 35..42: assuming it to be `end case`"#]],
+            warn at 35..42: `endcase` found
+            | warn for 35..42: assuming it to be `end case`"#]],
     );
 }
 
@@ -3688,8 +3688,8 @@ fn recover_case_stmt_missing_of() {
                     KwEnd@32..35 "end"
                     Whitespace@35..36 " "
                     KwCase@36..40 "case"
-            error in file FileId(1) at 20..25: unexpected token
-            | error in file FileId(1) for 20..25: expected `of`, but found `label`"#]],
+            error at 20..25: unexpected token
+            | error for 20..25: expected `of`, but found `label`"#]],
     );
 }
 
@@ -3719,8 +3719,8 @@ fn recover_case_stmt_missing_expr() {
                     KwEnd@33..36 "end"
                     Whitespace@36..37 " "
                     KwCase@37..41 "case"
-            error in file FileId(1) at 10..12: unexpected token
-            | error in file FileId(1) for 10..12: expected expression, but found `of`"#]],
+            error at 10..12: unexpected token
+            | error for 10..12: expected expression, but found `of`"#]],
     );
 }
 
@@ -3763,8 +3763,8 @@ fn recover_on_case_stmt() {
                     KwEnd@48..51 "end"
                     Whitespace@51..52 " "
                     KwCase@52..56 "case"
-            error in file FileId(1) at 18..22: unexpected token
-            | error in file FileId(1) for 18..22: expected expression, but found `case`"#]],
+            error at 18..22: unexpected token
+            | error for 18..22: expected expression, but found `case`"#]],
     );
 }
 
@@ -3959,8 +3959,8 @@ fn recover_bind_decl_missing_name() {
                     NameExpr@8..9
                       Name@8..9
                         Identifier@8..9 "b"
-            error in file FileId(1) at 5..7: unexpected token
-            | error in file FileId(1) for 5..7: expected identifier, but found `to`"#]],
+            error at 5..7: unexpected token
+            | error for 5..7: expected identifier, but found `to`"#]],
     );
 }
 
@@ -3982,8 +3982,8 @@ fn recover_bind_decl_missing_to() {
                     NameExpr@7..8
                       Name@7..8
                         Identifier@7..8 "b"
-            error in file FileId(1) at 7..8: unexpected token
-            | error in file FileId(1) for 7..8: expected `to`, but found identifier"#]],
+            error at 7..8: unexpected token
+            | error for 7..8: expected `to`, but found identifier"#]],
     );
 }
 
@@ -4003,8 +4003,8 @@ fn recover_bind_decl_missing_binding() {
                       Identifier@5..6 "a"
                     Whitespace@6..7 " "
                     KwTo@7..9 "to"
-            error in file FileId(1) at 7..9: unexpected end of file
-            | error in file FileId(1) for 7..9: expected expression after here"#]],
+            error at 7..9: unexpected end of file
+            | error for 7..9: expected expression after here"#]],
     );
 }
 
@@ -4019,8 +4019,8 @@ fn recover_just_bind() {
                 BindDecl@0..4
                   KwBind@0..4 "bind"
                   BindItem@4..4
-            error in file FileId(1) at 0..4: unexpected end of file
-            | error in file FileId(1) for 0..4: expected identifier after here"#]],
+            error at 0..4: unexpected end of file
+            | error for 0..4: expected identifier after here"#]],
     );
 }
 
@@ -4053,8 +4053,8 @@ fn recover_on_bind() {
                     NameExpr@20..21
                       Name@20..21
                         Identifier@20..21 "i"
-            error in file FileId(1) at 10..14: unexpected token
-            | error in file FileId(1) for 10..14: expected expression, but found `bind`"#]],
+            error at 10..14: unexpected token
+            | error for 10..14: expected expression, but found `bind`"#]],
     );
 }
 
@@ -4251,8 +4251,8 @@ fn recover_proc_decl_missing_name() {
                     KwEnd@40..43 "end"
                     Whitespace@43..44 " "
                     Identifier@44..45 "a"
-            error in file FileId(1) at 23..29: unexpected token
-            | error in file FileId(1) for 23..29: expected identifier, but found `assert`"#]],
+            error at 23..29: unexpected token
+            | error for 23..29: expected identifier, but found `assert`"#]],
     );
 }
 
@@ -4284,8 +4284,8 @@ fn recover_proc_decl_missing_tail_name() {
                   Whitespace@37..42 "\n    "
                   EndGroup@42..45
                     KwEnd@42..45 "end"
-            error in file FileId(1) at 42..45: unexpected end of file
-            | error in file FileId(1) for 42..45: expected identifier after here"#]],
+            error at 42..45: unexpected end of file
+            | error for 42..45: expected identifier after here"#]],
     );
 }
 
@@ -4329,8 +4329,8 @@ fn recover_on_proc() {
                     KwEnd@55..58 "end"
                     Whitespace@58..59 " "
                     Identifier@59..60 "a"
-            error in file FileId(1) at 18..27: unexpected token
-            | error in file FileId(1) for 18..27: expected expression, but found `procedure`"#]],
+            error at 18..27: unexpected token
+            | error for 18..27: expected expression, but found `procedure`"#]],
     );
 }
 
@@ -4705,8 +4705,8 @@ fn recover_fcn_decl_missing_name() {
                     KwEnd@40..43 "end"
                     Whitespace@43..44 " "
                     Identifier@44..45 "a"
-            error in file FileId(1) at 9..10: unexpected token
-            | error in file FileId(1) for 9..10: expected identifier, but found `:`"#]],
+            error at 9..10: unexpected token
+            | error for 9..10: expected identifier, but found `:`"#]],
     );
 }
 
@@ -4744,8 +4744,8 @@ fn recover_fcn_decl_missing_tail_name() {
                   Whitespace@37..42 "\n    "
                   EndGroup@42..45
                     KwEnd@42..45 "end"
-            error in file FileId(1) at 42..45: unexpected end of file
-            | error in file FileId(1) for 42..45: expected identifier after here"#]],
+            error at 42..45: unexpected end of file
+            | error for 42..45: expected identifier after here"#]],
     );
 }
 
@@ -4782,8 +4782,8 @@ fn recover_fcn_decl_missing_ret_ty() {
                     KwEnd@38..41 "end"
                     Whitespace@41..42 " "
                     Identifier@42..43 "a"
-            error in file FileId(1) at 21..27: unexpected token
-            | error in file FileId(1) for 21..27: expected type specifier, but found `assert`"#]],
+            error at 21..27: unexpected token
+            | error for 21..27: expected type specifier, but found `assert`"#]],
     );
 }
 
@@ -4820,8 +4820,8 @@ fn recover_fcn_decl_missing_colon() {
                     KwEnd@40..43 "end"
                     Whitespace@43..44 " "
                     Identifier@44..45 "a"
-            error in file FileId(1) at 11..14: unexpected token
-            | error in file FileId(1) for 11..14: expected `(`, identifier or `:`, but found `int`"#]],
+            error at 11..14: unexpected token
+            | error for 11..14: expected `(`, identifier or `:`, but found `int`"#]],
     );
 }
 
@@ -4871,8 +4871,8 @@ fn recover_on_fcn() {
                     KwEnd@55..58 "end"
                     Whitespace@58..59 " "
                     Identifier@59..60 "a"
-            error in file FileId(1) at 18..21: unexpected token
-            | error in file FileId(1) for 18..21: expected expression, but found `function`"#]],
+            error at 18..21: unexpected token
+            | error for 18..21: expected expression, but found `function`"#]],
     );
 }
 
@@ -4912,8 +4912,8 @@ fn recover_just_pre() {
               StmtList@0..3
                 PreStmt@0..3
                   KwPre@0..3 "pre"
-            error in file FileId(1) at 0..3: unexpected end of file
-            | error in file FileId(1) for 0..3: expected expression after here"#]],
+            error at 0..3: unexpected end of file
+            | error for 0..3: expected expression after here"#]],
     );
 }
 
@@ -4938,8 +4938,8 @@ fn recover_on_pre() {
                   Whitespace@13..14 " "
                   LiteralExpr@14..18
                     KwTrue@14..18 "true"
-            error in file FileId(1) at 10..13: unexpected token
-            | error in file FileId(1) for 10..13: expected expression, but found `pre`"#]],
+            error at 10..13: unexpected token
+            | error for 10..13: expected expression, but found `pre`"#]],
     );
 }
 
@@ -4979,8 +4979,8 @@ fn recover_just_post() {
               StmtList@0..4
                 PostStmt@0..4
                   KwPost@0..4 "post"
-            error in file FileId(1) at 0..4: unexpected end of file
-            | error in file FileId(1) for 0..4: expected expression after here"#]],
+            error at 0..4: unexpected end of file
+            | error for 0..4: expected expression after here"#]],
     );
 }
 
@@ -5005,8 +5005,8 @@ fn recover_on_post() {
                   Whitespace@14..15 " "
                   LiteralExpr@15..19
                     KwTrue@15..19 "true"
-            error in file FileId(1) at 10..14: unexpected token
-            | error in file FileId(1) for 10..14: expected expression, but found `post`"#]],
+            error at 10..14: unexpected token
+            | error for 10..14: expected expression, but found `post`"#]],
     );
 }
 
@@ -5049,8 +5049,8 @@ fn parse_init_stmt_alt_asn() {
                     Whitespace@8..9 " "
                     LiteralExpr@9..10
                       IntLiteral@9..10 "1"
-            warn in file FileId(1) at 7..8: `=` found
-            | warn in file FileId(1) for 7..8: assuming it to be `:=`"#]],
+            warn at 7..8: `=` found
+            | warn for 7..8: assuming it to be `:=`"#]],
     );
 }
 
@@ -5112,8 +5112,8 @@ fn recover_init_stmt_missing_asn() {
                     Whitespace@6..7 " "
                     LiteralExpr@7..8
                       IntLiteral@7..8 "1"
-            error in file FileId(1) at 7..8: unexpected token
-            | error in file FileId(1) for 7..8: expected `:=`, but found int literal"#]],
+            error at 7..8: unexpected token
+            | error for 7..8: expected `:=`, but found int literal"#]],
     );
 }
 
@@ -5132,8 +5132,8 @@ fn recover_init_stmt_missing_expr() {
                       Identifier@5..6 "a"
                     Whitespace@6..7 " "
                     Assign@7..9 ":="
-            error in file FileId(1) at 7..9: unexpected end of file
-            | error in file FileId(1) for 7..9: expected expression after here"#]],
+            error at 7..9: unexpected end of file
+            | error for 7..9: expected expression after here"#]],
     );
 }
 
@@ -5152,8 +5152,8 @@ fn recover_init_stmt_missing_name() {
                     Whitespace@7..8 " "
                     LiteralExpr@8..9
                       IntLiteral@8..9 "1"
-            error in file FileId(1) at 5..7: unexpected token
-            | error in file FileId(1) for 5..7: expected identifier, but found `:=`"#]],
+            error at 5..7: unexpected token
+            | error for 5..7: expected identifier, but found `:=`"#]],
     );
 }
 
@@ -5167,8 +5167,8 @@ fn recover_just_init() {
                 InitStmt@0..4
                   KwInit@0..4 "init"
                   InitVar@4..4
-            error in file FileId(1) at 0..4: unexpected end of file
-            | error in file FileId(1) for 0..4: expected identifier after here"#]],
+            error at 0..4: unexpected end of file
+            | error for 0..4: expected identifier after here"#]],
     );
 }
 
@@ -5197,8 +5197,8 @@ fn recover_on_init() {
                     Whitespace@18..19 " "
                     LiteralExpr@19..20
                       IntLiteral@19..20 "1"
-            error in file FileId(1) at 9..13: unexpected token
-            | error in file FileId(1) for 9..13: expected `loop`, but found `init`"#]],
+            error at 9..13: unexpected token
+            | error for 9..13: expected `loop`, but found `init`"#]],
     );
 }
 
@@ -5249,8 +5249,8 @@ fn recover_handler_stmt_missing_name() {
                     KwEnd@18..21 "end"
                     Whitespace@21..22 " "
                     KwHandler@22..29 "handler"
-            error in file FileId(1) at 9..10: unexpected token
-            | error in file FileId(1) for 9..10: expected identifier, but found `)`"#]],
+            error at 9..10: unexpected token
+            | error for 9..10: expected identifier, but found `)`"#]],
     );
 }
 
@@ -5276,8 +5276,8 @@ fn recover_handler_stmt_missing_left_paren() {
                     KwEnd@18..21 "end"
                     Whitespace@21..22 " "
                     KwHandler@22..29 "handler"
-            error in file FileId(1) at 8..9: unexpected token
-            | error in file FileId(1) for 8..9: expected `(`, but found identifier"#]],
+            error at 8..9: unexpected token
+            | error for 8..9: expected `(`, but found identifier"#]],
     );
 }
 
@@ -5303,8 +5303,8 @@ fn recover_handler_stmt_missing_right_paren() {
                     KwEnd@18..21 "end"
                     Whitespace@21..22 " "
                     KwHandler@22..29 "handler"
-            error in file FileId(1) at 11..17: unexpected token
-            | error in file FileId(1) for 11..17: expected `)`, but found `return`"#]],
+            error at 11..17: unexpected token
+            | error for 11..17: expected `)`, but found `return`"#]],
     );
 }
 
@@ -5326,8 +5326,8 @@ fn recover_handler_stmt_missing_name_portion() {
                     KwEnd@15..18 "end"
                     Whitespace@18..19 " "
                     KwHandler@19..26 "handler"
-            error in file FileId(1) at 8..14: unexpected token
-            | error in file FileId(1) for 8..14: expected `(`, but found `return`"#]],
+            error at 8..14: unexpected token
+            | error for 8..14: expected `(`, but found `return`"#]],
     );
 }
 
@@ -5352,8 +5352,8 @@ fn recover_handler_stmt_missing_tail() {
                   Whitespace@18..19 " "
                   EndGroup@19..22
                     KwEnd@19..22 "end"
-            error in file FileId(1) at 19..22: unexpected end of file
-            | error in file FileId(1) for 19..22: expected `handler` after here"#]],
+            error at 19..22: unexpected end of file
+            | error for 19..22: expected `handler` after here"#]],
     );
 }
 
@@ -5368,8 +5368,8 @@ fn recover_just_handler() {
                   KwHandler@0..7 "handler"
                   StmtList@7..7
                   EndGroup@7..7
-            error in file FileId(1) at 0..7: unexpected end of file
-            | error in file FileId(1) for 0..7: expected `(` after here"#]],
+            error at 0..7: unexpected end of file
+            | error for 0..7: expected `(` after here"#]],
     );
 }
 
@@ -5402,8 +5402,8 @@ fn recover_on_handler() {
                     KwEnd@22..25 "end"
                     Whitespace@25..26 " "
                     KwHandler@26..33 "handler"
-            error in file FileId(1) at 10..17: unexpected token
-            | error in file FileId(1) for 10..17: expected expression, but found `handler`"#]],
+            error at 10..17: unexpected token
+            | error for 10..17: expected expression, but found `handler`"#]],
     );
 }
 
@@ -5510,8 +5510,8 @@ fn recover_quit_stmt_missing_code_expr() {
                   Whitespace@4..5 " "
                   Colon@5..6 ":"
               Whitespace@6..7 " "
-            error in file FileId(1) at 5..6: unexpected end of file
-            | error in file FileId(1) for 5..6: expected expression after here"#]],
+            error at 5..6: unexpected end of file
+            | error for 5..6: expected expression after here"#]],
     );
 }
 
@@ -5533,8 +5533,8 @@ fn recover_on_quit() {
                 Whitespace@8..10 " \n"
                 QuitStmt@10..14
                   KwQuit@10..14 "quit"
-            error in file FileId(1) at 10..14: unexpected token
-            | error in file FileId(1) for 10..14: expected expression, but found `quit`"#]],
+            error at 10..14: unexpected token
+            | error for 10..14: expected expression, but found `quit`"#]],
     );
 }
 
@@ -5579,8 +5579,8 @@ fn recover_tag_stmt_missing_tag_val() {
                       Identifier@4..5 "a"
                   Comma@5..6 ","
               Whitespace@6..7 " "
-            error in file FileId(1) at 5..6: unexpected end of file
-            | error in file FileId(1) for 5..6: expected expression after here"#]],
+            error at 5..6: unexpected end of file
+            | error for 5..6: expected expression after here"#]],
     );
 }
 
@@ -5600,8 +5600,8 @@ fn recover_tag_stmt_missing_tag_comma() {
                   Whitespace@5..6 " "
                   LiteralExpr@6..7
                     IntLiteral@6..7 "1"
-            error in file FileId(1) at 6..7: unexpected token
-            | error in file FileId(1) for 6..7: expected `,`, but found int literal"#]],
+            error at 6..7: unexpected token
+            | error for 6..7: expected `,`, but found int literal"#]],
     );
 }
 
@@ -5619,8 +5619,8 @@ fn recover_tag_stmt_missing_ref() {
                   Whitespace@5..6 " "
                   LiteralExpr@6..7
                     IntLiteral@6..7 "1"
-            error in file FileId(1) at 4..5: unexpected token
-            | error in file FileId(1) for 4..5: expected expression, but found `,`"#]],
+            error at 4..5: unexpected token
+            | error for 4..5: expected expression, but found `,`"#]],
     );
 }
 
@@ -5633,8 +5633,8 @@ fn recover_just_tag() {
               StmtList@0..3
                 TagStmt@0..3
                   KwTag@0..3 "tag"
-            error in file FileId(1) at 0..3: unexpected end of file
-            | error in file FileId(1) for 0..3: expected expression after here"#]],
+            error at 0..3: unexpected end of file
+            | error for 0..3: expected expression after here"#]],
     );
 }
 
@@ -5664,8 +5664,8 @@ fn recover_on_tag() {
                   Whitespace@16..17 " "
                   LiteralExpr@17..18
                     IntLiteral@17..18 "1"
-            error in file FileId(1) at 10..13: unexpected token
-            | error in file FileId(1) for 10..13: expected expression, but found `tag`"#]],
+            error at 10..13: unexpected token
+            | error for 10..13: expected expression, but found `tag`"#]],
     );
 }
 
@@ -5848,8 +5848,8 @@ fn recover_fork_stmt_process_ref_missing_ref() {
                   Comma@17..18 ","
                   Whitespace@18..19 " "
                   ProcessDesc@19..19
-            error in file FileId(1) at 17..18: unexpected end of file
-            | error in file FileId(1) for 17..18: expected expression after here"#]],
+            error at 17..18: unexpected end of file
+            | error for 17..18: expected expression after here"#]],
     );
 }
 
@@ -5882,8 +5882,8 @@ fn recover_fork_stmt_process_ref_missing_stack_size_expr() {
                     NameExpr@17..18
                       Name@17..18
                         Identifier@17..18 "a"
-            error in file FileId(1) at 15..16: unexpected token
-            | error in file FileId(1) for 15..16: expected expression, but found `,`"#]],
+            error at 15..16: unexpected token
+            | error for 15..16: expected expression, but found `,`"#]],
     );
 }
 
@@ -5913,10 +5913,10 @@ fn recover_fork_stmt_process_ref_missing_stat_ref() {
                     NameExpr@13..14
                       Name@13..14
                         Identifier@13..14 "a"
-            error in file FileId(1) at 9..10: unexpected token
-            | error in file FileId(1) for 9..10: expected expression, but found `,`
-            error in file FileId(1) at 11..12: unexpected token
-            | error in file FileId(1) for 11..12: expected expression, but found `,`"#]],
+            error at 9..10: unexpected token
+            | error for 9..10: expected expression, but found `,`
+            error at 11..12: unexpected token
+            | error for 11..12: expected expression, but found `,`"#]],
     );
 }
 
@@ -5929,8 +5929,8 @@ fn recover_just_fork() {
               StmtList@0..4
                 ForkStmt@0..4
                   KwFork@0..4 "fork"
-            error in file FileId(1) at 0..4: unexpected end of file
-            | error in file FileId(1) for 0..4: expected expression after here"#]],
+            error at 0..4: unexpected end of file
+            | error for 0..4: expected expression after here"#]],
     );
 }
 
@@ -5956,8 +5956,8 @@ fn recover_on_fork() {
                   NameExpr@15..16
                     Name@15..16
                       Identifier@15..16 "a"
-            error in file FileId(1) at 10..14: unexpected token
-            | error in file FileId(1) for 10..14: expected expression, but found `fork`"#]],
+            error at 10..14: unexpected token
+            | error for 10..14: expected expression, but found `fork`"#]],
     );
 }
 
@@ -6043,8 +6043,8 @@ fn recover_just_new() {
                 NewStmt@0..3
                   KwNew@0..3 "new"
                   ExprList@3..3
-            error in file FileId(1) at 0..3: unexpected end of file
-            | error in file FileId(1) for 0..3: expected expression after here"#]],
+            error at 0..3: unexpected end of file
+            | error for 0..3: expected expression after here"#]],
     );
 }
 
@@ -6071,8 +6071,8 @@ fn recover_on_new() {
                     NameExpr@14..15
                       Name@14..15
                         Identifier@14..15 "a"
-            error in file FileId(1) at 10..13: unexpected token
-            | error in file FileId(1) for 10..13: expected expression, but found `new`"#]],
+            error at 10..13: unexpected token
+            | error for 10..13: expected expression, but found `new`"#]],
     );
 }
 
@@ -6159,8 +6159,8 @@ fn recover_just_free() {
                 FreeStmt@0..4
                   KwFree@0..4 "free"
                   ExprList@4..4
-            error in file FileId(1) at 0..4: unexpected end of file
-            | error in file FileId(1) for 0..4: expected expression after here"#]],
+            error at 0..4: unexpected end of file
+            | error for 0..4: expected expression after here"#]],
     );
 }
 
@@ -6187,8 +6187,8 @@ fn recover_on_free() {
                     NameExpr@15..16
                       Name@15..16
                         Identifier@15..16 "a"
-            error in file FileId(1) at 10..14: unexpected token
-            | error in file FileId(1) for 10..14: expected expression, but found `free`"#]],
+            error at 10..14: unexpected token
+            | error for 10..14: expected expression, but found `free`"#]],
     );
 }
 
@@ -6249,8 +6249,8 @@ fn recover_just_deferred() {
               StmtList@0..8
                 Error@0..8
                   KwDeferred@0..8 "deferred"
-            error in file FileId(1) at 0..8: unexpected end of file
-            | error in file FileId(1) for 0..8: expected `function` or `procedure` after here"#]],
+            error at 0..8: unexpected end of file
+            | error for 0..8: expected `function` or `procedure` after here"#]],
     );
 }
 
@@ -6281,8 +6281,8 @@ fn recover_on_deferred() {
                     Whitespace@32..33 " "
                     Name@33..34
                       Identifier@33..34 "a"
-            error in file FileId(1) at 19..27: unexpected token
-            | error in file FileId(1) for 19..27: expected expression, but found `deferred`"#]],
+            error at 19..27: unexpected token
+            | error for 19..27: expected expression, but found `deferred`"#]],
     );
 }
 
@@ -6407,8 +6407,8 @@ fn recover_forward_decl_missing_import_name() {
                   ImportList@21..21
                     ImportItem@21..21
                       ExternalItem@21..21
-            error in file FileId(1) at 15..21: unexpected end of file
-            | error in file FileId(1) for 15..21: expected string literal or identifier after here"#]],
+            error at 15..21: unexpected end of file
+            | error for 15..21: expected string literal or identifier after here"#]],
     );
 }
 
@@ -6421,8 +6421,8 @@ fn recover_just_forward() {
               StmtList@0..7
                 Error@0..7
                   KwForward@0..7 "forward"
-            error in file FileId(1) at 0..7: unexpected end of file
-            | error in file FileId(1) for 0..7: expected `function` or `procedure` after here"#]],
+            error at 0..7: unexpected end of file
+            | error for 0..7: expected `function` or `procedure` after here"#]],
     );
 }
 
@@ -6453,8 +6453,8 @@ fn recover_on_forward() {
                     Whitespace@31..32 " "
                     Name@32..33
                       Identifier@32..33 "a"
-            error in file FileId(1) at 19..26: unexpected token
-            | error in file FileId(1) for 19..26: expected expression, but found `forward`"#]],
+            error at 19..26: unexpected token
+            | error for 19..26: expected expression, but found `forward`"#]],
     );
 }
 
@@ -6900,8 +6900,8 @@ fn recover_body_plain_missing_name() {
                     KwEnd@15..18 "end"
                     Whitespace@18..19 " "
                     Identifier@19..20 "a"
-            error in file FileId(1) at 5..6: unexpected token
-            | error in file FileId(1) for 5..6: expected `function`, `procedure` or identifier, but found `(`"#]],
+            error at 5..6: unexpected token
+            | error for 5..6: expected `function`, `procedure` or identifier, but found `(`"#]],
     );
 }
 
@@ -6918,8 +6918,8 @@ fn recover_just_body() {
                   SubprogBody@4..4
                     StmtList@4..4
                   EndGroup@4..4
-            error in file FileId(1) at 0..4: unexpected end of file
-            | error in file FileId(1) for 0..4: expected `function`, `procedure` or identifier after here"#]],
+            error at 0..4: unexpected end of file
+            | error for 0..4: expected `function`, `procedure` or identifier after here"#]],
     );
 }
 
@@ -6956,8 +6956,8 @@ fn recover_on_body() {
                     KwEnd@29..32 "end"
                     Whitespace@32..33 " "
                     Identifier@33..34 "a"
-            error in file FileId(1) at 18..22: unexpected token
-            | error in file FileId(1) for 18..22: expected expression, but found `body`"#]],
+            error at 18..22: unexpected token
+            | error for 18..22: expected expression, but found `body`"#]],
     );
 }
 
@@ -7144,8 +7144,8 @@ fn recover_module_decl_double_implement() {
                     KwEnd@33..36 "end"
                     Whitespace@36..37 " "
                     Identifier@37..38 "a"
-            error in file FileId(1) at 31..32: unexpected token
-            | error in file FileId(1) for 31..32: expected `by`, but found identifier"#]],
+            error at 31..32: unexpected token
+            | error for 31..32: expected `by`, but found identifier"#]],
     );
 }
 
@@ -7337,10 +7337,10 @@ fn recover_module_decl_double_post() {
                   NameExpr@27..28
                     Name@27..28
                       Identifier@27..28 "a"
-            error in file FileId(1) at 16..20: unexpected token
-            | error in file FileId(1) for 16..20: expected `end`, but found `post`
-            error in file FileId(1) at 23..26: unexpected token
-            | error in file FileId(1) for 23..26: expected statement, but found `end`"#]],
+            error at 16..20: unexpected token
+            | error for 16..20: expected `end`, but found `post`
+            error at 23..26: unexpected token
+            | error for 23..26: expected statement, but found `end`"#]],
     );
 }
 
@@ -7359,8 +7359,8 @@ fn recover_module_decl_missing_name() {
                     KwEnd@7..10 "end"
                     Whitespace@10..11 " "
                     Identifier@11..12 "a"
-            error in file FileId(1) at 7..10: unexpected token
-            | error in file FileId(1) for 7..10: expected identifier, but found `end`"#]],
+            error at 7..10: unexpected token
+            | error for 7..10: expected identifier, but found `end`"#]],
     );
 }
 
@@ -7380,8 +7380,8 @@ fn recover_module_decl_missing_tail_name() {
                   StmtList@9..9
                   EndGroup@9..12
                     KwEnd@9..12 "end"
-            error in file FileId(1) at 9..12: unexpected end of file
-            | error in file FileId(1) for 9..12: expected identifier after here"#]],
+            error at 9..12: unexpected end of file
+            | error for 9..12: expected identifier after here"#]],
     );
 }
 
@@ -7396,8 +7396,8 @@ fn recover_just_module() {
                   KwModule@0..6 "module"
                   StmtList@6..6
                   EndGroup@6..6
-            error in file FileId(1) at 0..6: unexpected end of file
-            | error in file FileId(1) for 0..6: expected identifier after here"#]],
+            error at 0..6: unexpected end of file
+            | error for 0..6: expected identifier after here"#]],
     );
 }
 
@@ -7428,8 +7428,8 @@ fn recover_on_module() {
                     KwEnd@19..22 "end"
                     Whitespace@22..23 " "
                     Identifier@23..24 "a"
-            error in file FileId(1) at 10..16: unexpected token
-            | error in file FileId(1) for 10..16: expected expression, but found `module`"#]],
+            error at 10..16: unexpected token
+            | error for 10..16: expected expression, but found `module`"#]],
     );
 }
 
@@ -7521,8 +7521,8 @@ fn recover_class_decl_missing_name() {
                     KwEnd@6..9 "end"
                     Whitespace@9..10 " "
                     Identifier@10..11 "a"
-            error in file FileId(1) at 6..9: unexpected token
-            | error in file FileId(1) for 6..9: expected identifier, but found `end`"#]],
+            error at 6..9: unexpected token
+            | error for 6..9: expected identifier, but found `end`"#]],
     );
 }
 
@@ -7542,8 +7542,8 @@ fn recover_class_decl_missing_tail_name() {
                   StmtList@8..8
                   EndGroup@8..11
                     KwEnd@8..11 "end"
-            error in file FileId(1) at 8..11: unexpected end of file
-            | error in file FileId(1) for 8..11: expected identifier after here"#]],
+            error at 8..11: unexpected end of file
+            | error for 8..11: expected identifier after here"#]],
     );
 }
 
@@ -7558,8 +7558,8 @@ fn recover_just_class() {
                   KwClass@0..5 "class"
                   StmtList@5..5
                   EndGroup@5..5
-            error in file FileId(1) at 0..5: unexpected end of file
-            | error in file FileId(1) for 0..5: expected identifier after here"#]],
+            error at 0..5: unexpected end of file
+            | error for 0..5: expected identifier after here"#]],
     );
 }
 
@@ -7590,8 +7590,8 @@ fn recover_on_class() {
                     KwEnd@18..21 "end"
                     Whitespace@21..22 " "
                     Identifier@22..23 "a"
-            error in file FileId(1) at 10..15: unexpected token
-            | error in file FileId(1) for 10..15: expected expression, but found `class`"#]],
+            error at 10..15: unexpected token
+            | error for 10..15: expected expression, but found `class`"#]],
     );
 }
 
@@ -7694,8 +7694,8 @@ fn recover_monitor_decl_missing_dev_spec_expr() {
                     KwEnd@12..15 "end"
                     Whitespace@15..16 " "
                     Identifier@16..17 "a"
-            error in file FileId(1) at 12..15: unexpected token
-            | error in file FileId(1) for 12..15: expected expression, but found `end`"#]],
+            error at 12..15: unexpected token
+            | error for 12..15: expected expression, but found `end`"#]],
     );
 }
 
@@ -7714,8 +7714,8 @@ fn recover_monitor_decl_missing_name() {
                     KwEnd@8..11 "end"
                     Whitespace@11..12 " "
                     Identifier@12..13 "a"
-            error in file FileId(1) at 8..11: unexpected token
-            | error in file FileId(1) for 8..11: expected identifier, but found `end`"#]],
+            error at 8..11: unexpected token
+            | error for 8..11: expected identifier, but found `end`"#]],
     );
 }
 
@@ -7735,8 +7735,8 @@ fn recover_monitor_decl_missing_tail_name() {
                   StmtList@10..10
                   EndGroup@10..13
                     KwEnd@10..13 "end"
-            error in file FileId(1) at 10..13: unexpected end of file
-            | error in file FileId(1) for 10..13: expected identifier after here"#]],
+            error at 10..13: unexpected end of file
+            | error for 10..13: expected identifier after here"#]],
     );
 }
 
@@ -7751,8 +7751,8 @@ fn recover_just_monitor() {
                   KwMonitor@0..7 "monitor"
                   StmtList@7..7
                   EndGroup@7..7
-            error in file FileId(1) at 0..7: unexpected end of file
-            | error in file FileId(1) for 0..7: expected identifier after here"#]],
+            error at 0..7: unexpected end of file
+            | error for 0..7: expected identifier after here"#]],
     );
 }
 
@@ -7783,8 +7783,8 @@ fn recover_on_monitor() {
                     KwEnd@20..23 "end"
                     Whitespace@23..24 " "
                     Identifier@24..25 "a"
-            error in file FileId(1) at 10..17: unexpected token
-            | error in file FileId(1) for 10..17: expected expression, but found `monitor`"#]],
+            error at 10..17: unexpected token
+            | error for 10..17: expected expression, but found `monitor`"#]],
     );
 }
 
@@ -7940,8 +7940,8 @@ fn parse_process_decl() {
                     KwEnd@40..43 "end"
                     Whitespace@43..44 " "
                     Identifier@44..45 "a"
-            error in file FileId(1) at 17..18: unexpected token
-            | error in file FileId(1) for 17..18: expected `,` or `:`, but found `)`"#]],
+            error at 17..18: unexpected token
+            | error for 17..18: expected `,` or `:`, but found `)`"#]],
     );
 }
 
@@ -7995,8 +7995,8 @@ fn parse_process_decl_opt_stack_size() {
                     KwEnd@48..51 "end"
                     Whitespace@51..52 " "
                     Identifier@52..53 "a"
-            error in file FileId(1) at 17..18: unexpected token
-            | error in file FileId(1) for 17..18: expected `,` or `:`, but found `)`"#]],
+            error at 17..18: unexpected token
+            | error for 17..18: expected `,` or `:`, but found `)`"#]],
     );
 }
 
@@ -8087,8 +8087,8 @@ fn recover_process_decl_missing_stack_size_expr() {
                     KwEnd@21..24 "end"
                     Whitespace@24..25 " "
                     Identifier@25..26 "a"
-            error in file FileId(1) at 21..24: unexpected token
-            | error in file FileId(1) for 21..24: expected expression, but found `end`"#]],
+            error at 21..24: unexpected token
+            | error for 21..24: expected expression, but found `end`"#]],
     );
 }
 
@@ -8112,8 +8112,8 @@ fn recover_process_decl_missing_name() {
                     KwEnd@17..20 "end"
                     Whitespace@20..21 " "
                     Identifier@21..22 "a"
-            error in file FileId(1) at 17..20: unexpected token
-            | error in file FileId(1) for 17..20: expected identifier, but found `end`"#]],
+            error at 17..20: unexpected token
+            | error for 17..20: expected identifier, but found `end`"#]],
     );
 }
 
@@ -8138,8 +8138,8 @@ fn recover_process_decl_missing_tail_name() {
                     StmtList@19..19
                   EndGroup@19..22
                     KwEnd@19..22 "end"
-            error in file FileId(1) at 19..22: unexpected end of file
-            | error in file FileId(1) for 19..22: expected identifier after here"#]],
+            error at 19..22: unexpected end of file
+            | error for 19..22: expected identifier after here"#]],
     );
 }
 
@@ -8156,8 +8156,8 @@ fn recover_just_process() {
                   SubprogBody@7..7
                     StmtList@7..7
                   EndGroup@7..7
-            error in file FileId(1) at 0..7: unexpected end of file
-            | error in file FileId(1) for 0..7: expected identifier after here"#]],
+            error at 0..7: unexpected end of file
+            | error for 0..7: expected identifier after here"#]],
     );
 }
 
@@ -8194,8 +8194,8 @@ fn recover_on_process() {
                     KwEnd@32..35 "end"
                     Whitespace@35..36 " "
                     Identifier@36..37 "a"
-            error in file FileId(1) at 18..25: unexpected token
-            | error in file FileId(1) for 18..25: expected expression, but found `process`"#]],
+            error at 18..25: unexpected token
+            | error for 18..25: expected expression, but found `process`"#]],
     );
 }
 
@@ -8393,8 +8393,8 @@ fn parse_external_var_alt_init() {
                     Whitespace@26..27 " "
                     LiteralExpr@27..28
                       IntLiteral@27..28 "1"
-            warn in file FileId(1) at 25..26: `=` found
-            | warn in file FileId(1) for 25..26: assuming it to be `:=`"#]],
+            warn at 25..26: `=` found
+            | warn for 25..26: assuming it to be `:=`"#]],
     );
 }
 
@@ -8504,8 +8504,8 @@ fn recover_external_var_bare() {
                     Whitespace@22..23 " "
                     Name@23..24
                       Identifier@23..24 "a"
-            error in file FileId(1) at 23..24: unexpected end of file
-            | error in file FileId(1) for 23..24: expected `:` or `:=` after here"#]],
+            error at 23..24: unexpected end of file
+            | error for 23..24: expected `:` or `:=` after here"#]],
     );
 }
 
@@ -8536,8 +8536,8 @@ fn recover_external_on_const() {
                   Whitespace@25..26 " "
                   LiteralExpr@26..27
                     IntLiteral@26..27 "1"
-            error in file FileId(1) at 9..14: unexpected token
-            | error in file FileId(1) for 9..14: expected `function`, `procedure` or `var`, but found `const`"#]],
+            error at 9..14: unexpected token
+            | error for 9..14: expected `function`, `procedure` or `var`, but found `const`"#]],
     );
 }
 
@@ -8550,8 +8550,8 @@ fn recover_just_external() {
               StmtList@0..8
                 ExternalDecl@0..8
                   KwExternal@0..8 "external"
-            error in file FileId(1) at 0..8: unexpected end of file
-            | error in file FileId(1) for 0..8: expected `function`, `procedure` or `var` after here"#]],
+            error at 0..8: unexpected end of file
+            | error for 0..8: expected `function`, `procedure` or `var` after here"#]],
     );
 }
 
@@ -8579,10 +8579,10 @@ fn recover_on_external() {
                     Whitespace@22..23 " "
                     Name@23..24
                       Identifier@23..24 "i"
-            error in file FileId(1) at 10..18: unexpected token
-            | error in file FileId(1) for 10..18: expected expression, but found `external`
-            error in file FileId(1) at 23..24: unexpected end of file
-            | error in file FileId(1) for 23..24: expected `:` or `:=` after here"#]],
+            error at 10..18: unexpected token
+            | error for 10..18: expected expression, but found `external`
+            error at 23..24: unexpected end of file
+            | error for 23..24: expected `:` or `:=` after here"#]],
     );
 }
 
@@ -8651,8 +8651,8 @@ fn recover_inherit_stmt_missing_left_paren() {
                       Identifier@8..9 "p"
                 Error@9..10
                   RightParen@9..10 ")"
-            error in file FileId(1) at 9..10: unexpected token
-            | error in file FileId(1) for 9..10: expected statement, but found `)`"#]],
+            error at 9..10: unexpected token
+            | error for 9..10: expected statement, but found `)`"#]],
     );
 }
 
@@ -8670,8 +8670,8 @@ fn recover_inherit_stmt_missing_right_paren() {
                   ExternalItem@9..10
                     Name@9..10
                       Identifier@9..10 "p"
-            error in file FileId(1) at 9..10: unexpected end of file
-            | error in file FileId(1) for 9..10: expected `in` or `)` after here"#]],
+            error at 9..10: unexpected end of file
+            | error for 9..10: expected `in` or `)` after here"#]],
     );
 }
 
@@ -8688,8 +8688,8 @@ fn recover_inherit_just_parens() {
                   LeftParen@8..9 "("
                   ExternalItem@9..9
                   RightParen@9..10 ")"
-            error in file FileId(1) at 9..10: unexpected token
-            | error in file FileId(1) for 9..10: expected string literal or identifier, but found `)`"#]],
+            error at 9..10: unexpected token
+            | error for 9..10: expected string literal or identifier, but found `)`"#]],
     );
 }
 
@@ -8703,8 +8703,8 @@ fn recover_just_inherit() {
                 InheritStmt@0..7
                   KwInherit@0..7 "inherit"
                   ExternalItem@7..7
-            error in file FileId(1) at 0..7: unexpected end of file
-            | error in file FileId(1) for 0..7: expected string literal or identifier after here"#]],
+            error at 0..7: unexpected end of file
+            | error for 0..7: expected string literal or identifier after here"#]],
     );
 }
 
@@ -8730,8 +8730,8 @@ fn recover_on_inherit() {
                   ExternalItem@17..18
                     Name@17..18
                       Identifier@17..18 "p"
-            error in file FileId(1) at 9..16: unexpected token
-            | error in file FileId(1) for 9..16: expected expression, but found `inherit`"#]],
+            error at 9..16: unexpected token
+            | error for 9..16: expected expression, but found `inherit`"#]],
     );
 }
 
@@ -8820,8 +8820,8 @@ fn recover_implement_just_parens() {
                   LeftParen@10..11 "("
                   ExternalItem@11..11
                   RightParen@11..12 ")"
-            error in file FileId(1) at 11..12: unexpected token
-            | error in file FileId(1) for 11..12: expected string literal or identifier, but found `)`"#]],
+            error at 11..12: unexpected token
+            | error for 11..12: expected string literal or identifier, but found `)`"#]],
     );
 }
 
@@ -8840,8 +8840,8 @@ fn recover_implement_by_just_parens() {
                   LeftParen@13..14 "("
                   ExternalItem@14..14
                   RightParen@14..15 ")"
-            error in file FileId(1) at 14..15: unexpected token
-            | error in file FileId(1) for 14..15: expected string literal or identifier, but found `)`"#]],
+            error at 14..15: unexpected token
+            | error for 14..15: expected string literal or identifier, but found `)`"#]],
     );
 }
 
@@ -8855,8 +8855,8 @@ fn recover_just_implement() {
                 ImplementStmt@0..9
                   KwImplement@0..9 "implement"
                   ExternalItem@9..9
-            error in file FileId(1) at 0..9: unexpected end of file
-            | error in file FileId(1) for 0..9: expected `by`, string literal or identifier after here"#]],
+            error at 0..9: unexpected end of file
+            | error for 0..9: expected `by`, string literal or identifier after here"#]],
     );
 }
 
@@ -8882,8 +8882,8 @@ fn recover_on_implement() {
                   ExternalItem@19..20
                     Name@19..20
                       Identifier@19..20 "p"
-            error in file FileId(1) at 9..18: unexpected token
-            | error in file FileId(1) for 9..18: expected expression, but found `implement`"#]],
+            error at 9..18: unexpected token
+            | error for 9..18: expected expression, but found `implement`"#]],
     );
 }
 
@@ -9101,8 +9101,8 @@ fn recover_import_stmt_missing_name_after_attr() {
                       KwVar@7..10 "var"
                     ExternalItem@10..10
               StmtList@10..10
-            error in file FileId(1) at 7..10: unexpected end of file
-            | error in file FileId(1) for 7..10: expected string literal or identifier after here"#]],
+            error at 7..10: unexpected end of file
+            | error for 7..10: expected string literal or identifier after here"#]],
     );
 }
 
@@ -9118,8 +9118,8 @@ fn recover_just_import() {
                   ImportItem@6..6
                     ExternalItem@6..6
               StmtList@6..6
-            error in file FileId(1) at 0..6: unexpected end of file
-            | error in file FileId(1) for 0..6: expected string literal or identifier after here"#]],
+            error at 0..6: unexpected end of file
+            | error for 0..6: expected string literal or identifier after here"#]],
     );
 }
 
@@ -9144,8 +9144,8 @@ fn recover_on_import() {
                   Whitespace@16..17 " "
                   LeftParen@17..18 "("
                   RightParen@18..19 ")"
-            error in file FileId(1) at 10..16: unexpected token
-            | error in file FileId(1) for 10..16: expected expression, but found `import`"#]],
+            error at 10..16: unexpected token
+            | error for 10..16: expected expression, but found `import`"#]],
     );
 }
 
@@ -9333,8 +9333,8 @@ fn recover_export_stmt_missing_dot_after_not() {
                       Tilde@7..8 "~"
                     Name@8..9
                       Identifier@8..9 "i"
-            error in file FileId(1) at 8..9: unexpected token
-            | error in file FileId(1) for 8..9: expected `.`, but found identifier"#]],
+            error at 8..9: unexpected token
+            | error for 8..9: expected `.`, but found identifier"#]],
     );
 }
 
@@ -9348,8 +9348,8 @@ fn recover_just_export() {
                 ExportStmt@0..6
                   KwExport@0..6 "export"
                   ExportItem@6..6
-            error in file FileId(1) at 0..6: unexpected end of file
-            | error in file FileId(1) for 0..6: expected `all` or identifier after here"#]],
+            error at 0..6: unexpected end of file
+            | error for 0..6: expected `all` or identifier after here"#]],
     );
 }
 
@@ -9374,8 +9374,8 @@ fn recover_on_export() {
                   Whitespace@16..17 " "
                   LeftParen@17..18 "("
                   RightParen@18..19 ")"
-            error in file FileId(1) at 10..16: unexpected token
-            | error in file FileId(1) for 10..16: expected expression, but found `export`"#]],
+            error at 10..16: unexpected token
+            | error for 10..16: expected expression, but found `export`"#]],
     );
 }
 
@@ -9407,8 +9407,8 @@ fn recover_just_include() {
                 PreprocGlob@0..7
                   PPInclude@0..7
                     KwInclude@0..7 "include"
-            error in file FileId(1) at 0..7: unexpected end of file
-            | error in file FileId(1) for 0..7: expected string literal after here"#]],
+            error at 0..7: unexpected end of file
+            | error for 0..7: expected string literal after here"#]],
     );
 }
 
@@ -9431,10 +9431,10 @@ fn recover_on_include() {
                         LiteralExpr@12..24
                           StringLiteral@12..24 "\"still_here\""
                   EndGroup@24..24
-            error in file FileId(1) at 4..11: unexpected token
-            | error in file FileId(1) for 4..11: expected identifier or `:`, but found `include`
-            error in file FileId(1) at 12..24: unexpected end of file
-            | error in file FileId(1) for 12..24: expected `end` after here"#]],
+            error at 4..11: unexpected token
+            | error for 4..11: expected identifier or `:`, but found `include`
+            error at 12..24: unexpected end of file
+            | error for 12..24: expected `end` after here"#]],
     )
 }
 
@@ -9464,10 +9464,10 @@ fn recover_many_units() {
                 Whitespace@9..10 " "
                 Error@10..14
                   KwUnit@10..14 "unit"
-            error in file FileId(1) at 5..9: unexpected token
-            | error in file FileId(1) for 5..9: expected statement, but found `unit`
-            error in file FileId(1) at 10..14: unexpected token
-            | error in file FileId(1) for 10..14: expected statement, but found `unit`"#]],
+            error at 5..9: unexpected token
+            | error for 5..9: expected statement, but found `unit`
+            error at 10..14: unexpected token
+            | error for 10..14: expected statement, but found `unit`"#]],
     );
 }
 
@@ -9537,8 +9537,8 @@ fn recover_tell_stmt_missing_file_ref() {
                   NameExpr@9..10
                     Name@9..10
                       Identifier@9..10 "a"
-            error in file FileId(1) at 7..8: unexpected token
-            | error in file FileId(1) for 7..8: expected expression, but found `,`"#]],
+            error at 7..8: unexpected token
+            | error for 7..8: expected expression, but found `,`"#]],
     );
 }
 
@@ -9560,8 +9560,8 @@ fn recover_tell_stmt_missing_tell_dest() {
                         Identifier@7..8 "a"
                   Comma@8..9 ","
               Whitespace@9..10 " "
-            error in file FileId(1) at 8..9: unexpected end of file
-            | error in file FileId(1) for 8..9: expected expression after here"#]],
+            error at 8..9: unexpected end of file
+            | error for 8..9: expected expression after here"#]],
     );
 }
 
@@ -9574,8 +9574,8 @@ fn recover_just_tell() {
               StmtList@0..4
                 TellStmt@0..4
                   KwTell@0..4 "tell"
-            error in file FileId(1) at 0..4: unexpected end of file
-            | error in file FileId(1) for 0..4: expected `:` after here"#]],
+            error at 0..4: unexpected end of file
+            | error for 0..4: expected `:` after here"#]],
     );
 }
 
@@ -9609,8 +9609,8 @@ fn recover_on_tell() {
                   NameExpr@20..21
                     Name@20..21
                       Identifier@20..21 "b"
-            error in file FileId(1) at 10..14: unexpected token
-            | error in file FileId(1) for 10..14: expected expression, but found `tell`"#]],
+            error at 10..14: unexpected token
+            | error for 10..14: expected expression, but found `tell`"#]],
     );
 }
 
@@ -9684,8 +9684,8 @@ fn recover_seek_stmt_missing_file_ref() {
                   NameExpr@9..10
                     Name@9..10
                       Identifier@9..10 "a"
-            error in file FileId(1) at 7..8: unexpected token
-            | error in file FileId(1) for 7..8: expected expression, but found `,`"#]],
+            error at 7..8: unexpected token
+            | error for 7..8: expected expression, but found `,`"#]],
     );
 }
 
@@ -9707,8 +9707,8 @@ fn recover_seek_stmt_missing_to_expr() {
                         Identifier@7..8 "a"
                   Comma@8..9 ","
               Whitespace@9..10 " "
-            error in file FileId(1) at 8..9: unexpected end of file
-            | error in file FileId(1) for 8..9: expected expression after here"#]],
+            error at 8..9: unexpected end of file
+            | error for 8..9: expected expression after here"#]],
     );
 }
 
@@ -9721,8 +9721,8 @@ fn recover_just_seek() {
               StmtList@0..4
                 SeekStmt@0..4
                   KwSeek@0..4 "seek"
-            error in file FileId(1) at 0..4: unexpected end of file
-            | error in file FileId(1) for 0..4: expected `:` after here"#]],
+            error at 0..4: unexpected end of file
+            | error for 0..4: expected `:` after here"#]],
     );
 }
 
@@ -9756,8 +9756,8 @@ fn recover_on_seek() {
                   NameExpr@20..21
                     Name@20..21
                       Identifier@20..21 "b"
-            error in file FileId(1) at 10..14: unexpected token
-            | error in file FileId(1) for 10..14: expected expression, but found `seek`"#]],
+            error at 10..14: unexpected token
+            | error for 10..14: expected expression, but found `seek`"#]],
     );
 }
 
@@ -9946,8 +9946,8 @@ fn recover_read_stmt_missing_actual_sz_expr() {
                       NameExpr@27..28
                         Name@27..28
                           Identifier@27..28 "b"
-            error in file FileId(1) at 25..26: unexpected token
-            | error in file FileId(1) for 25..26: expected expression, but found `,`"#]],
+            error at 25..26: unexpected token
+            | error for 25..26: expected expression, but found `,`"#]],
     );
 }
 
@@ -9990,8 +9990,8 @@ fn recover_read_stmt_missing_req_sz_expr() {
                       NameExpr@24..25
                         Name@24..25
                           Identifier@24..25 "b"
-            error in file FileId(1) at 18..19: unexpected token
-            | error in file FileId(1) for 18..19: expected expression, but found `:`"#]],
+            error at 18..19: unexpected token
+            | error for 18..19: expected expression, but found `:`"#]],
     );
 }
 
@@ -10034,8 +10034,8 @@ fn recover_read_stmt_missing_item_data_expr() {
                       NameExpr@26..27
                         Name@26..27
                           Identifier@26..27 "b"
-            error in file FileId(1) at 14..15: unexpected token
-            | error in file FileId(1) for 14..15: expected expression, but found `:`"#]],
+            error at 14..15: unexpected token
+            | error for 14..15: expected expression, but found `:`"#]],
     );
 }
 
@@ -10085,8 +10085,8 @@ fn recover_read_stmt_missing_sts_ref() {
                       NameExpr@30..31
                         Name@30..31
                           Identifier@30..31 "b"
-            error in file FileId(1) at 14..15: unexpected token
-            | error in file FileId(1) for 14..15: expected expression, but found `,`"#]],
+            error at 14..15: unexpected token
+            | error for 14..15: expected expression, but found `,`"#]],
     );
 }
 
@@ -10135,8 +10135,8 @@ fn recover_read_stmt_missing_file_ref() {
                       NameExpr@28..29
                         Name@28..29
                           Identifier@28..29 "b"
-            error in file FileId(1) at 7..8: unexpected token
-            | error in file FileId(1) for 7..8: expected expression, but found `:`"#]],
+            error at 7..8: unexpected token
+            | error for 7..8: expected expression, but found `:`"#]],
     );
 }
 
@@ -10151,8 +10151,8 @@ fn recover_just_read() {
                   KwRead@0..4 "read"
                   BinaryIO@4..4
                     BinaryItem@4..4
-            error in file FileId(1) at 0..4: unexpected end of file
-            | error in file FileId(1) for 0..4: expected `:` after here"#]],
+            error at 0..4: unexpected end of file
+            | error for 0..4: expected `:` after here"#]],
     );
 }
 
@@ -10188,8 +10188,8 @@ fn recover_on_read() {
                       NameExpr@20..21
                         Name@20..21
                           Identifier@20..21 "b"
-            error in file FileId(1) at 10..14: unexpected token
-            | error in file FileId(1) for 10..14: expected expression, but found `read`"#]],
+            error at 10..14: unexpected token
+            | error for 10..14: expected expression, but found `read`"#]],
     );
 }
 
@@ -10378,8 +10378,8 @@ fn recover_write_stmt_missing_actual_sz_expr() {
                       NameExpr@28..29
                         Name@28..29
                           Identifier@28..29 "b"
-            error in file FileId(1) at 26..27: unexpected token
-            | error in file FileId(1) for 26..27: expected expression, but found `,`"#]],
+            error at 26..27: unexpected token
+            | error for 26..27: expected expression, but found `,`"#]],
     );
 }
 
@@ -10422,8 +10422,8 @@ fn recover_write_stmt_missing_req_sz_expr() {
                       NameExpr@25..26
                         Name@25..26
                           Identifier@25..26 "b"
-            error in file FileId(1) at 19..20: unexpected token
-            | error in file FileId(1) for 19..20: expected expression, but found `:`"#]],
+            error at 19..20: unexpected token
+            | error for 19..20: expected expression, but found `:`"#]],
     );
 }
 
@@ -10466,8 +10466,8 @@ fn recover_write_stmt_missing_item_data_expr() {
                       NameExpr@27..28
                         Name@27..28
                           Identifier@27..28 "b"
-            error in file FileId(1) at 15..16: unexpected token
-            | error in file FileId(1) for 15..16: expected expression, but found `:`"#]],
+            error at 15..16: unexpected token
+            | error for 15..16: expected expression, but found `:`"#]],
     );
 }
 
@@ -10517,8 +10517,8 @@ fn recover_write_stmt_missing_sts_ref() {
                       NameExpr@31..32
                         Name@31..32
                           Identifier@31..32 "b"
-            error in file FileId(1) at 15..16: unexpected token
-            | error in file FileId(1) for 15..16: expected expression, but found `,`"#]],
+            error at 15..16: unexpected token
+            | error for 15..16: expected expression, but found `,`"#]],
     );
 }
 
@@ -10567,8 +10567,8 @@ fn recover_write_stmt_missing_file_ref() {
                       NameExpr@29..30
                         Name@29..30
                           Identifier@29..30 "b"
-            error in file FileId(1) at 8..9: unexpected token
-            | error in file FileId(1) for 8..9: expected expression, but found `:`"#]],
+            error at 8..9: unexpected token
+            | error for 8..9: expected expression, but found `:`"#]],
     );
 }
 
@@ -10583,8 +10583,8 @@ fn recover_just_write() {
                   KwWrite@0..5 "write"
                   BinaryIO@5..5
                     BinaryItem@5..5
-            error in file FileId(1) at 0..5: unexpected end of file
-            | error in file FileId(1) for 0..5: expected `:` after here"#]],
+            error at 0..5: unexpected end of file
+            | error for 0..5: expected `:` after here"#]],
     );
 }
 
@@ -10620,8 +10620,8 @@ fn recover_on_write() {
                       NameExpr@21..22
                         Name@21..22
                           Identifier@21..22 "b"
-            error in file FileId(1) at 10..15: unexpected token
-            | error in file FileId(1) for 10..15: expected expression, but found `write`"#]],
+            error at 10..15: unexpected token
+            | error for 10..15: expected expression, but found `write`"#]],
     );
 }
 
@@ -10679,12 +10679,12 @@ fn recover_old_open_missing_left_paren() {
                       StringLiteral@19..24 "\"rw+\""
                 Error@24..25
                   RightParen@24..25 ")"
-            error in file FileId(1) at 5..6: unexpected token
-            | error in file FileId(1) for 5..6: expected `(` or `:`, but found identifier
-            error in file FileId(1) at 19..24: unexpected token
-            | error in file FileId(1) for 19..24: expected `get`, `put`, `read`, `write`, `seek` or `mod`, but found string literal
-            error in file FileId(1) at 24..25: unexpected token
-            | error in file FileId(1) for 24..25: expected statement, but found `)`"#]],
+            error at 5..6: unexpected token
+            | error for 5..6: expected `(` or `:`, but found identifier
+            error at 19..24: unexpected token
+            | error for 19..24: expected `get`, `put`, `read`, `write`, `seek` or `mod`, but found string literal
+            error at 24..25: unexpected token
+            | error for 24..25: expected statement, but found `)`"#]],
     );
 }
 
@@ -10711,8 +10711,8 @@ fn recover_old_open_missing_file_ref() {
                       LiteralExpr@19..24
                         StringLiteral@19..24 "\"rw+\""
                     RightParen@24..25 ")"
-            error in file FileId(1) at 6..7: unexpected token
-            | error in file FileId(1) for 6..7: expected expression, but found `,`"#]],
+            error at 6..7: unexpected token
+            | error for 6..7: expected expression, but found `,`"#]],
     );
 }
 
@@ -10739,8 +10739,8 @@ fn recover_old_open_missing_path() {
                       LiteralExpr@11..16
                         StringLiteral@11..16 "\"rw+\""
                     RightParen@16..17 ")"
-            error in file FileId(1) at 9..10: unexpected token
-            | error in file FileId(1) for 9..10: expected expression, but found `,`"#]],
+            error at 9..10: unexpected token
+            | error for 9..10: expected expression, but found `,`"#]],
     );
 }
 
@@ -10796,8 +10796,8 @@ fn recover_old_open_missing_mode() {
                     Comma@18..19 ","
                     Whitespace@19..20 " "
                     RightParen@20..21 ")"
-            error in file FileId(1) at 20..21: unexpected token
-            | error in file FileId(1) for 20..21: expected expression, but found `)`"#]],
+            error at 20..21: unexpected token
+            | error for 20..21: expected expression, but found `)`"#]],
     );
 }
 
@@ -10826,8 +10826,8 @@ fn recover_old_open_missing_right_paren() {
                     OpenMode@20..25
                       LiteralExpr@20..25
                         StringLiteral@20..25 "\"rw+\""
-            error in file FileId(1) at 20..25: unexpected end of file
-            | error in file FileId(1) for 20..25: expected `)` after here"#]],
+            error at 20..25: unexpected end of file
+            | error for 20..25: expected `)` after here"#]],
     );
 }
 
@@ -10904,8 +10904,8 @@ fn recover_new_open_missing_mode() {
                           Identifier@13..19 "a_path"
                     Comma@19..20 ","
               Whitespace@20..21 " "
-            error in file FileId(1) at 19..20: unexpected end of file
-            | error in file FileId(1) for 19..20: expected `get`, `put`, `read`, `write`, `seek` or `mod` after here"#]],
+            error at 19..20: unexpected end of file
+            | error for 19..20: expected `get`, `put`, `read`, `write`, `seek` or `mod` after here"#]],
     );
 }
 
@@ -10941,8 +10941,8 @@ fn recover_new_open_missing_mode_in_list() {
                     Whitespace@27..28 " "
                     IoCap@28..31
                       KwMod@28..31 "mod"
-            error in file FileId(1) at 26..27: unexpected token
-            | error in file FileId(1) for 26..27: expected `get`, `put`, `read`, `write`, `seek` or `mod`, but found `,`"#]],
+            error at 26..27: unexpected token
+            | error for 26..27: expected `get`, `put`, `read`, `write`, `seek` or `mod`, but found `,`"#]],
     );
 }
 
@@ -10968,8 +10968,8 @@ fn recover_new_open_missing_path() {
                     Whitespace@14..15 " "
                     IoCap@15..18
                       KwGet@15..18 "get"
-            error in file FileId(1) at 13..14: unexpected token
-            | error in file FileId(1) for 13..14: expected expression, but found `,`"#]],
+            error at 13..14: unexpected token
+            | error for 13..14: expected expression, but found `,`"#]],
     );
 }
 
@@ -10996,8 +10996,8 @@ fn recover_new_open_missing_file_ref() {
                     Whitespace@16..17 " "
                     IoCap@17..20
                       KwGet@17..20 "get"
-            error in file FileId(1) at 7..8: unexpected token
-            | error in file FileId(1) for 7..8: expected expression, but found `,`"#]],
+            error at 7..8: unexpected token
+            | error for 7..8: expected expression, but found `,`"#]],
     );
 }
 
@@ -11025,8 +11025,8 @@ fn recover_new_open_missing_colon() {
                     Whitespace@18..19 " "
                     IoCap@19..22
                       KwGet@19..22 "get"
-            error in file FileId(1) at 5..9: unexpected token
-            | error in file FileId(1) for 5..9: expected `(` or `:`, but found identifier"#]],
+            error at 5..9: unexpected token
+            | error for 5..9: expected `(` or `:`, but found identifier"#]],
     );
 }
 
@@ -11040,8 +11040,8 @@ fn recover_just_open() {
                 OpenStmt@0..4
                   KwOpen@0..4 "open"
                   NewOpen@4..4
-            error in file FileId(1) at 0..4: unexpected end of file
-            | error in file FileId(1) for 0..4: expected `(` or `:` after here"#]],
+            error at 0..4: unexpected end of file
+            | error for 0..4: expected `(` or `:` after here"#]],
     );
 }
 
@@ -11083,8 +11083,8 @@ fn recover_on_open() {
                     Whitespace@46..47 " "
                     IoCap@47..50
                       KwGet@47..50 "get"
-            error in file FileId(1) at 26..30: unexpected token
-            | error in file FileId(1) for 26..30: expected expression, but found `open`"#]],
+            error at 26..30: unexpected token
+            | error for 26..30: expected expression, but found `open`"#]],
     );
 }
 
@@ -11126,8 +11126,8 @@ fn recover_old_close_missing_right_paren() {
                       Name@8..16
                         Identifier@8..16 "some_ref"
               Whitespace@16..17 " "
-            error in file FileId(1) at 8..16: unexpected end of file
-            | error in file FileId(1) for 8..16: expected `)` after here"#]],
+            error at 8..16: unexpected end of file
+            | error for 8..16: expected `)` after here"#]],
     );
 }
 
@@ -11145,8 +11145,8 @@ fn recover_old_close_missing_file_ref() {
                     LeftParen@6..7 "("
                     Whitespace@7..9 "  "
                     RightParen@9..10 ")"
-            error in file FileId(1) at 9..10: unexpected token
-            | error in file FileId(1) for 9..10: expected expression, but found `)`"#]],
+            error at 9..10: unexpected token
+            | error for 9..10: expected expression, but found `)`"#]],
     );
 }
 
@@ -11167,10 +11167,10 @@ fn recover_old_close_missing_left_paren() {
                 Whitespace@15..16 " "
                 Error@16..17
                   RightParen@16..17 ")"
-            error in file FileId(1) at 7..15: unexpected token
-            | error in file FileId(1) for 7..15: expected `(` or `:`, but found identifier
-            error in file FileId(1) at 16..17: unexpected token
-            | error in file FileId(1) for 16..17: expected statement, but found `)`"#]],
+            error at 7..15: unexpected token
+            | error for 7..15: expected `(` or `:`, but found identifier
+            error at 16..17: unexpected token
+            | error for 16..17: expected statement, but found `)`"#]],
     );
 }
 
@@ -11206,8 +11206,8 @@ fn recover_new_close_missing_file_ref() {
                   NewClose@6..7
                     Colon@6..7 ":"
               Whitespace@7..8 " "
-            error in file FileId(1) at 6..7: unexpected end of file
-            | error in file FileId(1) for 6..7: expected expression after here"#]],
+            error at 6..7: unexpected end of file
+            | error for 6..7: expected expression after here"#]],
     );
 }
 
@@ -11225,8 +11225,8 @@ fn recover_new_close_missing_colon() {
                     NameExpr@6..14
                       Name@6..14
                         Identifier@6..14 "some_ref"
-            error in file FileId(1) at 6..14: unexpected token
-            | error in file FileId(1) for 6..14: expected `(` or `:`, but found identifier"#]],
+            error at 6..14: unexpected token
+            | error for 6..14: expected `(` or `:`, but found identifier"#]],
     );
 }
 
@@ -11240,8 +11240,8 @@ fn recover_just_close() {
                 CloseStmt@0..5
                   KwClose@0..5 "close"
                   NewClose@5..5
-            error in file FileId(1) at 0..5: unexpected end of file
-            | error in file FileId(1) for 0..5: expected `(` or `:` after here"#]],
+            error at 0..5: unexpected end of file
+            | error for 0..5: expected `(` or `:` after here"#]],
     );
 }
 
@@ -11273,8 +11273,8 @@ fn recover_on_close() {
                     NameExpr@34..42
                       Name@34..42
                         Identifier@34..42 "some_ref"
-            error in file FileId(1) at 26..31: unexpected token
-            | error in file FileId(1) for 26..31: expected expression, but found `close`"#]],
+            error at 26..31: unexpected token
+            | error for 26..31: expected expression, but found `close`"#]],
     );
 }
 
@@ -11439,8 +11439,8 @@ fn recover_put_stmt_missing_opt_exp_expr() {
                       Whitespace@23..25 "  "
                       Error@25..27
                         Range@25..27 ".."
-            error in file FileId(1) at 25..27: unexpected token
-            | error in file FileId(1) for 25..27: expected expression, but found `..`"#]],
+            error at 25..27: unexpected token
+            | error for 25..27: expected expression, but found `..`"#]],
     );
 }
 
@@ -11485,8 +11485,8 @@ fn recover_put_stmt_missing_opt_fract_expr() {
                           Identifier@23..24 "e"
                   Whitespace@24..25 " "
                   Range@25..27 ".."
-            error in file FileId(1) at 21..22: unexpected token
-            | error in file FileId(1) for 21..22: expected expression, but found `:`"#]],
+            error at 21..22: unexpected token
+            | error for 21..22: expected expression, but found `:`"#]],
     );
 }
 
@@ -11531,8 +11531,8 @@ fn recover_put_stmt_missing_width_expr() {
                           Identifier@23..24 "e"
                   Whitespace@24..25 " "
                   Range@25..27 ".."
-            error in file FileId(1) at 17..18: unexpected token
-            | error in file FileId(1) for 17..18: expected expression, but found `:`"#]],
+            error at 17..18: unexpected token
+            | error for 17..18: expected expression, but found `:`"#]],
     );
 }
 
@@ -11557,8 +11557,8 @@ fn recover_put_stmt_missing_item() {
                   PutItem@10..12
                     Error@10..12
                       Range@10..12 ".."
-            error in file FileId(1) at 10..12: unexpected token
-            | error in file FileId(1) for 10..12: expected expression, but found `..`"#]],
+            error at 10..12: unexpected token
+            | error for 10..12: expected expression, but found `..`"#]],
     );
 }
 
@@ -11588,8 +11588,8 @@ fn recover_put_stmt_missing_item_in_list() {
                       Name@11..12
                         Identifier@11..12 "a"
                   Range@12..14 ".."
-            error in file FileId(1) at 9..10: unexpected token
-            | error in file FileId(1) for 9..10: expected expression, but found `,`"#]],
+            error at 9..10: unexpected token
+            | error for 9..10: expected expression, but found `,`"#]],
     );
 }
 
@@ -11635,8 +11635,8 @@ fn recover_put_stmt_missing_stream_expr() {
                           Identifier@23..24 "e"
                   Whitespace@24..25 " "
                   Range@25..27 ".."
-            error in file FileId(1) at 6..7: unexpected token
-            | error in file FileId(1) for 6..7: expected expression, but found `,`"#]],
+            error at 6..7: unexpected token
+            | error for 6..7: expected expression, but found `,`"#]],
     );
 }
 
@@ -11650,8 +11650,8 @@ fn recover_just_put() {
                 PutStmt@0..3
                   KwPut@0..3 "put"
                   PutItem@3..3
-            error in file FileId(1) at 0..3: unexpected end of file
-            | error in file FileId(1) for 0..3: expected expression after here"#]],
+            error at 0..3: unexpected end of file
+            | error for 0..3: expected expression after here"#]],
     );
 }
 
@@ -11679,8 +11679,8 @@ fn recover_on_put() {
                   Whitespace@21..22 " "
                   PutItem@22..26
                     KwSkip@22..26 "skip"
-            error in file FileId(1) at 18..21: unexpected token
-            | error in file FileId(1) for 18..21: expected expression, but found `put`"#]],
+            error at 18..21: unexpected token
+            | error for 18..21: expected expression, but found `put`"#]],
     );
 }
 
@@ -11785,8 +11785,8 @@ fn recover_get_stmt_missing_width_expr() {
                     GetWidth@14..15
                       Colon@14..15 ":"
               Whitespace@15..16 " "
-            error in file FileId(1) at 14..15: unexpected end of file
-            | error in file FileId(1) for 14..15: expected expression after here"#]],
+            error at 14..15: unexpected end of file
+            | error for 14..15: expected expression after here"#]],
     );
 }
 
@@ -11832,8 +11832,8 @@ fn recover_get_stmt_missing_item() {
                       Whitespace@21..22 " "
                       LiteralExpr@22..23
                         IntLiteral@22..23 "2"
-            error in file FileId(1) at 9..10: unexpected token
-            | error in file FileId(1) for 9..10: expected expression, but found `,`"#]],
+            error at 9..10: unexpected token
+            | error for 9..10: expected expression, but found `,`"#]],
     );
 }
 
@@ -11878,8 +11878,8 @@ fn recover_get_stmt_missing_item_in_list() {
                       Whitespace@21..22 " "
                       LiteralExpr@22..23
                         IntLiteral@22..23 "2"
-            error in file FileId(1) at 13..14: unexpected token
-            | error in file FileId(1) for 13..14: expected expression, but found `:`"#]],
+            error at 13..14: unexpected token
+            | error for 13..14: expected expression, but found `:`"#]],
     );
 }
 
@@ -11925,8 +11925,8 @@ fn recover_get_stmt_missing_stream_expr() {
                       Whitespace@21..22 " "
                       LiteralExpr@22..23
                         IntLiteral@22..23 "2"
-            error in file FileId(1) at 6..7: unexpected token
-            | error in file FileId(1) for 6..7: expected expression, but found `,`"#]],
+            error at 6..7: unexpected token
+            | error for 6..7: expected expression, but found `,`"#]],
     );
 }
 
@@ -11940,8 +11940,8 @@ fn recover_just_get() {
                 GetStmt@0..3
                   KwGet@0..3 "get"
                   GetItem@3..3
-            error in file FileId(1) at 0..3: unexpected end of file
-            | error in file FileId(1) for 0..3: expected expression after here"#]],
+            error at 0..3: unexpected end of file
+            | error for 0..3: expected expression after here"#]],
     );
 }
 
@@ -11969,8 +11969,8 @@ fn recover_on_get() {
                   Whitespace@21..22 " "
                   GetItem@22..26
                     KwSkip@22..26 "skip"
-            error in file FileId(1) at 18..21: unexpected token
-            | error in file FileId(1) for 18..21: expected expression, but found `get`"#]],
+            error at 18..21: unexpected token
+            | error for 18..21: expected expression, but found `get`"#]],
     );
 }
 
@@ -12080,8 +12080,8 @@ fn recover_wait_stmt_missing_opt_arg_expr() {
                       Identifier@5..6 "a"
                   Comma@6..7 ","
               Whitespace@7..8 " "
-            error in file FileId(1) at 6..7: unexpected end of file
-            | error in file FileId(1) for 6..7: expected expression after here"#]],
+            error at 6..7: unexpected end of file
+            | error for 6..7: expected expression after here"#]],
     );
 }
 
@@ -12094,8 +12094,8 @@ fn recover_just_wait() {
               StmtList@0..4
                 WaitStmt@0..4
                   KwWait@0..4 "wait"
-            error in file FileId(1) at 0..4: unexpected end of file
-            | error in file FileId(1) for 0..4: expected expression after here"#]],
+            error at 0..4: unexpected end of file
+            | error for 0..4: expected expression after here"#]],
     );
 }
 
@@ -12121,8 +12121,8 @@ fn recover_on_wait() {
                   NameExpr@15..16
                     Name@15..16
                       Identifier@15..16 "q"
-            error in file FileId(1) at 10..14: unexpected token
-            | error in file FileId(1) for 10..14: expected expression, but found `wait`"#]],
+            error at 10..14: unexpected token
+            | error for 10..14: expected expression, but found `wait`"#]],
     );
 }
 
@@ -12156,8 +12156,8 @@ fn recover_on_break() {
                 Whitespace@8..10 " \n"
                 BreakStmt@10..15
                   KwBreak@10..15 "break"
-            error in file FileId(1) at 10..15: unexpected token
-            | error in file FileId(1) for 10..15: expected expression, but found `break`"#]],
+            error at 10..15: unexpected token
+            | error for 10..15: expected expression, but found `break`"#]],
     );
 }
 
@@ -12190,8 +12190,8 @@ fn recover_fcn_decl_safe_end() {
                     KwEnd@16..19 "end"
                     Whitespace@19..20 " "
                     Identifier@20..21 "a"
-            error in file FileId(1) at 16..19: unexpected token
-            | error in file FileId(1) for 16..19: expected expression, but found `end`"#]],
+            error at 16..19: unexpected token
+            | error for 16..19: expected expression, but found `end`"#]],
     );
 }
 
@@ -12218,8 +12218,8 @@ fn recover_proc_decl_safe_end() {
                     KwEnd@11..14 "end"
                     Whitespace@14..15 " "
                     Identifier@15..16 "a"
-            error in file FileId(1) at 11..14: unexpected token
-            | error in file FileId(1) for 11..14: expected expression, but found `end`"#]],
+            error at 11..14: unexpected token
+            | error for 11..14: expected expression, but found `end`"#]],
     );
 }
 
@@ -12246,8 +12246,8 @@ fn recover_process_decl_safe_end() {
                     KwEnd@14..17 "end"
                     Whitespace@17..18 " "
                     Identifier@18..19 "a"
-            error in file FileId(1) at 14..17: unexpected token
-            | error in file FileId(1) for 14..17: expected expression, but found `end`"#]],
+            error at 14..17: unexpected token
+            | error for 14..17: expected expression, but found `end`"#]],
     );
 }
 
@@ -12272,8 +12272,8 @@ fn recover_module_decl_safe_end() {
                     KwEnd@13..16 "end"
                     Whitespace@16..17 " "
                     Identifier@17..18 "a"
-            error in file FileId(1) at 13..16: unexpected token
-            | error in file FileId(1) for 13..16: expected expression, but found `end`"#]],
+            error at 13..16: unexpected token
+            | error for 13..16: expected expression, but found `end`"#]],
     );
 }
 
@@ -12298,8 +12298,8 @@ fn recover_monitor_decl_safe_end() {
                     KwEnd@14..17 "end"
                     Whitespace@17..18 " "
                     Identifier@18..19 "a"
-            error in file FileId(1) at 14..17: unexpected token
-            | error in file FileId(1) for 14..17: expected expression, but found `end`"#]],
+            error at 14..17: unexpected token
+            | error for 14..17: expected expression, but found `end`"#]],
     );
 }
 
@@ -12324,8 +12324,8 @@ fn recover_class_decl_safe_end() {
                     KwEnd@12..15 "end"
                     Whitespace@15..16 " "
                     Identifier@16..17 "a"
-            error in file FileId(1) at 12..15: unexpected token
-            | error in file FileId(1) for 12..15: expected expression, but found `end`"#]],
+            error at 12..15: unexpected token
+            | error for 12..15: expected expression, but found `end`"#]],
     );
 }
 
@@ -12347,8 +12347,8 @@ fn recover_for_stmt_safe_end() {
                     KwEnd@6..9 "end"
                     Whitespace@9..10 " "
                     KwFor@10..13 "for"
-            error in file FileId(1) at 6..9: unexpected token
-            | error in file FileId(1) for 6..9: expected expression, but found `end`"#]],
+            error at 6..9: unexpected token
+            | error for 6..9: expected expression, but found `end`"#]],
     );
 }
 
@@ -12368,10 +12368,10 @@ fn recover_for_stmt_safe_end_alt() {
                   StmtList@6..6
                   EndGroup@6..12
                     KwEndFor@6..12 "endfor"
-            error in file FileId(1) at 6..12: unexpected token
-            | error in file FileId(1) for 6..12: expected expression, but found `endfor`
-            warn in file FileId(1) at 6..12: `endfor` found
-            | warn in file FileId(1) for 6..12: assuming it to be `end for`"#]],
+            error at 6..12: unexpected token
+            | error for 6..12: expected expression, but found `endfor`
+            warn at 6..12: `endfor` found
+            | warn for 6..12: assuming it to be `end for`"#]],
     );
 }
 
@@ -12393,8 +12393,8 @@ fn recover_loop_stmt_safe_end() {
                     KwEnd@15..18 "end"
                     Whitespace@18..19 " "
                     KwLoop@19..23 "loop"
-            error in file FileId(1) at 15..18: unexpected token
-            | error in file FileId(1) for 15..18: expected expression, but found `end`"#]],
+            error at 15..18: unexpected token
+            | error for 15..18: expected expression, but found `end`"#]],
     );
 }
 
@@ -12414,10 +12414,10 @@ fn recover_loop_stmt_safe_end_alt() {
                   Whitespace@14..15 " "
                   EndGroup@15..22
                     KwEndLoop@15..22 "endloop"
-            error in file FileId(1) at 15..22: unexpected token
-            | error in file FileId(1) for 15..22: expected expression, but found `endloop`
-            warn in file FileId(1) at 15..22: `endloop` found
-            | warn in file FileId(1) for 15..22: assuming it to be `end loop`"#]],
+            error at 15..22: unexpected token
+            | error for 15..22: expected expression, but found `endloop`
+            warn at 15..22: `endloop` found
+            | warn for 15..22: assuming it to be `end loop`"#]],
     );
 }
 
@@ -12446,8 +12446,8 @@ fn recover_if_stmt_safe_end() {
                     KwEnd@17..20 "end"
                     Whitespace@20..21 " "
                     KwIf@21..23 "if"
-            error in file FileId(1) at 17..20: unexpected token
-            | error in file FileId(1) for 17..20: expected expression, but found `end`"#]],
+            error at 17..20: unexpected token
+            | error for 17..20: expected expression, but found `end`"#]],
     );
 }
 
@@ -12474,10 +12474,10 @@ fn recover_if_stmt_safe_end_alt() {
                   Whitespace@16..17 " "
                   EndGroup@17..22
                     KwEndIf@17..22 "endif"
-            error in file FileId(1) at 17..22: unexpected token
-            | error in file FileId(1) for 17..22: expected expression, but found `endif`
-            warn in file FileId(1) at 17..22: `endif` found
-            | warn in file FileId(1) for 17..22: assuming it to be `end if`"#]],
+            error at 17..22: unexpected token
+            | error for 17..22: expected expression, but found `endif`
+            warn at 17..22: `endif` found
+            | warn for 17..22: assuming it to be `end if`"#]],
     );
 }
 
@@ -12506,8 +12506,8 @@ fn recover_elsif_stmt_safe_end() {
                     KwEnd@20..23 "end"
                     Whitespace@23..24 " "
                     KwIf@24..26 "if"
-            error in file FileId(1) at 20..23: unexpected token
-            | error in file FileId(1) for 20..23: expected expression, but found `end`"#]],
+            error at 20..23: unexpected token
+            | error for 20..23: expected expression, but found `end`"#]],
     );
 }
 
@@ -12534,10 +12534,10 @@ fn recover_elsif_stmt_safe_end_alt() {
                   Whitespace@19..20 " "
                   EndGroup@20..25
                     KwEndIf@20..25 "endif"
-            error in file FileId(1) at 20..25: unexpected token
-            | error in file FileId(1) for 20..25: expected expression, but found `endif`
-            warn in file FileId(1) at 20..25: `endif` found
-            | warn in file FileId(1) for 20..25: assuming it to be `end if`"#]],
+            error at 20..25: unexpected token
+            | error for 20..25: expected expression, but found `endif`
+            warn at 20..25: `endif` found
+            | warn for 20..25: assuming it to be `end if`"#]],
     );
 }
 
@@ -12559,8 +12559,8 @@ fn recover_else_stmt_safe_end() {
                     KwEnd@12..15 "end"
                     Whitespace@15..16 " "
                     KwIf@16..18 "if"
-            error in file FileId(1) at 12..15: unexpected token
-            | error in file FileId(1) for 12..15: expected expression, but found `end`"#]],
+            error at 12..15: unexpected token
+            | error for 12..15: expected expression, but found `end`"#]],
     );
 }
 
@@ -12580,10 +12580,10 @@ fn recover_else_stmt_safe_end_alt() {
                   Whitespace@11..12 " "
                   EndGroup@12..17
                     KwEndIf@12..17 "endif"
-            error in file FileId(1) at 12..17: unexpected token
-            | error in file FileId(1) for 12..17: expected expression, but found `endif`
-            warn in file FileId(1) at 12..17: `endif` found
-            | warn in file FileId(1) for 12..17: assuming it to be `end if`"#]],
+            error at 12..17: unexpected token
+            | error for 12..17: expected expression, but found `endif`
+            warn at 12..17: `endif` found
+            | warn for 12..17: assuming it to be `end if`"#]],
     );
 }
 
@@ -12612,8 +12612,8 @@ fn recover_case_stmt_safe_end() {
                     KwEnd@16..19 "end"
                     Whitespace@19..20 " "
                     KwCase@20..24 "case"
-            error in file FileId(1) at 16..19: unexpected token
-            | error in file FileId(1) for 16..19: expected expression, but found `end`"#]],
+            error at 16..19: unexpected token
+            | error for 16..19: expected expression, but found `end`"#]],
     );
 }
 
@@ -12640,10 +12640,10 @@ fn recover_case_stmt_safe_alt_end() {
                     StmtList@16..16
                   EndGroup@16..23
                     KwEndCase@16..23 "endcase"
-            error in file FileId(1) at 16..23: unexpected token
-            | error in file FileId(1) for 16..23: expected expression, but found `endcase`
-            warn in file FileId(1) at 16..23: `endcase` found
-            | warn in file FileId(1) for 16..23: assuming it to be `end case`"#]],
+            error at 16..23: unexpected token
+            | error for 16..23: expected expression, but found `endcase`
+            warn at 16..23: `endcase` found
+            | warn for 16..23: assuming it to be `end case`"#]],
     );
 }
 
@@ -12663,8 +12663,8 @@ fn recover_block_stmt_safe_end() {
                   Whitespace@12..13 " "
                   EndGroup@13..16
                     KwEnd@13..16 "end"
-            error in file FileId(1) at 13..16: unexpected token
-            | error in file FileId(1) for 13..16: expected expression, but found `end`"#]],
+            error at 13..16: unexpected token
+            | error for 13..16: expected expression, but found `end`"#]],
     );
 }
 
@@ -12691,8 +12691,8 @@ fn recover_handler_stmt_safe_end() {
                     KwEnd@19..22 "end"
                     Whitespace@22..23 " "
                     KwHandler@23..30 "handler"
-            error in file FileId(1) at 19..22: unexpected token
-            | error in file FileId(1) for 19..22: expected expression, but found `end`"#]],
+            error at 19..22: unexpected token
+            | error for 19..22: expected expression, but found `end`"#]],
     );
 }
 
@@ -12705,8 +12705,8 @@ fn recover_just_end() {
               StmtList@0..3
                 Error@0..3
                   KwEnd@0..3 "end"
-            error in file FileId(1) at 0..3: unexpected token
-            | error in file FileId(1) for 0..3: expected statement, but found `end`"#]],
+            error at 0..3: unexpected token
+            | error for 0..3: expected statement, but found `end`"#]],
     );
 }
 
@@ -12719,8 +12719,8 @@ fn recover_just_endif() {
               StmtList@0..5
                 Error@0..5
                   KwEndIf@0..5 "endif"
-            error in file FileId(1) at 0..5: unexpected token
-            | error in file FileId(1) for 0..5: expected statement, but found `endif`"#]],
+            error at 0..5: unexpected token
+            | error for 0..5: expected statement, but found `endif`"#]],
     );
 }
 
@@ -12733,8 +12733,8 @@ fn recover_just_endloop() {
               StmtList@0..7
                 Error@0..7
                   KwEndLoop@0..7 "endloop"
-            error in file FileId(1) at 0..7: unexpected token
-            | error in file FileId(1) for 0..7: expected statement, but found `endloop`"#]],
+            error at 0..7: unexpected token
+            | error for 0..7: expected statement, but found `endloop`"#]],
     );
 }
 
@@ -12747,8 +12747,8 @@ fn recover_just_endfor() {
               StmtList@0..6
                 Error@0..6
                   KwEndFor@0..6 "endfor"
-            error in file FileId(1) at 0..6: unexpected token
-            | error in file FileId(1) for 0..6: expected statement, but found `endfor`"#]],
+            error at 0..6: unexpected token
+            | error for 0..6: expected statement, but found `endfor`"#]],
     );
 }
 
@@ -12761,8 +12761,8 @@ fn recover_just_endcase() {
               StmtList@0..7
                 Error@0..7
                   KwEndCase@0..7 "endcase"
-            error in file FileId(1) at 0..7: unexpected token
-            | error in file FileId(1) for 0..7: expected statement, but found `endcase`"#]],
+            error at 0..7: unexpected token
+            | error for 0..7: expected statement, but found `endcase`"#]],
     );
 }
 
@@ -12784,9 +12784,9 @@ fn recover_mixed_endings() {
                       EndGroup@11..11
                   EndGroup@11..18
                     KwEndLoop@11..18 "endloop"
-            error in file FileId(1) at 11..18: unexpected token
-            | error in file FileId(1) for 11..18: expected `end`, but found `endloop`
-            warn in file FileId(1) at 11..18: `endloop` found
-            | warn in file FileId(1) for 11..18: assuming it to be `end loop`"#]],
+            error at 11..18: unexpected token
+            | error for 11..18: expected `end`, but found `endloop`
+            warn at 11..18: `endloop` found
+            | warn for 11..18: assuming it to be `end loop`"#]],
     );
 }

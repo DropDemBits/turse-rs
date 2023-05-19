@@ -3,13 +3,10 @@
 // rust-analyzer, resulting in errors outside of this repo
 #[cfg(target_os = "linux")]
 mod inner {
-    use toc_span::FileId;
-
     pub(crate) fn do_fuzz() {
-        let dummy_file = FileId::dummy(1);
         afl::fuzz!(|data: &[u8]| {
             if let Ok(s) = std::str::from_utf8(data) {
-                let _ = toc_parser::parse(dummy_file, s);
+                let _ = toc_parser::parse(s);
             }
         });
     }
