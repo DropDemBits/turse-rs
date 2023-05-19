@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "module m\n    export opaque ~.* t\n    type t : int\n\n    % should be equivalent\n    fcn f() : t result 2 end f\nend m\n\n% should fail\nfcn k() : t result 2 end k\n"
 ---
 "m"@(FileId(1), 7..8) [Module(No)]: <error>
@@ -11,7 +11,7 @@ expression: "module m\n    export opaque ~.* t\n    type t : int\n\n    % should
 "<unnamed>"@(dummy) [Undeclared]: <error>
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 149..150: mismatched types
-| note in file FileId(1) for 149..150: this is of type `{integer}`
-| note in file FileId(1) for 140..141: function expects type `t (an opaque type)`
+error at (FileId(1), 149..150): mismatched types
+| note for (FileId(1), 149..150): this is of type `{integer}`
+| note for (FileId(1), 140..141): function expects type `t (an opaque type)`
 | info: `{integer}` is not assignable into `t (an opaque type)`

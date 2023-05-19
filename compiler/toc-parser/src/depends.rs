@@ -2,8 +2,8 @@
 use std::sync::Arc;
 
 use indexmap::IndexMap;
-use toc_reporting::{CompileResult, MessageSink};
-use toc_span::{FileId, Span};
+use toc_reporting::{CompileResult, FileRange, MessageSink};
+use toc_span::FileId;
 use toc_syntax::{
     ast,
     ast::{AstNode, ExternalItemOwner},
@@ -62,9 +62,8 @@ pub struct Dependency {
 }
 
 pub(crate) fn gather_dependencies(
-    file: FileId,
     syntax: SyntaxNode,
-) -> CompileResult<Arc<FileDepends>> {
+) -> CompileResult<Arc<FileDepends>, FileRange> {
     let mut messages = toc_reporting::MessageSink::new();
     let mut dependencies = vec![];
 
@@ -95,7 +94,7 @@ pub(crate) fn gather_dependencies(
         .filter_map(|item| {
             let path = if let Some(path) = item.path() {
                 // From the given path
-                extract_relative_path(path, file, &mut messages)?
+                extract_relative_path(path, &mut messages)?
             } else {
                 // From the item name
                 item.name()
@@ -117,7 +116,7 @@ pub(crate) fn gather_dependencies(
     for node in root.syntax().descendants() {
         let Some(include) = ast::PPInclude::cast(node) else { continue; };
         let Some(path) = include.path()
-            .and_then(|path| extract_relative_path(path, file, &mut messages))
+            .and_then(|path| extract_relative_path(path,  &mut messages))
         else {
             continue;
         };
@@ -139,8 +138,7 @@ pub(crate) fn gather_dependencies(
 
 fn extract_relative_path(
     path: ast::LiteralExpr,
-    file: FileId,
-    messages: &mut MessageSink,
+    messages: &mut MessageSink<FileRange>,
 ) -> Option<String> {
     let (value, errors) = path.literal().unwrap();
     let toc_syntax::LiteralValue::String(relative_path) = value
@@ -152,12 +150,10 @@ fn extract_relative_path(
     if let Some(errors) = errors {
         // Report errors
         let range = path.syntax().text_range();
-        let span = Span::new(file, range);
-        let mut message = messages.error_detailed(errors.header(), span);
+        let mut message = messages.error_detailed(errors.header(), range.into());
 
         for (msg, range) in errors.parts(range) {
-            let span = Span::new(file, range);
-            message = message.with_error(&msg, span);
+            message = message.with_error(&msg, range.into());
         }
 
         message.finish();
@@ -173,11 +169,9 @@ fn extract_relative_path(
 mod test {
     use super::*;
 
-    fn get_deps(source: &str) -> CompileResult<(Arc<FileDepends>, SyntaxNode)> {
-        let file_id = FileId::dummy(0);
-        let parsed = crate::parse(file_id, source);
-        gather_dependencies(file_id, parsed.result().syntax())
-            .map(|deps| (deps, parsed.result().syntax()))
+    fn get_deps(source: &str) -> CompileResult<(Arc<FileDepends>, SyntaxNode), FileRange> {
+        let parsed = crate::parse(source);
+        gather_dependencies(parsed.result().syntax()).map(|deps| (deps, parsed.result().syntax()))
     }
 
     #[test]

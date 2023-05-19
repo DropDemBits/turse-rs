@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "module a export ~.b\n    var b : int\nend a\nb := 1\n"
 ---
 "a"@(FileId(1), 7..8) [Module(No)]: <error>
@@ -7,6 +7,6 @@ expression: "module a export ~.b\n    var b : int\nend a\nb := 1\n"
 "b"@(FileId(1), 18..19) [Export]: int
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 44..46: cannot assign into `b`
-| error in file FileId(1) for 42..43: `b` is not exported as `var`
-| note in file FileId(1) for 18..19: `b` exported from here
+error at (FileId(1), 44..46): cannot assign into `b`
+| error for (FileId(1), 42..43): `b` is not exported as `var`
+| note for (FileId(1), 18..19): `b` exported from here

@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var a : int\nvar b : string\nvar c := a + b\nvar j := c + a\n"
 ---
 "a"@(FileId(1), 4..5) [ConstVar(Var, No)]: int
@@ -8,8 +8,8 @@ expression: "var a : int\nvar b : string\nvar c := a + b\nvar j := c + a\n"
 "j"@(FileId(1), 46..47) [ConstVar(Var, No)]: <error>
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 38..39: mismatched types for string concatenation
-| note in file FileId(1) for 40..41: this is of type `string`
-| note in file FileId(1) for 36..37: this is of type `int`
-| error in file FileId(1) for 38..39: `int` cannot be concatenated to `string`
+error at (FileId(1), 38..39): mismatched types for string concatenation
+| note for (FileId(1), 40..41): this is of type `string`
+| note for (FileId(1), 36..37): this is of type `int`
+| error for (FileId(1), 38..39): `int` cannot be concatenated to `string`
 | info: operands must both be numbers, strings, or sets

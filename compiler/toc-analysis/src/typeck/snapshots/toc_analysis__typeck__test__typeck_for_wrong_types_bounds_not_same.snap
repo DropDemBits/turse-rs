@@ -1,11 +1,11 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "for : 1 .. true end for"
 ---
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 6..15: mismatched types
-| note in file FileId(1) for 11..15: this is of type `boolean`
-| note in file FileId(1) for 6..7: this is of type `{integer}`
-| error in file FileId(1) for 6..15: `boolean` is not equivalent to `{integer}`
+error at (FileId(1), 6..15): mismatched types
+| note for (FileId(1), 11..15): this is of type `boolean`
+| note for (FileId(1), 6..7): this is of type `{integer}`
+| error for (FileId(1), 6..15): `boolean` is not equivalent to `{integer}`
 | info: range bounds types must be equivalent

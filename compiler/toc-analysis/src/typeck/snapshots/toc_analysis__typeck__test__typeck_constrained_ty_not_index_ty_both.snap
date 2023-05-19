@@ -1,11 +1,11 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "type _ : 1.0 .. 1.0"
 ---
 "_"@(FileId(1), 5..6) [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of range of `real` (Unevaluated(PackageId(0), BodyId(0)) .. Expr(Unevaluated(PackageId(0), BodyId(1)), No))
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 9..19: mismatched types
-| note in file FileId(1) for 9..19: bounds are of type `real`
-| error in file FileId(1) for 9..19: `real` is not an index type
+error at (FileId(1), 9..19): mismatched types
+| note for (FileId(1), 9..19): bounds are of type `real`
+| error for (FileId(1), 9..19): `real` is not an index type
 | info: an index type is an integer, a `boolean`, a `char`, an enumerated type, or a range of those types

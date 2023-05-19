@@ -1,18 +1,18 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "if 1 then\nelsif 1.0 then\nelsif 'yee' then\nelsif \"wahhh\" then\nend if\n"
 ---
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 3..4: mismatched types
-| note in file FileId(1) for 3..4: this is of type `{integer}`
+error at (FileId(1), 3..4): mismatched types
+| note for (FileId(1), 3..4): this is of type `{integer}`
 | info: expected a `boolean` type
-error in file FileId(1) at 16..19: mismatched types
-| note in file FileId(1) for 16..19: this is of type `real`
+error at (FileId(1), 16..19): mismatched types
+| note for (FileId(1), 16..19): this is of type `real`
 | info: expected a `boolean` type
-error in file FileId(1) at 31..36: mismatched types
-| note in file FileId(1) for 31..36: this is of type `char(3)`
+error at (FileId(1), 31..36): mismatched types
+| note for (FileId(1), 31..36): this is of type `char(3)`
 | info: expected a `boolean` type
-error in file FileId(1) at 48..55: mismatched types
-| note in file FileId(1) for 48..55: this is of type `string`
+error at (FileId(1), 48..55): mismatched types
+| note for (FileId(1), 48..55): this is of type `string`
 | info: expected a `boolean` type

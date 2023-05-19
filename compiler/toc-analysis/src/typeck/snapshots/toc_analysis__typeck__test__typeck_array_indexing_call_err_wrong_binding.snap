@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "type i : int\nvar a : array 1..2 of int\nvar _ : int := a(i)"
 ---
 "i"@(FileId(1), 5..6) [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of int
@@ -7,6 +7,6 @@ expression: "type i : int\nvar a : array 1..2 of int\nvar _ : int := a(i)"
 "_"@(FileId(1), 43..44) [ConstVar(Var, No)]: int
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 56..57: cannot pass `i` to this parameter
-| error in file FileId(1) for 56..57: `i` is a reference to a type, not a variable
-| note in file FileId(1) for 5..6: `i` declared here
+error at (FileId(1), 56..57): cannot pass `i` to this parameter
+| error for (FileId(1), 56..57): `i` is a reference to a type, not a variable
+| note for (FileId(1), 5..6): `i` declared here

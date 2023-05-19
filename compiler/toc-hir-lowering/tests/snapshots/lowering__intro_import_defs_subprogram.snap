@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "\n    proc _\n        import nothing\n    end _"
 ---
 Package@(dummy)
@@ -11,6 +11,6 @@ Package@(dummy)
             Void@(FileId(1), 5..11)
             Import@(FileId(1), 27..34): SameAsItem unresolved
             StmtBody@(FileId(1), 39..39): []
-error in file FileId(1) at 27..34: `nothing` could not be imported
-| error in file FileId(1) for 27..34: no definitions of `nothing` found in the surrounding scope
+error at (FileId(1), 27..34): `nothing` could not be imported
+| error for (FileId(1), 27..34): no definitions of `nothing` found in the surrounding scope
 

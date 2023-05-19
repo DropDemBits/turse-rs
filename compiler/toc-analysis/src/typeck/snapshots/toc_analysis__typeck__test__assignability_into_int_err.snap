@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var b : boolean\nvar r : real\n\nvar _e00 : int := b\nvar _e01 : int := r\n"
 ---
 "b"@(FileId(1), 4..5) [ConstVar(Var, No)]: boolean
@@ -8,11 +8,11 @@ expression: "var b : boolean\nvar r : real\n\nvar _e00 : int := b\nvar _e01 : in
 "_e01"@(FileId(1), 54..58) [ConstVar(Var, No)]: int
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 48..49: mismatched types
-| note in file FileId(1) for 48..49: this is of type `boolean`
-| note in file FileId(1) for 41..44: this is of type `int`
+error at (FileId(1), 48..49): mismatched types
+| note for (FileId(1), 48..49): this is of type `boolean`
+| note for (FileId(1), 41..44): this is of type `int`
 | info: `boolean` is not assignable into `int`
-error in file FileId(1) at 68..69: mismatched types
-| note in file FileId(1) for 68..69: this is of type `real`
-| note in file FileId(1) for 61..64: this is of type `int`
+error at (FileId(1), 68..69): mismatched types
+| note for (FileId(1), 68..69): this is of type `real`
+| note for (FileId(1), 61..64): this is of type `int`
 | info: `real` is not assignable into `int`

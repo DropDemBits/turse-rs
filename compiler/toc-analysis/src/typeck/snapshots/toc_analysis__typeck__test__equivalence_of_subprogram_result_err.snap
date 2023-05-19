@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "type fa : function () : int1\nfunction fb () : int end fb\n\nvar _ : fa := fb\n"
 ---
 "fa"@(FileId(1), 5..7) [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of function ( ) -> int1
@@ -9,7 +9,7 @@ expression: "type fa : function () : int1\nfunction fb () : int end fb\n\nvar _ 
 "<unnamed>"@(dummy) [Undeclared]: <error>
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 72..74: mismatched types
-| note in file FileId(1) for 72..74: this is of type `function () : int`
-| note in file FileId(1) for 66..68: this is of type `fa (alias of function () : int1)`
+error at (FileId(1), 72..74): mismatched types
+| note for (FileId(1), 72..74): this is of type `function () : int`
+| note for (FileId(1), 66..68): this is of type `fa (alias of function () : int1)`
 | info: `function () : int` is not assignable into `function () : int1`

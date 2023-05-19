@@ -1,13 +1,11 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
-assertion_line: 61
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: import()
-
 ---
 Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(0)
     Module@(FileId(1), 0..8): "<root>"@(dummy)
       StmtBody@(FileId(1), 8..8): []
-error in file FileId(1) at 0..8: unsupported statement
-| error in file FileId(1) for 0..8: importing from other files is not supported yet
+error at (FileId(1), 0..8): unsupported statement
+| error for (FileId(1), 0..8): importing from other files is not supported yet
 

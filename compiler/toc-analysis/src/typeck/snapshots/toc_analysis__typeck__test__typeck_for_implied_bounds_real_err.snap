@@ -1,12 +1,12 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "type b : real for _ : b end for"
 ---
 "b"@(FileId(1), 5..6) [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of real
 "_"@(FileId(1), 18..19) [ConstVar(Const, No)]: alias[DefId(PackageId(0), LocalDefId(0))] of real
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 22..23: mismatched types
-| note in file FileId(1) for 22..23: this is of type `b (alias of real)`
-| error in file FileId(1) for 22..23: `real` is not an index type
+error at (FileId(1), 22..23): mismatched types
+| note for (FileId(1), 22..23): this is of type `b (alias of real)`
+| error for (FileId(1), 22..23): `real` is not an index type
 | info: range bound type must be an index type (an integer, `boolean`, `char`, enumerated type, or a range)

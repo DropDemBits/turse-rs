@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "\n        var u, w, U : int\n        module a\n            export ~.all\n            var u, w, U : int\n        end a\n        "
 ---
 Package@(dummy)
@@ -27,13 +27,13 @@ Package@(dummy)
               StmtItem@(FileId(1), 81..98): ItemId(5)
                 ConstVar@(FileId(1), 81..98): var "U"@(FileId(1), 91..92)
                   Primitive@(FileId(1), 95..98): Int
-error in file FileId(1) at 85..86: `u` is already declared in the parent scope
-| note in file FileId(1) for 13..14: `u` previously declared here
-| error in file FileId(1) for 65..68: `u` exported unqualified from here
-error in file FileId(1) at 88..89: `w` is already declared in the parent scope
-| note in file FileId(1) for 16..17: `w` previously declared here
-| error in file FileId(1) for 65..68: `w` exported unqualified from here
-error in file FileId(1) at 91..92: `U` is already declared in the parent scope
-| note in file FileId(1) for 19..20: `U` previously declared here
-| error in file FileId(1) for 65..68: `U` exported unqualified from here
+error at (FileId(1), 85..86): `u` is already declared in the parent scope
+| note for (FileId(1), 13..14): `u` previously declared here
+| error for (FileId(1), 65..68): `u` exported unqualified from here
+error at (FileId(1), 88..89): `w` is already declared in the parent scope
+| note for (FileId(1), 16..17): `w` previously declared here
+| error for (FileId(1), 65..68): `w` exported unqualified from here
+error at (FileId(1), 91..92): `U` is already declared in the parent scope
+| note for (FileId(1), 19..20): `U` previously declared here
+| error for (FileId(1), 65..68): `U` exported unqualified from here
 

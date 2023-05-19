@@ -2,7 +2,7 @@
 
 use std::fmt;
 
-use toc_span::Span;
+use crate::Location;
 
 /// Type of annotation added to a message
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -30,12 +30,12 @@ impl fmt::Display for AnnotateKind {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SourceAnnotation {
+pub struct SourceAnnotation<L: Location> {
     pub(crate) annotation: Annotation,
-    pub(crate) span: Span,
+    pub(crate) span: L,
 }
 
-impl SourceAnnotation {
+impl<L: Location> SourceAnnotation<L> {
     /// Gets the kind of annotation reported
     pub fn kind(&self) -> AnnotateKind {
         self.annotation.kind()
@@ -47,23 +47,27 @@ impl SourceAnnotation {
     }
 
     /// Gets the span of text the annotation covers.
-    pub fn span(&self) -> Span {
+    pub fn span(&self) -> L {
         self.span
+    }
+
+    pub(crate) fn map_spans<M: Location, F: Fn(L) -> M>(self, map: F) -> SourceAnnotation<M> {
+        SourceAnnotation {
+            annotation: self.annotation,
+            span: map(self.span),
+        }
     }
 }
 
-impl fmt::Display for SourceAnnotation {
+impl<L: Location> fmt::Display for SourceAnnotation<L> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let Annotation { kind, msg } = &self.annotation;
-        let (file_id, range) = self.span.into_parts().expect("missing location info");
-        let (start, end) = (u32::from(range.start()), u32::from(range.end()));
-
-        write!(f, "{kind} in file {file_id:?}")?;
+        let loc = self.span();
 
         if f.alternate() {
-            write!(f, " for {start}..{end}: {msg}")?;
+            write!(f, "{kind} for {loc:?}: {msg}")?;
         } else {
-            write!(f, " at {start}..{end}: {msg}")?;
+            write!(f, "{kind} at {loc:?}: {msg}")?;
         }
 
         Ok(())

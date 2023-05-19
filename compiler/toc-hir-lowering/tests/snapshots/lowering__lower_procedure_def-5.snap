@@ -1,8 +1,6 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
-assertion_line: 59
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "\n    procedure a : 4 + 4 end a\n    procedure b() : 6 + 8 end b\n    procedure c(k : int) : 9 + 2 end c\n    "
-
 ---
 Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(3)
@@ -33,10 +31,10 @@ Package@(dummy)
             Primitive@(FileId(1), 83..86): Int
             Void@(FileId(1), 67..95)
             StmtBody@(FileId(1), 96..96): ["k"@(FileId(1), 79..80)]
-error in file FileId(1) at 17..24: device specification is not allowed here
-| error in file FileId(1) for 17..24: `procedure` is not in a device monitor
-error in file FileId(1) at 49..56: device specification is not allowed here
-| error in file FileId(1) for 49..56: `procedure` is not in a device monitor
-error in file FileId(1) at 88..95: device specification is not allowed here
-| error in file FileId(1) for 88..95: `procedure` is not in a device monitor
+error at (FileId(1), 17..24): device specification is not allowed here
+| error for (FileId(1), 17..24): `procedure` is not in a device monitor
+error at (FileId(1), 49..56): device specification is not allowed here
+| error for (FileId(1), 49..56): `procedure` is not in a device monitor
+error at (FileId(1), 88..95): device specification is not allowed here
+| error for (FileId(1), 88..95): `procedure` is not in a device monitor
 

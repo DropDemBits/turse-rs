@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "\n    var a : int\n    module _\n        import const var a\n    end _"
 ---
 Package@(dummy)
@@ -13,7 +13,7 @@ Package@(dummy)
           Module@(FileId(1), 21..66): "_"@(FileId(1), 28..29)
             Import@(FileId(1), 45..56): SameAsItem local("a"@(FileId(1), 9..10))
             StmtBody@(FileId(1), 61..61): []
-error in file FileId(1) at 51..54: cannot use `const` and `var` on the same import
-| error in file FileId(1) for 45..50: first conflicting `const`
-| error in file FileId(1) for 51..54: first conflicting `var`
+error at (FileId(1), 51..54): cannot use `const` and `var` on the same import
+| error for (FileId(1), 45..50): first conflicting `const`
+| error for (FileId(1), 51..54): first conflicting `var`
 

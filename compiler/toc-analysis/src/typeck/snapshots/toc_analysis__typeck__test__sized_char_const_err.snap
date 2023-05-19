@@ -1,9 +1,9 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var _ : char(1.0 div 0.0)"
 ---
 "_"@(FileId(1), 4..5) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(0)))
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 17..20: cannot compute expression at compile-time
-| error in file FileId(1) for 17..20: division by zero in compile-time expression
+error at (FileId(1), 17..20): cannot compute expression at compile-time
+| error for (FileId(1), 17..20): division by zero in compile-time expression

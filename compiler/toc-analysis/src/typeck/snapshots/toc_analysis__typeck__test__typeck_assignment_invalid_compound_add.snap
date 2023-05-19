@@ -1,13 +1,13 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var lhs : real\nvar rhs : boolean\nlhs += rhs\n"
 ---
 "lhs"@(FileId(1), 4..7) [ConstVar(Var, No)]: real
 "rhs"@(FileId(1), 19..22) [ConstVar(Var, No)]: boolean
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 37..39: mismatched types for addition
-| note in file FileId(1) for 40..43: this is of type `boolean`
-| note in file FileId(1) for 33..36: this is of type `real`
-| error in file FileId(1) for 37..39: `real` cannot be added to `boolean`
+error at (FileId(1), 37..39): mismatched types for addition
+| note for (FileId(1), 40..43): this is of type `boolean`
+| note for (FileId(1), 33..36): this is of type `real`
+| error for (FileId(1), 37..39): `real` cannot be added to `boolean`
 | info: operands must both be numbers, strings, or sets

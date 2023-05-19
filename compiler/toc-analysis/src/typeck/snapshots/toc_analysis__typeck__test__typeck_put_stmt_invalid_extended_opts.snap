@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var c : char\nvar cn : char(4)\nvar s : string\nvar sn : string(4)\ntype en: enum(a, b) var ef : en\n\nput c : 0 : 0 : 0\nput cn : 0 : 0 : 0\nput s : 0 : 0 : 0\nput sn : 0 : 0 : 0\nput ef : 0 : 0 : 0\n"
 ---
 "c"@(FileId(1), 4..5) [ConstVar(Var, No)]: char
@@ -13,43 +13,43 @@ expression: "var c : char\nvar cn : char(4)\nvar s : string\nvar sn : string(4)\
 "ef"@(FileId(1), 88..90) [ConstVar(Var, No)]: enum[DefId(PackageId(0), LocalDefId(5))] ( "a"@(FileId(1), 78..79), "b"@(FileId(1), 81..82), )
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 109..110: invalid put option
-| note in file FileId(1) for 101..102: cannot specify fraction width for `char`
-| error in file FileId(1) for 109..110: this is the invalid option
+error at (FileId(1), 109..110): invalid put option
+| note for (FileId(1), 101..102): cannot specify fraction width for `char`
+| error for (FileId(1), 109..110): this is the invalid option
 | info: fraction width can only be specified for numeric put types
-error in file FileId(1) at 113..114: invalid put option
-| note in file FileId(1) for 101..102: cannot specify exponent width for `char`
-| error in file FileId(1) for 113..114: this is the invalid option
+error at (FileId(1), 113..114): invalid put option
+| note for (FileId(1), 101..102): cannot specify exponent width for `char`
+| error for (FileId(1), 113..114): this is the invalid option
 | info: exponent width can only be specified for numeric types
-error in file FileId(1) at 128..129: invalid put option
-| note in file FileId(1) for 119..121: cannot specify fraction width for `char(4)`
-| error in file FileId(1) for 128..129: this is the invalid option
+error at (FileId(1), 128..129): invalid put option
+| note for (FileId(1), 119..121): cannot specify fraction width for `char(4)`
+| error for (FileId(1), 128..129): this is the invalid option
 | info: fraction width can only be specified for numeric put types
-error in file FileId(1) at 132..133: invalid put option
-| note in file FileId(1) for 119..121: cannot specify exponent width for `char(4)`
-| error in file FileId(1) for 132..133: this is the invalid option
+error at (FileId(1), 132..133): invalid put option
+| note for (FileId(1), 119..121): cannot specify exponent width for `char(4)`
+| error for (FileId(1), 132..133): this is the invalid option
 | info: exponent width can only be specified for numeric types
-error in file FileId(1) at 146..147: invalid put option
-| note in file FileId(1) for 138..139: cannot specify fraction width for `string`
-| error in file FileId(1) for 146..147: this is the invalid option
+error at (FileId(1), 146..147): invalid put option
+| note for (FileId(1), 138..139): cannot specify fraction width for `string`
+| error for (FileId(1), 146..147): this is the invalid option
 | info: fraction width can only be specified for numeric put types
-error in file FileId(1) at 150..151: invalid put option
-| note in file FileId(1) for 138..139: cannot specify exponent width for `string`
-| error in file FileId(1) for 150..151: this is the invalid option
+error at (FileId(1), 150..151): invalid put option
+| note for (FileId(1), 138..139): cannot specify exponent width for `string`
+| error for (FileId(1), 150..151): this is the invalid option
 | info: exponent width can only be specified for numeric types
-error in file FileId(1) at 165..166: invalid put option
-| note in file FileId(1) for 156..158: cannot specify fraction width for `string(4)`
-| error in file FileId(1) for 165..166: this is the invalid option
+error at (FileId(1), 165..166): invalid put option
+| note for (FileId(1), 156..158): cannot specify fraction width for `string(4)`
+| error for (FileId(1), 165..166): this is the invalid option
 | info: fraction width can only be specified for numeric put types
-error in file FileId(1) at 169..170: invalid put option
-| note in file FileId(1) for 156..158: cannot specify exponent width for `string(4)`
-| error in file FileId(1) for 169..170: this is the invalid option
+error at (FileId(1), 169..170): invalid put option
+| note for (FileId(1), 156..158): cannot specify exponent width for `string(4)`
+| error for (FileId(1), 169..170): this is the invalid option
 | info: exponent width can only be specified for numeric types
-error in file FileId(1) at 184..185: invalid put option
-| note in file FileId(1) for 175..177: cannot specify fraction width for `enum en`
-| error in file FileId(1) for 184..185: this is the invalid option
+error at (FileId(1), 184..185): invalid put option
+| note for (FileId(1), 175..177): cannot specify fraction width for `enum en`
+| error for (FileId(1), 184..185): this is the invalid option
 | info: fraction width can only be specified for numeric put types
-error in file FileId(1) at 188..189: invalid put option
-| note in file FileId(1) for 175..177: cannot specify exponent width for `enum en`
-| error in file FileId(1) for 188..189: this is the invalid option
+error at (FileId(1), 188..189): invalid put option
+| note for (FileId(1), 175..177): cannot specify exponent width for `enum en`
+| error for (FileId(1), 188..189): this is the invalid option
 | info: exponent width can only be specified for numeric types

@@ -1,10 +1,10 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "type _ : array real of real"
 ---
 "_"@(FileId(1), 5..6) [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of array ( real, ) of real
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 15..19: mismatched types
-| error in file FileId(1) for 15..19: `real` is not an index type
+error at (FileId(1), 15..19): mismatched types
+| error for (FileId(1), 15..19): `real` is not an index type
 | info: an index type is an integer, a `boolean`, a `char`, an enumerated type, or a range

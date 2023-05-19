@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: ":= 2"
 ---
 Package@(dummy)
@@ -8,6 +8,6 @@ Package@(dummy)
       StmtBody@(FileId(1), 0..4): []
         CallStmt@(FileId(1), 3..4): [no params]
           Literal@(FileId(1), 3..4): Integer(2)
-error in file FileId(1) at 0..2: unexpected token
-| error in file FileId(1) for 0..2: expected statement, but found `:=`
+error at (FileId(1), 0..2): unexpected token
+| error for (FileId(1), 0..2): expected statement, but found `:=`
 

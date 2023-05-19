@@ -1,7 +1,6 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "const a := 99999999999999999999"
-
 ---
 Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(1)
@@ -11,6 +10,6 @@ Package@(dummy)
           ConstVar@(FileId(1), 0..31): const "a"@(FileId(1), 6..7)
             ExprBody@(FileId(1), 11..31)
               Literal@(FileId(1), 11..31): Integer(0)
-error in file FileId(1) at 11..31: invalid int literal
-| error in file FileId(1) for 11..31: number is too large
+error at (FileId(1), 11..31): invalid int literal
+| error for (FileId(1), 11..31): number is too large
 

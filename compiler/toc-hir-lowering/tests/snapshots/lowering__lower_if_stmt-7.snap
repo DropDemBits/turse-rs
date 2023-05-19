@@ -1,7 +1,6 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: if then end if
-
 ---
 Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(0)
@@ -9,6 +8,6 @@ Package@(dummy)
       StmtBody@(FileId(1), 0..14): []
         If@(FileId(1), 0..14)
           Block@(FileId(1), 8..8): Normal
-error in file FileId(1) at 3..7: unexpected token
-| error in file FileId(1) for 3..7: expected expression, but found `then`
+error at (FileId(1), 3..7): unexpected token
+| error for (FileId(1), 3..7): expected expression, but found `then`
 

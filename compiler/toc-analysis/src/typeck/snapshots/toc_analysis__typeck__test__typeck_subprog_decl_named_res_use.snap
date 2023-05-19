@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "function sha() wa : int wa end sha"
 ---
 "sha"@(FileId(1), 9..12) [Subprogram(Function)]: function ( ) -> int
@@ -7,5 +7,5 @@ expression: "function sha() wa : int wa end sha"
 "<unnamed>"@(dummy) [Undeclared]: <error>
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 24..26: cannot use `wa` as a statement
-| error in file FileId(1) for 24..26: `wa` is not a statement
+error at (FileId(1), 24..26): cannot use `wa` as a statement
+| error for (FileId(1), 24..26): `wa` is not a statement

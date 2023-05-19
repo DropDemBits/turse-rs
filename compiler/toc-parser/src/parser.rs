@@ -4,8 +4,7 @@ pub(crate) mod marker;
 
 use drop_bomb::DropBomb;
 pub(crate) use error::Expected;
-use toc_reporting::{MessageBundle, MessageSink};
-use toc_span::{FileId, Span};
+use toc_reporting::{FileRange, MessageBundle, MessageSink};
 
 use crate::{
     event::Event,
@@ -99,19 +98,17 @@ const STMT_START_RECOVERY_SET: &[TokenKind] = &[
 ];
 
 pub(crate) struct Parser<'t, 'src> {
-    file: FileId,
     source: Source<'t, 'src>,
     events: Vec<Event>,
-    msg_sink: MessageSink,
+    msg_sink: MessageSink<FileRange>,
     // FIXME: Dedup kinds using `IndexSet`
     expected_kinds: Vec<TokenKind>,
     extra_recovery: Vec<TokenKind>,
 }
 
 impl<'t, 'src> Parser<'t, 'src> {
-    pub(crate) fn new(file: FileId, source: Source<'t, 'src>) -> Self {
+    pub(crate) fn new(source: Source<'t, 'src>) -> Self {
         Self {
-            file,
             source,
             events: vec![],
             msg_sink: MessageSink::new(),
@@ -120,7 +117,7 @@ impl<'t, 'src> Parser<'t, 'src> {
         }
     }
 
-    pub(crate) fn parse(mut self) -> (Vec<Event>, MessageBundle) {
+    pub(crate) fn parse(mut self) -> (Vec<Event>, MessageBundle<FileRange>) {
         grammar::source(&mut self);
         (self.events, self.msg_sink.finish())
     }
@@ -237,12 +234,10 @@ impl<'t, 'src> Parser<'t, 'src> {
             .map(|tok| (tok.kind, tok.range))
             .expect("warning of alias at end of file");
 
-        let span = Span::new(self.file, range);
-
         self.msg_sink.warn(
             &format!("{found} found"),
             &format!("assuming it to be {normal}"),
-            span,
+            range.into(),
         );
     }
 
@@ -350,7 +345,6 @@ impl<'p, 't, 's> UnexpectedBuilder<'p, 't, 's> {
             "Extra call to `error_unexpected`"
         );
 
-        let span = Span::new(self.p.file, range);
         let header = if found.is_some() {
             "unexpected token"
         } else {
@@ -359,7 +353,7 @@ impl<'p, 't, 's> UnexpectedBuilder<'p, 't, 's> {
 
         self.p
             .msg_sink
-            .error_detailed(header, span)
+            .error_detailed(header, range.into())
             .with_error(
                 &format!(
                     "{}",
@@ -369,7 +363,7 @@ impl<'p, 't, 's> UnexpectedBuilder<'p, 't, 's> {
                         found,
                     }
                 ),
-                span,
+                range.into(),
             )
             .report_first_always()
             .finish();

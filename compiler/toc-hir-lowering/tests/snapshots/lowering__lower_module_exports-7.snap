@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "\n    module z\n        export var *~. all, heres\n        var heres, tree : int\n    end z"
 ---
 Package@(dummy)
@@ -15,7 +15,7 @@ Package@(dummy)
               StmtItem@(FileId(1), 56..77): ItemId(1)
                 ConstVar@(FileId(1), 56..77): var "tree"@(FileId(1), 67..71)
                   Primitive@(FileId(1), 74..77): Int
-warn in file FileId(1) at 42..47: export item is ignored
-| warn in file FileId(1) for 42..47: `heres` is already exported...
-| note in file FileId(1) for 37..40: by this `all`
+warn at (FileId(1), 42..47): export item is ignored
+| warn for (FileId(1), 42..47): `heres` is already exported...
+| note for (FileId(1), 37..40): by this `all`
 

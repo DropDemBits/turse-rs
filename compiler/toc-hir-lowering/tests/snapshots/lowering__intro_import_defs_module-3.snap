@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "\n    var *p_def : int\n    module _\n        import p_def\n    end _"
 ---
 Package@(dummy)
@@ -13,8 +13,8 @@ Package@(dummy)
           Module@(FileId(1), 26..65): "_"@(FileId(1), 33..34)
             Import@(FileId(1), 50..55): SameAsItem local("p_def"@(FileId(1), 10..15))
             StmtBody@(FileId(1), 60..60): []
-error in file FileId(1) at 50..55: `p_def` is already imported in this scope
-| note in file FileId(1) for 10..15: `p_def` declared pervasive here
-| error in file FileId(1) for 50..55: `p_def` re-imported here
+error at (FileId(1), 50..55): `p_def` is already imported in this scope
+| note for (FileId(1), 10..15): `p_def` declared pervasive here
+| error for (FileId(1), 50..55): `p_def` re-imported here
 | info: `p_def` was declared pervasively, so it's already imported
 

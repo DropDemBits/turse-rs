@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "\n    % Pointers\n    var a : unchecked ^int\n    var b : ^int\n    var c : ^char\n    var d : int\n\n    % should all produce boolean\n    var _v_res : boolean\n\n    _v_res := a = b\n    _v_res := c = b\n    _v_res := d = b\n    "
 ---
 "a"@(FileId(1), 24..25) [ConstVar(Var, No)]: unchecked pointer to int
@@ -9,18 +9,18 @@ expression: "\n    % Pointers\n    var a : unchecked ^int\n    var b : ^int\n   
 "_v_res"@(FileId(1), 136..142) [ConstVar(Var, No)]: boolean
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 170..171: mismatched types for `=`
-| note in file FileId(1) for 172..173: this is of type `pointer to int`
-| note in file FileId(1) for 168..169: this is of type `unchecked pointer to int`
-| error in file FileId(1) for 170..171: `unchecked pointer to int` cannot be compared to `pointer to int`
+error at (FileId(1), 170..171): mismatched types for `=`
+| note for (FileId(1), 172..173): this is of type `pointer to int`
+| note for (FileId(1), 168..169): this is of type `unchecked pointer to int`
+| error for (FileId(1), 170..171): `unchecked pointer to int` cannot be compared to `pointer to int`
 | info: pointers must have be the same checkedness
-error in file FileId(1) at 190..191: mismatched types for `=`
-| note in file FileId(1) for 192..193: this is of type `pointer to int`
-| note in file FileId(1) for 188..189: this is of type `pointer to char`
-| error in file FileId(1) for 190..191: `pointer to char` cannot be compared to `pointer to int`
+error at (FileId(1), 190..191): mismatched types for `=`
+| note for (FileId(1), 192..193): this is of type `pointer to int`
+| note for (FileId(1), 188..189): this is of type `pointer to char`
+| error for (FileId(1), 190..191): `pointer to char` cannot be compared to `pointer to int`
 | info: operands must both be the same type
-error in file FileId(1) at 210..211: mismatched types for `=`
-| note in file FileId(1) for 212..213: this is of type `pointer to int`
-| note in file FileId(1) for 208..209: this is of type `int`
-| error in file FileId(1) for 210..211: `int` cannot be compared to `pointer to int`
+error at (FileId(1), 210..211): mismatched types for `=`
+| note for (FileId(1), 212..213): this is of type `pointer to int`
+| note for (FileId(1), 208..209): this is of type `int`
+| error for (FileId(1), 210..211): `int` cannot be compared to `pointer to int`
 | info: operands must both be the same type

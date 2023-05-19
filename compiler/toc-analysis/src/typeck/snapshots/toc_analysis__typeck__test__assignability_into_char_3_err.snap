@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "const N := 3\nvar c : char\nvar c1 : char(1)\nvar c5 : char(5)\nvar s1 : string(1)\n\nvar _e00 : char(N) := c\nvar _e01 : char(N) := c1\nvar _e02 : char(N) := c5\nvar _e03 : char(N) := s1 % [not captured by ctc]\n"
 ---
 "N"@(FileId(1), 6..7) [ConstVar(Const, No)]: int
@@ -13,19 +13,19 @@ expression: "const N := 3\nvar c : char\nvar c1 : char(1)\nvar c5 : char(5)\nvar
 "_e03"@(FileId(1), 158..162) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(10)))
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 102..103: mismatched types
-| note in file FileId(1) for 102..103: this is of type `char`
-| note in file FileId(1) for 91..98: this is of type `char(3)`
+error at (FileId(1), 102..103): mismatched types
+| note for (FileId(1), 102..103): this is of type `char`
+| note for (FileId(1), 91..98): this is of type `char(3)`
 | info: `char` is not assignable into `char(3)`
-error in file FileId(1) at 126..128: mismatched types
-| note in file FileId(1) for 126..128: this is of type `char(1)`
-| note in file FileId(1) for 115..122: this is of type `char(3)`
+error at (FileId(1), 126..128): mismatched types
+| note for (FileId(1), 126..128): this is of type `char(1)`
+| note for (FileId(1), 115..122): this is of type `char(3)`
 | info: `char(1)` is not assignable into `char(3)`
-error in file FileId(1) at 151..153: mismatched types
-| note in file FileId(1) for 151..153: this is of type `char(5)`
-| note in file FileId(1) for 140..147: this is of type `char(3)`
+error at (FileId(1), 151..153): mismatched types
+| note for (FileId(1), 151..153): this is of type `char(5)`
+| note for (FileId(1), 140..147): this is of type `char(3)`
 | info: `char(5)` is not assignable into `char(3)`
-error in file FileId(1) at 176..178: mismatched types
-| note in file FileId(1) for 176..178: this is of type `string(1)`
-| note in file FileId(1) for 165..172: this is of type `char(3)`
+error at (FileId(1), 176..178): mismatched types
+| note for (FileId(1), 176..178): this is of type `string(1)`
+| note for (FileId(1), 165..172): this is of type `char(3)`
 | info: `string(1)` is not assignable into `char(3)`

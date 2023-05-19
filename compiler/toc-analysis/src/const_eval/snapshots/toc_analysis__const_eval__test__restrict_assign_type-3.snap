@@ -1,12 +1,10 @@
 ---
-source: compiler/toc_analysis/src/const_eval/test.rs
-assertion_line: 13
+source: compiler/toc-analysis/src/const_eval/test.rs
 expression: "const a : boolean := 1.0 const _:=a"
-
 ---
 "a"@(FileId(1), 6..7) -> Real(1.0)
 "_"@(FileId(1), 31..32) -> ConstError { kind: WrongResultType, span: (FileId(1), 21..24) }
 
-error in file FileId(1) at 21..24: cannot compute expression at compile-time
-| error in file FileId(1) for 21..24: wrong type for compile-time expression
+error at (FileId(1), 21..24): cannot compute expression at compile-time
+| error for (FileId(1), 21..24): wrong type for compile-time expression
 

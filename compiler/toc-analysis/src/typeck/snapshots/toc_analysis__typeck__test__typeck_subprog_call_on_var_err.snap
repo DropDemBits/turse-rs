@@ -1,10 +1,10 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var sha : int sha()"
 ---
 "sha"@(FileId(1), 4..7) [ConstVar(Var, No)]: int
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 14..17: cannot call or subscript `sha`
-| note in file FileId(1) for 14..17: this is of type `int`
-| error in file FileId(1) for 14..17: `int` is not callable
+error at (FileId(1), 14..17): cannot call or subscript `sha`
+| note for (FileId(1), 14..17): this is of type `int`
+| error for (FileId(1), 14..17): `int` is not callable

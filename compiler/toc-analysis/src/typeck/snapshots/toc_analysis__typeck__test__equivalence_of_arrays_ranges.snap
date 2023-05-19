@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "% over array ranges\nvar a : array 0+1..1 of int\nvar b : array 0+2..2 of int\nvar c : array 0+1..1 of int\n\n% ranges must be equivalent\na := b % not equivalent\na := c % is equivalent\n\nvar d : array 0+1..1, 0+2..2 of char\nvar e : array 0+1..1 of char\nvar f : array 0+1..1, 0+2..2 of char\n\n% must have the same number of ranges\nd := e\nd := f\n"
 ---
 "a"@(FileId(1), 24..25) [ConstVar(Var, No)]: array ( range of `int` (Unevaluated(PackageId(0), BodyId(0)) .. Expr(Unevaluated(PackageId(0), BodyId(1)), Yes)), ) of int
@@ -10,11 +10,11 @@ expression: "% over array ranges\nvar a : array 0+1..1 of int\nvar b : array 0+2
 "f"@(FileId(1), 251..252) [ConstVar(Var, No)]: array ( range of `int` (Unevaluated(PackageId(0), BodyId(12)) .. Expr(Unevaluated(PackageId(0), BodyId(13)), Yes)), range of `int` (Unevaluated(PackageId(0), BodyId(14)) .. Expr(Unevaluated(PackageId(0), BodyId(15)), Yes)), ) of char
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 135..137: mismatched types
-| note in file FileId(1) for 138..139: this is of type `array 2 .. 2 of int`
-| note in file FileId(1) for 133..134: this is of type `array 1 .. 1 of int`
+error at (FileId(1), 135..137): mismatched types
+| note for (FileId(1), 138..139): this is of type `array 2 .. 2 of int`
+| note for (FileId(1), 133..134): this is of type `array 1 .. 1 of int`
 | info: `array 2 .. 2 of int` is not assignable into `array 1 .. 1 of int`
-error in file FileId(1) at 325..327: mismatched types
-| note in file FileId(1) for 328..329: this is of type `array 1 .. 1 of char`
-| note in file FileId(1) for 323..324: this is of type `array 1 .. 1, 2 .. 2 of char`
+error at (FileId(1), 325..327): mismatched types
+| note for (FileId(1), 328..329): this is of type `array 1 .. 1 of char`
+| note for (FileId(1), 323..324): this is of type `array 1 .. 1, 2 .. 2 of char`
 | info: `array 1 .. 1 of char` is not assignable into `array 1 .. 1, 2 .. 2 of char`

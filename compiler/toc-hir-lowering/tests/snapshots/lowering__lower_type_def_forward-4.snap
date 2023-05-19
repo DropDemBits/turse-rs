@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "\n    type a : forward\n    type use_it : a % should not be resolved to latter a\n    var a : int\n    type a : char\n    "
 ---
 Package@(dummy)
@@ -17,10 +17,10 @@ Package@(dummy)
         StmtItem@(FileId(1), 99..112): ItemId(3)
           Type@(FileId(1), 99..112): "a"@(FileId(1), 104..105)
             Primitive@(FileId(1), 108..112): Char
-error in file FileId(1) at 87..88: `a` is already declared in this scope
-| note in file FileId(1) for 10..11: `a` previously declared here
-| error in file FileId(1) for 87..88: `a` redeclared here
-error in file FileId(1) at 104..105: `a` is already declared in this scope
-| note in file FileId(1) for 87..88: `a` previously declared here
-| error in file FileId(1) for 104..105: `a` redeclared here
+error at (FileId(1), 87..88): `a` is already declared in this scope
+| note for (FileId(1), 10..11): `a` previously declared here
+| error for (FileId(1), 87..88): `a` redeclared here
+error at (FileId(1), 104..105): `a` is already declared in this scope
+| note for (FileId(1), 87..88): `a` previously declared here
+| error for (FileId(1), 104..105): `a` redeclared here
 

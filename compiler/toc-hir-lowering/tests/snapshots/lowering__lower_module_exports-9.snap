@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "\n    module z\n        export a, a, a, a, a\n        var a : int\n    end z"
 ---
 Package@(dummy)
@@ -12,16 +12,16 @@ Package@(dummy)
               StmtItem@(FileId(1), 51..62): ItemId(0)
                 ConstVar@(FileId(1), 51..62): var "a"@(FileId(1), 55..56)
                   Primitive@(FileId(1), 59..62): Int
-warn in file FileId(1) at 32..33: export item is ignored
-| warn in file FileId(1) for 32..33: `a` is already exported...
-| note in file FileId(1) for 29..30: by this export
-warn in file FileId(1) at 35..36: export item is ignored
-| warn in file FileId(1) for 35..36: `a` is already exported...
-| note in file FileId(1) for 29..30: by this export
-warn in file FileId(1) at 38..39: export item is ignored
-| warn in file FileId(1) for 38..39: `a` is already exported...
-| note in file FileId(1) for 29..30: by this export
-warn in file FileId(1) at 41..42: export item is ignored
-| warn in file FileId(1) for 41..42: `a` is already exported...
-| note in file FileId(1) for 29..30: by this export
+warn at (FileId(1), 32..33): export item is ignored
+| warn for (FileId(1), 32..33): `a` is already exported...
+| note for (FileId(1), 29..30): by this export
+warn at (FileId(1), 35..36): export item is ignored
+| warn for (FileId(1), 35..36): `a` is already exported...
+| note for (FileId(1), 29..30): by this export
+warn at (FileId(1), 38..39): export item is ignored
+| warn for (FileId(1), 38..39): `a` is already exported...
+| note for (FileId(1), 29..30): by this export
+warn at (FileId(1), 41..42): export item is ignored
+| warn for (FileId(1), 41..42): `a` is already exported...
+| note for (FileId(1), 29..30): by this export
 

@@ -1,8 +1,6 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
-assertion_line: 61
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "type _ : 1 .. *"
-
 ---
 Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(1)
@@ -13,6 +11,6 @@ Package@(dummy)
             Constrained@(FileId(1), 9..15): end => Unsized(None)
               ExprBody@(FileId(1), 9..10)
                 Literal@(FileId(1), 9..10): Integer(1)
-error in file FileId(1) at 9..15: cannot use unsized range type here
-| error in file FileId(1) for 9..15: unsized range types can only be used in array ranges
+error at (FileId(1), 9..15): cannot use unsized range type here
+| error for (FileId(1), 9..15): unsized range types can only be used in array ranges
 

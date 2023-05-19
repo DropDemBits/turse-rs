@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "procedure p(var a : string(*)) end p\nvar c : char\np(c)\n"
 ---
 "p"@(FileId(1), 10..11) [Subprogram(Procedure)]: procedure ( pass(var ref) string_n Any, ) -> void
@@ -8,7 +8,7 @@ expression: "procedure p(var a : string(*)) end p\nvar c : char\np(c)\n"
 "<unnamed>"@(dummy) [Undeclared]: <error>
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 52..53: mismatched types
-| note in file FileId(1) for 52..53: this is of type `char`
-| note in file FileId(1) for 52..53: parameter expects type `string(*)`
+error at (FileId(1), 52..53): mismatched types
+| note for (FileId(1), 52..53): this is of type `char`
+| note for (FileId(1), 52..53): parameter expects type `string(*)`
 | info: `char` is not equivalent to `string(*)`

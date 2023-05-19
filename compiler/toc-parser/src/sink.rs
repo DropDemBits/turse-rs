@@ -3,7 +3,7 @@ use crate::{event::Event, ParseTree};
 
 use rowan::GreenNodeBuilder;
 use std::mem;
-use toc_reporting::{CompileResult, MessageBundle};
+use toc_reporting::{CompileResult, FileRange, MessageBundle};
 use toc_scanner::token::{Token, TokenKind};
 use toc_syntax::SyntaxKind;
 
@@ -15,14 +15,14 @@ pub(super) struct Sink<'t, 'src> {
     cursor: usize,
     depth: usize,
     events: Vec<Event>,
-    messages: MessageBundle,
+    messages: MessageBundle<FileRange>,
 }
 
 impl<'t, 'src> Sink<'t, 'src> {
     pub(super) fn new(
         tokens: &'t [Token<'src>],
         events: Vec<Event>,
-        messages: MessageBundle,
+        messages: MessageBundle<FileRange>,
     ) -> Self {
         Self {
             builder: GreenNodeBuilder::new(),
@@ -34,7 +34,7 @@ impl<'t, 'src> Sink<'t, 'src> {
         }
     }
 
-    pub(super) fn finish(mut self) -> CompileResult<ParseTree> {
+    pub(super) fn finish(mut self) -> CompileResult<ParseTree, FileRange> {
         for idx in 0..self.events.len() {
             match mem::take(&mut self.events[idx]) {
                 Event::StartNode {

@@ -1,11 +1,11 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var putty : int\nvar j := ^putty\n"
 ---
 "putty"@(FileId(1), 4..9) [ConstVar(Var, No)]: int
 "j"@(FileId(1), 20..21) [ConstVar(Var, No)]: <error>
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 26..31: mismatched types
-| note in file FileId(1) for 26..31: this is of type `int`
-| error in file FileId(1) for 26..31: `int` is not a pointer type
+error at (FileId(1), 26..31): mismatched types
+| note for (FileId(1), 26..31): this is of type `int`
+| error for (FileId(1), 26..31): `int` is not a pointer type

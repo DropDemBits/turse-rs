@@ -1,12 +1,12 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "\n    var b : boolean\n    var _b := + b\n"
 ---
 "b"@(FileId(1), 9..10) [ConstVar(Var, No)]: boolean
 "_b"@(FileId(1), 29..31) [ConstVar(Var, No)]: <error>
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 35..36: mismatched types for unary `+`
-| note in file FileId(1) for 37..38: this is of type `boolean`
-| error in file FileId(1) for 35..36: cannot apply identity to `boolean`
+error at (FileId(1), 35..36): mismatched types for unary `+`
+| note for (FileId(1), 37..38): this is of type `boolean`
+| error for (FileId(1), 35..36): cannot apply identity to `boolean`
 | info: operand must be a number

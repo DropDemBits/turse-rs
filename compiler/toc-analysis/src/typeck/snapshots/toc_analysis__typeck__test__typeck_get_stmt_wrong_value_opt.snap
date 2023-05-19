@@ -1,11 +1,11 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "type k : int\nvar s : string\nget s : k\n"
 ---
 "k"@(FileId(1), 5..6) [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of int
 "s"@(FileId(1), 17..18) [ConstVar(Var, No)]: string
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 36..37: cannot use `k` as an expression
-| error in file FileId(1) for 36..37: `k` is a reference to a type, not a variable
-| note in file FileId(1) for 5..6: `k` declared here
+error at (FileId(1), 36..37): cannot use `k` as an expression
+| error for (FileId(1), 36..37): `k` is a reference to a type, not a variable
+| note for (FileId(1), 5..6): `k` declared here

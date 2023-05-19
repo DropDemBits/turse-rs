@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "module m\n    export opaque t, a, p\n    type t : int\n    proc p(a : t) end p\n    var a : t\n\n    % should be coercible\n    m.p(a)\n    m.p(69)\nend m\n\n% should be fine\nvar a := m.a\nm.p(a)\n% shouldn't be fine\nm.p(2)\n"
 ---
 "m"@(FileId(1), 7..8) [Module(No)]: <error>
@@ -14,7 +14,7 @@ expression: "module m\n    export opaque t, a, p\n    type t : int\n    proc p(a
 "p"@(FileId(1), 33..34) [Export]: procedure ( pass(value) opaque[DefId(PackageId(0), LocalDefId(1))] type to int, ) -> void
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 208..209: mismatched types
-| note in file FileId(1) for 208..209: this is of type `{integer}`
-| note in file FileId(1) for 208..209: parameter expects type `t (an opaque type)`
+error at (FileId(1), 208..209): mismatched types
+| note for (FileId(1), 208..209): this is of type `{integer}`
+| note for (FileId(1), 208..209): parameter expects type `t (an opaque type)`
 | info: `{integer}` is not assignable into `t (an opaque type)`

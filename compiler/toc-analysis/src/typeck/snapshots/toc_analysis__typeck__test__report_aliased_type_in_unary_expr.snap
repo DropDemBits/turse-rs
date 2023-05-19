@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "type a0 : real\nvar k : a0\nvar _ := not k % unchanged\n"
 ---
 "a0"@(FileId(1), 5..7) [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of real
@@ -7,7 +7,7 @@ expression: "type a0 : real\nvar k : a0\nvar _ := not k % unchanged\n"
 "_"@(FileId(1), 30..31) [ConstVar(Var, No)]: <error>
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 35..38: mismatched types for logical `not`
-| note in file FileId(1) for 39..40: this is of type `a0 (alias of real)`
-| error in file FileId(1) for 35..38: cannot apply logical `not` to `real`
+error at (FileId(1), 35..38): mismatched types for logical `not`
+| note for (FileId(1), 39..40): this is of type `a0 (alias of real)`
+| error for (FileId(1), 35..38): cannot apply logical `not` to `real`
 | info: operand must be an integer or boolean

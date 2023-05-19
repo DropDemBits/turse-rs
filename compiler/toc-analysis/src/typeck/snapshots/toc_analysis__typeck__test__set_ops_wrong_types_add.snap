@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "\n    type s1 : set of boolean\n    type s2 : set of boolean\n    var a : s1\n    var b : s2\n    var i : int\n\n    % should all produce the left set\n    var _v_res : s1\n\n    _v_res := a + b\n\n    % error types\n    _v_res := a + i\n    _v_res := i + a\n    "
 ---
 "s1"@(FileId(1), 10..12) [Type]: set[DefId(PackageId(0), LocalDefId(1))] of boolean
@@ -12,18 +12,18 @@ expression: "\n    type s1 : set of boolean\n    type s2 : set of boolean\n    v
 "_v_res"@(FileId(1), 152..158) [ConstVar(Var, No)]: set[DefId(PackageId(0), LocalDefId(1))] of boolean
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 181..182: mismatched types for addition
-| note in file FileId(1) for 183..184: this is of type `set s2 (of boolean)`
-| note in file FileId(1) for 179..180: this is of type `set s1 (of boolean)`
-| error in file FileId(1) for 181..182: `set s1 (of boolean)` cannot be added to `set s2 (of boolean)`
+error at (FileId(1), 181..182): mismatched types for addition
+| note for (FileId(1), 183..184): this is of type `set s2 (of boolean)`
+| note for (FileId(1), 179..180): this is of type `set s1 (of boolean)`
+| error for (FileId(1), 181..182): `set s1 (of boolean)` cannot be added to `set s2 (of boolean)`
 | info: operands must both be numbers, strings, or sets
-error in file FileId(1) at 220..221: mismatched types for addition
-| note in file FileId(1) for 222..223: this is of type `int`
-| note in file FileId(1) for 218..219: this is of type `set s1 (of boolean)`
-| error in file FileId(1) for 220..221: `set s1 (of boolean)` cannot be added to `int`
+error at (FileId(1), 220..221): mismatched types for addition
+| note for (FileId(1), 222..223): this is of type `int`
+| note for (FileId(1), 218..219): this is of type `set s1 (of boolean)`
+| error for (FileId(1), 220..221): `set s1 (of boolean)` cannot be added to `int`
 | info: operands must both be numbers, strings, or sets
-error in file FileId(1) at 240..241: mismatched types for addition
-| note in file FileId(1) for 242..243: this is of type `set s1 (of boolean)`
-| note in file FileId(1) for 238..239: this is of type `int`
-| error in file FileId(1) for 240..241: `int` cannot be added to `set s1 (of boolean)`
+error at (FileId(1), 240..241): mismatched types for addition
+| note for (FileId(1), 242..243): this is of type `set s1 (of boolean)`
+| note for (FileId(1), 238..239): this is of type `int`
+| error for (FileId(1), 240..241): `int` cannot be added to `set s1 (of boolean)`
 | info: operands must both be numbers, strings, or sets

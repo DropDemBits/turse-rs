@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "% dyn arrays aren't allowed, since the range is expected to be known at compile-time\nvar c : int\nvar a : array 1..c of char\nproc p(_ : array 1..2 of char(*)) end p\n\np(a)\n"
 ---
 "c"@(FileId(1), 89..90) [ConstVar(Var, No)]: int
@@ -9,7 +9,7 @@ expression: "% dyn arrays aren't allowed, since the range is expected to be know
 "<unnamed>"@(dummy) [Undeclared]: <error>
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 167..168: mismatched types
-| note in file FileId(1) for 167..168: this is of type `array 1 .. {dynamic} of char`
-| note in file FileId(1) for 167..168: parameter expects type `array 1 .. 2 of char(*)`
+error at (FileId(1), 167..168): mismatched types
+| note for (FileId(1), 167..168): this is of type `array 1 .. {dynamic} of char`
+| note for (FileId(1), 167..168): parameter expects type `array 1 .. 2 of char(*)`
 | info: `array 1 .. {dynamic} of char` is not assignable into `array 1 .. 2 of char(*)`

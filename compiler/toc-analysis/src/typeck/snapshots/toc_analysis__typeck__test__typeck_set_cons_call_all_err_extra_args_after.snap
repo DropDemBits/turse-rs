@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "type s : set of boolean\nvar b : boolean\nvar _ := s(all, b, b, b, b)\n"
 ---
 "s"@(FileId(1), 5..6) [Type]: set[DefId(PackageId(0), LocalDefId(1))] of boolean
@@ -8,6 +8,6 @@ expression: "type s : set of boolean\nvar b : boolean\nvar _ := s(all, b, b, b, 
 "_"@(FileId(1), 44..45) [ConstVar(Var, No)]: set[DefId(PackageId(0), LocalDefId(1))] of boolean
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 49..50: constructor call has extra arguments
-| error in file FileId(1) for 49..50: call has extra arguments
-| note in file FileId(1) for 51..54: this `all` also covers the rest of the arguments
+error at (FileId(1), 49..50): constructor call has extra arguments
+| error for (FileId(1), 49..50): call has extra arguments
+| note for (FileId(1), 51..54): this `all` also covers the rest of the arguments

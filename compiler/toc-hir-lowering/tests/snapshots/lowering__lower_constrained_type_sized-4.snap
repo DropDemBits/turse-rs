@@ -1,8 +1,6 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
-assertion_line: 61
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "var _ : .."
-
 ---
 Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(1)
@@ -13,6 +11,6 @@ Package@(dummy)
             Constrained@(FileId(1), 8..10): end => Expr
               ExprBody@(dummy)
               ExprBody@(dummy)
-error in file FileId(1) at 8..10: unexpected token
-| error in file FileId(1) for 8..10: expected expression, but found `..`
+error at (FileId(1), 8..10): unexpected token
+| error for (FileId(1), 8..10): expected expression, but found `..`
 

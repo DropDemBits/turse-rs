@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "% using array types as a proxy for constrained ty equivalence\ntype r1 : 1..2\ntype r2 : 3..4\n\nvar a : array r1 of int\nvar b : array r2 of int\nvar c : array (1+1-1)..(4 div 2) of int\n\n% bounds must be equal\na := b\n% if they evaluate to the same values, they're equivalent\na := c\n\nvar d : array 0..0 of int\nvar e : array false..false of int\n\n% base types must be the same\nd := e\n"
 ---
 "r1"@(FileId(1), 67..69) [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of range of `int` (Unevaluated(PackageId(0), BodyId(0)) .. Expr(Unevaluated(PackageId(0), BodyId(1)), No))
@@ -11,11 +11,11 @@ expression: "% using array types as a proxy for constrained ty equivalence\ntype
 "e"@(FileId(1), 308..309) [ConstVar(Var, No)]: array ( range of `boolean` (Unevaluated(PackageId(0), BodyId(8)) .. Expr(Unevaluated(PackageId(0), BodyId(9)), Yes)), ) of int
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 207..209: mismatched types
-| note in file FileId(1) for 210..211: this is of type `array 3 .. 4 of int`
-| note in file FileId(1) for 205..206: this is of type `array 1 .. 2 of int`
+error at (FileId(1), 207..209): mismatched types
+| note for (FileId(1), 210..211): this is of type `array 3 .. 4 of int`
+| note for (FileId(1), 205..206): this is of type `array 1 .. 2 of int`
 | info: `array 3 .. 4 of int` is not assignable into `array 1 .. 2 of int`
-error in file FileId(1) at 371..373: mismatched types
-| note in file FileId(1) for 374..375: this is of type `array false .. false of int`
-| note in file FileId(1) for 369..370: this is of type `array 0 .. 0 of int`
+error at (FileId(1), 371..373): mismatched types
+| note for (FileId(1), 374..375): this is of type `array false .. false of int`
+| note for (FileId(1), 369..370): this is of type `array 0 .. 0 of int`
 | info: `array false .. false of int` is not assignable into `array 0 .. 0 of int`

@@ -1,7 +1,6 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "var _ : int _ := '\\777\\ud800\\!'"
-
 ---
 Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(1)
@@ -13,8 +12,8 @@ Package@(dummy)
         Assign@(FileId(1), 12..31)
           Name@(FileId(1), 12..13): "_"@(FileId(1), 4..5)
           Literal@(FileId(1), 17..31): CharSeq("��!")
-error in file FileId(1) at 17..31: invalid char literal
-| error in file FileId(1) for 18..22: octal character value is greater than \377 (decimal 255)
-| error in file FileId(1) for 22..28: surrogate chars are not allowed in char sequences
-| error in file FileId(1) for 28..30: unknown backslash escape
+error at (FileId(1), 17..31): invalid char literal
+| error for (FileId(1), 18..22): octal character value is greater than \377 (decimal 255)
+| error for (FileId(1), 22..28): surrogate chars are not allowed in char sequences
+| error for (FileId(1), 28..30): unknown backslash escape
 

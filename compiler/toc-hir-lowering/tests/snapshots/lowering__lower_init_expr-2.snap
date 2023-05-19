@@ -1,8 +1,6 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
-assertion_line: 61
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "var _ := init(1, 2, 3, 4)"
-
 ---
 Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(1)
@@ -20,7 +18,7 @@ Package@(dummy)
                   Literal@(FileId(1), 20..21): Integer(3)
                 ExprBody@(FileId(1), 23..24)
                   Literal@(FileId(1), 23..24): Integer(4)
-error in file FileId(1) at 9..25: mismatched initializer
-| error in file FileId(1) for 9..25: `init` initializer is not allowed here
+error at (FileId(1), 9..25): mismatched initializer
+| error for (FileId(1), 9..25): `init` initializer is not allowed here
 | info: `init` initializer requires a type to be specified
 

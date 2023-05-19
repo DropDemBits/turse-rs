@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "\n    module z\n        export *a\n        var a : int\n    end z"
 ---
 Package@(dummy)
@@ -12,6 +12,6 @@ Package@(dummy)
               StmtItem@(FileId(1), 40..51): ItemId(0)
                 ConstVar@(FileId(1), 40..51): var "a"@(FileId(1), 44..45)
                   Primitive@(FileId(1), 48..51): Int
-warn in file FileId(1) at 29..30: attribute has no effect
-| warn in file FileId(1) for 29..30: `pervasive` only has an effect on exports when `unqualified` is also present
+warn at (FileId(1), 29..30): attribute has no effect
+| warn for (FileId(1), 29..30): `pervasive` only has an effect on exports when `unqualified` is also present
 

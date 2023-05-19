@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "\n    case s of\n    label 1:\n        var a := a + 1\n    label 2, 3:\n        var a := a + 2\n    label 4:\n        var a := a + 3\n    label :\n        var a := a + 4\n    label :\n        var a := a + 5\n    end case\n    "
 ---
 Package@(dummy)
@@ -42,10 +42,10 @@ Package@(dummy)
                 Binary@(FileId(1), 190..195): Add
                   Name@(FileId(1), 190..191): "a"@(FileId(1), 190..191), undeclared
                   Literal@(FileId(1), 194..195): Integer(5)
-error in file FileId(1) at 10..11: `s` is undeclared
-| error in file FileId(1) for 10..11: no definitions of `s` are in scope
-error in file FileId(1) at 45..46: `a` is undeclared
-| error in file FileId(1) for 45..46: no definitions of `a` are in scope
-error in file FileId(1) at 165..195: extra `label` arm found after default arm
-| error in file FileId(1) for 165..195: extra `label` arm
+error at (FileId(1), 10..11): `s` is undeclared
+| error for (FileId(1), 10..11): no definitions of `s` are in scope
+error at (FileId(1), 45..46): `a` is undeclared
+| error for (FileId(1), 45..46): no definitions of `a` are in scope
+error at (FileId(1), 165..195): extra `label` arm found after default arm
+| error for (FileId(1), 165..195): extra `label` arm
 

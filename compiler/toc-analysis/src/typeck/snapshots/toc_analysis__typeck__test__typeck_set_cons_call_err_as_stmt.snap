@@ -1,10 +1,10 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "type s : set of boolean\ns()\n"
 ---
 "s"@(FileId(1), 5..6) [Type]: set[DefId(PackageId(0), LocalDefId(1))] of boolean
 "s"@(FileId(1), 9..23) [Set]: <error>
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 24..25: cannot use expression as a statement
-| error in file FileId(1) for 24..25: this is not a function or procedure
+error at (FileId(1), 24..25): cannot use expression as a statement
+| error for (FileId(1), 24..25): this is not a function or procedure

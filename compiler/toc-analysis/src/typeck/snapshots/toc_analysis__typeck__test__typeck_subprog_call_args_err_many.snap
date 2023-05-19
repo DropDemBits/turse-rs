@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "procedure boop(a, b, c : int) end boop\nboop(1, 2, 3, 4)\nboop(1, 2, 3, 4, 5)\n"
 ---
 "boop"@(FileId(1), 10..14) [Subprogram(Procedure)]: procedure ( pass(value) int, pass(value) int, pass(value) int, ) -> void
@@ -9,7 +9,7 @@ expression: "procedure boop(a, b, c : int) end boop\nboop(1, 2, 3, 4)\nboop(1, 2
 "<unnamed>"@(dummy) [Undeclared]: <error>
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 39..43: expected 3 arguments, found 4
-| error in file FileId(1) for 39..43: call has 1 extra argument
-error in file FileId(1) at 56..60: expected 3 arguments, found 5
-| error in file FileId(1) for 56..60: call has 2 extra arguments
+error at (FileId(1), 39..43): expected 3 arguments, found 4
+| error for (FileId(1), 39..43): call has 1 extra argument
+error at (FileId(1), 56..60): expected 3 arguments, found 5
+| error for (FileId(1), 56..60): call has 2 extra arguments

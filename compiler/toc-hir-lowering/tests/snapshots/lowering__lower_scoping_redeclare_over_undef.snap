@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "a := a const a := 1"
 ---
 Package@(dummy)
@@ -13,6 +13,6 @@ Package@(dummy)
           ConstVar@(FileId(1), 7..19): const "a"@(FileId(1), 13..14)
             ExprBody@(FileId(1), 18..19)
               Literal@(FileId(1), 18..19): Integer(1)
-error in file FileId(1) at 0..1: `a` is undeclared
-| error in file FileId(1) for 0..1: no definitions of `a` are in scope
+error at (FileId(1), 0..1): `a` is undeclared
+| error for (FileId(1), 0..1): no definitions of `a` are in scope
 

@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var i : int\nvar n : nat\nvar r : real\nvar c : char\nvar b: boolean\nvar cn : char(4)\ntype en: enum(a, b) var ef : en\n\nget i : *\nget n : *\nget r : *\nget c : *\nget b : *\nget cn : *\nget ef : *\n"
 ---
 "i"@(FileId(1), 4..5) [ConstVar(Var, No)]: int
@@ -15,24 +15,24 @@ expression: "var i : int\nvar n : nat\nvar r : real\nvar c : char\nvar b: boolea
 "ef"@(FileId(1), 106..108) [ConstVar(Var, No)]: enum[DefId(PackageId(0), LocalDefId(7))] ( "a"@(FileId(1), 96..97), "b"@(FileId(1), 99..100), )
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 119..120: invalid get option used
-| error in file FileId(1) for 119..120: cannot specify line width for `int`
+error at (FileId(1), 119..120): invalid get option used
+| error for (FileId(1), 119..120): cannot specify line width for `int`
 | info: line width can only be specified for `string` types
-error in file FileId(1) at 129..130: invalid get option used
-| error in file FileId(1) for 129..130: cannot specify line width for `nat`
+error at (FileId(1), 129..130): invalid get option used
+| error for (FileId(1), 129..130): cannot specify line width for `nat`
 | info: line width can only be specified for `string` types
-error in file FileId(1) at 139..140: invalid get option used
-| error in file FileId(1) for 139..140: cannot specify line width for `real`
+error at (FileId(1), 139..140): invalid get option used
+| error for (FileId(1), 139..140): cannot specify line width for `real`
 | info: line width can only be specified for `string` types
-error in file FileId(1) at 149..150: invalid get option used
-| error in file FileId(1) for 149..150: cannot specify line width for `char`
+error at (FileId(1), 149..150): invalid get option used
+| error for (FileId(1), 149..150): cannot specify line width for `char`
 | info: line width can only be specified for `string` types
-error in file FileId(1) at 159..160: invalid get option used
-| error in file FileId(1) for 159..160: cannot specify line width for `boolean`
+error at (FileId(1), 159..160): invalid get option used
+| error for (FileId(1), 159..160): cannot specify line width for `boolean`
 | info: line width can only be specified for `string` types
-error in file FileId(1) at 169..171: invalid get option used
-| error in file FileId(1) for 169..171: cannot specify line width for `char(4)`
+error at (FileId(1), 169..171): invalid get option used
+| error for (FileId(1), 169..171): cannot specify line width for `char(4)`
 | info: line width can only be specified for `string` types
-error in file FileId(1) at 180..182: invalid get option used
-| error in file FileId(1) for 180..182: cannot specify line width for `enum en`
+error at (FileId(1), 180..182): invalid get option used
+| error for (FileId(1), 180..182): cannot specify line width for `enum en`
 | info: line width can only be specified for `string` types

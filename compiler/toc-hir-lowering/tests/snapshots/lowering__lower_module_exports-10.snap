@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "\n    module z\n        export var a, var b\n        type a : int\n        const b := 8080\n    end z"
 ---
 Package@(dummy)
@@ -16,10 +16,10 @@ Package@(dummy)
                 ConstVar@(FileId(1), 71..86): const "b"@(FileId(1), 77..78)
                   ExprBody@(FileId(1), 82..86)
                     Literal@(FileId(1), 82..86): Integer(8080)
-error in file FileId(1) at 29..32: cannot use `var` here
-| error in file FileId(1) for 29..32: `var` attribute can only be applied to variables
-| note in file FileId(1) for 55..56: `a` declared here
-error in file FileId(1) at 36..39: cannot use `var` here
-| error in file FileId(1) for 36..39: `var` attribute can only be applied to variables
-| note in file FileId(1) for 77..78: `b` declared here
+error at (FileId(1), 29..32): cannot use `var` here
+| error for (FileId(1), 29..32): `var` attribute can only be applied to variables
+| note for (FileId(1), 55..56): `a` declared here
+error at (FileId(1), 36..39): cannot use `var` here
+| error for (FileId(1), 36..39): `var` attribute can only be applied to variables
+| note for (FileId(1), 77..78): `b` declared here
 

@@ -1,8 +1,6 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
-assertion_line: 59
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "\n    var nothing := 0\n    bind me to nothing"
-
 ---
 Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(2)
@@ -16,6 +14,6 @@ Package@(dummy)
           Bind@(FileId(1), 31..44): const "me"@(FileId(1), 31..33)
             ExprBody@(FileId(1), 37..44)
               Name@(FileId(1), 37..44): "nothing"@(FileId(1), 9..16)
-error in file FileId(1) at 26..44: cannot use `bind` here
-| error in file FileId(1) for 26..44: `bind` declaration is not allowed at module-like or program level
+error at (FileId(1), 26..44): cannot use `bind` here
+| error for (FileId(1), 26..44): `bind` declaration is not allowed at module-like or program level
 

@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var *_ : boolean\n\nmodule m\n    export opaque s, var a\n    type s : set of boolean\n    var a := s(true)\n    _ := true in a\nend m\n\n% should fail\nvar vs := m.s(false)\n_ := false in m.a\n"
 ---
 "_"@(FileId(1), 5..6) [ConstVar(Var, No)]: boolean
@@ -12,10 +12,10 @@ expression: "var *_ : boolean\n\nmodule m\n    export opaque s, var a\n    type 
 "a"@(FileId(1), 52..53) [Export]: opaque[DefId(PackageId(0), LocalDefId(2))] type to set[DefId(PackageId(0), LocalDefId(3))] of boolean
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 153..156: cannot call or subscript `s`
-| note in file FileId(1) for 153..156: this is of type `s (an opaque type)`
-| error in file FileId(1) for 153..156: `s (an opaque type)` is not callable
-error in file FileId(1) at 175..177: mismatched types for `in`
-| note in file FileId(1) for 178..181: this is of type `s (an opaque type)`
-| error in file FileId(1) for 178..181: `s (an opaque type)` is not a set type
+error at (FileId(1), 153..156): cannot call or subscript `s`
+| note for (FileId(1), 153..156): this is of type `s (an opaque type)`
+| error for (FileId(1), 153..156): `s (an opaque type)` is not callable
+error at (FileId(1), 175..177): mismatched types for `in`
+| note for (FileId(1), 178..181): this is of type `s (an opaque type)`
+| error for (FileId(1), 178..181): `s (an opaque type)` is not a set type
 | info: operand must be a set

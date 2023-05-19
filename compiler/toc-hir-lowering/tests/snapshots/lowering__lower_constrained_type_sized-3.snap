@@ -1,8 +1,6 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
-assertion_line: 61
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "var _ : 1 .."
-
 ---
 Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(1)
@@ -14,6 +12,6 @@ Package@(dummy)
               ExprBody@(FileId(1), 8..9)
                 Literal@(FileId(1), 8..9): Integer(1)
               ExprBody@(dummy)
-error in file FileId(1) at 10..12: unexpected end of file
-| error in file FileId(1) for 10..12: expected expression after here
+error at (FileId(1), 10..12): unexpected end of file
+| error for (FileId(1), 10..12): expected expression after here
 

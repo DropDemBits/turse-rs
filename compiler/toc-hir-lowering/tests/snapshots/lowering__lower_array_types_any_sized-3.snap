@@ -1,8 +1,6 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
-assertion_line: 61
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "type _ : proc uwu(_ : array 1 .. *, char of int)"
-
 ---
 Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(1)
@@ -17,8 +15,8 @@ Package@(dummy)
                     Literal@(FileId(1), 28..29): Integer(1)
                 Primitive@(FileId(1), 44..47): Int
               Void@(FileId(1), 9..48)
-error in file FileId(1) at 28..34: extra ranges specified
-| error in file FileId(1) for 36..40: extra ranges after
-| note in file FileId(1) for 28..34: this must be the only range present
+error at (FileId(1), 28..34): extra ranges specified
+| error for (FileId(1), 36..40): extra ranges after
+| note for (FileId(1), 28..34): this must be the only range present
 | info: any-sized arrays must have this range be the only range present
 

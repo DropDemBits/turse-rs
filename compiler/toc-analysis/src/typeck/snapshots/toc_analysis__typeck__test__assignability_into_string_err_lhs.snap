@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var cmx : char(256)\n\nproc __(var _e00 : string(*))\n_e00 := cmx % [not captured by ctc]\nend __\n"
 ---
 "cmx"@(FileId(1), 4..7) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(0)))
@@ -8,7 +8,7 @@ expression: "var cmx : char(256)\n\nproc __(var _e00 : string(*))\n_e00 := cmx %
 "<unnamed>"@(dummy) [Undeclared]: <error>
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 56..58: mismatched types
-| note in file FileId(1) for 59..62: this is of type `char(256)`
-| note in file FileId(1) for 51..55: this is of type `string(*)`
+error at (FileId(1), 56..58): mismatched types
+| note for (FileId(1), 59..62): this is of type `char(256)`
+| note for (FileId(1), 51..55): this is of type `string(*)`
 | info: `char(256)` is not assignable into `string(*)`

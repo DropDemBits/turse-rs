@@ -1,8 +1,6 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
-assertion_line: 59
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "\n    function pars() res : int\n        var use := res\n    end pars"
-
 ---
 Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(2)
@@ -16,6 +14,6 @@ Package@(dummy)
                 ConstVar@(FileId(1), 39..53): var "use"@(FileId(1), 43..46)
                   ExprBody@(FileId(1), 50..53)
                     Name@(FileId(1), 50..53): "res"@(FileId(1), 21..24)
-error in file FileId(1) at 50..53: `cannot use res` here
-| error in file FileId(1) for 50..53: `res` can only be used in a `post` statement
+error at (FileId(1), 50..53): `cannot use res` here
+| error for (FileId(1), 50..53): `res` can only be used in a `post` statement
 

@@ -1,10 +1,10 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var _ : char(true)"
 ---
 "_"@(FileId(1), 4..5) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(0)))
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 13..17: mismatched types
-| note in file FileId(1) for 13..17: this is of type `boolean`
+error at (FileId(1), 13..17): mismatched types
+| note for (FileId(1), 13..17): this is of type `boolean`
 | info: `boolean` is not an integer type

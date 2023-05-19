@@ -1,8 +1,6 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
-assertion_line: 59
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "type _ : function _ (function a (function a : int ) : int, proc b (proc a (proc a( proc a))), proc c) : int"
-
 ---
 Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(1)
@@ -26,7 +24,7 @@ Package@(dummy)
               Procedure@(FileId(1), 94..100): [no params]
                 Void@(FileId(1), 94..100)
               Primitive@(FileId(1), 104..107): Int
-warn in file FileId(1) at 33..49: parameterless function types should specify `()`
-| warn in file FileId(1) for 42..43: add `()` after here
+warn at (FileId(1), 33..49): parameterless function types should specify `()`
+| warn for (FileId(1), 42..43): add `()` after here
 | info: referring to a parameterless function will call it instead of producing a reference to it
 

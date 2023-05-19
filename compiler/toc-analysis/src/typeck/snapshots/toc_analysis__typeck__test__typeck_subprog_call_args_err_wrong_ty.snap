@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var tree : string\nprocedure boop(a, b : int, var c : int) end boop\nboop(1, 2, tree)\n"
 ---
 "tree"@(FileId(1), 4..8) [ConstVar(Var, No)]: string
@@ -10,7 +10,7 @@ expression: "var tree : string\nprocedure boop(a, b : int, var c : int) end boop
 "<unnamed>"@(dummy) [Undeclared]: <error>
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 78..82: mismatched types
-| note in file FileId(1) for 78..82: this is of type `string`
-| note in file FileId(1) for 78..82: parameter expects type `int`
+error at (FileId(1), 78..82): mismatched types
+| note for (FileId(1), 78..82): this is of type `string`
+| note for (FileId(1), 78..82): parameter expects type `int`
 | info: `string` is not equivalent to `int`

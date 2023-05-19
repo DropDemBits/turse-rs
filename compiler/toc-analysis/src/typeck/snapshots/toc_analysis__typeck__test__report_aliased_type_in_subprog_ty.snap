@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "type i : int\ntype am_in : real\ntype misery : char(*)\ntype eat_em_up : string\ntype f : function(c : i, p : am_in, r : misery) : eat_em_up\n\nvar y : f\nvar _ : int := y\n"
 ---
 "i"@(FileId(1), 5..6) [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of int
@@ -15,7 +15,7 @@ expression: "type i : int\ntype am_in : real\ntype misery : char(*)\ntype eat_em
 "<unnamed>"@(dummy) [Undeclared]: <error>
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 163..164: mismatched types
-| note in file FileId(1) for 163..164: this is of type `f (alias of function (int, real, char(*)) : string)`
-| note in file FileId(1) for 156..159: this is of type `int`
+error at (FileId(1), 163..164): mismatched types
+| note for (FileId(1), 163..164): this is of type `f (alias of function (int, real, char(*)) : string)`
+| note for (FileId(1), 156..159): this is of type `int`
 | info: `function (int, real, char(*)) : string` is not assignable into `int`

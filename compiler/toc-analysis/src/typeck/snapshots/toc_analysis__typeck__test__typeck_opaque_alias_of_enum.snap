@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var *_ : boolean\n\nmodule m\n    export opaque e, var a\n    type e : enum(a)\n    var a : e := e.a\n\n    _ := e.a = a\n\n    % should give a not usable as ty error\n    type not_ty : e.a\nend m\n\nvar u : m.e := m.e.a\n_ := m.e.a = u\ntype no_field : m.e.a\n"
 ---
 "_"@(FileId(1), 5..6) [ConstVar(Var, No)]: boolean
@@ -15,12 +15,12 @@ expression: "var *_ : boolean\n\nmodule m\n    export opaque e, var a\n    type 
 "a"@(FileId(1), 52..53) [Export]: opaque[DefId(PackageId(0), LocalDefId(2))] type to enum[DefId(PackageId(0), LocalDefId(3))] ( "a"@(FileId(1), 72..73), )
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 178..179: cannot use `a` as a type alias
-| error in file FileId(1) for 178..179: `a` is a reference to an enum variant, not a type
-| note in file FileId(1) for 72..73: `a` declared here
-error in file FileId(1) at 206..207: no field named `a` in expression
-| error in file FileId(1) for 206..207: no field named `a` in here
-error in file FileId(1) at 217..218: no field named `a` in expression
-| error in file FileId(1) for 217..218: no field named `a` in here
-error in file FileId(1) at 243..244: no field named `a` in `e`
-| error in file FileId(1) for 243..244: no field named `a` in here
+error at (FileId(1), 178..179): cannot use `a` as a type alias
+| error for (FileId(1), 178..179): `a` is a reference to an enum variant, not a type
+| note for (FileId(1), 72..73): `a` declared here
+error at (FileId(1), 206..207): no field named `a` in expression
+| error for (FileId(1), 206..207): no field named `a` in here
+error at (FileId(1), 217..218): no field named `a` in expression
+| error for (FileId(1), 217..218): no field named `a` in here
+error at (FileId(1), 243..244): no field named `a` in `e`
+| error for (FileId(1), 243..244): no field named `a` in here

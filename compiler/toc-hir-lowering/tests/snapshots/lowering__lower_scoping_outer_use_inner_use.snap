@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "q := j begin q := k end"
 ---
 Package@(dummy)
@@ -13,10 +13,10 @@ Package@(dummy)
           Assign@(FileId(1), 13..19)
             Name@(FileId(1), 13..14): "q"@(FileId(1), 13..14), undeclared
             Name@(FileId(1), 18..19): "k"@(FileId(1), 18..19), undeclared
-error in file FileId(1) at 0..1: `q` is undeclared
-| error in file FileId(1) for 0..1: no definitions of `q` are in scope
-error in file FileId(1) at 5..6: `j` is undeclared
-| error in file FileId(1) for 5..6: no definitions of `j` are in scope
-error in file FileId(1) at 18..19: `k` is undeclared
-| error in file FileId(1) for 18..19: no definitions of `k` are in scope
+error at (FileId(1), 0..1): `q` is undeclared
+| error for (FileId(1), 0..1): no definitions of `q` are in scope
+error at (FileId(1), 5..6): `j` is undeclared
+| error for (FileId(1), 5..6): no definitions of `j` are in scope
+error at (FileId(1), 18..19): `k` is undeclared
+| error for (FileId(1), 18..19): no definitions of `k` are in scope
 

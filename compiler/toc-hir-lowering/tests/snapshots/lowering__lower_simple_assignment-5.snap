@@ -1,11 +1,11 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: ":="
 ---
 Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(0)
     Module@(FileId(1), 0..2): "<root>"@(dummy)
       StmtBody@(FileId(1), 0..2): []
-error in file FileId(1) at 0..2: unexpected token
-| error in file FileId(1) for 0..2: expected statement, but found `:=`
+error at (FileId(1), 0..2): unexpected token
+| error for (FileId(1), 0..2): expected statement, but found `:=`
 

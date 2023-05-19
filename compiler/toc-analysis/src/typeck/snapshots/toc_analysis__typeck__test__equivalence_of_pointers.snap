@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "type i : int\ntype tpi : pointer to int\ntype tpc : pointer to char\ntype tpai : pointer to i\ntype tupi : unchecked pointer to int\n\nvar v_pi : tpi\nvar v_pc : tpc\nvar v_pai : tpai\nvar v_upi : tupi\n\n% compat through aliases\nv_pi := v_pai\n\n% incompatible - different target types\nv_pi := v_pc\n\n% incompatible - different checkedness\nv_pi := v_upi\n"
 ---
 "i"@(FileId(1), 5..6) [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of int
@@ -13,11 +13,11 @@ expression: "type i : int\ntype tpi : pointer to int\ntype tpc : pointer to char
 "v_upi"@(FileId(1), 180..185) [ConstVar(Var, No)]: alias[DefId(PackageId(0), LocalDefId(4))] of unchecked pointer to int
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 279..281: mismatched types
-| note in file FileId(1) for 282..286: this is of type `tpc (alias of pointer to char)`
-| note in file FileId(1) for 274..278: this is of type `tpi (alias of pointer to int)`
+error at (FileId(1), 279..281): mismatched types
+| note for (FileId(1), 282..286): this is of type `tpc (alias of pointer to char)`
+| note for (FileId(1), 274..278): this is of type `tpi (alias of pointer to int)`
 | info: `pointer to char` is not assignable into `pointer to int`
-error in file FileId(1) at 332..334: mismatched types
-| note in file FileId(1) for 335..340: this is of type `tupi (alias of unchecked pointer to int)`
-| note in file FileId(1) for 327..331: this is of type `tpi (alias of pointer to int)`
+error at (FileId(1), 332..334): mismatched types
+| note for (FileId(1), 335..340): this is of type `tupi (alias of unchecked pointer to int)`
+| note for (FileId(1), 327..331): this is of type `tpi (alias of pointer to int)`
 | info: `unchecked pointer to int` is not assignable into `pointer to int`

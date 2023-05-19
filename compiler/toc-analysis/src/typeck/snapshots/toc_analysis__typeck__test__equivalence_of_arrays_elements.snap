@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "% over array elements\nvar a : array 0+1..1 of int\nvar b : array 0+1..1 of int1\nvar c : array 0+1..1 of int % trying to make unique types\n\n% element types must be equivalent\na := b\na := c\n"
 ---
 "a"@(FileId(1), 26..27) [ConstVar(Var, No)]: array ( range of `int` (Unevaluated(PackageId(0), BodyId(0)) .. Expr(Unevaluated(PackageId(0), BodyId(1)), Yes)), ) of int
@@ -7,7 +7,7 @@ expression: "% over array elements\nvar a : array 0+1..1 of int\nvar b : array 0
 "c"@(FileId(1), 83..84) [ConstVar(Var, No)]: array ( range of `int` (Unevaluated(PackageId(0), BodyId(4)) .. Expr(Unevaluated(PackageId(0), BodyId(5)), Yes)), ) of int
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 175..177: mismatched types
-| note in file FileId(1) for 178..179: this is of type `array 1 .. 1 of int1`
-| note in file FileId(1) for 173..174: this is of type `array 1 .. 1 of int`
+error at (FileId(1), 175..177): mismatched types
+| note for (FileId(1), 178..179): this is of type `array 1 .. 1 of int1`
+| note for (FileId(1), 173..174): this is of type `array 1 .. 1 of int`
 | info: `array 1 .. 1 of int1` is not assignable into `array 1 .. 1 of int`

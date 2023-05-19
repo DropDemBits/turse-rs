@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "var lmao : int proc uwu : lmao end uwu"
 ---
 Package@(dummy)
@@ -15,6 +15,6 @@ Package@(dummy)
               Name@(FileId(1), 26..30): "lmao"@(FileId(1), 4..8)
             Void@(FileId(1), 15..30)
             StmtBody@(FileId(1), 31..31): []
-error in file FileId(1) at 24..30: device specification is not allowed here
-| error in file FileId(1) for 24..30: `procedure` is not in a device monitor
+error at (FileId(1), 24..30): device specification is not allowed here
+| error for (FileId(1), 24..30): `procedure` is not in a device monitor
 

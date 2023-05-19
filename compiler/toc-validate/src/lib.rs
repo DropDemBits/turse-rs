@@ -8,16 +8,15 @@ mod ty;
 #[cfg(test)]
 mod test;
 
-use toc_reporting::{CompileResult, MessageBuilder, MessageSink};
-use toc_span::{FileId, Span, TextRange};
+use toc_reporting::{CompileResult, FileRange, MessageBuilder, MessageSink};
+use toc_span::TextRange;
 use toc_syntax::{
     ast::{self, AstNode},
     match_ast, SyntaxNode,
 };
 
-pub fn validate_ast(file: FileId, root: SyntaxNode) -> CompileResult<()> {
+pub fn validate_ast(root: SyntaxNode) -> CompileResult<(), FileRange> {
     let mut ctx = ValidateCtx {
-        file,
         sink: MessageSink::new(),
     };
 
@@ -29,8 +28,7 @@ pub fn validate_ast(file: FileId, root: SyntaxNode) -> CompileResult<()> {
 }
 
 struct ValidateCtx {
-    file: FileId,
-    sink: MessageSink,
+    sink: MessageSink<FileRange>,
 }
 
 impl ValidateCtx {
@@ -47,16 +45,16 @@ impl ValidateCtx {
     pub(crate) fn push_detailed_error(
         &mut self,
         msg: impl Into<String>,
-        span: Span,
-    ) -> MessageBuilder {
+        span: FileRange,
+    ) -> MessageBuilder<FileRange> {
         self.sink.error_detailed(msg.into(), span)
     }
 
-    pub(crate) fn mk_span(&self, range: TextRange) -> Span {
-        Span::new(self.file, range)
+    pub(crate) fn mk_span(&self, range: TextRange) -> FileRange {
+        FileRange(range)
     }
 
-    fn finish(self) -> CompileResult<()> {
+    fn finish(self) -> CompileResult<(), FileRange> {
         CompileResult::new((), self.sink.finish())
     }
 }
@@ -176,9 +174,8 @@ fn validate_source(src: ast::Source, ctx: &mut ValidateCtx) {
 pub(crate) fn check(source: &str, expected: expect_test::Expect) {
     use std::fmt::Write;
 
-    let dummy_id = FileId::dummy(0);
-    let res = toc_parser::parse(dummy_id, source);
-    let validate_res = validate_ast(dummy_id, res.result().syntax());
+    let res = toc_parser::parse(source);
+    let validate_res = validate_ast(res.result().syntax());
 
     let mut buf = String::new();
     for msg in res.messages().iter().chain(validate_res.messages().iter()) {

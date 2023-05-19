@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var c5 : char(5)\nvar s5 : string(5)\n\nvar _e00 : char := s5\nvar _e01 : char := c5 % [not captured by ctc]\n"
 ---
 "c5"@(FileId(1), 4..6) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(0)))
@@ -8,11 +8,11 @@ expression: "var c5 : char(5)\nvar s5 : string(5)\n\nvar _e00 : char := s5\nvar 
 "_e01"@(FileId(1), 63..67) [ConstVar(Var, No)]: char
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 56..58: mismatched types
-| note in file FileId(1) for 56..58: this is of type `string(5)`
-| note in file FileId(1) for 48..52: this is of type `char`
+error at (FileId(1), 56..58): mismatched types
+| note for (FileId(1), 56..58): this is of type `string(5)`
+| note for (FileId(1), 48..52): this is of type `char`
 | info: `string(5)` is not assignable into `char`
-error in file FileId(1) at 78..80: mismatched types
-| note in file FileId(1) for 78..80: this is of type `char(5)`
-| note in file FileId(1) for 70..74: this is of type `char`
+error at (FileId(1), 78..80): mismatched types
+| note for (FileId(1), 78..80): this is of type `char(5)`
+| note for (FileId(1), 70..74): this is of type `char`
 | info: `char(5)` is not assignable into `char`

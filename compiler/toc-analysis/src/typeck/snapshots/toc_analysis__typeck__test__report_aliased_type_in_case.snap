@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "type a0 : char\ntype a1 : char(6)\nvar ca0 : a0\nconst cna1 : a1 := 'aaaaaa'\n\ncase ca0 of\nlabel cna1:\nend case\n"
 ---
 "a0"@(FileId(1), 5..7) [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of char
@@ -8,8 +8,8 @@ expression: "type a0 : char\ntype a1 : char(6)\nvar ca0 : a0\nconst cna1 : a1 :=
 "cna1"@(FileId(1), 52..56) [ConstVar(Const, No)]: alias[DefId(PackageId(0), LocalDefId(1))] of char_n Fixed(Unevaluated(PackageId(0), BodyId(0)))
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 93..97: mismatched types
-| note in file FileId(1) for 80..83: discriminant is of type `a0 (alias of char)`
-| note in file FileId(1) for 93..97: selector is of type `a1 (alias of char(6))`
-| error in file FileId(1) for 93..97: `char(6)` is not a `char`
+error at (FileId(1), 93..97): mismatched types
+| note for (FileId(1), 80..83): discriminant is of type `a0 (alias of char)`
+| note for (FileId(1), 93..97): selector is of type `a1 (alias of char(6))`
+| error for (FileId(1), 93..97): `char(6)` is not a `char`
 | info: selector type must match discriminant type

@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "\n    proc __ (var c_any : char(*), var s_any : string(*))\n    var c : char\n    var c_sz : char(6)\n    var s : string\n    var s_sz : string(6)\n    var i : int\n\n    var _e00 := c + i\n    var _e01 := c_any + i\n    var _e02 := c_sz + i\n    var _e03 := s + i\n    var _e04 := s_any + i\n    var _e05 := s_sz + i\n\n    var _e10 := i + c\n    var _e11 := i + c_any\n    var _e12 := i + c_sz\n    var _e13 := i + s\n    var _e14 := i + s_any\n    var _e15 := i + s_sz\n\n    % TODO: Uncomment to verify incompatible types\n    /*\n    var _e20 : char(13) := c_sz + c_sz\n    var _e21 : char(8) := c_sz + c\n    var _e22 : char(8) := c + c_sz\n    var _e23 : char(3) := c + c\n    var _e24 : char := c + c\n    */\n    end __\n    "
 ---
 "__"@(FileId(1), 10..12) [Subprogram(Procedure)]: procedure ( pass(var ref) char_n Any, pass(var ref) string_n Any, ) -> void
@@ -25,63 +25,63 @@ expression: "\n    proc __ (var c_any : char(*), var s_any : string(*))\n    var
 "<unnamed>"@(dummy) [Undeclared]: <error>
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 177..178: mismatched types for string concatenation
-| note in file FileId(1) for 179..180: this is of type `int`
-| note in file FileId(1) for 175..176: this is of type `char`
-| error in file FileId(1) for 177..178: `char` cannot be concatenated to `int`
+error at (FileId(1), 177..178): mismatched types for string concatenation
+| note for (FileId(1), 179..180): this is of type `int`
+| note for (FileId(1), 175..176): this is of type `char`
+| error for (FileId(1), 177..178): `char` cannot be concatenated to `int`
 | info: operands must both be numbers, strings, or sets
-error in file FileId(1) at 203..204: mismatched types for string concatenation
-| note in file FileId(1) for 205..206: this is of type `int`
-| note in file FileId(1) for 197..202: this is of type `char(*)`
-| error in file FileId(1) for 203..204: `char(*)` cannot be concatenated to `int`
+error at (FileId(1), 203..204): mismatched types for string concatenation
+| note for (FileId(1), 205..206): this is of type `int`
+| note for (FileId(1), 197..202): this is of type `char(*)`
+| error for (FileId(1), 203..204): `char(*)` cannot be concatenated to `int`
 | info: operands must both be numbers, strings, or sets
-error in file FileId(1) at 228..229: mismatched types for string concatenation
-| note in file FileId(1) for 230..231: this is of type `int`
-| note in file FileId(1) for 223..227: this is of type `char(6)`
-| error in file FileId(1) for 228..229: `char(6)` cannot be concatenated to `int`
+error at (FileId(1), 228..229): mismatched types for string concatenation
+| note for (FileId(1), 230..231): this is of type `int`
+| note for (FileId(1), 223..227): this is of type `char(6)`
+| error for (FileId(1), 228..229): `char(6)` cannot be concatenated to `int`
 | info: operands must both be numbers, strings, or sets
-error in file FileId(1) at 250..251: mismatched types for string concatenation
-| note in file FileId(1) for 252..253: this is of type `int`
-| note in file FileId(1) for 248..249: this is of type `string`
-| error in file FileId(1) for 250..251: `string` cannot be concatenated to `int`
+error at (FileId(1), 250..251): mismatched types for string concatenation
+| note for (FileId(1), 252..253): this is of type `int`
+| note for (FileId(1), 248..249): this is of type `string`
+| error for (FileId(1), 250..251): `string` cannot be concatenated to `int`
 | info: operands must both be numbers, strings, or sets
-error in file FileId(1) at 276..277: mismatched types for string concatenation
-| note in file FileId(1) for 278..279: this is of type `int`
-| note in file FileId(1) for 270..275: this is of type `string(*)`
-| error in file FileId(1) for 276..277: `string(*)` cannot be concatenated to `int`
+error at (FileId(1), 276..277): mismatched types for string concatenation
+| note for (FileId(1), 278..279): this is of type `int`
+| note for (FileId(1), 270..275): this is of type `string(*)`
+| error for (FileId(1), 276..277): `string(*)` cannot be concatenated to `int`
 | info: operands must both be numbers, strings, or sets
-error in file FileId(1) at 301..302: mismatched types for string concatenation
-| note in file FileId(1) for 303..304: this is of type `int`
-| note in file FileId(1) for 296..300: this is of type `string(6)`
-| error in file FileId(1) for 301..302: `string(6)` cannot be concatenated to `int`
+error at (FileId(1), 301..302): mismatched types for string concatenation
+| note for (FileId(1), 303..304): this is of type `int`
+| note for (FileId(1), 296..300): this is of type `string(6)`
+| error for (FileId(1), 301..302): `string(6)` cannot be concatenated to `int`
 | info: operands must both be numbers, strings, or sets
-error in file FileId(1) at 324..325: mismatched types for string concatenation
-| note in file FileId(1) for 326..327: this is of type `char`
-| note in file FileId(1) for 322..323: this is of type `int`
-| error in file FileId(1) for 324..325: `int` cannot be concatenated to `char`
+error at (FileId(1), 324..325): mismatched types for string concatenation
+| note for (FileId(1), 326..327): this is of type `char`
+| note for (FileId(1), 322..323): this is of type `int`
+| error for (FileId(1), 324..325): `int` cannot be concatenated to `char`
 | info: operands must both be numbers, strings, or sets
-error in file FileId(1) at 346..347: mismatched types for string concatenation
-| note in file FileId(1) for 348..353: this is of type `char(*)`
-| note in file FileId(1) for 344..345: this is of type `int`
-| error in file FileId(1) for 346..347: `int` cannot be concatenated to `char(*)`
+error at (FileId(1), 346..347): mismatched types for string concatenation
+| note for (FileId(1), 348..353): this is of type `char(*)`
+| note for (FileId(1), 344..345): this is of type `int`
+| error for (FileId(1), 346..347): `int` cannot be concatenated to `char(*)`
 | info: operands must both be numbers, strings, or sets
-error in file FileId(1) at 372..373: mismatched types for string concatenation
-| note in file FileId(1) for 374..378: this is of type `char(6)`
-| note in file FileId(1) for 370..371: this is of type `int`
-| error in file FileId(1) for 372..373: `int` cannot be concatenated to `char(6)`
+error at (FileId(1), 372..373): mismatched types for string concatenation
+| note for (FileId(1), 374..378): this is of type `char(6)`
+| note for (FileId(1), 370..371): this is of type `int`
+| error for (FileId(1), 372..373): `int` cannot be concatenated to `char(6)`
 | info: operands must both be numbers, strings, or sets
-error in file FileId(1) at 397..398: mismatched types for string concatenation
-| note in file FileId(1) for 399..400: this is of type `string`
-| note in file FileId(1) for 395..396: this is of type `int`
-| error in file FileId(1) for 397..398: `int` cannot be concatenated to `string`
+error at (FileId(1), 397..398): mismatched types for string concatenation
+| note for (FileId(1), 399..400): this is of type `string`
+| note for (FileId(1), 395..396): this is of type `int`
+| error for (FileId(1), 397..398): `int` cannot be concatenated to `string`
 | info: operands must both be numbers, strings, or sets
-error in file FileId(1) at 419..420: mismatched types for string concatenation
-| note in file FileId(1) for 421..426: this is of type `string(*)`
-| note in file FileId(1) for 417..418: this is of type `int`
-| error in file FileId(1) for 419..420: `int` cannot be concatenated to `string(*)`
+error at (FileId(1), 419..420): mismatched types for string concatenation
+| note for (FileId(1), 421..426): this is of type `string(*)`
+| note for (FileId(1), 417..418): this is of type `int`
+| error for (FileId(1), 419..420): `int` cannot be concatenated to `string(*)`
 | info: operands must both be numbers, strings, or sets
-error in file FileId(1) at 445..446: mismatched types for string concatenation
-| note in file FileId(1) for 447..451: this is of type `string(6)`
-| note in file FileId(1) for 443..444: this is of type `int`
-| error in file FileId(1) for 445..446: `int` cannot be concatenated to `string(6)`
+error at (FileId(1), 445..446): mismatched types for string concatenation
+| note for (FileId(1), 447..451): this is of type `string(6)`
+| note for (FileId(1), 443..444): this is of type `int`
+| error for (FileId(1), 445..446): `int` cannot be concatenated to `string(6)`
 | info: operands must both be numbers, strings, or sets

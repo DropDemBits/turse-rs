@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "type e : enum(v)\nvar a : e.v\n"
 ---
 "e"@(FileId(1), 5..6) [Type]: enum[DefId(PackageId(0), LocalDefId(1))] ( "v"@(FileId(1), 14..15), )
@@ -8,6 +8,6 @@ expression: "type e : enum(v)\nvar a : e.v\n"
 "a"@(FileId(1), 21..22) [ConstVar(Var, No)]: <error>
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 27..28: cannot use `v` as a type alias
-| error in file FileId(1) for 27..28: `v` is a reference to an enum variant, not a type
-| note in file FileId(1) for 14..15: `v` declared here
+error at (FileId(1), 27..28): cannot use `v` as a type alias
+| error for (FileId(1), 27..28): `v` is a reference to an enum variant, not a type
+| note for (FileId(1), 14..15): `v` declared here

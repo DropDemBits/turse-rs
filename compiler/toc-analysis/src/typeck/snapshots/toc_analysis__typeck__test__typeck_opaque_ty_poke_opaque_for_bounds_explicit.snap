@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "module m\n    export opaque t, v\n    type t : int\n    var v : t\n    for _ : v .. v end for\nend m\n\nfor _ : m.v .. m.v end for\n"
 ---
 "m"@(FileId(1), 7..8) [Module(No)]: <error>
@@ -11,8 +11,8 @@ expression: "module m\n    export opaque t, v\n    type t : int\n    var v : t\n
 "v"@(FileId(1), 30..31) [Export]: opaque[DefId(PackageId(0), LocalDefId(1))] type to int
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 105..115: mismatched types
-| note in file FileId(1) for 112..115: this is of type `t (an opaque type)`
-| note in file FileId(1) for 105..108: this is also of type `t (an opaque type)`
-| error in file FileId(1) for 105..115: expected index types
+error at (FileId(1), 105..115): mismatched types
+| note for (FileId(1), 112..115): this is of type `t (an opaque type)`
+| note for (FileId(1), 105..108): this is also of type `t (an opaque type)`
+| error for (FileId(1), 105..115): expected index types
 | info: range bounds types must both be index types (an integer, `boolean`, `char`, enumerated type, or a range)

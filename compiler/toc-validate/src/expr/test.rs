@@ -17,8 +17,8 @@ fn report_init_expr_not_in_const_var() {
     check(
         "var uwu : int uwu := init(1)",
         expect![[r#"
-        error in file FileId(1) at 21..28: cannot use `init` expression here
-        | error in file FileId(1) for 21..28: `init` expression can only be used as a `const` or `var` initializer"#]],
+            error at 21..28: cannot use `init` expression here
+            | error for 21..28: `init` expression can only be used as a `const` or `var` initializer"#]],
     );
 }
 
@@ -42,9 +42,9 @@ fn report_self_expr_in_class_init() {
     check(
         "class c self end c",
         expect![[r#"
-        error in file FileId(1) at 8..12: cannot use `self` here
-        | error in file FileId(1) for 8..12: `self` cannot be used during class initialization
-        | info: during class initialization, `self` does not refer to anything"#]],
+            error at 8..12: cannot use `self` here
+            | error for 8..12: `self` cannot be used during class initialization
+            | info: during class initialization, `self` does not refer to anything"#]],
     );
 }
 
@@ -53,8 +53,8 @@ fn report_self_expr_in_module_subprogram() {
     check(
         "module m proc p self end p end m",
         expect![[r#"
-        error in file FileId(1) at 16..20: cannot use `self` here
-        | error in file FileId(1) for 16..20: `self` is only allowed inside of class subprograms"#]],
+            error at 16..20: cannot use `self` here
+            | error for 16..20: `self` is only allowed inside of class subprograms"#]],
     );
 }
 
@@ -63,8 +63,8 @@ fn report_self_expr_in_module_init() {
     check(
         "module m self end m",
         expect![[r#"
-        error in file FileId(1) at 9..13: cannot use `self` here
-        | error in file FileId(1) for 9..13: `self` is only allowed inside of class subprograms"#]],
+            error at 9..13: cannot use `self` here
+            | error for 9..13: `self` is only allowed inside of class subprograms"#]],
     );
 }
 
@@ -73,7 +73,7 @@ fn report_self_expr_in_program_level() {
     check(
         "self",
         expect![[r#"
-        error in file FileId(1) at 0..4: cannot use `self` here
-        | error in file FileId(1) for 0..4: `self` is only allowed inside of class subprograms"#]],
+            error at 0..4: cannot use `self` here
+            | error for 0..4: `self` is only allowed inside of class subprograms"#]],
     );
 }

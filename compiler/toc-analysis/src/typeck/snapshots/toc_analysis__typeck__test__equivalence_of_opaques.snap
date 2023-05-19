@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "module z\n    export unqualified opaque ty, unwrap, make\n\n    type ty : int\n\n    fcn unwrap(t : ty) : int\n        result t\n    end unwrap\n\n    fcn make(i : int) : ty\n        result i\n    end make\nend z\n\n% can't use path syntax since it isn't lowered yet\nvar a, b : ty\nvar c := z.make(1)\n\n% is equivalent to self\na := b\na := c\n\n% to the original alias def\nvar i : int := z.unwrap(a)\n\n% but not the alias type\ni := a\n"
 ---
 "z"@(FileId(1), 7..8) [Module(No)]: <error>
@@ -19,7 +19,7 @@ expression: "module z\n    export unqualified opaque ty, unwrap, make\n\n    typ
 "make"@(FileId(1), 51..55) [Export]: function ( pass(value) int, ) -> opaque[DefId(PackageId(0), LocalDefId(1))] type to int
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 409..411: mismatched types
-| note in file FileId(1) for 412..413: this is of type `ty (an opaque type)`
-| note in file FileId(1) for 407..408: this is of type `int`
+error at (FileId(1), 409..411): mismatched types
+| note for (FileId(1), 412..413): this is of type `ty (an opaque type)`
+| note for (FileId(1), 407..408): this is of type `int`
 | info: `ty (an opaque type)` is not assignable into `int`

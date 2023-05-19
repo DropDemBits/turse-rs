@@ -1,7 +1,6 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "var implied : int for decreasing : implied end for"
-
 ---
 Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(1)
@@ -12,8 +11,8 @@ Package@(dummy)
             Primitive@(FileId(1), 14..17): Int
         For@(FileId(1), 18..50): decreasing implicit
           Name@(FileId(1), 35..42): "implied"@(FileId(1), 4..11)
-error in file FileId(1) at 35..42: `decreasing` for-loops cannot use implicit range bounds
-| error in file FileId(1) for 35..42: range bounds are implied from here
-| note in file FileId(1) for 22..32: `decreasing` for-loop specified here
+error at (FileId(1), 35..42): `decreasing` for-loops cannot use implicit range bounds
+| error for (FileId(1), 35..42): range bounds are implied from here
+| note for (FileId(1), 22..32): `decreasing` for-loop specified here
 | info: `decreasing` for-loops can only use explicit range bounds (e.g. `1 .. 2`)
 

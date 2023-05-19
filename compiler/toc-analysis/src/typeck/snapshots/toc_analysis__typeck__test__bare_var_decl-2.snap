@@ -1,10 +1,10 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "const k k := 3"
 ---
 "k"@(FileId(1), 6..7) [ConstVar(Const, No)]: <error>
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 10..12: cannot assign into `k`
-| error in file FileId(1) for 8..9: `k` is a reference to a constant, not a variable
-| note in file FileId(1) for 6..7: `k` declared here
+error at (FileId(1), 10..12): cannot assign into `k`
+| error for (FileId(1), 8..9): `k` is a reference to a constant, not a variable
+| note for (FileId(1), 6..7): `k` declared here

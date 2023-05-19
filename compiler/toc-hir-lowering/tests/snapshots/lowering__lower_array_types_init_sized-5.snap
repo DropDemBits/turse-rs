@@ -1,8 +1,6 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
-assertion_line: 61
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "var _ : array char, 1 .. * of int := init(1)"
-
 ---
 Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(1)
@@ -19,8 +17,8 @@ Package@(dummy)
               InitExpr@(FileId(1), 37..44)
                 ExprBody@(FileId(1), 42..43)
                   Literal@(FileId(1), 42..43): Integer(1)
-error in file FileId(1) at 20..26: extra ranges specified
-| error in file FileId(1) for 14..18: extra ranges before
-| note in file FileId(1) for 20..26: this must be the only range present
+error at (FileId(1), 20..26): extra ranges specified
+| error for (FileId(1), 14..18): extra ranges before
+| note for (FileId(1), 20..26): this must be the only range present
 | info: `init`-sized arrays must have this range be the only range present
 

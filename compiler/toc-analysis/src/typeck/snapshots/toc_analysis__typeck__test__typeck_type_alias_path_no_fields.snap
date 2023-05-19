@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "module a export b type b : int end a\nvar e : a.b.c := 1\nvar f : a.nope := 1\n"
 ---
 "a"@(FileId(1), 7..8) [Module(No)]: <error>
@@ -9,7 +9,7 @@ expression: "module a export b type b : int end a\nvar e : a.b.c := 1\nvar f : a
 "b"@(FileId(1), 16..17) [Export]: alias[DefId(PackageId(0), LocalDefId(1))] of int
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 49..50: no field named `c` in `b`
-| error in file FileId(1) for 49..50: no field named `c` in here
-error in file FileId(1) at 66..70: no field named `nope` in `a`
-| error in file FileId(1) for 66..70: no field named `nope` in here
+error at (FileId(1), 49..50): no field named `c` in `b`
+| error for (FileId(1), 49..50): no field named `c` in here
+error at (FileId(1), 66..70): no field named `nope` in `a`
+| error for (FileId(1), 66..70): no field named `nope` in here

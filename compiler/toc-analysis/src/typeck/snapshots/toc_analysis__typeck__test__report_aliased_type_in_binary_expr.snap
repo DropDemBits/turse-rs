@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "type a0 : real\ntype a1 : int\nvar k : a0\nvar i : int\ni := i + k % unchanged"
 ---
 "a0"@(FileId(1), 5..7) [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of real
@@ -8,7 +8,7 @@ expression: "type a0 : real\ntype a1 : int\nvar k : a0\nvar i : int\ni := i + k 
 "i"@(FileId(1), 44..45) [ConstVar(Var, No)]: int
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 54..56: mismatched types
-| note in file FileId(1) for 57..62: this is of type `real`
-| note in file FileId(1) for 52..53: this is of type `int`
+error at (FileId(1), 54..56): mismatched types
+| note for (FileId(1), 57..62): this is of type `real`
+| note for (FileId(1), 52..53): this is of type `int`
 | info: `real` is not assignable into `int`

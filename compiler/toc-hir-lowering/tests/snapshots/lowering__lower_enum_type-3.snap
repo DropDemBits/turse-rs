@@ -1,8 +1,6 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
-assertion_line: 61
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "type _ : enum(a, )"
-
 ---
 Package@(dummy)
   Root@(dummy): FileId(1) -> ItemId(1)
@@ -11,6 +9,6 @@ Package@(dummy)
         StmtItem@(FileId(1), 0..18): ItemId(0)
           Type@(FileId(1), 0..18): "_"@(FileId(1), 5..6)
             Enum@(FileId(1), 9..18): "_"@(FileId(1), 9..18) [ a ]
-error in file FileId(1) at 17..18: unexpected token
-| error in file FileId(1) for 17..18: expected identifier, but found `)`
+error at (FileId(1), 17..18): unexpected token
+| error for (FileId(1), 17..18): expected identifier, but found `)`
 

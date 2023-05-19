@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "\nmodule wrap\n    export ~. unquali\n    module unquali\n        export ~. uwu\n        var uwu : int\n    end unquali\nend wrap\n\nmodule target\n    import unquali\n\n    var uwu : int\nend target\n    "
 ---
 Package@(dummy)
@@ -22,8 +22,8 @@ Package@(dummy)
               StmtItem@(FileId(1), 162..175): ItemId(4)
                 ConstVar@(FileId(1), 162..175): var "uwu"@(FileId(1), 166..169)
                   Primitive@(FileId(1), 172..175): Int
-error in file FileId(1) at 166..169: `uwu` is already declared in this scope
-| note in file FileId(1) for 149..156: `uwu` is an unqualified import from `unquali`
-| error in file FileId(1) for 166..169: `uwu` redeclared here
+error at (FileId(1), 166..169): `uwu` is already declared in this scope
+| note for (FileId(1), 149..156): `uwu` is an unqualified import from `unquali`
+| error for (FileId(1), 166..169): `uwu` redeclared here
 | info: importing a class or module also imports its unqualified exports
 

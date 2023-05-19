@@ -1,5 +1,5 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "procedure p(var a : real) end p\nvar i : int\np(i)\n"
 ---
 "p"@(FileId(1), 10..11) [Subprogram(Procedure)]: procedure ( pass(var ref) real, ) -> void
@@ -8,7 +8,7 @@ expression: "procedure p(var a : real) end p\nvar i : int\np(i)\n"
 "<unnamed>"@(dummy) [Undeclared]: <error>
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 46..47: mismatched types
-| note in file FileId(1) for 46..47: this is of type `int`
-| note in file FileId(1) for 46..47: parameter expects type `real`
+error at (FileId(1), 46..47): mismatched types
+| note for (FileId(1), 46..47): this is of type `int`
+| note for (FileId(1), 46..47): parameter expects type `real`
 | info: `int` is not equivalent to `real`

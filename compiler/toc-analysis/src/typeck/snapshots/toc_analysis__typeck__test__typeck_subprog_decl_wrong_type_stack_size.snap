@@ -1,10 +1,10 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "process a : 1.0 end a"
 ---
 "a"@(FileId(1), 8..9) [Subprogram(Process)]: process -> void
 "<root>"@(dummy) [Module(No)]: <error>
 
-error in file FileId(1) at 12..15: mismatched types
-| note in file FileId(1) for 12..15: this is of type `real`
+error at (FileId(1), 12..15): mismatched types
+| note for (FileId(1), 12..15): this is of type `real`
 | info: `real` is not an integer type
