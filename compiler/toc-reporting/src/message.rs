@@ -3,13 +3,15 @@
 use std::collections::BTreeSet;
 use std::fmt;
 
+use toc_span::Span;
+
 use crate::{AnnotateKind, Annotation, Location, SourceAnnotation};
 
 /// A bundle of messages
 ///
 /// Messages are already sorted by file, then by starting location
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct MessageBundle<L: Location> {
+pub struct MessageBundle<L: Location = Span> {
     pub(crate) messages: Vec<ReportMessage<L>>,
 }
 
@@ -139,7 +141,7 @@ impl<L: Location> Default for MessageBundle<L> {
 
 /// A reported message
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ReportMessage<L: Location> {
+pub struct ReportMessage<L: Location = Span> {
     pub(crate) header: SourceAnnotation<L>,
     pub(crate) annotations: Vec<SourceAnnotation<L>>,
     pub(crate) footer: Vec<Annotation>,

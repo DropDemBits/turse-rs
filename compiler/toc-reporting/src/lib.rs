@@ -8,11 +8,11 @@ mod reporter;
 pub use annotate::{AnnotateKind, Annotation, SourceAnnotation};
 pub use message::{MessageBundle, ReportMessage, ReportWhen};
 pub use reporter::{MessageBuilder, MessageSink};
-use toc_span::{TextRange, TextSize};
+use toc_span::{Span, TextRange, TextSize};
 
 /// A compilation result, including a bundle of associated messages
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct CompileResult<T, L: Location> {
+pub struct CompileResult<T, L: Location = Span> {
     result: T,
     messages: Arc<MessageBundle<L>>,
 }

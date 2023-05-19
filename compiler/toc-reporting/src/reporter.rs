@@ -1,12 +1,14 @@
 //! Message generation
 
+use toc_span::Span;
+
 use crate::{
     AnnotateKind, Annotation, Location, MessageBundle, ReportMessage, ReportWhen, SourceAnnotation,
 };
 
 /// Sink for message reports
 #[derive(Debug)]
-pub struct MessageSink<L: Location> {
+pub struct MessageSink<L: Location = Span> {
     messages: Vec<ReportMessage<L>>,
 }
 
@@ -66,7 +68,7 @@ impl<L: Location> Default for MessageSink<L> {
 
 /// Builder for detailed messages
 #[derive(Debug)]
-pub struct MessageBuilder<'a, L: Location> {
+pub struct MessageBuilder<'a, L: Location = Span> {
     drop_bomb: drop_bomb::DropBomb,
     reporter: &'a mut MessageSink<L>,
     kind: AnnotateKind,
