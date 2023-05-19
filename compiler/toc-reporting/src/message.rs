@@ -1,22 +1,20 @@
 //! Constructed messages
 
-use std::collections::HashSet;
+use std::collections::BTreeSet;
 use std::fmt;
 
-use toc_span::Span;
-
-use crate::{AnnotateKind, Annotation, SourceAnnotation};
+use crate::{AnnotateKind, Annotation, Location, SourceAnnotation};
 
 /// A bundle of messages
 ///
 /// Messages are already sorted by file, then by starting location
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
-pub struct MessageBundle {
-    pub(crate) messages: Vec<ReportMessage>,
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MessageBundle<L: Location> {
+    pub(crate) messages: Vec<ReportMessage<L>>,
 }
 
-impl MessageBundle {
-    pub(crate) fn from_messages(messages: Vec<ReportMessage>) -> Self {
+impl<L: Location> MessageBundle<L> {
+    pub(crate) fn from_messages(messages: Vec<ReportMessage<L>>) -> Self {
         let mut s = Self { messages };
         s.make_uniform();
         s
@@ -40,7 +38,7 @@ impl MessageBundle {
         self.make_uniform();
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = &'_ ReportMessage> + '_ {
+    pub fn iter(&self) -> impl Iterator<Item = &'_ ReportMessage<L>> + '_ {
         self.messages.iter()
     }
 
@@ -50,7 +48,7 @@ impl MessageBundle {
 
         // Deal with occluding `FirstAlways` spans
         {
-            let mut reported_at = HashSet::new();
+            let mut reported_at = BTreeSet::new();
             self.messages.retain(|msg| {
                 if msg.when == ReportWhen::FirstAlways {
                     // Only accept the first kind at this span
@@ -133,16 +131,22 @@ impl MessageBundle {
     }
 }
 
+impl<L: Location> Default for MessageBundle<L> {
+    fn default() -> Self {
+        Self::empty()
+    }
+}
+
 /// A reported message
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ReportMessage {
-    pub(crate) header: SourceAnnotation,
-    pub(crate) annotations: Vec<SourceAnnotation>,
+pub struct ReportMessage<L: Location> {
+    pub(crate) header: SourceAnnotation<L>,
+    pub(crate) annotations: Vec<SourceAnnotation<L>>,
     pub(crate) footer: Vec<Annotation>,
     pub(crate) when: ReportWhen,
 }
 
-impl ReportMessage {
+impl<L: Location> ReportMessage<L> {
     /// Gets the kind of message reported
     pub fn kind(&self) -> AnnotateKind {
         self.header.kind()
@@ -154,12 +158,12 @@ impl ReportMessage {
     }
 
     /// Gets the span of text the message covers
-    pub fn span(&self) -> Span {
+    pub fn span(&self) -> L {
         self.header.span()
     }
 
     /// Gets any associated annotations
-    pub fn annotations(&self) -> &[SourceAnnotation] {
+    pub fn annotations(&self) -> &[SourceAnnotation<L>] {
         &self.annotations
     }
 
@@ -169,7 +173,7 @@ impl ReportMessage {
     }
 }
 
-impl fmt::Display for ReportMessage {
+impl<L: Location> fmt::Display for ReportMessage<L> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.header)?;
 
@@ -274,7 +278,7 @@ mod tests {
 
     #[test]
     fn delayed_occludes_hidden() {
-        let mut reporter = MessageSink::default();
+        let mut reporter = MessageSink::<FileRange>::default();
 
         reporter
             .error_detailed("delayed", Default::default())
@@ -294,7 +298,7 @@ mod tests {
 
     #[test]
     fn always_occludes_both() {
-        let mut reporter = MessageSink::default();
+        let mut reporter = MessageSink::<FileRange>::default();
 
         reporter
             .error_detailed("delayed", Default::default())
@@ -318,7 +322,7 @@ mod tests {
 
     #[test]
     fn keep_always_and_first_always() {
-        let mut reporter = MessageSink::default();
+        let mut reporter = MessageSink::<FileRange>::default();
 
         reporter
             .error_detailed("always", Default::default())
