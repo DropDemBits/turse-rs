@@ -50,6 +50,13 @@ impl<L: Location> SourceAnnotation<L> {
     pub fn span(&self) -> L {
         self.span
     }
+
+    pub(crate) fn map_spans<M: Location, F: Fn(L) -> M>(self, map: F) -> SourceAnnotation<M> {
+        SourceAnnotation {
+            annotation: self.annotation,
+            span: map(self.span),
+        }
+    }
 }
 
 impl<L: Location> fmt::Display for SourceAnnotation<L> {

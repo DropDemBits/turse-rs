@@ -7,7 +7,7 @@ use std::{
 
 use toc_parser::ExternalLinks;
 use toc_reporting::CompileResult;
-use toc_span::FileId;
+use toc_span::{FileId, Span};
 use toc_vfs_db::SourceFile;
 
 use crate::Db;
@@ -32,14 +32,17 @@ pub fn file_links(db: &dyn Db, source: SourceFile) -> Arc<toc_parser::ExternalLi
 #[salsa::tracked]
 pub fn parse_file(db: &dyn Db, source: SourceFile) -> CompileResult<toc_parser::ParseTree> {
     // FIXME: If a load error is present, then add it to the parse result / create a new one
-    toc_parser::parse(source.path(db.up()).into(), source.contents(db.up()))
+    let file_id: FileId = source.path(db.up()).into();
+    toc_parser::parse(source.contents(db.up())).remap_spans(|range| Span::new(file_id, range.0))
 }
 
 /// Validates the file according to grammar validation rules
 #[salsa::tracked]
 pub fn validate_file(db: &dyn Db, source: SourceFile) -> CompileResult<()> {
+    let file_id: FileId = source.path(db.up()).into();
     let cst = crate::parse_file(db, source);
-    toc_validate::validate_ast(source.path(db.up()).into(), cst.result().syntax())
+    toc_validate::validate_ast(cst.result().syntax())
+        .remap_spans(|range| Span::new(file_id, range.0))
 }
 
 /// Parse out the dependencies of a file
@@ -48,8 +51,10 @@ pub fn parse_depends(
     db: &dyn Db,
     source: SourceFile,
 ) -> CompileResult<Arc<toc_parser::FileDepends>> {
+    let file_id: FileId = source.path(db.up()).into();
     let cst = crate::parse_file(db, source);
-    toc_parser::parse_depends(source.path(db.up()).into(), cst.result().syntax())
+    toc_parser::parse_depends(cst.result().syntax())
+        .remap_spans(|range| Span::new(file_id, range.0))
 }
 
 /// Gets the [`ExternalLink`](toc_parser::ExternalLink)'s corresponding file

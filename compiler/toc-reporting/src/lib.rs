@@ -61,6 +61,22 @@ impl<T, L: Location> CompileResult<T, L> {
     }
 }
 
+impl<T: Clone, L: Location> CompileResult<T, L> {
+    pub fn remap_spans<M: Location, F: Fn(L) -> M>(&self, map: F) -> CompileResult<T, M> {
+        let mapped = self
+            .messages
+            .iter()
+            .cloned()
+            .map(|m| m.map_spans(&map))
+            .collect();
+
+        CompileResult {
+            result: self.result.clone(),
+            messages: Arc::new(MessageBundle::from_messages(mapped)),
+        }
+    }
+}
+
 /// Locations to attach message annotations to
 pub trait Location: Copy + Eq + Debug + Ord {}
 

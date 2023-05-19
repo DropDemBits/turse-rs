@@ -173,6 +173,19 @@ impl<L: Location> ReportMessage<L> {
     pub fn footer(&self) -> &[Annotation] {
         &self.footer
     }
+
+    pub(crate) fn map_spans<M: Location, F: Fn(L) -> M>(self, map: F) -> ReportMessage<M> {
+        ReportMessage {
+            header: self.header.map_spans(&map),
+            annotations: self
+                .annotations
+                .into_iter()
+                .map(|m| m.map_spans(&map))
+                .collect(),
+            footer: self.footer,
+            when: self.when,
+        }
+    }
 }
 
 impl<L: Location> fmt::Display for ReportMessage<L> {
