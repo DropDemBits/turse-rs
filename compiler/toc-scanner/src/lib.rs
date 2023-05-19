@@ -3,25 +3,22 @@ pub mod token;
 
 use logos::Logos;
 use std::ops::Range;
-use toc_reporting::{MessageBundle, MessageSink};
-use toc_span::{FileId, Span};
+use toc_reporting::{FileRange, MessageBundle, MessageSink};
 use token::{NumberKind, Token, TokenKind};
 
 #[derive(Debug)]
 pub struct ErrorFerry {
-    file_id: FileId,
-    sink: MessageSink,
+    sink: MessageSink<FileRange>,
 }
 
 impl ErrorFerry {
     pub(crate) fn push_error(&mut self, message: &str, at_span: &str, span: Range<usize>) {
         let range = token::span_to_text_range(span);
 
-        self.sink
-            .error(message, at_span, Span::new(self.file_id, range));
+        self.sink.error(message, at_span, range.into());
     }
 
-    pub(crate) fn finish(self) -> MessageBundle {
+    pub(crate) fn finish(self) -> MessageBundle<FileRange> {
         self.sink.finish()
     }
 }
@@ -32,11 +29,10 @@ pub struct Scanner<'s> {
 }
 
 impl<'s> Scanner<'s> {
-    pub fn new(file_id: FileId, source: &'s str) -> Self {
+    pub fn new(source: &'s str) -> Self {
         let inner = TokenKind::lexer_with_extras(
             source,
             ErrorFerry {
-                file_id,
                 sink: MessageSink::default(),
             },
         );
@@ -44,7 +40,7 @@ impl<'s> Scanner<'s> {
         Self { inner }
     }
 
-    pub fn collect_all(mut self) -> (Vec<Token<'s>>, MessageBundle) {
+    pub fn collect_all(mut self) -> (Vec<Token<'s>>, MessageBundle<FileRange>) {
         let mut toks = vec![];
 
         for token in &mut self {
@@ -92,8 +88,7 @@ mod test {
     use expect_test::{expect, Expect};
 
     fn do_scanner(source: &str) -> (Vec<(TokenKind, &str)>, String) {
-        let dummy_id = FileId::dummy(0);
-        let scanner = Scanner::new(dummy_id, source);
+        let scanner = Scanner::new(source);
 
         let (toks, errors) = scanner.collect_all();
         let toks: Vec<(TokenKind, &str)> =
@@ -103,7 +98,7 @@ mod test {
         (toks, errors)
     }
 
-    fn build_error_list(errors: MessageBundle) -> String {
+    fn build_error_list(errors: MessageBundle<FileRange>) -> String {
         let mut buf = String::new();
 
         for msg in errors.iter() {
@@ -119,8 +114,7 @@ mod test {
     /// Expects no errors to be produced
     #[track_caller] // Issue isn't here, but from caller
     fn expect(source: &str, kind: &TokenKind) {
-        let dummy_id = FileId::dummy(0);
-        let mut scanner = Scanner::new(dummy_id, source);
+        let mut scanner = Scanner::new(source);
 
         // Should be the expected token & the same source text
         let token = scanner.next().unwrap();
@@ -151,8 +145,7 @@ mod test {
 
     #[track_caller]
     fn expect_with_error(source: &str, kind: &TokenKind, expecting: Expect) {
-        let dummy_id = FileId::dummy(0);
-        let mut scanner = Scanner::new(dummy_id, source);
+        let mut scanner = Scanner::new(source);
 
         // Should be the expected token & the same source text
         let token = scanner.next().unwrap();
@@ -179,72 +172,72 @@ mod test {
             "[",
             &TokenKind::Error,
             expect![[r#"
-                error in file FileId(1) at 0..1: invalid character
-                | error in file FileId(1) for 0..1: here"#]],
+                error at 0..1: invalid character
+                | error for 0..1: here"#]],
         );
         expect_with_error(
             "]",
             &TokenKind::Error,
             expect![[r#"
-                error in file FileId(1) at 0..1: invalid character
-                | error in file FileId(1) for 0..1: here"#]],
+                error at 0..1: invalid character
+                | error for 0..1: here"#]],
         );
         expect_with_error(
             "{",
             &TokenKind::Error,
             expect![[r#"
-                error in file FileId(1) at 0..1: invalid character
-                | error in file FileId(1) for 0..1: here"#]],
+                error at 0..1: invalid character
+                | error for 0..1: here"#]],
         );
         expect_with_error(
             "}",
             &TokenKind::Error,
             expect![[r#"
-                error in file FileId(1) at 0..1: invalid character
-                | error in file FileId(1) for 0..1: here"#]],
+                error at 0..1: invalid character
+                | error for 0..1: here"#]],
         );
         expect_with_error(
             "!",
             &TokenKind::Error,
             expect![[r#"
-                error in file FileId(1) at 0..1: invalid character
-                | error in file FileId(1) for 0..1: here"#]],
+                error at 0..1: invalid character
+                | error for 0..1: here"#]],
         );
         expect_with_error(
             "$",
             &TokenKind::Error,
             expect![[r#"
-                error in file FileId(1) at 0..1: invalid character
-                | error in file FileId(1) for 0..1: here"#]],
+                error at 0..1: invalid character
+                | error for 0..1: here"#]],
         );
         expect_with_error(
             "?",
             &TokenKind::Error,
             expect![[r#"
-                error in file FileId(1) at 0..1: invalid character
-                | error in file FileId(1) for 0..1: here"#]],
+                error at 0..1: invalid character
+                | error for 0..1: here"#]],
         );
         expect_with_error(
             "`",
             &TokenKind::Error,
             expect![[r#"
-                error in file FileId(1) at 0..1: invalid character
-                | error in file FileId(1) for 0..1: here"#]],
+                error at 0..1: invalid character
+                | error for 0..1: here"#]],
         );
         expect_with_error(
             "\\",
             &TokenKind::Error,
             expect![[r#"
-                error in file FileId(1) at 0..1: invalid character
-                | error in file FileId(1) for 0..1: here"#]],
+                error at 0..1: invalid character
+                | error for 0..1: here"#]],
         );
         // Was originally `🧑‍🔬` but that gets split up into multiple tokens
         expect_with_error(
             "🧑",
             &TokenKind::Error,
             expect![[r#"
-                error in file FileId(1) at 0..4: invalid character
-                | error in file FileId(1) for 0..4: here"#]],
+                error at 0..4: invalid character
+                | error for 0..4: here"#]],
         );
     }
 
@@ -637,8 +630,8 @@ mod test {
             "/* ",
             &TokenKind::Comment,
             expect![[r#"
-                error in file FileId(1) at 0..3: unterminated block comment
-                | error in file FileId(1) for 0..3: block comment is missing terminating `*/`"#]],
+                error at 0..3: unterminated block comment
+                | error for 0..3: block comment is missing terminating `*/`"#]],
         );
 
         // Respecting nesting
@@ -646,8 +639,8 @@ mod test {
             "/* /* abcd */",
             &TokenKind::Comment,
             expect![[r#"
-                error in file FileId(1) at 0..13: unterminated block comment
-                | error in file FileId(1) for 0..13: block comment is missing terminating `*/`"#]],
+                error at 0..13: unterminated block comment
+                | error for 0..13: block comment is missing terminating `*/`"#]],
         );
 
         // With trailing spaces
@@ -655,8 +648,8 @@ mod test {
             "/* /* abcd */ ",
             &TokenKind::Comment,
             expect![[r#"
-                error in file FileId(1) at 0..14: unterminated block comment
-                | error in file FileId(1) for 0..14: block comment is missing terminating `*/`"#]],
+                error at 0..14: unterminated block comment
+                | error for 0..14: block comment is missing terminating `*/`"#]],
         );
     }
 
@@ -773,8 +766,8 @@ mod test {
             "/*/*",
             &TokenKind::Comment,
             expect![[r#"
-                error in file FileId(1) at 0..4: unterminated block comment
-                | error in file FileId(1) for 0..4: block comment is missing terminating `*/`"#]],
+                error at 0..4: unterminated block comment
+                | error for 0..4: block comment is missing terminating `*/`"#]],
         );
     }
 
@@ -784,8 +777,8 @@ mod test {
             "2#پ",
             &[(TokenKind::RadixLiteral, "2#"), (TokenKind::Error, "پ")],
             expect![[r#"
-                error in file FileId(1) at 2..4: invalid character
-                | error in file FileId(1) for 2..4: here"#]],
+                error at 2..4: invalid character
+                | error for 2..4: here"#]],
         );
     }
 }

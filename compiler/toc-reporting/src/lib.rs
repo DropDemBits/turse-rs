@@ -67,9 +67,18 @@ pub trait Location: Copy + Eq + Debug + Ord {}
 impl Location for toc_span::Span {}
 impl Location for FileRange {}
 
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+/// Wrapper around [`TextRange`] so that it's suitable
+/// as a report location
+#[derive(Default, Clone, Copy, PartialEq, Eq)]
 #[repr(transparent)]
 pub struct FileRange(pub TextRange);
+
+impl Debug for FileRange {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let (start, end): (u32, u32) = (self.0.start().into(), self.0.end().into());
+        f.write_fmt(format_args!("{start}..{end}"))
+    }
+}
 
 impl FileRange {
     pub fn new(start: TextSize, end: TextSize) -> Self {
@@ -86,5 +95,11 @@ impl PartialOrd for FileRange {
 impl Ord for FileRange {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         self.0.start().cmp(&other.0.start())
+    }
+}
+
+impl From<TextRange> for FileRange {
+    fn from(value: TextRange) -> Self {
+        Self(value)
     }
 }
