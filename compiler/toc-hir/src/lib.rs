@@ -157,6 +157,15 @@ pub mod expand {
     {
     }
 
+    impl<DB> Db for DB where
+        DB: salsa::DbWithJar<Jar>
+            + toc_ast_db::Db
+            + toc_source_graph::Db
+            + Upcast<dyn toc_ast_db::Db>
+            + Upcast<dyn toc_source_graph::Db>
+    {
+    }
+
     impl<'db, DB: Db + 'db> UpcastFrom<DB> for dyn Db + 'db {
         fn up_from(value: &DB) -> &Self {
             value
@@ -435,6 +444,8 @@ pub mod expand {
 
 pub mod def {
     //! Items and code bodies
+    use std::sync::Arc;
+
     use la_arena::{Arena, ArenaMap};
     use toc_ast_db::IntoAst;
     use toc_source_graph::Package;
@@ -664,6 +675,8 @@ pub mod def {
 
     pub trait Db: salsa::DbWithJar<Jar> + expand::Db + Upcast<dyn expand::Db> {}
 
+    impl<DB> Db for DB where DB: salsa::DbWithJar<Jar> + expand::Db + Upcast<dyn expand::Db> {}
+
     impl<'db, DB: Db + 'db> UpcastFrom<DB> for dyn Db + 'db {
         fn up_from(value: &DB) -> &Self {
             value
@@ -674,7 +687,17 @@ pub mod def {
     }
 
     #[salsa::jar(db = Db)]
-    pub struct Jar(Module, root_module, Body);
+    pub struct Jar(
+        root_module,
+        Module,
+        Module_items,
+        Module_body,
+        Module_stmt_list,
+        Body,
+        Body_top_level_stmts,
+        Body_contents,
+        Body_lower_contents,
+    );
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
     pub enum Item {
@@ -702,20 +725,24 @@ pub mod def {
         Module::new(db, ModuleOrigin::Root(package))
     }
 
+    #[salsa::tracked(jar = Jar)]
     impl Module {
         /// All immediate items of a module
         ///
         /// Note: This does not include items that are in the top level but
         /// are hidden inside of scopes
+        #[salsa::tracked(jar = Jar, return_ref)]
         pub fn items(self, db: &dyn Db) -> Vec<Item> {
             lower::collect_items(db, self.stmt_list(db))
         }
 
         /// Executable portion of a module
+        #[salsa::tracked(jar = Jar)]
         pub fn body(self, db: &dyn Db) -> Body {
             Body::new(db, BodyOrigin::ModuleBody(self.stmt_list(db)))
         }
 
+        #[salsa::tracked(jar = Jar)]
         fn stmt_list(self, db: &dyn Db) -> SemanticLoc<ast::StmtList> {
             match self.origin(db) {
                 ModuleOrigin::Root(package) => {
@@ -761,16 +788,24 @@ pub mod def {
         stmts: ArenaMap<stmt::StmtIndex, UnstableSemanticLoc<ast::Stmt>>,
     }
 
+    #[salsa::tracked(jar = Jar)]
     impl Body {
         // Top-level stmts
+        #[salsa::tracked(jar = Jar, return_ref)]
         pub fn top_level_stmts(self, db: &dyn Db) -> Vec<StmtId> {
-            self.contents(db).0.top_level
+            self.contents(db).top_level.clone()
+        }
+
+        #[salsa::tracked(jar = Jar, return_ref)]
+        fn contents(self, db: &dyn Db) -> Arc<BodyContents> {
+            self.lower_contents(db).0.clone()
         }
 
         // Parts we wanna extract:
         // - Stmts + Exprs
         // - SpanMap<Expr> & SpanMap<Stmt>
-        fn contents(self, db: &dyn Db) -> (BodyContents, BodySpans) {
+        #[salsa::tracked(jar = Jar)]
+        fn lower_contents(self, db: &dyn Db) -> (Arc<BodyContents>, Arc<BodySpans>) {
             // FIXME: Accumulate errors
             let (contents, spans, _errors) = match self.origin(db) {
                 BodyOrigin::ModuleBody(stmts) => lower::module_body(db, self, stmts),
@@ -778,7 +813,7 @@ pub mod def {
                 BodyOrigin::FunctionBody(_stmts) => todo!(),
             };
 
-            (contents, spans)
+            (Arc::new(contents), Arc::new(spans))
         }
     }
 
