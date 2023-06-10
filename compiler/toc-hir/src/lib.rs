@@ -570,19 +570,26 @@ pub mod def {
                 mut self,
                 root: ast::StmtList,
             ) -> (BodyContents, BodySpans, Vec<BodyLowerError>) {
+                let mut top_level = vec![];
                 for stmt in root.stmts() {
                     let new_stmts = self.lower_statement(stmt);
-                    self.contents
-                        .top_level
-                        .extend(new_stmts.into_iter().map(|id| StmtId(self.body, id)));
+                    top_level.extend(new_stmts.into_iter().map(|id| StmtId(self.body, id)));
                 }
 
                 let BodyLower {
-                    contents,
-                    spans,
+                    mut contents,
+                    mut spans,
                     errors,
                     ..
                 } = self;
+
+                contents.exprs.shrink_to_fit();
+                contents.stmts.shrink_to_fit();
+                contents.top_level = top_level.into();
+
+                spans.exprs.shrink_to_fit();
+                spans.stmts.shrink_to_fit();
+
                 (contents, spans, errors)
             }
 
@@ -778,7 +785,7 @@ pub mod def {
     pub(crate) struct BodyContents {
         exprs: Arena<expr::Expr>,
         stmts: Arena<stmt::Stmt>,
-        top_level: Vec<StmtId>,
+        top_level: Box<[StmtId]>,
     }
 
     // Per-item spans
@@ -792,7 +799,7 @@ pub mod def {
     impl Body {
         // Top-level stmts
         #[salsa::tracked(jar = Jar, return_ref)]
-        pub fn top_level_stmts(self, db: &dyn Db) -> Vec<StmtId> {
+        pub fn top_level_stmts(self, db: &dyn Db) -> Box<[StmtId]> {
             self.contents(db).top_level.clone()
         }
 
