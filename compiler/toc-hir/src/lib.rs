@@ -207,7 +207,9 @@ pub mod expand {
             self.loc.file(db)
         }
 
-        /// Projects from `T` into `U`. `U`'s node must have a corresponding semantic location in the file
+        /// Projects from `T` into `U`.
+        ///
+        /// `U`'s node must have a corresponding semantic location in the file
         pub fn map<U: AstNode<Language = toc_syntax::Lang>>(
             self,
             db: &dyn Db,
@@ -216,6 +218,95 @@ pub mod expand {
             let t = self.to_node(db);
             let u = f(t);
             self.file(db).ast_locations(db).get(&u)
+        }
+
+        /// Projects from `T` into `U`, without worrying about location stability.
+        ///
+        /// `U`'s node does not need to have a corresponding semantic location in the file,
+        /// but this comes with the caveat that this location is unstable
+        pub fn map_unstable<U: AstNode<Language = toc_syntax::Lang>>(
+            self,
+            db: &dyn Db,
+            f: impl FnOnce(T) -> U,
+        ) -> UnstableSemanticLoc<U> {
+            let t = self.to_node(db);
+            let u = f(t);
+            UnstableSemanticLoc::new(self.file(db), &u)
+        }
+    }
+
+    /// An unstable reference to an AST node in a semantic file
+    ///
+    /// Can refer to any node, but must be referred to stabily
+    /// by another node.
+    #[derive(Debug, PartialEq, Eq, Hash)]
+    pub struct UnstableSemanticLoc<T: AstNode> {
+        file: SemanticFile,
+        ptr: SyntaxNodePtr,
+        _node: PhantomData<T>,
+    }
+
+    impl<T: AstNode> Clone for UnstableSemanticLoc<T> {
+        fn clone(&self) -> Self {
+            Self {
+                file: self.file,
+                ptr: self.ptr.clone(),
+                _node: PhantomData,
+            }
+        }
+    }
+
+    impl<T: AstNode<Language = toc_syntax::Lang>> UnstableSemanticLoc<T> {
+        /// Creates a new unstable location pointer
+        ///
+        /// `file` must be the actual [`SemanticFile`] that contains `node`
+        pub fn new(file: SemanticFile, node: &T) -> Self {
+            Self {
+                file,
+                ptr: SyntaxNodePtr::new(node.syntax()),
+                _node: PhantomData,
+            }
+        }
+
+        /// Yields the underlying AST node at this location
+        pub fn to_node(&self, db: &dyn Db) -> T {
+            let ast = self.file.ast(db);
+            let node = self.ptr.to_node(&ast);
+            T::cast(node).unwrap()
+        }
+
+        /// Gets which [`SemanticFile`] this unstable location comes from
+        pub fn file(&self) -> SemanticFile {
+            self.file
+        }
+
+        /// Projects from `T` into `U`.
+        pub fn map<U: AstNode<Language = toc_syntax::Lang>>(
+            self,
+            db: &dyn Db,
+            f: impl FnOnce(T) -> U,
+        ) -> UnstableSemanticLoc<U> {
+            let t = self.to_node(db);
+            let u = f(t);
+            UnstableSemanticLoc::new(self.file, &u)
+        }
+    }
+
+    /// An untyped reference to a syntax node in a semantic file.
+    ///
+    /// Primarily used for diagnostic reporting
+    #[derive(Debug, PartialEq, Eq, Hash)]
+    pub struct SemanticNodePtr {
+        file: SemanticFile,
+        ptr: SyntaxNodePtr,
+    }
+
+    impl<T: AstNode> From<UnstableSemanticLoc<T>> for SemanticNodePtr {
+        fn from(value: UnstableSemanticLoc<T>) -> Self {
+            Self {
+                file: value.file,
+                ptr: value.ptr,
+            }
         }
     }
 
