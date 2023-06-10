@@ -6,6 +6,7 @@ use crate::{
     symbol::{self, Symbol},
 };
 
+pub(crate) use crate::ids::ExprIndex;
 pub use crate::ids::{BodyExpr, ExprId};
 
 #[derive(Debug, PartialEq, Eq)]
