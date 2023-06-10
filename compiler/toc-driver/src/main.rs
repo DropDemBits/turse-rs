@@ -65,6 +65,28 @@ fn main() {
                 let source_graph = toc_source_graph::source_graph(&db).as_ref().ok().unwrap();
 
                 for &package in source_graph.all_packages(&db) {
+                    // use new hir entities
+                    println!("New HIR:");
+                    let root = toc_hir::def::root_module(&db, package);
+                    let mut queue = std::collections::VecDeque::new();
+                    queue.push_front((0, toc_hir::def::Item::Module(root)));
+
+                    while let Some((level, item)) = queue.pop_front() {
+                        match item {
+                            toc_hir::def::Item::Module(module) => {
+                                let indent = "  ".repeat(level);
+                                println!("{indent}Module");
+                                println!("{indent}{:?}", module.body(&db).top_level_stmts(&db));
+
+                                for &child in module.items(&db) {
+                                    queue.push_front((level + 1, child));
+                                }
+                            }
+                        }
+                    }
+                    println!();
+
+                    println!("Old HIR:");
                     let file = package.root(&db);
                     println!(
                         "{file:?}: {tree}",
@@ -217,8 +239,12 @@ impl ariadne::Cache<FileId> for VfsCache<'_> {
     toc_vfs_db::Jar,
     toc_source_graph::Jar,
     toc_ast_db::Jar,
+    // old hir
     toc_hir_lowering::Jar,
     toc_hir_db::Jar,
+    // new hir
+    toc_hir::def::Jar,
+    toc_hir::expand::Jar,
     toc_analysis::TypeJar,
     toc_analysis::ConstEvalJar,
     toc_analysis::AnalysisJar
