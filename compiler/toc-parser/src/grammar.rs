@@ -358,6 +358,18 @@ pub(self) fn name_list(p: &mut Parser) -> Option<CompletedMarker> {
     Some(m.complete(p, SyntaxKind::NameList)).filter(|_| parsed_any)
 }
 
+pub(self) fn name_ref(p: &mut Parser) -> Option<CompletedMarker> {
+    if p.at(TokenKind::Identifier) {
+        let m = p.start();
+        p.bump();
+        Some(m.complete(p, SyntaxKind::NameRef))
+    } else {
+        // not found
+        p.error_unexpected().report();
+        None
+    }
+}
+
 /// ParamList ( `'(' Param ( ',' Param )* ')'` )
 pub(self) fn param_list(p: &mut Parser) -> Option<CompletedMarker> {
     debug_assert!(p.at(TokenKind::LeftParen));

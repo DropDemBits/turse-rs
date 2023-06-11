@@ -221,7 +221,7 @@ fn parse_sized_char_type() {
                           Plus@17..18 "+"
                           Whitespace@18..19 " "
                           NameExpr@19..20
-                            Name@19..20
+                            NameRef@19..20
                               Identifier@19..20 "k"
                       RightParen@20..21 ")""#]],
     );
@@ -254,7 +254,7 @@ fn parse_sized_string_type() {
                           Plus@19..20 "+"
                           Whitespace@20..21 " "
                           NameExpr@21..22
-                            Name@21..22
+                            NameRef@21..22
                               Identifier@21..22 "k"
                       RightParen@22..23 ")""#]],
     );
@@ -489,7 +489,7 @@ fn parse_name_type() {
                   Whitespace@8..9 " "
                   NameType@9..10
                     NameExpr@9..10
-                      Name@9..10
+                      NameRef@9..10
                         Identifier@9..10 "a""#]],
     );
     check(
@@ -509,13 +509,13 @@ fn parse_name_type() {
                     FieldExpr@9..14
                       FieldExpr@9..12
                         NameExpr@9..10
-                          Name@9..10
+                          NameRef@9..10
                             Identifier@9..10 "a"
                         Dot@10..11 "."
-                        Name@11..12
+                        NameRef@11..12
                           Identifier@11..12 "b"
                       Dot@12..13 "."
-                      Name@13..14
+                      NameRef@13..14
                         Identifier@13..14 "c""#]],
     );
 }
@@ -934,13 +934,13 @@ fn parse_pointer_type_to_named() {
                       FieldExpr@20..33
                         FieldExpr@20..30
                           NameExpr@20..24
-                            Name@20..24
+                            NameRef@20..24
                               Identifier@20..24 "some"
                           Dot@24..25 "."
-                          Name@25..30
+                          NameRef@25..30
                             Identifier@25..30 "named"
                         Dot@30..31 "."
-                        Name@31..33
+                        NameRef@31..33
                           Identifier@31..33 "ty""#]],
     );
 }
@@ -1252,7 +1252,7 @@ fn recover_enum_type_missing_delimiter() {
                 Whitespace@19..20 " "
                 CallStmt@20..21
                   NameExpr@20..21
-                    Name@20..21
+                    NameRef@20..21
                       Identifier@20..21 "c"
                 Error@21..22
                   RightParen@21..22 ")"
@@ -2216,7 +2216,7 @@ fn recover_flexible_not_array() {
                 Whitespace@27..28 " "
                 CallStmt@28..35
                   NameExpr@28..35
-                    Name@28..35
+                    NameRef@28..35
                       Identifier@28..35 "im_stmt"
             error at 18..27: unexpected token
             | error for 18..27: expected `array`, but found identifier"#]],

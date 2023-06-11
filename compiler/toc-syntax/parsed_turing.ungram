@@ -1,10 +1,16 @@
 // Turing Ungrammar, matching parse tree
 
+// Defines a new name
 Name =
   'identifier'
 
+// Defines a list of new names
 NameList =
   names:( Name ( ',' Name )* )
+
+// References an existing name
+NameRef =
+  'identifier'
 
 //*************//
 // Attributes  //
@@ -100,7 +106,7 @@ PPUnaryExpr =
   rhs:PPExpr
 
 PPNameExpr =
-  Name
+  NameRef
 
 PPParenExpr =
   '(' PPExpr ')'
@@ -681,16 +687,16 @@ ParenExpr =
 //*************//
 
 NameExpr =
-  Name
+  NameRef
 
 SelfExpr =
   'self'
 
 FieldExpr =
-  Expr '.' Name
+  Expr '.' NameRef
 
 ArrowExpr =
-  Expr '->' Name
+  Expr '->' NameRef
 
 DerefExpr =
   '^' Expr

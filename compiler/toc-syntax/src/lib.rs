@@ -206,6 +206,7 @@ pub enum SyntaxKind {
     // Generated from 'turing.ungram'
     Name,
     NameList,
+    NameRef,
     UnqualifiedAttr,
     PervasiveAttr,
     RegisterAttr,

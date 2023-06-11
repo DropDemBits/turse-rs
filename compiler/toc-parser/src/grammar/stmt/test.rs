@@ -648,7 +648,7 @@ fn parse_several_stmts() {
                 Whitespace@12..13 "\n"
                 CallStmt@13..14
                   NameExpr@13..14
-                    Name@13..14
+                    NameRef@13..14
                       Identifier@13..14 "a""#]],
     );
 }
@@ -726,7 +726,7 @@ fn parse_assign_stmt() {
               StmtList@0..14
                 AssignStmt@0..14
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "a"
                   Whitespace@1..2 " "
                   AsnOp@2..4
@@ -735,7 +735,7 @@ fn parse_assign_stmt() {
                   BinaryExpr@5..14
                     BinaryExpr@5..10
                       NameExpr@5..6
-                        Name@5..6
+                        NameRef@5..6
                           Identifier@5..6 "b"
                       Whitespace@6..7 " "
                       Plus@7..8 "+"
@@ -746,7 +746,7 @@ fn parse_assign_stmt() {
                     Plus@11..12 "+"
                     Whitespace@12..13 " "
                     NameExpr@13..14
-                      Name@13..14
+                      NameRef@13..14
                         Identifier@13..14 "c""#]],
     );
 }
@@ -760,7 +760,7 @@ fn parse_compound_assign_stmt() {
               StmtList@0..8
                 AssignStmt@0..8
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "a"
                   Whitespace@1..2 " "
                   AsnOp@2..6
@@ -778,7 +778,7 @@ fn parse_compound_assign_stmt() {
               StmtList@0..6
                 AssignStmt@0..6
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "a"
                   Whitespace@1..2 " "
                   AsnOp@2..4
@@ -795,7 +795,7 @@ fn parse_compound_assign_stmt() {
               StmtList@0..8
                 AssignStmt@0..8
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "a"
                   Whitespace@1..2 " "
                   AsnOp@2..6
@@ -813,7 +813,7 @@ fn parse_compound_assign_stmt() {
               StmtList@0..7
                 AssignStmt@0..7
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "a"
                   Whitespace@1..2 " "
                   AsnOp@2..5
@@ -831,7 +831,7 @@ fn parse_compound_assign_stmt() {
               StmtList@0..8
                 AssignStmt@0..8
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "a"
                   Whitespace@1..2 " "
                   AsnOp@2..6
@@ -848,7 +848,7 @@ fn parse_compound_assign_stmt() {
               StmtList@0..7
                 AssignStmt@0..7
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "a"
                   Whitespace@1..2 " "
                   AsnOp@2..5
@@ -866,7 +866,7 @@ fn parse_compound_assign_stmt() {
               StmtList@0..6
                 AssignStmt@0..6
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "a"
                   Whitespace@1..2 " "
                   AsnOp@2..4
@@ -883,7 +883,7 @@ fn parse_compound_assign_stmt() {
               StmtList@0..9
                 AssignStmt@0..9
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "a"
                   Whitespace@1..2 " "
                   AsnOp@2..7
@@ -901,7 +901,7 @@ fn parse_compound_assign_stmt() {
               StmtList@0..6
                 AssignStmt@0..6
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "a"
                   Whitespace@1..2 " "
                   AsnOp@2..4
@@ -918,7 +918,7 @@ fn parse_compound_assign_stmt() {
               StmtList@0..7
                 AssignStmt@0..7
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "a"
                   Whitespace@1..2 " "
                   AsnOp@2..5
@@ -936,7 +936,7 @@ fn parse_compound_assign_stmt() {
               StmtList@0..8
                 AssignStmt@0..8
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "a"
                   Whitespace@1..2 " "
                   AsnOp@2..6
@@ -953,7 +953,7 @@ fn parse_compound_assign_stmt() {
               StmtList@0..9
                 AssignStmt@0..9
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "a"
                   Whitespace@1..2 " "
                   AsnOp@2..7
@@ -971,7 +971,7 @@ fn parse_compound_assign_stmt() {
               StmtList@0..8
                 AssignStmt@0..8
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "a"
                   Whitespace@1..2 " "
                   AsnOp@2..6
@@ -988,7 +988,7 @@ fn parse_compound_assign_stmt() {
               StmtList@0..9
                 AssignStmt@0..9
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "a"
                   Whitespace@1..2 " "
                   AsnOp@2..7
@@ -1006,7 +1006,7 @@ fn parse_compound_assign_stmt() {
               StmtList@0..8
                 AssignStmt@0..8
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "a"
                   Whitespace@1..2 " "
                   AsnOp@2..6
@@ -1023,7 +1023,7 @@ fn parse_compound_assign_stmt() {
               StmtList@0..8
                 AssignStmt@0..8
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "a"
                   Whitespace@1..2 " "
                   AsnOp@2..6
@@ -1046,7 +1046,7 @@ fn recover_not_weird_asn_op() {
               StmtList@0..12
                 CallStmt@0..1
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "a"
                 Whitespace@1..2 " "
                 Error@2..5
@@ -1077,7 +1077,7 @@ fn recover_not_weird_asn_op() {
               StmtList@0..8
                 CallStmt@0..1
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "a"
                 Whitespace@1..2 " "
                 Error@2..3
@@ -1113,7 +1113,7 @@ fn recover_not_a_compound_asn_op() {
               StmtList@0..6
                 CallStmt@0..1
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "a"
                 Whitespace@1..2 " "
                 Error@2..4
@@ -1132,7 +1132,7 @@ fn recover_not_a_compound_asn_op() {
               StmtList@0..7
                 CallStmt@0..1
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "a"
                 Whitespace@1..2 " "
                 Error@2..4
@@ -1155,7 +1155,7 @@ fn recover_not_a_compound_asn_op() {
               StmtList@0..6
                 CallStmt@0..1
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "a"
                 Whitespace@1..2 " "
                 Error@2..4
@@ -1174,7 +1174,7 @@ fn recover_not_a_compound_asn_op() {
               StmtList@0..7
                 CallStmt@0..1
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "a"
                 Whitespace@1..2 " "
                 Error@2..4
@@ -1199,7 +1199,7 @@ fn recover_not_a_compound_asn_op() {
               StmtList@0..7
                 CallStmt@0..1
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "a"
                 Whitespace@1..2 " "
                 Error@2..3
@@ -1226,7 +1226,7 @@ fn recover_not_a_compound_asn_op() {
               StmtList@0..9
                 CallStmt@0..1
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "a"
                 Whitespace@1..2 " "
                 Error@2..5
@@ -1253,7 +1253,7 @@ fn recover_not_a_compound_asn_op() {
               StmtList@0..11
                 CallStmt@0..1
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "a"
                 Whitespace@1..2 " "
                 Error@2..5
@@ -1281,7 +1281,7 @@ fn recover_not_a_compound_asn_op() {
               StmtList@0..8
                 CallStmt@0..1
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "a"
                 Whitespace@1..2 " "
                 Error@2..3
@@ -1308,7 +1308,7 @@ fn recover_not_a_compound_asn_op() {
               StmtList@0..7
                 CallStmt@0..1
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "a"
                 Whitespace@1..2 " "
                 Error@2..4
@@ -1331,7 +1331,7 @@ fn recover_not_a_compound_asn_op() {
               StmtList@0..6
                 AssignStmt@0..4
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "a"
                   Whitespace@1..2 " "
                   AsnOp@2..3
@@ -1359,7 +1359,7 @@ fn recover_missing_eq_in_asn_op() {
               StmtList@0..7
                 CallStmt@0..5
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "a"
                   Whitespace@1..2 " "
                   Error@2..5
@@ -1369,7 +1369,7 @@ fn recover_missing_eq_in_asn_op() {
                 Whitespace@5..6 "\n"
                 CallStmt@6..7
                   NameExpr@6..7
-                    Name@6..7
+                    NameRef@6..7
                       Identifier@6..7 "a"
             error at 4..5: unexpected token
             | error for 4..5: expected `=`, but found int literal"#]],
@@ -1385,7 +1385,7 @@ fn recover_eq_instead_of_asn() {
               StmtList@0..5
                 AssignStmt@0..5
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "a"
                   Whitespace@1..2 " "
                   AsnOp@2..3
@@ -2512,7 +2512,7 @@ fn parse_signal_stmt() {
                   KwSignal@0..6 "signal"
                   Whitespace@6..7 " "
                   NameExpr@7..12
-                    Name@7..12
+                    NameRef@7..12
                       Identifier@7..12 "a_sig""#]],
     );
 }
@@ -2567,7 +2567,7 @@ fn recover_on_signal() {
                   KwSignal@10..16 "signal"
                   Whitespace@16..17 " "
                   NameExpr@17..18
-                    Name@17..18
+                    NameRef@17..18
                       Identifier@17..18 "a"
             error at 10..16: unexpected token
             | error for 10..16: expected expression, but found `signal`"#]],
@@ -3239,7 +3239,7 @@ fn parse_for_loop_alt_bounds() {
                   Whitespace@12..13 " "
                   ForBounds@13..20
                     NameExpr@13..20
-                      Name@13..20
+                      NameRef@13..20
                         Identifier@13..20 "a_range"
                   Whitespace@20..29 "\n        "
                   StmtList@29..43
@@ -3369,7 +3369,7 @@ fn parse_for_loop_bound_over_single_int() {
                   StmtList@23..48
                     CallStmt@23..25
                       NameExpr@23..25
-                        Name@23..25
+                        NameRef@23..25
                           Identifier@23..25 "ay"
                     Whitespace@25..34 "\n        "
                     InvariantStmt@34..48
@@ -3787,13 +3787,13 @@ fn parse_bind_decl() {
                     FieldExpr@10..15
                       FieldExpr@10..13
                         NameExpr@10..11
-                          Name@10..11
+                          NameRef@10..11
                             Identifier@10..11 "k"
                         Dot@11..12 "."
-                        Name@12..13
+                        NameRef@12..13
                           Identifier@12..13 "l"
                       Dot@13..14 "."
-                      Name@14..15
+                      NameRef@14..15
                         Identifier@14..15 "m""#]],
     );
 }
@@ -3815,7 +3815,7 @@ fn parse_bind_decl_many_bindings() {
                     KwTo@7..9 "to"
                     Whitespace@9..10 " "
                     NameExpr@10..11
-                      Name@10..11
+                      NameRef@10..11
                         Identifier@10..11 "b"
                   Comma@11..12 ","
                   Whitespace@12..13 " "
@@ -3826,7 +3826,7 @@ fn parse_bind_decl_many_bindings() {
                     KwTo@15..17 "to"
                     Whitespace@17..18 " "
                     NameExpr@18..19
-                      Name@18..19
+                      NameRef@18..19
                         Identifier@18..19 "d"
                   Comma@19..20 ","
                   Whitespace@20..21 " "
@@ -3837,7 +3837,7 @@ fn parse_bind_decl_many_bindings() {
                     KwTo@23..25 "to"
                     Whitespace@25..26 " "
                     NameExpr@26..27
-                      Name@26..27
+                      NameRef@26..27
                         Identifier@26..27 "f""#]],
     );
 }
@@ -3862,7 +3862,7 @@ fn parse_bind_decl_opt_var() {
                     KwTo@11..13 "to"
                     Whitespace@13..14 " "
                     NameExpr@14..15
-                      Name@14..15
+                      NameRef@14..15
                         Identifier@14..15 "b""#]],
     );
 }
@@ -3887,7 +3887,7 @@ fn parse_bind_decl_opt_register() {
                     KwTo@16..18 "to"
                     Whitespace@18..19 " "
                     NameExpr@19..20
-                      Name@19..20
+                      NameRef@19..20
                         Identifier@19..20 "b""#]],
     );
 }
@@ -3915,7 +3915,7 @@ fn parse_bind_decl_opt_var_register() {
                     KwTo@20..22 "to"
                     Whitespace@22..23 " "
                     NameExpr@23..24
-                      Name@23..24
+                      NameRef@23..24
                         Identifier@23..24 "b""#]],
     );
 }
@@ -3957,7 +3957,7 @@ fn recover_bind_decl_missing_name() {
                     KwTo@5..7 "to"
                     Whitespace@7..8 " "
                     NameExpr@8..9
-                      Name@8..9
+                      NameRef@8..9
                         Identifier@8..9 "b"
             error at 5..7: unexpected token
             | error for 5..7: expected identifier, but found `to`"#]],
@@ -3980,7 +3980,7 @@ fn recover_bind_decl_missing_to() {
                       Identifier@5..6 "a"
                     Whitespace@6..7 " "
                     NameExpr@7..8
-                      Name@7..8
+                      NameRef@7..8
                         Identifier@7..8 "b"
             error at 7..8: unexpected token
             | error for 7..8: expected `to`, but found identifier"#]],
@@ -4051,7 +4051,7 @@ fn recover_on_bind() {
                     KwTo@17..19 "to"
                     Whitespace@19..20 " "
                     NameExpr@20..21
-                      Name@20..21
+                      NameRef@20..21
                         Identifier@20..21 "i"
             error at 10..14: unexpected token
             | error for 10..14: expected expression, but found `bind`"#]],
@@ -5081,7 +5081,7 @@ fn parse_init_stmt_multiple() {
                     Assign@15..17 ":="
                     Whitespace@17..18 " "
                     NameExpr@18..19
-                      Name@18..19
+                      NameRef@18..19
                         Identifier@18..19 "k"
                   Comma@19..20 ","
                   Whitespace@20..21 " "
@@ -5549,7 +5549,7 @@ fn parse_tag_stmt() {
                   KwTag@0..3 "tag"
                   Whitespace@3..4 " "
                   NameExpr@4..5
-                    Name@4..5
+                    NameRef@4..5
                       Identifier@4..5 "a"
                   Comma@5..6 ","
                   Whitespace@6..7 " "
@@ -5575,7 +5575,7 @@ fn recover_tag_stmt_missing_tag_val() {
                   KwTag@0..3 "tag"
                   Whitespace@3..4 " "
                   NameExpr@4..5
-                    Name@4..5
+                    NameRef@4..5
                       Identifier@4..5 "a"
                   Comma@5..6 ","
               Whitespace@6..7 " "
@@ -5595,7 +5595,7 @@ fn recover_tag_stmt_missing_tag_comma() {
                   KwTag@0..3 "tag"
                   Whitespace@3..4 " "
                   NameExpr@4..5
-                    Name@4..5
+                    NameRef@4..5
                       Identifier@4..5 "a"
                   Whitespace@5..6 " "
                   LiteralExpr@6..7
@@ -5658,7 +5658,7 @@ fn recover_on_tag() {
                   KwTag@10..13 "tag"
                   Whitespace@13..14 " "
                   NameExpr@14..15
-                    Name@14..15
+                    NameRef@14..15
                       Identifier@14..15 "a"
                   Comma@15..16 ","
                   Whitespace@16..17 " "
@@ -5681,19 +5681,19 @@ fn parse_fork_stmt() {
                   Whitespace@4..5 " "
                   CallExpr@5..14
                     NameExpr@5..6
-                      Name@5..6
+                      NameRef@5..6
                         Identifier@5..6 "a"
                     ParamList@6..14
                       LeftParen@6..7 "("
                       Param@7..10
                         NameExpr@7..9
-                          Name@7..9
+                          NameRef@7..9
                             Identifier@7..9 "pa"
                         Comma@9..10 ","
                       Whitespace@10..11 " "
                       Param@11..13
                         NameExpr@11..13
-                          Name@11..13
+                          NameRef@11..13
                             Identifier@11..13 "ra"
                       RightParen@13..14 ")""#]],
     );
@@ -5711,7 +5711,7 @@ fn parse_fork_stmt_empty_params() {
                   Whitespace@4..5 " "
                   CallExpr@5..8
                     NameExpr@5..6
-                      Name@5..6
+                      NameRef@5..6
                         Identifier@5..6 "a"
                     ParamList@6..8
                       LeftParen@6..7 "("
@@ -5730,7 +5730,7 @@ fn parse_fork_stmt_no_params() {
                   KwFork@0..4 "fork"
                   Whitespace@4..5 " "
                   NameExpr@5..6
-                    Name@5..6
+                    NameRef@5..6
                       Identifier@5..6 "a""#]],
     );
 }
@@ -5746,14 +5746,14 @@ fn parse_fork_stmt_opt_status() {
                   KwFork@0..4 "fork"
                   Whitespace@4..5 " "
                   NameExpr@5..6
-                    Name@5..6
+                    NameRef@5..6
                       Identifier@5..6 "a"
                   Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   ForkStatus@9..13
                     NameExpr@9..13
-                      Name@9..13
+                      NameRef@9..13
                         Identifier@9..13 "stat""#]],
     );
 }
@@ -5769,14 +5769,14 @@ fn parse_fork_stmt_opt_stack_size() {
                   KwFork@0..4 "fork"
                   Whitespace@4..5 " "
                   NameExpr@5..6
-                    Name@5..6
+                    NameRef@5..6
                       Identifier@5..6 "a"
                   Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   ForkStatus@9..13
                     NameExpr@9..13
-                      Name@9..13
+                      NameRef@9..13
                         Identifier@9..13 "stat"
                   Comma@13..14 ","
                   Whitespace@14..15 " "
@@ -5797,14 +5797,14 @@ fn parse_fork_stmt_opt_process_ref() {
                   KwFork@0..4 "fork"
                   Whitespace@4..5 " "
                   NameExpr@5..6
-                    Name@5..6
+                    NameRef@5..6
                       Identifier@5..6 "a"
                   Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   ForkStatus@9..13
                     NameExpr@9..13
-                      Name@9..13
+                      NameRef@9..13
                         Identifier@9..13 "stat"
                   Comma@13..14 ","
                   Whitespace@14..15 " "
@@ -5815,7 +5815,7 @@ fn parse_fork_stmt_opt_process_ref() {
                   Whitespace@18..19 " "
                   ProcessDesc@19..20
                     NameExpr@19..20
-                      Name@19..20
+                      NameRef@19..20
                         Identifier@19..20 "a""#]],
     );
 }
@@ -5831,14 +5831,14 @@ fn recover_fork_stmt_process_ref_missing_ref() {
                   KwFork@0..4 "fork"
                   Whitespace@4..5 " "
                   NameExpr@5..6
-                    Name@5..6
+                    NameRef@5..6
                       Identifier@5..6 "a"
                   Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   ForkStatus@9..13
                     NameExpr@9..13
-                      Name@9..13
+                      NameRef@9..13
                         Identifier@9..13 "stat"
                   Comma@13..14 ","
                   Whitespace@14..15 " "
@@ -5864,14 +5864,14 @@ fn recover_fork_stmt_process_ref_missing_stack_size_expr() {
                   KwFork@0..4 "fork"
                   Whitespace@4..5 " "
                   NameExpr@5..6
-                    Name@5..6
+                    NameRef@5..6
                       Identifier@5..6 "a"
                   Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   ForkStatus@9..13
                     NameExpr@9..13
-                      Name@9..13
+                      NameRef@9..13
                         Identifier@9..13 "stat"
                   Comma@13..14 ","
                   Whitespace@14..15 " "
@@ -5880,7 +5880,7 @@ fn recover_fork_stmt_process_ref_missing_stack_size_expr() {
                   Whitespace@16..17 " "
                   ProcessDesc@17..18
                     NameExpr@17..18
-                      Name@17..18
+                      NameRef@17..18
                         Identifier@17..18 "a"
             error at 15..16: unexpected token
             | error for 15..16: expected expression, but found `,`"#]],
@@ -5898,7 +5898,7 @@ fn recover_fork_stmt_process_ref_missing_stat_ref() {
                   KwFork@0..4 "fork"
                   Whitespace@4..5 " "
                   NameExpr@5..6
-                    Name@5..6
+                    NameRef@5..6
                       Identifier@5..6 "a"
                   Whitespace@6..7 " "
                   Colon@7..8 ":"
@@ -5911,7 +5911,7 @@ fn recover_fork_stmt_process_ref_missing_stat_ref() {
                   Whitespace@12..13 " "
                   ProcessDesc@13..14
                     NameExpr@13..14
-                      Name@13..14
+                      NameRef@13..14
                         Identifier@13..14 "a"
             error at 9..10: unexpected token
             | error for 9..10: expected expression, but found `,`
@@ -5954,7 +5954,7 @@ fn recover_on_fork() {
                   KwFork@10..14 "fork"
                   Whitespace@14..15 " "
                   NameExpr@15..16
-                    Name@15..16
+                    NameRef@15..16
                       Identifier@15..16 "a"
             error at 10..14: unexpected token
             | error for 10..14: expected expression, but found `fork`"#]],
@@ -5973,7 +5973,7 @@ fn parse_new_stmt() {
                   Whitespace@3..4 " "
                   ExprList@4..5
                     NameExpr@4..5
-                      Name@4..5
+                      NameRef@4..5
                         Identifier@4..5 "a""#]],
     );
 }
@@ -5990,12 +5990,12 @@ fn parse_new_stmt_opt_pointer_spec() {
                   Whitespace@3..4 " "
                   ExprList@4..10
                     NameExpr@4..5
-                      Name@4..5
+                      NameRef@4..5
                         Identifier@4..5 "A"
                     Comma@5..6 ","
                     Whitespace@6..7 " "
                     NameExpr@7..10
-                      Name@7..10
+                      NameRef@7..10
                         Identifier@7..10 "ptr""#]],
     );
 }
@@ -6012,7 +6012,7 @@ fn parse_new_stmt_resize_array() {
                   Whitespace@3..4 " "
                   ExprList@4..19
                     NameExpr@4..7
-                      Name@4..7
+                      NameRef@4..7
                         Identifier@4..7 "ary"
                     Comma@7..8 ","
                     Whitespace@8..9 " "
@@ -6069,7 +6069,7 @@ fn recover_on_new() {
                   Whitespace@13..14 " "
                   ExprList@14..15
                     NameExpr@14..15
-                      Name@14..15
+                      NameRef@14..15
                         Identifier@14..15 "a"
             error at 10..13: unexpected token
             | error for 10..13: expected expression, but found `new`"#]],
@@ -6088,7 +6088,7 @@ fn parse_free_stmt() {
                   Whitespace@4..5 " "
                   ExprList@5..6
                     NameExpr@5..6
-                      Name@5..6
+                      NameRef@5..6
                         Identifier@5..6 "a""#]],
     );
 }
@@ -6105,12 +6105,12 @@ fn parse_free_stmt_opt_pointer_spec() {
                   Whitespace@4..5 " "
                   ExprList@5..11
                     NameExpr@5..6
-                      Name@5..6
+                      NameRef@5..6
                         Identifier@5..6 "A"
                     Comma@6..7 ","
                     Whitespace@7..8 " "
                     NameExpr@8..11
-                      Name@8..11
+                      NameRef@8..11
                         Identifier@8..11 "ptr""#]],
     );
 }
@@ -6128,7 +6128,7 @@ fn parse_free_stmt_multiple_exprs() {
                   Whitespace@4..5 " "
                   ExprList@5..20
                     NameExpr@5..8
-                      Name@5..8
+                      NameRef@5..8
                         Identifier@5..8 "ary"
                     Comma@8..9 ","
                     Whitespace@9..10 " "
@@ -6185,7 +6185,7 @@ fn recover_on_free() {
                   Whitespace@14..15 " "
                   ExprList@15..16
                     NameExpr@15..16
-                      Name@15..16
+                      NameRef@15..16
                         Identifier@15..16 "a"
             error at 10..14: unexpected token
             | error for 10..14: expected expression, but found `free`"#]],
@@ -7224,7 +7224,7 @@ fn parse_module_decl_embedded_pre() {
                     KwPre@9..12 "pre"
                     Whitespace@12..13 " "
                     NameExpr@13..14
-                      Name@13..14
+                      NameRef@13..14
                         Identifier@13..14 "a"
                   Whitespace@14..15 " "
                   StmtList@15..15
@@ -7253,7 +7253,7 @@ fn parse_module_decl_double_pre() {
                     KwPre@9..12 "pre"
                     Whitespace@12..13 " "
                     NameExpr@13..14
-                      Name@13..14
+                      NameRef@13..14
                         Identifier@13..14 "a"
                   Whitespace@14..15 " "
                   StmtList@15..20
@@ -7261,7 +7261,7 @@ fn parse_module_decl_double_pre() {
                       KwPre@15..18 "pre"
                       Whitespace@18..19 " "
                       NameExpr@19..20
-                        Name@19..20
+                        NameRef@19..20
                           Identifier@19..20 "a"
                   Whitespace@20..21 " "
                   EndGroup@21..26
@@ -7290,7 +7290,7 @@ fn parse_module_decl_embedded_post() {
                     KwPost@9..13 "post"
                     Whitespace@13..14 " "
                     NameExpr@14..15
-                      Name@14..15
+                      NameRef@14..15
                         Identifier@14..15 "a"
                   Whitespace@15..16 " "
                   EndGroup@16..21
@@ -7319,7 +7319,7 @@ fn recover_module_decl_double_post() {
                     KwPost@9..13 "post"
                     Whitespace@13..14 " "
                     NameExpr@14..15
-                      Name@14..15
+                      NameRef@14..15
                         Identifier@14..15 "a"
                   Whitespace@15..16 " "
                   EndGroup@16..16
@@ -7327,7 +7327,7 @@ fn recover_module_decl_double_post() {
                   KwPost@16..20 "post"
                   Whitespace@20..21 " "
                   NameExpr@21..22
-                    Name@21..22
+                    NameRef@21..22
                       Identifier@21..22 "a"
                 Whitespace@22..23 " "
                 Error@23..26
@@ -7335,7 +7335,7 @@ fn recover_module_decl_double_post() {
                 Whitespace@26..27 " "
                 CallStmt@27..28
                   NameExpr@27..28
-                    Name@27..28
+                    NameRef@27..28
                       Identifier@27..28 "a"
             error at 16..20: unexpected token
             | error for 16..20: expected `end`, but found `post`
@@ -7980,7 +7980,7 @@ fn parse_process_decl_opt_stack_size() {
                       Plus@23..24 "+"
                       Whitespace@24..25 " "
                       NameExpr@25..26
-                        Name@25..26
+                        NameRef@25..26
                           Identifier@25..26 "t"
                   Whitespace@26..35 "\n        "
                   SubprogBody@35..48
@@ -9485,12 +9485,12 @@ fn parse_tell_stmt() {
                     Colon@5..6 ":"
                     Whitespace@6..7 " "
                     NameExpr@7..8
-                      Name@7..8
+                      NameRef@7..8
                         Identifier@7..8 "a"
                   Comma@8..9 ","
                   Whitespace@9..10 " "
                   NameExpr@10..11
-                    Name@10..11
+                    NameRef@10..11
                       Identifier@10..11 "b""#]],
     );
 }
@@ -9510,7 +9510,7 @@ fn parse_tell_stmt_dest_not_ref() {
                     Colon@5..6 ":"
                     Whitespace@6..7 " "
                     NameExpr@7..8
-                      Name@7..8
+                      NameRef@7..8
                         Identifier@7..8 "a"
                   Comma@8..9 ","
                   Whitespace@9..10 " "
@@ -9535,7 +9535,7 @@ fn recover_tell_stmt_missing_file_ref() {
                   Comma@7..8 ","
                   Whitespace@8..9 " "
                   NameExpr@9..10
-                    Name@9..10
+                    NameRef@9..10
                       Identifier@9..10 "a"
             error at 7..8: unexpected token
             | error for 7..8: expected expression, but found `,`"#]],
@@ -9556,7 +9556,7 @@ fn recover_tell_stmt_missing_tell_dest() {
                     Colon@5..6 ":"
                     Whitespace@6..7 " "
                     NameExpr@7..8
-                      Name@7..8
+                      NameRef@7..8
                         Identifier@7..8 "a"
                   Comma@8..9 ","
               Whitespace@9..10 " "
@@ -9602,12 +9602,12 @@ fn recover_on_tell() {
                     Colon@15..16 ":"
                     Whitespace@16..17 " "
                     NameExpr@17..18
-                      Name@17..18
+                      NameRef@17..18
                         Identifier@17..18 "a"
                   Comma@18..19 ","
                   Whitespace@19..20 " "
                   NameExpr@20..21
-                    Name@20..21
+                    NameRef@20..21
                       Identifier@20..21 "b"
             error at 10..14: unexpected token
             | error for 10..14: expected expression, but found `tell`"#]],
@@ -9628,13 +9628,13 @@ fn parse_seek_stmt() {
                     Colon@5..6 ":"
                     Whitespace@6..7 " "
                     NameExpr@7..8
-                      Name@7..8
+                      NameRef@7..8
                         Identifier@7..8 "a"
                   Comma@8..9 ","
                   Whitespace@9..10 " "
                   BinaryExpr@10..15
                     NameExpr@10..11
-                      Name@10..11
+                      NameRef@10..11
                         Identifier@10..11 "b"
                     Whitespace@11..12 " "
                     Plus@12..13 "+"
@@ -9658,7 +9658,7 @@ fn parse_seek_stmt_to_end() {
                     Colon@5..6 ":"
                     Whitespace@6..7 " "
                     NameExpr@7..8
-                      Name@7..8
+                      NameRef@7..8
                         Identifier@7..8 "a"
                   Comma@8..9 ","
                   Whitespace@9..10 " "
@@ -9682,7 +9682,7 @@ fn recover_seek_stmt_missing_file_ref() {
                   Comma@7..8 ","
                   Whitespace@8..9 " "
                   NameExpr@9..10
-                    Name@9..10
+                    NameRef@9..10
                       Identifier@9..10 "a"
             error at 7..8: unexpected token
             | error for 7..8: expected expression, but found `,`"#]],
@@ -9703,7 +9703,7 @@ fn recover_seek_stmt_missing_to_expr() {
                     Colon@5..6 ":"
                     Whitespace@6..7 " "
                     NameExpr@7..8
-                      Name@7..8
+                      NameRef@7..8
                         Identifier@7..8 "a"
                   Comma@8..9 ","
               Whitespace@9..10 " "
@@ -9749,12 +9749,12 @@ fn recover_on_seek() {
                     Colon@15..16 ":"
                     Whitespace@16..17 " "
                     NameExpr@17..18
-                      Name@17..18
+                      NameRef@17..18
                         Identifier@17..18 "a"
                   Comma@18..19 ","
                   Whitespace@19..20 " "
                   NameExpr@20..21
-                    Name@20..21
+                    NameRef@20..21
                       Identifier@20..21 "b"
             error at 10..14: unexpected token
             | error for 10..14: expected expression, but found `seek`"#]],
@@ -9776,31 +9776,31 @@ fn parse_read_stmt() {
                       Colon@5..6 ":"
                       Whitespace@6..7 " "
                       NameExpr@7..11
-                        Name@7..11
+                        NameRef@7..11
                           Identifier@7..11 "fref"
                     Comma@11..12 ","
                     Whitespace@12..13 " "
                     BinaryItem@13..14
                       NameExpr@13..14
-                        Name@13..14
+                        NameRef@13..14
                           Identifier@13..14 "a"
                     Comma@14..15 ","
                     Whitespace@15..16 " "
                     BinaryItem@16..17
                       NameExpr@16..17
-                        Name@16..17
+                        NameRef@16..17
                           Identifier@16..17 "b"
                     Comma@17..18 ","
                     Whitespace@18..19 " "
                     BinaryItem@19..20
                       NameExpr@19..20
-                        Name@19..20
+                        NameRef@19..20
                           Identifier@19..20 "c"
                     Comma@20..21 ","
                     Whitespace@21..22 " "
                     BinaryItem@22..23
                       NameExpr@22..23
-                        Name@22..23
+                        NameRef@22..23
                           Identifier@22..23 "d""#]],
     );
 }
@@ -9820,19 +9820,19 @@ fn parse_read_stmt_opt_status() {
                       Colon@5..6 ":"
                       Whitespace@6..7 " "
                       NameExpr@7..11
-                        Name@7..11
+                        NameRef@7..11
                           Identifier@7..11 "fref"
                     Whitespace@11..12 " "
                     Colon@12..13 ":"
                     Whitespace@13..14 " "
                     NameExpr@14..17
-                      Name@14..17
+                      NameRef@14..17
                         Identifier@14..17 "sts"
                     Comma@17..18 ","
                     Whitespace@18..19 " "
                     BinaryItem@19..20
                       NameExpr@19..20
-                        Name@19..20
+                        NameRef@19..20
                           Identifier@19..20 "a""#]],
     );
 }
@@ -9852,32 +9852,32 @@ fn parse_read_stmt_all_item_variants() {
                       Colon@5..6 ":"
                       Whitespace@6..7 " "
                       NameExpr@7..11
-                        Name@7..11
+                        NameRef@7..11
                           Identifier@7..11 "fref"
                     Comma@11..12 ","
                     Whitespace@12..13 " "
                     BinaryItem@13..14
                       NameExpr@13..14
-                        Name@13..14
+                        NameRef@13..14
                           Identifier@13..14 "a"
                     Comma@14..15 ","
                     Whitespace@15..16 " "
                     BinaryItem@16..22
                       NameExpr@16..17
-                        Name@16..17
+                        NameRef@16..17
                           Identifier@16..17 "b"
                       Whitespace@17..18 " "
                       RequestSize@18..22
                         Colon@18..19 ":"
                         Whitespace@19..20 " "
                         NameExpr@20..22
-                          Name@20..22
+                          NameRef@20..22
                             Identifier@20..22 "sz"
                     Comma@22..23 ","
                     Whitespace@23..24 " "
                     BinaryItem@24..40
                       NameExpr@24..25
-                        Name@24..25
+                        NameRef@24..25
                           Identifier@24..25 "c"
                       Whitespace@25..26 " "
                       RequestSize@26..33
@@ -9896,7 +9896,7 @@ fn parse_read_stmt_all_item_variants() {
                         Colon@34..35 ":"
                         Whitespace@35..36 " "
                         NameExpr@36..40
-                          Name@36..40
+                          NameRef@36..40
                             Identifier@36..40 "here""#]],
     );
 }
@@ -9916,13 +9916,13 @@ fn recover_read_stmt_missing_actual_sz_expr() {
                       Colon@5..6 ":"
                       Whitespace@6..7 " "
                       NameExpr@7..11
-                        Name@7..11
+                        NameRef@7..11
                           Identifier@7..11 "fref"
                     Comma@11..12 ","
                     Whitespace@12..13 " "
                     BinaryItem@13..24
                       NameExpr@13..14
-                        Name@13..14
+                        NameRef@13..14
                           Identifier@13..14 "a"
                       Whitespace@14..15 " "
                       RequestSize@15..22
@@ -9944,7 +9944,7 @@ fn recover_read_stmt_missing_actual_sz_expr() {
                     Whitespace@26..27 " "
                     BinaryItem@27..28
                       NameExpr@27..28
-                        Name@27..28
+                        NameRef@27..28
                           Identifier@27..28 "b"
             error at 25..26: unexpected token
             | error for 25..26: expected expression, but found `,`"#]],
@@ -9966,13 +9966,13 @@ fn recover_read_stmt_missing_req_sz_expr() {
                       Colon@5..6 ":"
                       Whitespace@6..7 " "
                       NameExpr@7..11
-                        Name@7..11
+                        NameRef@7..11
                           Identifier@7..11 "fref"
                     Comma@11..12 ","
                     Whitespace@12..13 " "
                     BinaryItem@13..22
                       NameExpr@13..14
-                        Name@13..14
+                        NameRef@13..14
                           Identifier@13..14 "a"
                       Whitespace@14..15 " "
                       RequestSize@15..16
@@ -9982,13 +9982,13 @@ fn recover_read_stmt_missing_req_sz_expr() {
                         Colon@18..19 ":"
                         Whitespace@19..20 " "
                         NameExpr@20..22
-                          Name@20..22
+                          NameRef@20..22
                             Identifier@20..22 "ok"
                     Comma@22..23 ","
                     Whitespace@23..24 " "
                     BinaryItem@24..25
                       NameExpr@24..25
-                        Name@24..25
+                        NameRef@24..25
                           Identifier@24..25 "b"
             error at 18..19: unexpected token
             | error for 18..19: expected expression, but found `:`"#]],
@@ -10010,7 +10010,7 @@ fn recover_read_stmt_missing_item_data_expr() {
                       Colon@5..6 ":"
                       Whitespace@6..7 " "
                       NameExpr@7..11
-                        Name@7..11
+                        NameRef@7..11
                           Identifier@7..11 "fref"
                     Comma@11..12 ","
                     Whitespace@12..14 "  "
@@ -10019,20 +10019,20 @@ fn recover_read_stmt_missing_item_data_expr() {
                         Colon@14..15 ":"
                         Whitespace@15..16 " "
                         NameExpr@16..19
-                          Name@16..19
+                          NameRef@16..19
                             Identifier@16..19 "req"
                       Whitespace@19..20 " "
                       ActualSize@20..24
                         Colon@20..21 ":"
                         Whitespace@21..22 " "
                         NameExpr@22..24
-                          Name@22..24
+                          NameRef@22..24
                             Identifier@22..24 "ok"
                     Comma@24..25 ","
                     Whitespace@25..26 " "
                     BinaryItem@26..27
                       NameExpr@26..27
-                        Name@26..27
+                        NameRef@26..27
                           Identifier@26..27 "b"
             error at 14..15: unexpected token
             | error for 14..15: expected expression, but found `:`"#]],
@@ -10054,7 +10054,7 @@ fn recover_read_stmt_missing_sts_ref() {
                       Colon@5..6 ":"
                       Whitespace@6..7 " "
                       NameExpr@7..11
-                        Name@7..11
+                        NameRef@7..11
                           Identifier@7..11 "fref"
                     Whitespace@11..12 " "
                     Colon@12..13 ":"
@@ -10063,27 +10063,27 @@ fn recover_read_stmt_missing_sts_ref() {
                     Whitespace@15..16 " "
                     BinaryItem@16..28
                       NameExpr@16..17
-                        Name@16..17
+                        NameRef@16..17
                           Identifier@16..17 "a"
                       Whitespace@17..18 " "
                       RequestSize@18..23
                         Colon@18..19 ":"
                         Whitespace@19..20 " "
                         NameExpr@20..23
-                          Name@20..23
+                          NameRef@20..23
                             Identifier@20..23 "req"
                       Whitespace@23..24 " "
                       ActualSize@24..28
                         Colon@24..25 ":"
                         Whitespace@25..26 " "
                         NameExpr@26..28
-                          Name@26..28
+                          NameRef@26..28
                             Identifier@26..28 "ok"
                     Comma@28..29 ","
                     Whitespace@29..30 " "
                     BinaryItem@30..31
                       NameExpr@30..31
-                        Name@30..31
+                        NameRef@30..31
                           Identifier@30..31 "b"
             error at 14..15: unexpected token
             | error for 14..15: expected expression, but found `,`"#]],
@@ -10107,33 +10107,33 @@ fn recover_read_stmt_missing_file_ref() {
                     Colon@7..8 ":"
                     Whitespace@8..9 " "
                     NameExpr@9..12
-                      Name@9..12
+                      NameRef@9..12
                         Identifier@9..12 "sts"
                     Comma@12..13 ","
                     Whitespace@13..14 " "
                     BinaryItem@14..26
                       NameExpr@14..15
-                        Name@14..15
+                        NameRef@14..15
                           Identifier@14..15 "a"
                       Whitespace@15..16 " "
                       RequestSize@16..21
                         Colon@16..17 ":"
                         Whitespace@17..18 " "
                         NameExpr@18..21
-                          Name@18..21
+                          NameRef@18..21
                             Identifier@18..21 "req"
                       Whitespace@21..22 " "
                       ActualSize@22..26
                         Colon@22..23 ":"
                         Whitespace@23..24 " "
                         NameExpr@24..26
-                          Name@24..26
+                          NameRef@24..26
                             Identifier@24..26 "ok"
                     Comma@26..27 ","
                     Whitespace@27..28 " "
                     BinaryItem@28..29
                       NameExpr@28..29
-                        Name@28..29
+                        NameRef@28..29
                           Identifier@28..29 "b"
             error at 7..8: unexpected token
             | error for 7..8: expected expression, but found `:`"#]],
@@ -10180,13 +10180,13 @@ fn recover_on_read() {
                       Colon@15..16 ":"
                       Whitespace@16..17 " "
                       NameExpr@17..18
-                        Name@17..18
+                        NameRef@17..18
                           Identifier@17..18 "a"
                     Comma@18..19 ","
                     Whitespace@19..20 " "
                     BinaryItem@20..21
                       NameExpr@20..21
-                        Name@20..21
+                        NameRef@20..21
                           Identifier@20..21 "b"
             error at 10..14: unexpected token
             | error for 10..14: expected expression, but found `read`"#]],
@@ -10208,31 +10208,31 @@ fn parse_write_stmt() {
                       Colon@6..7 ":"
                       Whitespace@7..8 " "
                       NameExpr@8..12
-                        Name@8..12
+                        NameRef@8..12
                           Identifier@8..12 "fref"
                     Comma@12..13 ","
                     Whitespace@13..14 " "
                     BinaryItem@14..15
                       NameExpr@14..15
-                        Name@14..15
+                        NameRef@14..15
                           Identifier@14..15 "a"
                     Comma@15..16 ","
                     Whitespace@16..17 " "
                     BinaryItem@17..18
                       NameExpr@17..18
-                        Name@17..18
+                        NameRef@17..18
                           Identifier@17..18 "b"
                     Comma@18..19 ","
                     Whitespace@19..20 " "
                     BinaryItem@20..21
                       NameExpr@20..21
-                        Name@20..21
+                        NameRef@20..21
                           Identifier@20..21 "c"
                     Comma@21..22 ","
                     Whitespace@22..23 " "
                     BinaryItem@23..24
                       NameExpr@23..24
-                        Name@23..24
+                        NameRef@23..24
                           Identifier@23..24 "d""#]],
     );
 }
@@ -10252,19 +10252,19 @@ fn parse_write_stmt_opt_status() {
                       Colon@6..7 ":"
                       Whitespace@7..8 " "
                       NameExpr@8..12
-                        Name@8..12
+                        NameRef@8..12
                           Identifier@8..12 "fref"
                     Whitespace@12..13 " "
                     Colon@13..14 ":"
                     Whitespace@14..15 " "
                     NameExpr@15..18
-                      Name@15..18
+                      NameRef@15..18
                         Identifier@15..18 "sts"
                     Comma@18..19 ","
                     Whitespace@19..20 " "
                     BinaryItem@20..21
                       NameExpr@20..21
-                        Name@20..21
+                        NameRef@20..21
                           Identifier@20..21 "a""#]],
     );
 }
@@ -10284,32 +10284,32 @@ fn parse_write_stmt_all_item_variants() {
                       Colon@6..7 ":"
                       Whitespace@7..8 " "
                       NameExpr@8..12
-                        Name@8..12
+                        NameRef@8..12
                           Identifier@8..12 "fref"
                     Comma@12..13 ","
                     Whitespace@13..14 " "
                     BinaryItem@14..15
                       NameExpr@14..15
-                        Name@14..15
+                        NameRef@14..15
                           Identifier@14..15 "a"
                     Comma@15..16 ","
                     Whitespace@16..17 " "
                     BinaryItem@17..23
                       NameExpr@17..18
-                        Name@17..18
+                        NameRef@17..18
                           Identifier@17..18 "b"
                       Whitespace@18..19 " "
                       RequestSize@19..23
                         Colon@19..20 ":"
                         Whitespace@20..21 " "
                         NameExpr@21..23
-                          Name@21..23
+                          NameRef@21..23
                             Identifier@21..23 "sz"
                     Comma@23..24 ","
                     Whitespace@24..25 " "
                     BinaryItem@25..41
                       NameExpr@25..26
-                        Name@25..26
+                        NameRef@25..26
                           Identifier@25..26 "c"
                       Whitespace@26..27 " "
                       RequestSize@27..34
@@ -10328,7 +10328,7 @@ fn parse_write_stmt_all_item_variants() {
                         Colon@35..36 ":"
                         Whitespace@36..37 " "
                         NameExpr@37..41
-                          Name@37..41
+                          NameRef@37..41
                             Identifier@37..41 "here""#]],
     );
 }
@@ -10348,13 +10348,13 @@ fn recover_write_stmt_missing_actual_sz_expr() {
                       Colon@6..7 ":"
                       Whitespace@7..8 " "
                       NameExpr@8..12
-                        Name@8..12
+                        NameRef@8..12
                           Identifier@8..12 "fref"
                     Comma@12..13 ","
                     Whitespace@13..14 " "
                     BinaryItem@14..25
                       NameExpr@14..15
-                        Name@14..15
+                        NameRef@14..15
                           Identifier@14..15 "a"
                       Whitespace@15..16 " "
                       RequestSize@16..23
@@ -10376,7 +10376,7 @@ fn recover_write_stmt_missing_actual_sz_expr() {
                     Whitespace@27..28 " "
                     BinaryItem@28..29
                       NameExpr@28..29
-                        Name@28..29
+                        NameRef@28..29
                           Identifier@28..29 "b"
             error at 26..27: unexpected token
             | error for 26..27: expected expression, but found `,`"#]],
@@ -10398,13 +10398,13 @@ fn recover_write_stmt_missing_req_sz_expr() {
                       Colon@6..7 ":"
                       Whitespace@7..8 " "
                       NameExpr@8..12
-                        Name@8..12
+                        NameRef@8..12
                           Identifier@8..12 "fref"
                     Comma@12..13 ","
                     Whitespace@13..14 " "
                     BinaryItem@14..23
                       NameExpr@14..15
-                        Name@14..15
+                        NameRef@14..15
                           Identifier@14..15 "a"
                       Whitespace@15..16 " "
                       RequestSize@16..17
@@ -10414,13 +10414,13 @@ fn recover_write_stmt_missing_req_sz_expr() {
                         Colon@19..20 ":"
                         Whitespace@20..21 " "
                         NameExpr@21..23
-                          Name@21..23
+                          NameRef@21..23
                             Identifier@21..23 "ok"
                     Comma@23..24 ","
                     Whitespace@24..25 " "
                     BinaryItem@25..26
                       NameExpr@25..26
-                        Name@25..26
+                        NameRef@25..26
                           Identifier@25..26 "b"
             error at 19..20: unexpected token
             | error for 19..20: expected expression, but found `:`"#]],
@@ -10442,7 +10442,7 @@ fn recover_write_stmt_missing_item_data_expr() {
                       Colon@6..7 ":"
                       Whitespace@7..8 " "
                       NameExpr@8..12
-                        Name@8..12
+                        NameRef@8..12
                           Identifier@8..12 "fref"
                     Comma@12..13 ","
                     Whitespace@13..15 "  "
@@ -10451,20 +10451,20 @@ fn recover_write_stmt_missing_item_data_expr() {
                         Colon@15..16 ":"
                         Whitespace@16..17 " "
                         NameExpr@17..20
-                          Name@17..20
+                          NameRef@17..20
                             Identifier@17..20 "req"
                       Whitespace@20..21 " "
                       ActualSize@21..25
                         Colon@21..22 ":"
                         Whitespace@22..23 " "
                         NameExpr@23..25
-                          Name@23..25
+                          NameRef@23..25
                             Identifier@23..25 "ok"
                     Comma@25..26 ","
                     Whitespace@26..27 " "
                     BinaryItem@27..28
                       NameExpr@27..28
-                        Name@27..28
+                        NameRef@27..28
                           Identifier@27..28 "b"
             error at 15..16: unexpected token
             | error for 15..16: expected expression, but found `:`"#]],
@@ -10486,7 +10486,7 @@ fn recover_write_stmt_missing_sts_ref() {
                       Colon@6..7 ":"
                       Whitespace@7..8 " "
                       NameExpr@8..12
-                        Name@8..12
+                        NameRef@8..12
                           Identifier@8..12 "fref"
                     Whitespace@12..13 " "
                     Colon@13..14 ":"
@@ -10495,27 +10495,27 @@ fn recover_write_stmt_missing_sts_ref() {
                     Whitespace@16..17 " "
                     BinaryItem@17..29
                       NameExpr@17..18
-                        Name@17..18
+                        NameRef@17..18
                           Identifier@17..18 "a"
                       Whitespace@18..19 " "
                       RequestSize@19..24
                         Colon@19..20 ":"
                         Whitespace@20..21 " "
                         NameExpr@21..24
-                          Name@21..24
+                          NameRef@21..24
                             Identifier@21..24 "req"
                       Whitespace@24..25 " "
                       ActualSize@25..29
                         Colon@25..26 ":"
                         Whitespace@26..27 " "
                         NameExpr@27..29
-                          Name@27..29
+                          NameRef@27..29
                             Identifier@27..29 "ok"
                     Comma@29..30 ","
                     Whitespace@30..31 " "
                     BinaryItem@31..32
                       NameExpr@31..32
-                        Name@31..32
+                        NameRef@31..32
                           Identifier@31..32 "b"
             error at 15..16: unexpected token
             | error for 15..16: expected expression, but found `,`"#]],
@@ -10539,33 +10539,33 @@ fn recover_write_stmt_missing_file_ref() {
                     Colon@8..9 ":"
                     Whitespace@9..10 " "
                     NameExpr@10..13
-                      Name@10..13
+                      NameRef@10..13
                         Identifier@10..13 "sts"
                     Comma@13..14 ","
                     Whitespace@14..15 " "
                     BinaryItem@15..27
                       NameExpr@15..16
-                        Name@15..16
+                        NameRef@15..16
                           Identifier@15..16 "a"
                       Whitespace@16..17 " "
                       RequestSize@17..22
                         Colon@17..18 ":"
                         Whitespace@18..19 " "
                         NameExpr@19..22
-                          Name@19..22
+                          NameRef@19..22
                             Identifier@19..22 "req"
                       Whitespace@22..23 " "
                       ActualSize@23..27
                         Colon@23..24 ":"
                         Whitespace@24..25 " "
                         NameExpr@25..27
-                          Name@25..27
+                          NameRef@25..27
                             Identifier@25..27 "ok"
                     Comma@27..28 ","
                     Whitespace@28..29 " "
                     BinaryItem@29..30
                       NameExpr@29..30
-                        Name@29..30
+                        NameRef@29..30
                           Identifier@29..30 "b"
             error at 8..9: unexpected token
             | error for 8..9: expected expression, but found `:`"#]],
@@ -10612,13 +10612,13 @@ fn recover_on_write() {
                       Colon@16..17 ":"
                       Whitespace@17..18 " "
                       NameExpr@18..19
-                        Name@18..19
+                        NameRef@18..19
                           Identifier@18..19 "a"
                     Comma@19..20 ","
                     Whitespace@20..21 " "
                     BinaryItem@21..22
                       NameExpr@21..22
-                        Name@21..22
+                        NameRef@21..22
                           Identifier@21..22 "b"
             error at 10..15: unexpected token
             | error for 10..15: expected expression, but found `write`"#]],
@@ -10638,7 +10638,7 @@ fn parse_old_open() {
                   OldOpen@5..26
                     LeftParen@5..6 "("
                     NameExpr@6..7
-                      Name@6..7
+                      NameRef@6..7
                         Identifier@6..7 "a"
                     Comma@7..8 ","
                     Whitespace@8..9 " "
@@ -10666,7 +10666,7 @@ fn recover_old_open_missing_left_paren() {
                   Whitespace@4..5 " "
                   NewOpen@5..24
                     NameExpr@5..6
-                      Name@5..6
+                      NameRef@5..6
                         Identifier@5..6 "a"
                     Comma@6..7 ","
                     Whitespace@7..8 " "
@@ -10729,7 +10729,7 @@ fn recover_old_open_missing_path() {
                   OldOpen@5..17
                     LeftParen@5..6 "("
                     NameExpr@6..7
-                      Name@6..7
+                      NameRef@6..7
                         Identifier@6..7 "a"
                     Comma@7..8 ","
                     Whitespace@8..9 " "
@@ -10757,7 +10757,7 @@ fn recover_old_open_missing_() {
                   OldOpen@5..26
                     LeftParen@5..6 "("
                     NameExpr@6..7
-                      Name@6..7
+                      NameRef@6..7
                         Identifier@6..7 "a"
                     Comma@7..8 ","
                     Whitespace@8..9 " "
@@ -10786,7 +10786,7 @@ fn recover_old_open_missing_mode() {
                   OldOpen@5..21
                     LeftParen@5..6 "("
                     NameExpr@6..7
-                      Name@6..7
+                      NameRef@6..7
                         Identifier@6..7 "a"
                     Comma@7..8 ","
                     Whitespace@8..9 " "
@@ -10814,7 +10814,7 @@ fn recover_old_open_missing_right_paren() {
                   OldOpen@5..25
                     LeftParen@5..6 "("
                     NameExpr@6..7
-                      Name@6..7
+                      NameRef@6..7
                         Identifier@6..7 "a"
                     Comma@7..8 ","
                     Whitespace@8..9 " "
@@ -10845,13 +10845,13 @@ fn parse_new_open() {
                     Colon@5..6 ":"
                     Whitespace@6..7 " "
                     NameExpr@7..11
-                      Name@7..11
+                      NameRef@7..11
                         Identifier@7..11 "fref"
                     Comma@11..12 ","
                     Whitespace@12..13 " "
                     OpenPath@13..19
                       NameExpr@13..19
-                        Name@13..19
+                        NameRef@13..19
                           Identifier@13..19 "a_path"
                     Comma@19..20 ","
                     Whitespace@20..21 " "
@@ -10894,13 +10894,13 @@ fn recover_new_open_missing_mode() {
                     Colon@5..6 ":"
                     Whitespace@6..7 " "
                     NameExpr@7..11
-                      Name@7..11
+                      NameRef@7..11
                         Identifier@7..11 "fref"
                     Comma@11..12 ","
                     Whitespace@12..13 " "
                     OpenPath@13..19
                       NameExpr@13..19
-                        Name@13..19
+                        NameRef@13..19
                           Identifier@13..19 "a_path"
                     Comma@19..20 ","
               Whitespace@20..21 " "
@@ -10923,13 +10923,13 @@ fn recover_new_open_missing_mode_in_list() {
                     Colon@5..6 ":"
                     Whitespace@6..7 " "
                     NameExpr@7..11
-                      Name@7..11
+                      NameRef@7..11
                         Identifier@7..11 "fref"
                     Comma@11..12 ","
                     Whitespace@12..13 " "
                     OpenPath@13..19
                       NameExpr@13..19
-                        Name@13..19
+                        NameRef@13..19
                           Identifier@13..19 "a_path"
                     Comma@19..20 ","
                     Whitespace@20..21 " "
@@ -10960,7 +10960,7 @@ fn recover_new_open_missing_path() {
                     Colon@5..6 ":"
                     Whitespace@6..7 " "
                     NameExpr@7..11
-                      Name@7..11
+                      NameRef@7..11
                         Identifier@7..11 "fref"
                     Comma@11..12 ","
                     Whitespace@12..13 " "
@@ -10990,7 +10990,7 @@ fn recover_new_open_missing_file_ref() {
                     Whitespace@8..9 " "
                     OpenPath@9..15
                       NameExpr@9..15
-                        Name@9..15
+                        NameRef@9..15
                           Identifier@9..15 "a_path"
                     Comma@15..16 ","
                     Whitespace@16..17 " "
@@ -11013,13 +11013,13 @@ fn recover_new_open_missing_colon() {
                   Whitespace@4..5 " "
                   NewOpen@5..22
                     NameExpr@5..9
-                      Name@5..9
+                      NameRef@5..9
                         Identifier@5..9 "fref"
                     Comma@9..10 ","
                     Whitespace@10..11 " "
                     OpenPath@11..17
                       NameExpr@11..17
-                        Name@11..17
+                        NameRef@11..17
                           Identifier@11..17 "a_path"
                     Comma@17..18 ","
                     Whitespace@18..19 " "
@@ -11071,13 +11071,13 @@ fn recover_on_open() {
                     Colon@31..32 ":"
                     Whitespace@32..33 " "
                     NameExpr@33..37
-                      Name@33..37
+                      NameRef@33..37
                         Identifier@33..37 "fref"
                     Comma@37..38 ","
                     Whitespace@38..39 " "
                     OpenPath@39..45
                       NameExpr@39..45
-                        Name@39..45
+                        NameRef@39..45
                           Identifier@39..45 "a_path"
                     Comma@45..46 ","
                     Whitespace@46..47 " "
@@ -11102,7 +11102,7 @@ fn parse_old_close() {
                     LeftParen@6..7 "("
                     Whitespace@7..8 " "
                     NameExpr@8..16
-                      Name@8..16
+                      NameRef@8..16
                         Identifier@8..16 "some_ref"
                     Whitespace@16..17 " "
                     RightParen@17..18 ")""#]],
@@ -11123,7 +11123,7 @@ fn recover_old_close_missing_right_paren() {
                     LeftParen@6..7 "("
                     Whitespace@7..8 " "
                     NameExpr@8..16
-                      Name@8..16
+                      NameRef@8..16
                         Identifier@8..16 "some_ref"
               Whitespace@16..17 " "
             error at 8..16: unexpected end of file
@@ -11162,7 +11162,7 @@ fn recover_old_close_missing_left_paren() {
                   Whitespace@5..7 "  "
                   NewClose@7..15
                     NameExpr@7..15
-                      Name@7..15
+                      NameRef@7..15
                         Identifier@7..15 "some_ref"
                 Whitespace@15..16 " "
                 Error@16..17
@@ -11188,7 +11188,7 @@ fn parse_new_close() {
                     Colon@6..7 ":"
                     Whitespace@7..8 " "
                     NameExpr@8..16
-                      Name@8..16
+                      NameRef@8..16
                         Identifier@8..16 "some_ref""#]],
     );
 }
@@ -11223,7 +11223,7 @@ fn recover_new_close_missing_colon() {
                   Whitespace@5..6 " "
                   NewClose@6..14
                     NameExpr@6..14
-                      Name@6..14
+                      NameRef@6..14
                         Identifier@6..14 "some_ref"
             error at 6..14: unexpected token
             | error for 6..14: expected `(` or `:`, but found identifier"#]],
@@ -11271,7 +11271,7 @@ fn recover_on_close() {
                     Colon@32..33 ":"
                     Whitespace@33..34 " "
                     NameExpr@34..42
-                      Name@34..42
+                      NameRef@34..42
                         Identifier@34..42 "some_ref"
             error at 26..31: unexpected token
             | error for 26..31: expected expression, but found `close`"#]],
@@ -11290,7 +11290,7 @@ fn parse_put_stmt() {
                   Whitespace@3..4 " "
                   PutItem@4..5
                     NameExpr@4..5
-                      Name@4..5
+                      NameRef@4..5
                         Identifier@4..5 "a"
                   Comma@5..6 ","
                   Whitespace@6..7 " "
@@ -11331,21 +11331,21 @@ fn parse_put_stmt() {
                       Colon@36..37 ":"
                       Whitespace@37..38 " "
                       NameExpr@38..39
-                        Name@38..39
+                        NameRef@38..39
                           Identifier@38..39 "w"
                     Whitespace@39..40 " "
                     PutOpt@40..43
                       Colon@40..41 ":"
                       Whitespace@41..42 " "
                       NameExpr@42..43
-                        Name@42..43
+                        NameRef@42..43
                           Identifier@42..43 "f"
                     Whitespace@43..44 " "
                     PutOpt@44..47
                       Colon@44..45 ":"
                       Whitespace@45..46 " "
                       NameExpr@46..47
-                        Name@46..47
+                        NameRef@46..47
                           Identifier@46..47 "e"
                   Comma@47..48 ","
                   Whitespace@48..49 " "
@@ -11368,13 +11368,13 @@ fn parse_put_stmt_opt_stream() {
                     Colon@4..5 ":"
                     Whitespace@5..6 " "
                     NameExpr@6..11
-                      Name@6..11
+                      NameRef@6..11
                         Identifier@6..11 "strem"
                   Comma@11..12 ","
                   Whitespace@12..13 " "
                   PutItem@13..14
                     NameExpr@13..14
-                      Name@13..14
+                      NameRef@13..14
                         Identifier@13..14 "a""#]],
     );
 }
@@ -11391,7 +11391,7 @@ fn parse_put_stmt_opt_no_nl() {
                   Whitespace@3..4 " "
                   PutItem@4..5
                     NameExpr@4..5
-                      Name@4..5
+                      NameRef@4..5
                         Identifier@4..5 "a"
                   Range@5..7 "..""#]],
     );
@@ -11411,27 +11411,27 @@ fn recover_put_stmt_missing_opt_exp_expr() {
                     Colon@4..5 ":"
                     Whitespace@5..6 " "
                     NameExpr@6..7
-                      Name@6..7
+                      NameRef@6..7
                         Identifier@6..7 "s"
                   Comma@7..8 ","
                   Whitespace@8..9 " "
                   PutItem@9..27
                     NameExpr@9..13
-                      Name@9..13
+                      NameRef@9..13
                         Identifier@9..13 "item"
                     Whitespace@13..14 " "
                     PutOpt@14..17
                       Colon@14..15 ":"
                       Whitespace@15..16 " "
                       NameExpr@16..17
-                        Name@16..17
+                        NameRef@16..17
                           Identifier@16..17 "w"
                     Whitespace@17..18 " "
                     PutOpt@18..21
                       Colon@18..19 ":"
                       Whitespace@19..20 " "
                       NameExpr@20..21
-                        Name@20..21
+                        NameRef@20..21
                           Identifier@20..21 "f"
                     Whitespace@21..22 " "
                     PutOpt@22..27
@@ -11458,20 +11458,20 @@ fn recover_put_stmt_missing_opt_fract_expr() {
                     Colon@4..5 ":"
                     Whitespace@5..6 " "
                     NameExpr@6..7
-                      Name@6..7
+                      NameRef@6..7
                         Identifier@6..7 "s"
                   Comma@7..8 ","
                   Whitespace@8..9 " "
                   PutItem@9..24
                     NameExpr@9..13
-                      Name@9..13
+                      NameRef@9..13
                         Identifier@9..13 "item"
                     Whitespace@13..14 " "
                     PutOpt@14..17
                       Colon@14..15 ":"
                       Whitespace@15..16 " "
                       NameExpr@16..17
-                        Name@16..17
+                        NameRef@16..17
                           Identifier@16..17 "w"
                     Whitespace@17..18 " "
                     PutOpt@18..19
@@ -11481,7 +11481,7 @@ fn recover_put_stmt_missing_opt_fract_expr() {
                       Colon@21..22 ":"
                       Whitespace@22..23 " "
                       NameExpr@23..24
-                        Name@23..24
+                        NameRef@23..24
                           Identifier@23..24 "e"
                   Whitespace@24..25 " "
                   Range@25..27 ".."
@@ -11504,13 +11504,13 @@ fn recover_put_stmt_missing_width_expr() {
                     Colon@4..5 ":"
                     Whitespace@5..6 " "
                     NameExpr@6..7
-                      Name@6..7
+                      NameRef@6..7
                         Identifier@6..7 "s"
                   Comma@7..8 ","
                   Whitespace@8..9 " "
                   PutItem@9..24
                     NameExpr@9..13
-                      Name@9..13
+                      NameRef@9..13
                         Identifier@9..13 "item"
                     Whitespace@13..14 " "
                     PutOpt@14..15
@@ -11520,14 +11520,14 @@ fn recover_put_stmt_missing_width_expr() {
                       Colon@17..18 ":"
                       Whitespace@18..19 " "
                       NameExpr@19..20
-                        Name@19..20
+                        NameRef@19..20
                           Identifier@19..20 "f"
                     Whitespace@20..21 " "
                     PutOpt@21..24
                       Colon@21..22 ":"
                       Whitespace@22..23 " "
                       NameExpr@23..24
-                        Name@23..24
+                        NameRef@23..24
                           Identifier@23..24 "e"
                   Whitespace@24..25 " "
                   Range@25..27 ".."
@@ -11550,7 +11550,7 @@ fn recover_put_stmt_missing_item() {
                     Colon@4..5 ":"
                     Whitespace@5..6 " "
                     NameExpr@6..7
-                      Name@6..7
+                      NameRef@6..7
                         Identifier@6..7 "s"
                   Comma@7..8 ","
                   Whitespace@8..10 "  "
@@ -11576,7 +11576,7 @@ fn recover_put_stmt_missing_item_in_list() {
                     Colon@4..5 ":"
                     Whitespace@5..6 " "
                     NameExpr@6..7
-                      Name@6..7
+                      NameRef@6..7
                         Identifier@6..7 "s"
                   Comma@7..8 ","
                   Whitespace@8..9 " "
@@ -11585,7 +11585,7 @@ fn recover_put_stmt_missing_item_in_list() {
                   Whitespace@10..11 " "
                   PutItem@11..12
                     NameExpr@11..12
-                      Name@11..12
+                      NameRef@11..12
                         Identifier@11..12 "a"
                   Range@12..14 ".."
             error at 9..10: unexpected token
@@ -11610,28 +11610,28 @@ fn recover_put_stmt_missing_stream_expr() {
                   Whitespace@7..8 " "
                   PutItem@8..24
                     NameExpr@8..12
-                      Name@8..12
+                      NameRef@8..12
                         Identifier@8..12 "item"
                     Whitespace@12..13 " "
                     PutOpt@13..16
                       Colon@13..14 ":"
                       Whitespace@14..15 " "
                       NameExpr@15..16
-                        Name@15..16
+                        NameRef@15..16
                           Identifier@15..16 "w"
                     Whitespace@16..17 " "
                     PutOpt@17..20
                       Colon@17..18 ":"
                       Whitespace@18..19 " "
                       NameExpr@19..20
-                        Name@19..20
+                        NameRef@19..20
                           Identifier@19..20 "f"
                     Whitespace@20..21 " "
                     PutOpt@21..24
                       Colon@21..22 ":"
                       Whitespace@22..23 " "
                       NameExpr@23..24
-                        Name@23..24
+                        NameRef@23..24
                           Identifier@23..24 "e"
                   Whitespace@24..25 " "
                   Range@25..27 ".."
@@ -11696,7 +11696,7 @@ fn parse_get_stmt() {
                   Whitespace@3..4 " "
                   GetItem@4..5
                     NameExpr@4..5
-                      Name@4..5
+                      NameRef@4..5
                         Identifier@4..5 "a"
                   Comma@5..6 ","
                   Whitespace@6..7 " "
@@ -11706,7 +11706,7 @@ fn parse_get_stmt() {
                   Whitespace@12..13 " "
                   GetItem@13..23
                     NameExpr@13..19
-                      Name@13..19
+                      NameRef@13..19
                         Identifier@13..19 "to_end"
                     Whitespace@19..20 " "
                     GetWidth@20..23
@@ -11717,7 +11717,7 @@ fn parse_get_stmt() {
                   Whitespace@24..25 " "
                   GetItem@25..38
                     NameExpr@25..33
-                      Name@25..33
+                      NameRef@25..33
                         Identifier@25..33 "or_width"
                     Whitespace@33..34 " "
                     GetWidth@34..38
@@ -11742,13 +11742,13 @@ fn parse_get_stmt_opt_stream() {
                     Colon@4..5 ":"
                     Whitespace@5..6 " "
                     NameExpr@6..7
-                      Name@6..7
+                      NameRef@6..7
                         Identifier@6..7 "s"
                   Comma@7..8 ","
                   Whitespace@8..9 " "
                   GetItem@9..10
                     NameExpr@9..10
-                      Name@9..10
+                      NameRef@9..10
                         Identifier@9..10 "a""#]],
     )
 }
@@ -11767,19 +11767,19 @@ fn recover_get_stmt_missing_width_expr() {
                     Colon@4..5 ":"
                     Whitespace@5..6 " "
                     NameExpr@6..7
-                      Name@6..7
+                      NameRef@6..7
                         Identifier@6..7 "s"
                   Comma@7..8 ","
                   Whitespace@8..9 " "
                   GetItem@9..10
                     NameExpr@9..10
-                      Name@9..10
+                      NameRef@9..10
                         Identifier@9..10 "a"
                   Comma@10..11 ","
                   Whitespace@11..12 " "
                   GetItem@12..15
                     NameExpr@12..13
-                      Name@12..13
+                      NameRef@12..13
                         Identifier@12..13 "b"
                     Whitespace@13..14 " "
                     GetWidth@14..15
@@ -11804,7 +11804,7 @@ fn recover_get_stmt_missing_item() {
                     Colon@4..5 ":"
                     Whitespace@5..6 " "
                     NameExpr@6..7
-                      Name@6..7
+                      NameRef@6..7
                         Identifier@6..7 "s"
                   Comma@7..8 ","
                   Whitespace@8..9 " "
@@ -11813,7 +11813,7 @@ fn recover_get_stmt_missing_item() {
                   Whitespace@10..11 " "
                   GetItem@11..16
                     NameExpr@11..12
-                      Name@11..12
+                      NameRef@11..12
                         Identifier@11..12 "b"
                     Whitespace@12..13 " "
                     GetWidth@13..16
@@ -11824,7 +11824,7 @@ fn recover_get_stmt_missing_item() {
                   Whitespace@17..18 " "
                   GetItem@18..23
                     NameExpr@18..19
-                      Name@18..19
+                      NameRef@18..19
                         Identifier@18..19 "c"
                     Whitespace@19..20 " "
                     GetWidth@20..23
@@ -11851,13 +11851,13 @@ fn recover_get_stmt_missing_item_in_list() {
                     Colon@4..5 ":"
                     Whitespace@5..6 " "
                     NameExpr@6..7
-                      Name@6..7
+                      NameRef@6..7
                         Identifier@6..7 "s"
                   Comma@7..8 ","
                   Whitespace@8..9 " "
                   GetItem@9..10
                     NameExpr@9..10
-                      Name@9..10
+                      NameRef@9..10
                         Identifier@9..10 "a"
                   Comma@10..11 ","
                   Whitespace@11..13 "  "
@@ -11870,7 +11870,7 @@ fn recover_get_stmt_missing_item_in_list() {
                   Whitespace@17..18 " "
                   GetItem@18..23
                     NameExpr@18..19
-                      Name@18..19
+                      NameRef@18..19
                         Identifier@18..19 "c"
                     Whitespace@19..20 " "
                     GetWidth@20..23
@@ -11900,13 +11900,13 @@ fn recover_get_stmt_missing_stream_expr() {
                   Whitespace@7..8 " "
                   GetItem@8..9
                     NameExpr@8..9
-                      Name@8..9
+                      NameRef@8..9
                         Identifier@8..9 "a"
                   Comma@9..10 ","
                   Whitespace@10..11 " "
                   GetItem@11..16
                     NameExpr@11..12
-                      Name@11..12
+                      NameRef@11..12
                         Identifier@11..12 "b"
                     Whitespace@12..13 " "
                     GetWidth@13..16
@@ -11917,7 +11917,7 @@ fn recover_get_stmt_missing_stream_expr() {
                   Whitespace@17..18 " "
                   GetItem@18..23
                     NameExpr@18..19
-                      Name@18..19
+                      NameRef@18..19
                         Identifier@18..19 "c"
                     Whitespace@19..20 " "
                     GetWidth@20..23
@@ -12004,7 +12004,7 @@ fn parse_nested_if_in_else() {
                       StmtList@36..85
                         CallStmt@36..49
                           NameExpr@36..49
-                            Name@36..49
+                            NameRef@36..49
                               Identifier@36..49 "a_filler_expr"
                         Whitespace@49..58 "\n        "
                         IfStmt@58..85
@@ -12040,7 +12040,7 @@ fn parse_wait_stmt() {
                   KwWait@0..4 "wait"
                   Whitespace@4..5 " "
                   NameExpr@5..6
-                    Name@5..6
+                    NameRef@5..6
                       Identifier@5..6 "a""#]],
     );
 }
@@ -12056,7 +12056,7 @@ fn parse_wait_stmt_opt_arg() {
                   KwWait@0..4 "wait"
                   Whitespace@4..5 " "
                   NameExpr@5..6
-                    Name@5..6
+                    NameRef@5..6
                       Identifier@5..6 "a"
                   Comma@6..7 ","
                   Whitespace@7..8 " "
@@ -12076,7 +12076,7 @@ fn recover_wait_stmt_missing_opt_arg_expr() {
                   KwWait@0..4 "wait"
                   Whitespace@4..5 " "
                   NameExpr@5..6
-                    Name@5..6
+                    NameRef@5..6
                       Identifier@5..6 "a"
                   Comma@6..7 ","
               Whitespace@7..8 " "
@@ -12119,7 +12119,7 @@ fn recover_on_wait() {
                   KwWait@10..14 "wait"
                   Whitespace@14..15 " "
                   NameExpr@15..16
-                    Name@15..16
+                    NameRef@15..16
                       Identifier@15..16 "q"
             error at 10..14: unexpected token
             | error for 10..14: expected expression, but found `wait`"#]],
@@ -12433,7 +12433,7 @@ fn recover_if_stmt_safe_end() {
                   Whitespace@2..3 " "
                   IfBody@3..16
                     NameExpr@3..4
-                      Name@3..4
+                      NameRef@3..4
                         Identifier@3..4 "a"
                     Whitespace@4..5 " "
                     KwThen@5..9 "then"
@@ -12463,7 +12463,7 @@ fn recover_if_stmt_safe_end_alt() {
                   Whitespace@2..3 " "
                   IfBody@3..16
                     NameExpr@3..4
-                      Name@3..4
+                      NameRef@3..4
                         Identifier@3..4 "a"
                     Whitespace@4..5 " "
                     KwThen@5..9 "then"
@@ -12493,7 +12493,7 @@ fn recover_elsif_stmt_safe_end() {
                   Whitespace@5..6 " "
                   IfBody@6..19
                     NameExpr@6..7
-                      Name@6..7
+                      NameRef@6..7
                         Identifier@6..7 "a"
                     Whitespace@7..8 " "
                     KwThen@8..12 "then"
@@ -12523,7 +12523,7 @@ fn recover_elsif_stmt_safe_end_alt() {
                   Whitespace@5..6 " "
                   IfBody@6..19
                     NameExpr@6..7
-                      Name@6..7
+                      NameRef@6..7
                         Identifier@6..7 "a"
                     Whitespace@7..8 " "
                     KwThen@8..12 "then"
@@ -12598,7 +12598,7 @@ fn recover_case_stmt_safe_end() {
                   KwCase@0..4 "case"
                   Whitespace@4..5 " "
                   NameExpr@5..6
-                    Name@5..6
+                    NameRef@5..6
                       Identifier@5..6 "a"
                   Whitespace@6..7 " "
                   KwOf@7..9 "of"
@@ -12628,7 +12628,7 @@ fn recover_case_stmt_safe_alt_end() {
                   KwCase@0..4 "case"
                   Whitespace@4..5 " "
                   NameExpr@5..6
-                    Name@5..6
+                    NameRef@5..6
                       Identifier@5..6 "a"
                   Whitespace@6..7 " "
                   KwOf@7..9 "of"

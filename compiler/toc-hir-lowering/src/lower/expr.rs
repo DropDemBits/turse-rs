@@ -169,7 +169,7 @@ impl super::BodyLowering<'_, '_> {
     }
 
     fn lower_name_expr(&mut self, expr: ast::NameExpr) -> Option<expr::ExprKind> {
-        let name = expr.name()?.identifier_token()?;
+        let name = expr.name_ref()?.identifier_token()?;
         let span = self.ctx.intern_range(name.text_range());
 
         Some(expr::ExprKind::Name(expr::Name::Name(Spanned::new(
@@ -180,7 +180,7 @@ impl super::BodyLowering<'_, '_> {
 
     fn lower_field_expr(&mut self, expr: ast::FieldExpr) -> Option<expr::ExprKind> {
         let lhs = self.lower_required_expr(expr.expr());
-        let field = expr.name()?.identifier_token()?;
+        let field = expr.name_ref()?.identifier_token()?;
         let span = self.ctx.intern_range(field.text_range());
 
         Some(expr::ExprKind::Field(expr::Field {

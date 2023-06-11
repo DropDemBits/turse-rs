@@ -104,7 +104,7 @@ impl super::BodyLowering<'_, '_> {
                     segments.reverse();
 
                     // at a simple alias
-                    let name = expr.name()?.identifier_token()?;
+                    let name = expr.name_ref()?.identifier_token()?;
                     let span = self.ctx.intern_range(name.text_range());
 
                     break Some(ty::TypeKind::Alias(ty::Alias {
@@ -113,7 +113,7 @@ impl super::BodyLowering<'_, '_> {
                     }));
                 }
                 ast::Expr::FieldExpr(field) => {
-                    let name = field.name()?.identifier_token()?;
+                    let name = field.name_ref()?.identifier_token()?;
 
                     segments.push(Spanned::new(
                         name.text().into(),

@@ -205,8 +205,8 @@ fn expr_binding_power(p: &mut Parser, min_binding_power: u8) -> Option<Completed
                 // field or arrow expr
                 let m = lhs.precede(p);
 
-                // expect name
-                let found_rhs = super::name(p).is_some();
+                // expect name_ref
+                let found_rhs = super::name_ref(p).is_some();
                 lhs = m.complete(
                     p,
                     if op == InfixOp::Dot {
@@ -321,7 +321,7 @@ fn name_expr(p: &mut Parser) -> Option<CompletedMarker> {
     debug_assert!(p.at(TokenKind::Identifier));
 
     let m = p.start();
-    super::name(p);
+    super::name_ref(p);
     Some(m.complete(p, SyntaxKind::NameExpr))
 }
 

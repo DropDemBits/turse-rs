@@ -49,6 +49,28 @@ impl NameList {
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
+pub struct NameRef(SyntaxNode);
+impl AstNode for NameRef {
+    type Language = crate::Lang;
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        match syntax.kind() {
+            SyntaxKind::NameRef => Some(Self(syntax)),
+            _ => None,
+        }
+    }
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
+            SyntaxKind::NameRef => true,
+            _ => false,
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
+}
+impl NameRef {
+    pub fn identifier_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Identifier) }
+}
+#[derive(Debug, PartialEq, Eq, Hash)]
+#[repr(transparent)]
 pub struct UnqualifiedAttr(SyntaxNode);
 impl AstNode for UnqualifiedAttr {
     type Language = crate::Lang;
@@ -526,7 +548,7 @@ impl AstNode for PPNameExpr {
     fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl PPNameExpr {
-    pub fn name(&self) -> Option<Name> { helper::node(&self.0) }
+    pub fn name_ref(&self) -> Option<NameRef> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -3102,7 +3124,7 @@ impl AstNode for NameExpr {
     fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl NameExpr {
-    pub fn name(&self) -> Option<Name> { helper::node(&self.0) }
+    pub fn name_ref(&self) -> Option<NameRef> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -3148,7 +3170,7 @@ impl AstNode for FieldExpr {
 impl FieldExpr {
     pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
     pub fn dot_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Dot) }
-    pub fn name(&self) -> Option<Name> { helper::node(&self.0) }
+    pub fn name_ref(&self) -> Option<NameRef> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -3246,7 +3268,7 @@ impl AstNode for ArrowExpr {
 impl ArrowExpr {
     pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
     pub fn arrow_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Arrow) }
-    pub fn name(&self) -> Option<Name> { helper::node(&self.0) }
+    pub fn name_ref(&self) -> Option<NameRef> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
