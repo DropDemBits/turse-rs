@@ -3,40 +3,40 @@
 use toc_hir_expand::SemanticLoc;
 use toc_syntax::ast;
 
-use crate::{expr, Symbol};
+use crate::{body::Body, expr, Symbol};
 
 crate::arena_id_wrapper!(
     /// A [`Body`] local reference to a statement.
     ///
     /// [`Body`]: crate::body::Body
-    pub struct StmtId(Stmt);
+    pub struct LocalStmt(Stmt);
     /// Alias for the stmt arena index
     pub(crate) type StmtIndex = Index;
 );
 
-// impl StmtId {
-//     pub fn in_body(self, body_id: body::BodyId) -> BodyStmt {
-//         BodyStmt(body_id, self)
-//     }
-// }
+impl LocalStmt {
+    pub fn in_body(self, body: Body) -> StmtId {
+        StmtId(body, self)
+    }
+}
 
-// /// Uniquely identifies a statement within a package
-// #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-// pub struct BodyStmt(pub body::BodyId, pub StmtId);
+/// Uniquely identifies a statement within a package
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct StmtId(Body, LocalStmt);
 
-// impl BodyStmt {
-//     pub fn with_stmt(self, stmt: StmtId) -> Self {
-//         BodyStmt(self.0, stmt)
-//     }
+impl StmtId {
+    pub fn with_stmt(self, stmt: LocalStmt) -> Self {
+        Self(self.0, stmt)
+    }
 
-//     pub fn body(self) -> BodyId {
-//         self.0
-//     }
+    pub fn body(self) -> Body {
+        self.0
+    }
 
-//     pub fn stmt(self) -> StmtId {
-//         self.1
-//     }
-// }
+    pub fn stmt(self) -> LocalStmt {
+        self.1
+    }
+}
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Stmt {
@@ -102,16 +102,16 @@ pub enum Stmt {
 #[derive(Debug, PartialEq, Eq)]
 pub struct Assign {
     /// Left hand side of an assignment expression
-    pub lhs: expr::ExprId,
+    pub lhs: expr::LocalExpr,
     /// Right hand side of an assignment expression
-    pub rhs: expr::ExprId,
+    pub rhs: expr::LocalExpr,
 }
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Put {
     /// Stream handle to put the text on.
     /// If absent, should be put on the `stdout` stream.
-    pub stream_num: Option<expr::ExprId>,
+    pub stream_num: Option<expr::LocalExpr>,
     /// The items to put out on the stream.
     pub items: Vec<Skippable<PutItem>>,
     /// If a newline is appended after the all of the put items
@@ -122,7 +122,7 @@ pub struct Put {
 pub struct Get {
     /// Stream handle to get text from.
     /// If absent, should be fetched from the `stdin` stream.
-    pub stream_num: Option<expr::ExprId>,
+    pub stream_num: Option<expr::LocalExpr>,
     /// The items to get from the stream.
     pub items: Vec<Skippable<GetItem>>,
 }
@@ -136,49 +136,49 @@ pub struct For {
     /// Bounds of the for-loop
     pub bounds: ForBounds,
     /// Optional `by ...` expression, to change the counter delta
-    pub step_by: Option<expr::ExprId>,
+    pub step_by: Option<expr::LocalExpr>,
     /// Body of the for-loop
-    pub stmts: Vec<StmtId>,
+    pub stmts: Vec<LocalStmt>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ForBounds {
     /// Bounds of the for-loop are implied by the type referenced by this reference
-    Implicit(expr::ExprId),
+    Implicit(expr::LocalExpr),
     /// Bounds of the are explicitly laid out in the `from` and `to` (respectively) expressions
-    Full(expr::ExprId, expr::ExprId),
+    Full(expr::LocalExpr, expr::LocalExpr),
 }
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Loop {
-    pub stmts: Vec<StmtId>,
+    pub stmts: Vec<LocalStmt>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Exit {
-    pub when_condition: Option<expr::ExprId>,
+    pub when_condition: Option<expr::LocalExpr>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct If {
     /// Condition expression
-    pub condition: expr::ExprId,
+    pub condition: expr::LocalExpr,
     /// True branch, executed if the condition is true
-    pub true_branch: StmtId,
+    pub true_branch: LocalStmt,
     /// Optional false branch
     pub false_branch: FalseBranch,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FalseBranch {
-    ElseIf(StmtId),
-    Else(StmtId),
+    ElseIf(LocalStmt),
+    Else(LocalStmt),
     None,
 }
 
 impl FalseBranch {
     /// Extracts the [`StmtId`], if there is one.
-    pub fn stmt(self) -> Option<StmtId> {
+    pub fn stmt(self) -> Option<LocalStmt> {
         match self {
             FalseBranch::ElseIf(id) | FalseBranch::Else(id) => Some(id),
             FalseBranch::None => None,
@@ -188,14 +188,14 @@ impl FalseBranch {
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Case {
-    pub discriminant: expr::ExprId,
+    pub discriminant: expr::LocalExpr,
     pub arms: Vec<CaseArm>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct CaseArm {
     pub selectors: CaseSelector,
-    pub stmts: Vec<StmtId>,
+    pub stmts: Vec<LocalStmt>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -203,13 +203,13 @@ pub enum CaseSelector {
     /// Default selection arm
     Default,
     /// Arm is selected if the discriminant is equal to any of these expressions
-    Exprs(Vec<expr::ExprId>),
+    Exprs(Vec<expr::LocalExpr>),
 }
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Block {
     pub kind: BlockKind,
-    pub stmts: Vec<StmtId>,
+    pub stmts: Vec<LocalStmt>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -232,7 +232,7 @@ pub enum Skippable<T> {
 #[derive(Debug, PartialEq, Eq)]
 pub struct PutItem {
     /// The expression to be put.
-    pub expr: expr::ExprId,
+    pub expr: expr::LocalExpr,
     /// Extra display options
     pub opts: PutOpts,
 }
@@ -249,28 +249,28 @@ pub enum PutOpts {
     /// `put` item with 1 arg
     WithWidth {
         /// The minimum printing width.
-        width: expr::ExprId,
+        width: expr::LocalExpr,
     },
     /// `put` item with 2 args
     WithPrecision {
         /// The minimum printing width.
-        width: expr::ExprId,
+        width: expr::LocalExpr,
         /// The amount of decimals put for `real*` types.
-        precision: expr::ExprId,
+        precision: expr::LocalExpr,
     },
     /// `put` item with 3 args
     WithExponentWidth {
         /// The minimum printing width.
-        width: expr::ExprId,
+        width: expr::LocalExpr,
         /// The amount of decimals put for `real*` types.
-        precision: expr::ExprId,
+        precision: expr::LocalExpr,
         /// The minimum printing width for exponents of `real*` types.
-        exponent_width: expr::ExprId,
+        exponent_width: expr::LocalExpr,
     },
 }
 
 impl PutOpts {
-    pub fn width(&self) -> Option<expr::ExprId> {
+    pub fn width(&self) -> Option<expr::LocalExpr> {
         match self {
             PutOpts::None => None,
             PutOpts::WithWidth { width }
@@ -279,7 +279,7 @@ impl PutOpts {
         }
     }
 
-    pub fn precision(&self) -> Option<expr::ExprId> {
+    pub fn precision(&self) -> Option<expr::LocalExpr> {
         match self {
             PutOpts::None | PutOpts::WithWidth { .. } => None,
             PutOpts::WithPrecision { precision, .. }
@@ -287,7 +287,7 @@ impl PutOpts {
         }
     }
 
-    pub fn exponent_width(&self) -> Option<expr::ExprId> {
+    pub fn exponent_width(&self) -> Option<expr::LocalExpr> {
         match self {
             PutOpts::None | PutOpts::WithWidth { .. } | PutOpts::WithPrecision { .. } => None,
             PutOpts::WithExponentWidth { exponent_width, .. } => Some(*exponent_width),
@@ -300,7 +300,7 @@ impl PutOpts {
 pub struct GetItem {
     /// The expression to get.
     /// Must be a reference expression.
-    pub expr: expr::ExprId,
+    pub expr: expr::LocalExpr,
     /// The amount of text to extract.
     pub width: GetWidth,
 }
@@ -313,14 +313,14 @@ pub enum GetWidth {
     /// Fetch a newline terminated portion of text.
     Line,
     /// Fetch a specific amount of characters.
-    Chars(expr::ExprId),
+    Chars(expr::LocalExpr),
 }
 
 /// Calling statement
 #[derive(Debug, PartialEq, Eq)]
 pub struct Call {
     /// Reference to the calling expression
-    pub lhs: expr::ExprId,
+    pub lhs: expr::LocalExpr,
     /// Arguments to the call, which may not be present
     pub arguments: Option<expr::ArgList>,
 }
@@ -330,5 +330,5 @@ pub struct Return;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Result {
-    pub expr: expr::ExprId,
+    pub expr: expr::LocalExpr,
 }

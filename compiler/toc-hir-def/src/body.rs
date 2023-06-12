@@ -1,14 +1,24 @@
 use std::sync::Arc;
 
+use la_arena::{Arena, ArenaMap};
+use toc_hir_expand::{SemanticLoc, UnstableSemanticLoc};
+use toc_syntax::ast;
+
+use crate::{
+    expr,
+    stmt::{self, StmtId},
+    Db,
+};
+
 pub(crate) mod lower {
     use toc_hir_expand::{
         AstLocations, SemanticFile, SemanticLoc, SemanticNodePtr, UnstableSemanticLoc,
     };
     use toc_syntax::ast;
 
-    use crate::Db;
+    use crate::{stmt::LocalStmt, Db};
 
-    use super::{Body, BodyContents, BodySpans, LocalStmt, StmtId};
+    use super::{Body, BodyContents, BodySpans};
 
     pub(crate) fn module_body(
         db: &dyn Db,
@@ -66,7 +76,7 @@ pub(crate) mod lower {
             let mut top_level = vec![];
             for stmt in root.stmts() {
                 let new_stmts = self.lower_statement(stmt);
-                top_level.extend(new_stmts.into_iter().map(|id| StmtId(self.body, id)));
+                top_level.extend(new_stmts.into_iter().map(|id| id.in_body(self.body)));
             }
 
             let BodyLower {
@@ -228,16 +238,3 @@ impl Body {
         (Arc::new(contents), Arc::new(spans))
     }
 }
-
-pub use expr::ExprId as LocalExpr;
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct ExprId(Body, LocalExpr);
-
-use la_arena::{Arena, ArenaMap};
-pub use stmt::StmtId as LocalStmt;
-use toc_hir_expand::{SemanticLoc, UnstableSemanticLoc};
-use toc_syntax::ast;
-
-use crate::{expr, stmt, Db};
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct StmtId(Body, LocalStmt);

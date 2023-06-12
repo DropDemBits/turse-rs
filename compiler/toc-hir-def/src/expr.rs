@@ -1,39 +1,39 @@
 //! Expression nodes
 
-use crate::{Body, Symbol};
+use crate::{body::Body, Symbol};
 
 crate::arena_id_wrapper!(
     /// A [`Body`] local reference to an expression.
     ///
     /// [`Body`]: crate::body::Body
-    pub struct ExprId(Expr);
+    pub struct LocalExpr(Expr);
     /// Alias for the expr arena index
     pub(crate) type ExprIndex = Index;
 );
 
-// impl ExprId {
-//     pub fn in_body(self, body_id: BodyId) -> BodyExpr {
-//         BodyExpr(body_id, self)
-//     }
-// }
+impl LocalExpr {
+    pub fn in_body(self, body: Body) -> ExprId {
+        ExprId(body, self)
+    }
+}
 
-// /// Uniquely identifies an expression within a package
-// #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-// pub struct BodyExpr(pub BodyId, pub ExprId);
+/// Uniquely identifies an expression within a package
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ExprId(Body, LocalExpr);
 
-// impl BodyExpr {
-//     pub fn with_expr(self, expr: ExprId) -> Self {
-//         BodyExpr(self.0, expr)
-//     }
+impl ExprId {
+    pub fn with_expr(self, expr: LocalExpr) -> Self {
+        Self(self.0, expr)
+    }
 
-//     pub fn body(self) -> BodyId {
-//         self.0
-//     }
+    pub fn body(self) -> Body {
+        self.0
+    }
 
-//     pub fn expr(self) -> ExprId {
-//         self.1
-//     }
-// }
+    pub fn expr(self) -> LocalExpr {
+        self.1
+    }
+}
 
 /// Expressions
 #[derive(Debug, PartialEq, Eq)]
@@ -114,9 +114,9 @@ pub struct Init {
 /// Binary operator expression
 #[derive(Debug, PartialEq, Eq)]
 pub struct Binary {
-    pub lhs: ExprId,
+    pub lhs: LocalExpr,
     pub op: BinaryOp,
-    pub rhs: ExprId,
+    pub rhs: LocalExpr,
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
@@ -171,7 +171,7 @@ pub enum BinaryOp {
 #[derive(Debug, PartialEq, Eq)]
 pub struct Unary {
     pub op: UnaryOp,
-    pub rhs: ExprId,
+    pub rhs: LocalExpr,
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
@@ -198,7 +198,7 @@ pub enum Name {
 #[derive(Debug, PartialEq, Eq)]
 pub struct Field {
     /// Reference to lookup in
-    pub lhs: ExprId,
+    pub lhs: LocalExpr,
     /// Field to lookup
     pub field: Symbol,
 }
@@ -206,20 +206,20 @@ pub struct Field {
 #[derive(Debug, PartialEq, Eq)]
 pub struct Deref {
     /// Right-hand side
-    pub rhs: ExprId,
+    pub rhs: LocalExpr,
 }
 
 /// Calling expression
 #[derive(Debug, PartialEq, Eq)]
 pub struct Call {
     /// Reference to the calling expression
-    pub lhs: ExprId,
+    pub lhs: LocalExpr,
     /// Arguments to the call
     pub arguments: ArgList,
 }
 
 /// Argument list
-pub type ArgList = Vec<ExprId>;
+pub type ArgList = Vec<LocalExpr>;
 
 /// Range expression
 #[derive(Debug, PartialEq, Eq)]
@@ -231,9 +231,9 @@ pub struct Range {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RangeBound {
     /// Bound is relative to the start point (`expr`)
-    FromStart(ExprId),
+    FromStart(LocalExpr),
     /// Bound is relative to end point (`* - expr`)
-    FromEnd(ExprId),
+    FromEnd(LocalExpr),
     /// Bound is at the end point (`*`)
     AtEnd,
 }
