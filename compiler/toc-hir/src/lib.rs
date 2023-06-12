@@ -125,7 +125,7 @@ pub mod expand {
 }
 
 pub mod def {
-    pub use toc_hir_def::{root_module, Body, ConstVar, Item, Jar, Module, Mutability};
+    pub use toc_hir_def::{body::Body, root_module, ConstVar, Item, Jar, Module, Mutability};
 }
 
 /// Helper trait equivalent to `Option::map_or(predicate)`

@@ -58,7 +58,7 @@ impl<'db, DB: Db + 'db> UpcastFrom<DB> for dyn Db + 'db {
 pub struct Jar(ErasedSemanticLoc, SemanticFile, SemanticFile_ast_locations);
 
 /// An untyped reference to a location in a [`SemanticFile`]
-#[salsa::tracked(jar = Jar)]
+#[salsa::tracked]
 pub(crate) struct ErasedSemanticLoc {
     pub(crate) file: SemanticFile,
     pub(crate) ptr: SyntaxNodePtr,
@@ -206,7 +206,7 @@ impl<T: AstNode> From<UnstableSemanticLoc<T>> for SemanticNodePtr {
 //
 // Why interned? Since we want to go from any SourceFile -> SemanticFile
 //
-#[salsa::interned(jar = Jar)]
+#[salsa::interned]
 pub struct SemanticFile {
     pub origin: SemanticSource,
 }
@@ -254,9 +254,9 @@ impl AstLocations {
     }
 }
 
-#[salsa::tracked(jar = Jar)]
+#[salsa::tracked]
 impl SemanticFile {
-    #[salsa::tracked(jar = Jar, return_ref)]
+    #[salsa::tracked(return_ref)]
     pub fn ast_locations(self, db: &dyn Db) -> AstLocations {
         let root = self.ast(db);
         let mut locs = vec![];
