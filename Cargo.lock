@@ -1448,14 +1448,10 @@ dependencies = [
  "internment",
  "la-arena",
  "lazy_static",
- "rustc-hash",
- "salsa-2022",
- "toc-ast-db",
+ "toc-hir-def",
+ "toc-hir-expand",
  "toc-source-graph",
  "toc-span",
- "toc-syntax",
- "toc-vfs-db",
- "upcast",
 ]
 
 [[package]]
@@ -1480,6 +1476,35 @@ dependencies = [
  "salsa-2022",
  "toc-hir",
  "toc-hir-lowering",
+ "upcast",
+]
+
+[[package]]
+name = "toc-hir-def"
+version = "0.1.0"
+dependencies = [
+ "indexmap",
+ "la-arena",
+ "rustc-hash",
+ "salsa-2022",
+ "toc-ast-db",
+ "toc-hir-expand",
+ "toc-source-graph",
+ "toc-syntax",
+ "toc-vfs-db",
+ "upcast",
+]
+
+[[package]]
+name = "toc-hir-expand"
+version = "0.1.0"
+dependencies = [
+ "rustc-hash",
+ "salsa-2022",
+ "toc-ast-db",
+ "toc-source-graph",
+ "toc-syntax",
+ "toc-vfs-db",
  "upcast",
 ]
 
