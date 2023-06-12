@@ -75,8 +75,12 @@ fn main() {
                         match item {
                             toc_hir::def::Item::Module(module) => {
                                 let indent = "  ".repeat(level);
-                                println!("{indent}Module");
-                                println!("{indent}{:?}", module.body(&db).top_level_stmts(&db));
+                                println!(
+                                    "{indent}module {} /* {:?} */",
+                                    module.name(&db).text(&db),
+                                    module
+                                );
+                                println!("{indent}  {:?}", module.body(&db).top_level_stmts(&db));
 
                                 for &child in module.items(&db) {
                                     queue.push_front((level + 1, child));
