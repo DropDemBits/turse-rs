@@ -468,7 +468,8 @@ pub mod def {
         };
 
         use super::{
-            Body, BodyContents, BodySpans, ConstVar, Db, Item, Module, ModuleOrigin, Symbol,
+            Body, BodyContents, BodySpans, ConstVar, ConstVarOrigin, Db, Item, Module,
+            ModuleOrigin, Symbol,
         };
 
         /// Collects the immediately accessible items from a [`ast::StmtList`]
@@ -501,15 +502,16 @@ pub mod def {
             Some(match stmt {
                 ast::Stmt::ConstVarDecl(constvar) => {
                     // uhhhhhhh
-                    let origin = ast_locations.get(&constvar);
+                    let loc = ast_locations.get(&constvar);
                     let names = constvar.decl_list().unwrap();
                     let items = names
                         .names()
-                        .map(|name| {
+                        .enumerate()
+                        .map(|(index, name)| {
                             let name =
                                 Symbol::new(db, name.identifier_token().unwrap().text().to_owned());
 
-                            Item::ConstVar(ConstVar::new(db, name, origin))
+                            Item::ConstVar(ConstVar::new(db, name, ConstVarOrigin { loc, index }))
                         })
                         .collect::<Vec<_>>();
 
@@ -766,14 +768,22 @@ pub mod def {
     pub struct ConstVar {
         #[id]
         pub name: Symbol,
-        origin: SemanticLoc<ast::ConstVarDecl>,
+        origin: ConstVarOrigin,
+    }
+
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+    pub struct ConstVarOrigin {
+        /// Original parent node
+        loc: SemanticLoc<ast::ConstVarDecl>,
+        /// Which name in the original declaration list the name comes from
+        index: usize,
     }
 
     #[salsa::tracked(jar = Jar)]
     impl ConstVar {
         #[salsa::tracked(jar = Jar)]
         pub fn mutability(self, db: &dyn Db) -> Mutability {
-            let ast = self.origin(db).to_node(db.up());
+            let ast = self.origin(db).loc.to_node(db.up());
             Mutability::from_is_mutable(ast.var_token().is_some())
         }
     }
