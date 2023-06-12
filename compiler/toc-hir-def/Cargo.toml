@@ -21,3 +21,8 @@ toc-hir-expand.workspace = true
 
 salsa = { workspace = true }
 upcast = { workspace = true }
+
+[dev-dependencies]
+toc-paths.workspace = true
+toc-vfs.workspace = true
+insta.workspace = true

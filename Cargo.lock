@@ -1484,13 +1484,16 @@ name = "toc-hir-def"
 version = "0.1.0"
 dependencies = [
  "indexmap",
+ "insta",
  "la-arena",
  "rustc-hash",
  "salsa-2022",
  "toc-ast-db",
  "toc-hir-expand",
+ "toc-paths",
  "toc-source-graph",
  "toc-syntax",
+ "toc-vfs",
  "toc-vfs-db",
  "upcast",
 ]
