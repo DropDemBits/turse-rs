@@ -40,7 +40,7 @@ impl StmtId {
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Stmt {
-    /// Initialize the given [`ast::ConstVar`] at this point
+    /// Initialize the given [`ast::ConstVarDecl`] at this point
     InitializeConstVar(SemanticLoc<ast::ConstVarDecl>),
     /// Initialize the given [`ast::BindItem`] at this point
     InitializeBindItem(SemanticLoc<ast::BindItem>),
