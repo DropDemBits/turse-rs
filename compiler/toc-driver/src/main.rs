@@ -67,37 +67,10 @@ fn main() {
                 for &package in source_graph.all_packages(&db) {
                     // use new hir entities
                     println!("New HIR:");
-                    let root = toc_hir::root_module(&db, package);
-                    let mut queue = std::collections::VecDeque::new();
-                    queue.push_front((0, toc_hir::Item::Module(root)));
-
-                    while let Some((level, item)) = queue.pop_front() {
-                        let indent = "  ".repeat(level);
-
-                        match item {
-                            toc_hir::Item::Module(module) => {
-                                let name = module.name(&db).text(&db);
-
-                                println!("{indent}module {name} /* {module:?} */",);
-                                println!("{indent}");
-
-                                for &child in module.items(&db).iter().rev() {
-                                    queue.push_front((level + 1, child));
-                                }
-                            }
-                            toc_hir::Item::ConstVar(cv) => {
-                                let kind = match cv.mutability(&db) {
-                                    toc_hir::Mutability::Const => "const",
-                                    toc_hir::Mutability::Var => "var",
-                                };
-                                let name = cv.name(&db).text(&db);
-
-                                println!("{indent}{kind} {name} /* {cv:?} */");
-                                println!("{indent}");
-                            }
-                        }
-                    }
-                    println!();
+                    println!(
+                        "{}",
+                        toc_hir::render_item_tree(&db, package).render_as_tree()
+                    );
 
                     println!("Old HIR:");
                     let file = package.root(&db);

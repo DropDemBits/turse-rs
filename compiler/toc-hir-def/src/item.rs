@@ -10,6 +10,7 @@ use crate::{
 };
 
 mod lower;
+pub mod pretty;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Item {
