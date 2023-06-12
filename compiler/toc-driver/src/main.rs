@@ -67,15 +67,15 @@ fn main() {
                 for &package in source_graph.all_packages(&db) {
                     // use new hir entities
                     println!("New HIR:");
-                    let root = toc_hir::def::root_module(&db, package);
+                    let root = toc_hir::root_module(&db, package);
                     let mut queue = std::collections::VecDeque::new();
-                    queue.push_front((0, toc_hir::def::Item::Module(root)));
+                    queue.push_front((0, toc_hir::Item::Module(root)));
 
                     while let Some((level, item)) = queue.pop_front() {
                         let indent = "  ".repeat(level);
 
                         match item {
-                            toc_hir::def::Item::Module(module) => {
+                            toc_hir::Item::Module(module) => {
                                 let name = module.name(&db).text(&db);
 
                                 println!("{indent}module {name} /* {module:?} */",);
@@ -85,10 +85,10 @@ fn main() {
                                     queue.push_front((level + 1, child));
                                 }
                             }
-                            toc_hir::def::Item::ConstVar(cv) => {
+                            toc_hir::Item::ConstVar(cv) => {
                                 let kind = match cv.mutability(&db) {
-                                    toc_hir::def::Mutability::Const => "const",
-                                    toc_hir::def::Mutability::Var => "var",
+                                    toc_hir::Mutability::Const => "const",
+                                    toc_hir::Mutability::Var => "var",
                                 };
                                 let name = cv.name(&db).text(&db);
 
@@ -256,8 +256,8 @@ impl ariadne::Cache<FileId> for VfsCache<'_> {
     toc_hir_lowering::Jar,
     toc_hir_db::Jar,
     // new hir
-    toc_hir::def::Jar,
-    toc_hir::expand::Jar,
+    toc_hir::DefJar,
+    toc_hir::ExpandJar,
     toc_analysis::TypeJar,
     toc_analysis::ConstEvalJar,
     toc_analysis::AnalysisJar

@@ -118,15 +118,11 @@ pub mod stmt;
 pub mod ty;
 pub mod visitor;
 
-pub mod expand {
-    pub use toc_hir_expand::{
-        AstLocations, Jar, SemanticFile, SemanticLoc, SemanticNodePtr, UnstableSemanticLoc,
-    };
-}
+pub use toc_hir_expand::{
+    AstLocations, Jar as ExpandJar, SemanticFile, SemanticLoc, SemanticNodePtr, UnstableSemanticLoc,
+};
 
-pub mod def {
-    pub use toc_hir_def::{body::Body, root_module, ConstVar, Item, Jar, Module, Mutability};
-}
+pub use toc_hir_def::{body::Body, root_module, ConstVar, Item, Jar as DefJar, Module, Mutability};
 
 /// Helper trait equivalent to `Option::map_or(predicate)`
 pub trait OrMissingExt<T> {
