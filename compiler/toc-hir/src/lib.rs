@@ -467,7 +467,9 @@ pub mod def {
             },
         };
 
-        use super::{Body, BodyContents, BodySpans, Db, Item, Module, ModuleOrigin, Symbol};
+        use super::{
+            Body, BodyContents, BodySpans, ConstVar, Db, Item, Module, ModuleOrigin, Symbol,
+        };
 
         /// Collects the immediately accessible items from a [`ast::StmtList`]
         pub(crate) fn collect_items(
@@ -497,7 +499,22 @@ pub mod def {
             ast_locations: &AstLocations,
         ) -> Option<Vec<Item>> {
             Some(match stmt {
-                // ast::Stmt::ConstVarDecl(_) => todo!(),
+                ast::Stmt::ConstVarDecl(constvar) => {
+                    // uhhhhhhh
+                    let origin = ast_locations.get(&constvar);
+                    let names = constvar.decl_list().unwrap();
+                    let items = names
+                        .names()
+                        .map(|name| {
+                            let name =
+                                Symbol::new(db, name.identifier_token().unwrap().text().to_owned());
+
+                            Item::ConstVar(ConstVar::new(db, name, origin))
+                        })
+                        .collect::<Vec<_>>();
+
+                    items
+                }
                 // ast::Stmt::TypeDecl(_) => todo!(),
                 // ast::Stmt::BindDecl(_) => todo!(),
                 // ast::Stmt::ProcDecl(_) => todo!(),
@@ -707,6 +724,8 @@ pub mod def {
     pub struct Jar(
         Symbol,
         root_module,
+        ConstVar,
+        ConstVar_mutability,
         Module,
         Module_items,
         Module_body,
@@ -723,8 +742,40 @@ pub mod def {
     }
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+    pub enum Mutability {
+        Const,
+        Var,
+    }
+
+    impl Mutability {
+        pub fn from_is_mutable(is_var: bool) -> Mutability {
+            match is_var {
+                true => Mutability::Var,
+                false => Mutability::Const,
+            }
+        }
+    }
+
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
     pub enum Item {
+        ConstVar(ConstVar),
         Module(Module),
+    }
+
+    #[salsa::tracked(jar = Jar)]
+    pub struct ConstVar {
+        #[id]
+        pub name: Symbol,
+        origin: SemanticLoc<ast::ConstVarDecl>,
+    }
+
+    #[salsa::tracked(jar = Jar)]
+    impl ConstVar {
+        #[salsa::tracked(jar = Jar)]
+        pub fn mutability(self, db: &dyn Db) -> Mutability {
+            let ast = self.origin(db).to_node(db.up());
+            Mutability::from_is_mutable(ast.var_token().is_some())
+        }
     }
 
     #[salsa::tracked(jar = Jar)]

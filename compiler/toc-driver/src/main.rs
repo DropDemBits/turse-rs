@@ -72,19 +72,28 @@ fn main() {
                     queue.push_front((0, toc_hir::def::Item::Module(root)));
 
                     while let Some((level, item)) = queue.pop_front() {
+                        let indent = "  ".repeat(level);
+
                         match item {
                             toc_hir::def::Item::Module(module) => {
-                                let indent = "  ".repeat(level);
-                                println!(
-                                    "{indent}module {} /* {:?} */",
-                                    module.name(&db).text(&db),
-                                    module
-                                );
-                                println!("{indent}  {:?}", module.body(&db).top_level_stmts(&db));
+                                let name = module.name(&db).text(&db);
+
+                                println!("{indent}module {name} /* {module:?} */",);
+                                println!("{indent}");
 
                                 for &child in module.items(&db) {
                                     queue.push_front((level + 1, child));
                                 }
+                            }
+                            toc_hir::def::Item::ConstVar(cv) => {
+                                let kind = match cv.mutability(&db) {
+                                    toc_hir::def::Mutability::Const => "const",
+                                    toc_hir::def::Mutability::Var => "var",
+                                };
+                                let name = cv.name(&db).text(&db);
+
+                                println!("{indent}{kind} {name} /* {cv:?} */");
+                                println!("{indent}");
                             }
                         }
                     }
