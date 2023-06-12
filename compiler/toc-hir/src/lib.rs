@@ -467,7 +467,7 @@ pub mod def {
             },
         };
 
-        use super::{Body, BodyContents, BodySpans, Db, Item, Module, ModuleOrigin};
+        use super::{Body, BodyContents, BodySpans, Db, Item, Module, ModuleOrigin, Symbol};
 
         /// Collects the immediately accessible items from a [`ast::StmtList`]
         pub(crate) fn collect_items(
@@ -480,15 +480,22 @@ pub mod def {
             stmt_list
                 .stmts()
                 .filter_map(|stmt| item(db, stmt, ast_locations))
+                .flatten()
                 .collect()
         }
 
-        /// FIXME: Returns optional because we don't lower every statement yet
+        /// Lowers a potential item, and returns either the new item, or `None`
+        /// if we don't support lowering it yet or it's not a well-formed item
+        /// (mainly because it doesn't have a name).
+        ///
+        /// Note that this means that we'll drop errors when a module doesn't
+        /// have a name, but the more pressing fix anyway should be to focus
+        /// on the error that a module doesn't have a name.
         pub(crate) fn item(
             db: &dyn Db,
             stmt: ast::Stmt,
             ast_locations: &AstLocations,
-        ) -> Option<Item> {
+        ) -> Option<Vec<Item>> {
             Some(match stmt {
                 // ast::Stmt::ConstVarDecl(_) => todo!(),
                 // ast::Stmt::TypeDecl(_) => todo!(),
@@ -500,10 +507,16 @@ pub mod def {
                 // ast::Stmt::ForwardDecl(_) => todo!(),
                 // ast::Stmt::DeferredDecl(_) => todo!(),
                 // ast::Stmt::BodyDecl(_) => todo!(),
-                ast::Stmt::ModuleDecl(module) => Item::Module(Module::new(
-                    db,
-                    ModuleOrigin::Item(ast_locations.get(&module)),
-                )),
+                ast::Stmt::ModuleDecl(module) => {
+                    let name = module.name()?.identifier_token().unwrap();
+                    let name = Symbol::new(db, name.text().to_owned());
+
+                    vec![Item::Module(Module::new(
+                        db,
+                        name,
+                        ModuleOrigin::Item(ast_locations.get(&module)),
+                    ))]
+                }
                 // ast::Stmt::ClassDecl(_) => todo!(),
                 // ast::Stmt::MonitorDecl(_) => todo!(),
                 // ast::Stmt::ImportStmt(_) => todo!(),
@@ -692,6 +705,7 @@ pub mod def {
 
     #[salsa::jar(db = Db)]
     pub struct Jar(
+        Symbol,
         root_module,
         Module,
         Module_items,
@@ -703,6 +717,11 @@ pub mod def {
         Body_lower_contents,
     );
 
+    #[salsa::tracked(jar = Jar)]
+    pub struct Symbol {
+        pub text: String,
+    }
+
     #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
     pub enum Item {
         Module(Module),
@@ -710,6 +729,8 @@ pub mod def {
 
     #[salsa::tracked(jar = Jar)]
     pub struct Module {
+        #[id]
+        pub name: Symbol,
         origin: ModuleOrigin,
     }
 
@@ -726,7 +747,9 @@ pub mod def {
 
     #[salsa::tracked(jar = Jar)]
     pub fn root_module(db: &dyn Db, package: Package) -> Module {
-        Module::new(db, ModuleOrigin::Root(package))
+        // Take the name from the package
+        let name = Symbol::new(db, package.name(db.up()).to_owned());
+        Module::new(db, name, ModuleOrigin::Root(package))
     }
 
     #[salsa::tracked(jar = Jar)]
