@@ -81,7 +81,7 @@ fn main() {
                                 println!("{indent}module {name} /* {module:?} */",);
                                 println!("{indent}");
 
-                                for &child in module.items(&db) {
+                                for &child in module.items(&db).iter().rev() {
                                     queue.push_front((level + 1, child));
                                 }
                             }
