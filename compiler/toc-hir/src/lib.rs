@@ -717,7 +717,7 @@ pub mod def {
         Body_lower_contents,
     );
 
-    #[salsa::tracked(jar = Jar)]
+    #[salsa::interned(jar = Jar)]
     pub struct Symbol {
         pub text: String,
     }
