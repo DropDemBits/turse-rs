@@ -90,11 +90,7 @@ impl<'db> BodyLower<'db> {
         let ptr: SemanticNodePtr = UnstableSemanticLoc::new(self.file, &stmt).into();
 
         let ids = match stmt {
-            _item_stmt @ ast::Stmt::ConstVarDecl(_) => {
-                // for now: treat all constvars and items the same (get referenced as stmts)
-                // and then lower them differently later
-                return vec![];
-            }
+            ast::Stmt::ConstVarDecl(node) => Some(self.lower_constvar_init(node)),
 
             // these decls only introduce new definitions in scope,
             // and that's handled by nameres later on
@@ -162,6 +158,24 @@ impl<'db> BodyLower<'db> {
                 vec![]
             }
         }
+    }
+
+    fn lower_constvar_init(&mut self, node: ast::ConstVarDecl) -> Vec<LocalStmt> {
+        // for now: treat all constvars and items the same (get referenced as stmts)
+        // and then lower them differently later
+
+        // Initializer gets a consistent place for items
+        let loc = self.ast_locations.get(&node);
+        let place = self
+            .contents
+            .stmts
+            .alloc(crate::stmt::Stmt::InitializeConstVar(loc));
+        self.spans.stmts.insert(
+            place,
+            loc.map_unstable(self.db.up(), |node| ast::Stmt::ConstVarDecl(node)),
+        );
+
+        vec![LocalStmt(place)]
     }
 }
 
