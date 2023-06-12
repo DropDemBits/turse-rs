@@ -111,6 +111,35 @@ pub(super) fn expr_list(p: &mut Parser) -> Option<CompletedMarker> {
     Some(m.complete(p, SyntaxKind::ExprList))
 }
 
+pub(super) fn expect_comptime_expr(p: &mut Parser) -> Option<CompletedMarker> {
+    self::comptime_expr(p).or_else(|| {
+        // not an appropriate primary expr
+        p.error_unexpected()
+            .with_category(Expected::Expression)
+            .report();
+        None
+    })
+}
+
+pub(super) fn comptime_expr(p: &mut Parser) -> Option<CompletedMarker> {
+    expr(p).map(|it| it.precede(p).complete(p, SyntaxKind::CompTimeExpr))
+}
+
+pub(super) fn comptime_expr_list(p: &mut Parser) -> Option<CompletedMarker> {
+    // CompTimeExpr list
+    let m = p.start();
+
+    p.with_extra_recovery(&[TokenKind::Comma], |p| {
+        if let Some(..) = expr::expect_comptime_expr(p) {
+            while p.eat(TokenKind::Comma) {
+                expr::expect_comptime_expr(p);
+            }
+        }
+    });
+
+    Some(m.complete(p, SyntaxKind::CompTimeExprList))
+}
+
 /// Parses a reference
 pub(super) fn reference(p: &mut Parser) -> Option<CompletedMarker> {
     // Exprs:
@@ -450,9 +479,9 @@ fn init_expr(p: &mut Parser) -> Option<CompletedMarker> {
     p.with_extra_recovery(&[TokenKind::RightParen, TokenKind::Comma], |p| {
         let m = p.start();
 
-        if let Some(..) = expr::expect_expr(p) {
+        if let Some(..) = expr::expect_comptime_expr(p) {
             while p.eat(TokenKind::Comma) && !p.at(TokenKind::RightParen) {
-                expr::expect_expr(p);
+                expr::expect_comptime_expr(p);
             }
 
             // Don't clog up expected tokens
@@ -462,7 +491,7 @@ fn init_expr(p: &mut Parser) -> Option<CompletedMarker> {
             p.eat(TokenKind::Comma);
         }
 
-        m.complete(p, SyntaxKind::ExprList)
+        m.complete(p, SyntaxKind::CompTimeExprList)
     });
 
     p.expect_punct(TokenKind::RightParen);

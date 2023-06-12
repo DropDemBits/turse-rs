@@ -386,7 +386,7 @@ fn device_spec(p: &mut Parser) -> Option<CompletedMarker> {
 
     let m = p.start();
     p.bump();
-    expr::expect_expr(p);
+    expr::expect_comptime_expr(p);
 
     Some(m.complete(p, SyntaxKind::DeviceSpec))
 }
@@ -450,7 +450,7 @@ fn external_decl(p: &mut Parser) -> Option<CompletedMarker> {
     let m = p.start();
     p.bump();
 
-    expr::expr(p); // optional external_spec
+    expr::comptime_expr(p); // optional external_spec
 
     // don't clog up expected tokens from optional expr
     p.reset_expected_tokens();
@@ -1206,7 +1206,7 @@ fn case_arm(p: &mut Parser) -> Option<CompletedMarker> {
 
     if !p.at(TokenKind::Colon) {
         p.with_extra_recovery(&[TokenKind::Colon], |p| {
-            expr::expr_list(p);
+            expr::comptime_expr_list(p);
         })
     }
 

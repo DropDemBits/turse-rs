@@ -3557,13 +3557,15 @@ fn parse_case_stmt() {
                   CaseArm@23..59
                     KwLabel@23..28 "label"
                     Whitespace@28..29 " "
-                    ExprList@29..33
-                      LiteralExpr@29..30
-                        IntLiteral@29..30 "1"
+                    CompTimeExprList@29..33
+                      CompTimeExpr@29..30
+                        LiteralExpr@29..30
+                          IntLiteral@29..30 "1"
                       Comma@30..31 ","
                       Whitespace@31..32 " "
-                      LiteralExpr@32..33
-                        IntLiteral@32..33 "2"
+                      CompTimeExpr@32..33
+                        LiteralExpr@32..33
+                          IntLiteral@32..33 "2"
                     Colon@33..34 ":"
                     Whitespace@34..47 "\n            "
                     StmtList@47..59
@@ -3576,9 +3578,10 @@ fn parse_case_stmt() {
                   CaseArm@68..85
                     KwLabel@68..73 "label"
                     Whitespace@73..74 " "
-                    ExprList@74..75
-                      LiteralExpr@74..75
-                        IntLiteral@74..75 "3"
+                    CompTimeExprList@74..75
+                      CompTimeExpr@74..75
+                        LiteralExpr@74..75
+                          IntLiteral@74..75 "3"
                     Colon@75..76 ":"
                     Whitespace@76..85 "\n        "
                     StmtList@85..85
@@ -4138,14 +4141,15 @@ fn parse_proc_decl_opt_devspec() {
                     DeviceSpec@27..34
                       Colon@27..28 ":"
                       Whitespace@28..29 " "
-                      BinaryExpr@29..34
-                        LiteralExpr@29..30
-                          IntLiteral@29..30 "1"
-                        Whitespace@30..31 " "
-                        Plus@31..32 "+"
-                        Whitespace@32..33 " "
-                        LiteralExpr@33..34
-                          IntLiteral@33..34 "3"
+                      CompTimeExpr@29..34
+                        BinaryExpr@29..34
+                          LiteralExpr@29..30
+                            IntLiteral@29..30 "1"
+                          Whitespace@30..31 " "
+                          Plus@31..32 "+"
+                          Whitespace@32..33 " "
+                          LiteralExpr@33..34
+                            IntLiteral@33..34 "3"
                   Whitespace@34..43 "\n        "
                   SubprogBody@43..55
                     StmtList@43..55
@@ -6483,8 +6487,9 @@ fn parse_body_proc() {
                     DeviceSpec@19..22
                       Colon@19..20 ":"
                       Whitespace@20..21 " "
-                      LiteralExpr@21..22
-                        IntLiteral@21..22 "1"
+                      CompTimeExpr@21..22
+                        LiteralExpr@21..22
+                          IntLiteral@21..22 "1"
                   Whitespace@22..27 "\n    "
                   SubprogBody@27..27
                     StmtList@27..27
@@ -7656,14 +7661,15 @@ fn parse_monitor_decl_opt_dev_spec() {
                   DeviceSpec@10..17
                     Colon@10..11 ":"
                     Whitespace@11..12 " "
-                    BinaryExpr@12..17
-                      LiteralExpr@12..13
-                        IntLiteral@12..13 "1"
-                      Whitespace@13..14 " "
-                      Plus@14..15 "+"
-                      Whitespace@15..16 " "
-                      LiteralExpr@16..17
-                        IntLiteral@16..17 "2"
+                    CompTimeExpr@12..17
+                      BinaryExpr@12..17
+                        LiteralExpr@12..13
+                          IntLiteral@12..13 "1"
+                        Whitespace@13..14 " "
+                        Plus@14..15 "+"
+                        Whitespace@15..16 " "
+                        LiteralExpr@16..17
+                          IntLiteral@16..17 "2"
                   Whitespace@17..18 " "
                   StmtList@18..18
                   EndGroup@18..23
@@ -7855,14 +7861,15 @@ fn parse_monitor_class_decl_opt_dev_spec() {
                   DeviceSpec@16..23
                     Colon@16..17 ":"
                     Whitespace@17..18 " "
-                    BinaryExpr@18..23
-                      LiteralExpr@18..19
-                        IntLiteral@18..19 "1"
-                      Whitespace@19..20 " "
-                      Plus@20..21 "+"
-                      Whitespace@21..22 " "
-                      LiteralExpr@22..23
-                        IntLiteral@22..23 "2"
+                    CompTimeExpr@18..23
+                      BinaryExpr@18..23
+                        LiteralExpr@18..19
+                          IntLiteral@18..19 "1"
+                        Whitespace@19..20 " "
+                        Plus@20..21 "+"
+                        Whitespace@21..22 " "
+                        LiteralExpr@22..23
+                          IntLiteral@22..23 "2"
                   Whitespace@23..24 " "
                   StmtList@24..24
                   EndGroup@24..29
@@ -8209,8 +8216,9 @@ fn parse_external_fcn() {
                 ExternalDecl@0..36
                   KwExternal@0..8 "external"
                   Whitespace@8..9 " "
-                  LiteralExpr@9..21
-                    StringLiteral@9..21 "\"error_last\""
+                  CompTimeExpr@9..21
+                    LiteralExpr@9..21
+                      StringLiteral@9..21 "\"error_last\""
                   Whitespace@21..22 " "
                   FcnHeader@22..36
                     KwFunction@22..25 "fcn"
@@ -8260,8 +8268,9 @@ fn parse_external_proc() {
                 ExternalDecl@0..34
                   KwExternal@0..8 "external"
                   Whitespace@8..9 " "
-                  LiteralExpr@9..22
-                    StringLiteral@9..22 "\"view_update\""
+                  CompTimeExpr@9..22
+                    LiteralExpr@9..22
+                      StringLiteral@9..22 "\"view_update\""
                   Whitespace@22..23 " "
                   ProcHeader@23..34
                     KwProcedure@23..27 "proc"
@@ -8299,20 +8308,21 @@ fn parse_external_var() {
                 ExternalDecl@0..35
                   KwExternal@0..8 "external"
                   Whitespace@8..9 " "
-                  BinaryExpr@9..18
-                    BinaryExpr@9..14
-                      LiteralExpr@9..10
-                        IntLiteral@9..10 "1"
-                      Whitespace@10..11 " "
-                      Plus@11..12 "+"
-                      Whitespace@12..13 " "
-                      LiteralExpr@13..14
-                        IntLiteral@13..14 "1"
-                    Whitespace@14..15 " "
-                    Minus@15..16 "-"
-                    Whitespace@16..17 " "
-                    LiteralExpr@17..18
-                      IntLiteral@17..18 "1"
+                  CompTimeExpr@9..18
+                    BinaryExpr@9..18
+                      BinaryExpr@9..14
+                        LiteralExpr@9..10
+                          IntLiteral@9..10 "1"
+                        Whitespace@10..11 " "
+                        Plus@11..12 "+"
+                        Whitespace@12..13 " "
+                        LiteralExpr@13..14
+                          IntLiteral@13..14 "1"
+                      Whitespace@14..15 " "
+                      Minus@15..16 "-"
+                      Whitespace@16..17 " "
+                      LiteralExpr@17..18
+                        IntLiteral@17..18 "1"
                   Whitespace@18..19 " "
                   ExternalVar@19..35
                     KwVar@19..22 "var"
@@ -8342,8 +8352,9 @@ fn parse_external_var_named_spec() {
                 ExternalDecl@0..32
                   KwExternal@0..8 "external"
                   Whitespace@8..9 " "
-                  LiteralExpr@9..16
-                    StringLiteral@9..16 "\"errno\""
+                  CompTimeExpr@9..16
+                    LiteralExpr@9..16
+                      StringLiteral@9..16 "\"errno\""
                   Whitespace@16..17 " "
                   ExternalVar@17..32
                     KwVar@17..20 "var"
@@ -8368,20 +8379,21 @@ fn parse_external_var_alt_init() {
                 ExternalDecl@0..28
                   KwExternal@0..8 "external"
                   Whitespace@8..9 " "
-                  BinaryExpr@9..18
-                    BinaryExpr@9..14
-                      LiteralExpr@9..10
-                        IntLiteral@9..10 "1"
-                      Whitespace@10..11 " "
-                      Plus@11..12 "+"
-                      Whitespace@12..13 " "
-                      LiteralExpr@13..14
-                        IntLiteral@13..14 "1"
-                    Whitespace@14..15 " "
-                    Minus@15..16 "-"
-                    Whitespace@16..17 " "
-                    LiteralExpr@17..18
-                      IntLiteral@17..18 "1"
+                  CompTimeExpr@9..18
+                    BinaryExpr@9..18
+                      BinaryExpr@9..14
+                        LiteralExpr@9..10
+                          IntLiteral@9..10 "1"
+                        Whitespace@10..11 " "
+                        Plus@11..12 "+"
+                        Whitespace@12..13 " "
+                        LiteralExpr@13..14
+                          IntLiteral@13..14 "1"
+                      Whitespace@14..15 " "
+                      Minus@15..16 "-"
+                      Whitespace@16..17 " "
+                      LiteralExpr@17..18
+                        IntLiteral@17..18 "1"
                   Whitespace@18..19 " "
                   ExternalVar@19..28
                     KwVar@19..22 "var"
@@ -8408,20 +8420,21 @@ fn parse_external_var_no_init() {
                 ExternalDecl@0..30
                   KwExternal@0..8 "external"
                   Whitespace@8..9 " "
-                  BinaryExpr@9..18
-                    BinaryExpr@9..14
-                      LiteralExpr@9..10
-                        IntLiteral@9..10 "1"
-                      Whitespace@10..11 " "
-                      Plus@11..12 "+"
-                      Whitespace@12..13 " "
-                      LiteralExpr@13..14
-                        IntLiteral@13..14 "1"
-                    Whitespace@14..15 " "
-                    Minus@15..16 "-"
-                    Whitespace@16..17 " "
-                    LiteralExpr@17..18
-                      IntLiteral@17..18 "1"
+                  CompTimeExpr@9..18
+                    BinaryExpr@9..18
+                      BinaryExpr@9..14
+                        LiteralExpr@9..10
+                          IntLiteral@9..10 "1"
+                        Whitespace@10..11 " "
+                        Plus@11..12 "+"
+                        Whitespace@12..13 " "
+                        LiteralExpr@13..14
+                          IntLiteral@13..14 "1"
+                      Whitespace@14..15 " "
+                      Minus@15..16 "-"
+                      Whitespace@16..17 " "
+                      LiteralExpr@17..18
+                        IntLiteral@17..18 "1"
                   Whitespace@18..19 " "
                   ExternalVar@19..30
                     KwVar@19..22 "var"
@@ -8446,20 +8459,21 @@ fn parse_external_var_no_ty() {
                 ExternalDecl@0..29
                   KwExternal@0..8 "external"
                   Whitespace@8..9 " "
-                  BinaryExpr@9..18
-                    BinaryExpr@9..14
-                      LiteralExpr@9..10
-                        IntLiteral@9..10 "1"
-                      Whitespace@10..11 " "
-                      Plus@11..12 "+"
-                      Whitespace@12..13 " "
-                      LiteralExpr@13..14
-                        IntLiteral@13..14 "1"
-                    Whitespace@14..15 " "
-                    Minus@15..16 "-"
-                    Whitespace@16..17 " "
-                    LiteralExpr@17..18
-                      IntLiteral@17..18 "1"
+                  CompTimeExpr@9..18
+                    BinaryExpr@9..18
+                      BinaryExpr@9..14
+                        LiteralExpr@9..10
+                          IntLiteral@9..10 "1"
+                        Whitespace@10..11 " "
+                        Plus@11..12 "+"
+                        Whitespace@12..13 " "
+                        LiteralExpr@13..14
+                          IntLiteral@13..14 "1"
+                      Whitespace@14..15 " "
+                      Minus@15..16 "-"
+                      Whitespace@16..17 " "
+                      LiteralExpr@17..18
+                        IntLiteral@17..18 "1"
                   Whitespace@18..19 " "
                   ExternalVar@19..29
                     KwVar@19..22 "var"
@@ -8484,20 +8498,21 @@ fn recover_external_var_bare() {
                 ExternalDecl@0..24
                   KwExternal@0..8 "external"
                   Whitespace@8..9 " "
-                  BinaryExpr@9..18
-                    BinaryExpr@9..14
-                      LiteralExpr@9..10
-                        IntLiteral@9..10 "1"
-                      Whitespace@10..11 " "
-                      Plus@11..12 "+"
-                      Whitespace@12..13 " "
-                      LiteralExpr@13..14
-                        IntLiteral@13..14 "1"
-                    Whitespace@14..15 " "
-                    Minus@15..16 "-"
-                    Whitespace@16..17 " "
-                    LiteralExpr@17..18
-                      IntLiteral@17..18 "1"
+                  CompTimeExpr@9..18
+                    BinaryExpr@9..18
+                      BinaryExpr@9..14
+                        LiteralExpr@9..10
+                          IntLiteral@9..10 "1"
+                        Whitespace@10..11 " "
+                        Plus@11..12 "+"
+                        Whitespace@12..13 " "
+                        LiteralExpr@13..14
+                          IntLiteral@13..14 "1"
+                      Whitespace@14..15 " "
+                      Minus@15..16 "-"
+                      Whitespace@16..17 " "
+                      LiteralExpr@17..18
+                        IntLiteral@17..18 "1"
                   Whitespace@18..19 " "
                   ExternalVar@19..24
                     KwVar@19..22 "var"
@@ -12606,7 +12621,7 @@ fn recover_case_stmt_safe_end() {
                   CaseArm@10..16
                     KwLabel@10..15 "label"
                     Whitespace@15..16 " "
-                    ExprList@16..16
+                    CompTimeExprList@16..16
                     StmtList@16..16
                   EndGroup@16..24
                     KwEnd@16..19 "end"
@@ -12636,7 +12651,7 @@ fn recover_case_stmt_safe_alt_end() {
                   CaseArm@10..16
                     KwLabel@10..15 "label"
                     Whitespace@15..16 " "
-                    ExprList@16..16
+                    CompTimeExprList@16..16
                     StmtList@16..16
                   EndGroup@16..23
                     KwEndCase@16..23 "endcase"

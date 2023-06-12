@@ -88,7 +88,7 @@ fn ty_or_ty_expr(p: &mut Parser, allow_ty_expr: bool) -> Option<CompletedMarker>
             _ => {
                 if allow_ty_expr {
                     p.with_extra_recovery(&[TokenKind::Range], |p| {
-                        let start = expr::expr(p);
+                        let start = expr::comptime_expr(p);
 
                         // Report missing head expr
                         if p.at_hidden(TokenKind::Range) && start.is_none() {
@@ -149,7 +149,7 @@ fn prim_charseq_type(p: &mut Parser, prim_kind: TokenKind) -> Option<CompletedMa
 
             if !p.eat(TokenKind::Star) {
                 // if not any-sized, parse an expr
-                expr::expect_expr(p);
+                expr::expect_comptime_expr(p);
             }
 
             m.complete(p, SyntaxKind::SeqLength);
@@ -227,7 +227,7 @@ pub(super) fn size_spec(p: &mut Parser) -> Option<CompletedMarker> {
     p.bump();
 
     // Eat the rest
-    expr::expect_expr(p);
+    expr::expect_comptime_expr(p);
 
     Some(m.complete(p, SyntaxKind::SizeSpec))
 }
@@ -451,7 +451,7 @@ fn union_variant(p: &mut Parser) -> Option<CompletedMarker> {
 
     if !p.at(TokenKind::Colon) {
         p.with_extra_recovery(&[TokenKind::Colon], |p| {
-            expr::expr_list(p);
+            expr::comptime_expr_list(p);
         });
     }
 
@@ -493,7 +493,7 @@ fn packed_type(p: &mut Parser) -> Option<CompletedMarker> {
 
             // maybe a range type
             p.with_extra_recovery(&[TokenKind::Range], |p| {
-                let start = expr::expr(p);
+                let start = expr::comptime_expr(p);
 
                 // Report missing head expr
                 if p.at_hidden(TokenKind::Range) && start.is_none() {
@@ -577,7 +577,7 @@ fn range_type_tail(
         m.complete(p, SyntaxKind::UnsizedBound);
     } else {
         // Just a regular range bound
-        expr::expect_expr(p);
+        expr::expect_comptime_expr(p);
     }
 
     // parse optional size spec

@@ -125,7 +125,9 @@ impl super::BodyLowering<'_, '_> {
 
         let names = self.ctx.collect_name_defs(decl.decl_list().unwrap(), span);
         let type_spec = decl.type_spec().and_then(|ty| self.lower_type(ty));
-        let init_expr = decl.init().map(|expr| self.ctx.lower_expr_body(expr));
+        let init_expr = decl
+            .init()
+            .map(|expr| self.ctx.lower_constvar_expr_body(expr));
 
         let stmts: Vec<_> = names
             .into_iter()
@@ -199,7 +201,7 @@ impl super::BodyLowering<'_, '_> {
                 let is_register = binding.to_register().is_some();
 
                 let def_id = self.ctx.collect_name(binding.bind_as(), span);
-                let bind_to = self.lower_required_expr_body(binding.expr());
+                let bind_to = self.ctx.lower_required_bind_expr_body(binding.expr());
 
                 let binding = item::Binding {
                     is_register,
@@ -236,7 +238,10 @@ impl super::BodyLowering<'_, '_> {
         let def_id = self.ctx.collect_name(subprog_header.name(), span);
         let param_list = self.lower_formals_spec(subprog_header.params());
         let result = self.none_subprog_result(subprog_header.syntax().text_range());
-        let extra = match subprog_header.device_spec().and_then(|spec| spec.expr()) {
+        let extra = match subprog_header
+            .device_spec()
+            .and_then(|spec| spec.comp_time_expr())
+        {
             Some(expr) => item::SubprogramExtra::DeviceSpec(self.lower_expr_body(expr)),
             None => item::SubprogramExtra::None,
         };
@@ -294,7 +299,7 @@ impl super::BodyLowering<'_, '_> {
         let param_list = self.lower_formals_spec(subprog_header.params());
         let result = self.none_subprog_result(subprog_header.syntax().text_range());
         let extra = match subprog_header.stack_size() {
-            Some(expr) => item::SubprogramExtra::StackSize(self.lower_expr_body(expr)),
+            Some(expr) => item::SubprogramExtra::StackSize(self.ctx.lower_constvar_expr_body(expr)),
             None => item::SubprogramExtra::None,
         };
 
@@ -1142,7 +1147,7 @@ impl super::BodyLowering<'_, '_> {
                     .map(|selectors| {
                         selectors
                             .exprs()
-                            .map(|expr| self.lower_expr(expr))
+                            .map(|expr| self.lower_expr(expr.expr().unwrap()))
                             .collect()
                     })
                     .unwrap_or_default();

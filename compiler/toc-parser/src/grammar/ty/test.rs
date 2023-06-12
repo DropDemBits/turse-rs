@@ -214,15 +214,16 @@ fn parse_sized_char_type() {
                       KwChar@10..14 "char"
                       LeftParen@14..15 "("
                       SeqLength@15..20
-                        BinaryExpr@15..20
-                          LiteralExpr@15..16
-                            IntLiteral@15..16 "1"
-                          Whitespace@16..17 " "
-                          Plus@17..18 "+"
-                          Whitespace@18..19 " "
-                          NameExpr@19..20
-                            NameRef@19..20
-                              Identifier@19..20 "k"
+                        CompTimeExpr@15..20
+                          BinaryExpr@15..20
+                            LiteralExpr@15..16
+                              IntLiteral@15..16 "1"
+                            Whitespace@16..17 " "
+                            Plus@17..18 "+"
+                            Whitespace@18..19 " "
+                            NameExpr@19..20
+                              NameRef@19..20
+                                Identifier@19..20 "k"
                       RightParen@20..21 ")""#]],
     );
 }
@@ -247,15 +248,16 @@ fn parse_sized_string_type() {
                       KwString@10..16 "string"
                       LeftParen@16..17 "("
                       SeqLength@17..22
-                        BinaryExpr@17..22
-                          LiteralExpr@17..18
-                            IntLiteral@17..18 "1"
-                          Whitespace@18..19 " "
-                          Plus@19..20 "+"
-                          Whitespace@20..21 " "
-                          NameExpr@21..22
-                            NameRef@21..22
-                              Identifier@21..22 "k"
+                        CompTimeExpr@17..22
+                          BinaryExpr@17..22
+                            LiteralExpr@17..18
+                              IntLiteral@17..18 "1"
+                            Whitespace@18..19 " "
+                            Plus@19..20 "+"
+                            Whitespace@20..21 " "
+                            NameExpr@21..22
+                              NameRef@21..22
+                                Identifier@21..22 "k"
                       RightParen@22..23 ")""#]],
     );
 }
@@ -438,8 +440,9 @@ fn recover_missing_right_paren_in_sized_char_type() {
                       KwChar@10..14 "char"
                       LeftParen@14..15 "("
                       SeqLength@15..16
-                        LiteralExpr@15..16
-                          IntLiteral@15..16 "1"
+                        CompTimeExpr@15..16
+                          LiteralExpr@15..16
+                            IntLiteral@15..16 "1"
             error at 15..16: unexpected end of file
             | error for 15..16: expected `)` after here"#]],
     );
@@ -465,8 +468,9 @@ fn recover_missing_right_paren_in_sized_string_type() {
                       KwString@10..16 "string"
                       LeftParen@16..17 "("
                       SeqLength@17..18
-                        LiteralExpr@17..18
-                          IntLiteral@17..18 "1"
+                        CompTimeExpr@17..18
+                          LiteralExpr@17..18
+                            IntLiteral@17..18 "1"
             error at 17..18: unexpected end of file
             | error for 17..18: expected `)` after here"#]],
     );
@@ -488,9 +492,10 @@ fn parse_name_type() {
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   NameType@9..10
-                    NameExpr@9..10
-                      NameRef@9..10
-                        Identifier@9..10 "a""#]],
+                    CompTimeExpr@9..10
+                      NameExpr@9..10
+                        NameRef@9..10
+                          Identifier@9..10 "a""#]],
     );
     check(
         "type _ : a.b.c",
@@ -506,17 +511,18 @@ fn parse_name_type() {
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   NameType@9..14
-                    FieldExpr@9..14
-                      FieldExpr@9..12
-                        NameExpr@9..10
-                          NameRef@9..10
-                            Identifier@9..10 "a"
-                        Dot@10..11 "."
-                        NameRef@11..12
-                          Identifier@11..12 "b"
-                      Dot@12..13 "."
-                      NameRef@13..14
-                        Identifier@13..14 "c""#]],
+                    CompTimeExpr@9..14
+                      FieldExpr@9..14
+                        FieldExpr@9..12
+                          NameExpr@9..10
+                            NameRef@9..10
+                              Identifier@9..10 "a"
+                          Dot@10..11 "."
+                          NameRef@11..12
+                            Identifier@11..12 "b"
+                        Dot@12..13 "."
+                        NameRef@13..14
+                          Identifier@13..14 "c""#]],
     );
 }
 
@@ -537,8 +543,9 @@ fn parse_name_type_not_a_ref() {
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   NameType@9..10
-                    LiteralExpr@9..10
-                      IntLiteral@9..10 "1""#]],
+                    CompTimeExpr@9..10
+                      LiteralExpr@9..10
+                        IntLiteral@9..10 "1""#]],
     );
     check(
         r#"type _ : "hello world""#,
@@ -554,8 +561,9 @@ fn parse_name_type_not_a_ref() {
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   NameType@9..22
-                    LiteralExpr@9..22
-                      StringLiteral@9..22 "\"hello world\"""#]],
+                    CompTimeExpr@9..22
+                      LiteralExpr@9..22
+                        StringLiteral@9..22 "\"hello world\"""#]],
     );
 }
 
@@ -575,26 +583,27 @@ fn parse_expr_as_name_type() {
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   NameType@9..22
-                    BinaryExpr@9..22
-                      BinaryExpr@9..18
-                        BinaryExpr@9..14
-                          LiteralExpr@9..10
-                            IntLiteral@9..10 "1"
-                          Whitespace@10..11 " "
-                          Plus@11..12 "+"
-                          Whitespace@12..13 " "
-                          LiteralExpr@13..14
-                            IntLiteral@13..14 "2"
-                        Whitespace@14..15 " "
-                        Plus@15..16 "+"
-                        Whitespace@16..17 " "
-                        LiteralExpr@17..18
-                          IntLiteral@17..18 "3"
-                      Whitespace@18..19 " "
-                      Minus@19..20 "-"
-                      Whitespace@20..21 " "
-                      LiteralExpr@21..22
-                        IntLiteral@21..22 "4""#]],
+                    CompTimeExpr@9..22
+                      BinaryExpr@9..22
+                        BinaryExpr@9..18
+                          BinaryExpr@9..14
+                            LiteralExpr@9..10
+                              IntLiteral@9..10 "1"
+                            Whitespace@10..11 " "
+                            Plus@11..12 "+"
+                            Whitespace@12..13 " "
+                            LiteralExpr@13..14
+                              IntLiteral@13..14 "2"
+                          Whitespace@14..15 " "
+                          Plus@15..16 "+"
+                          Whitespace@16..17 " "
+                          LiteralExpr@17..18
+                            IntLiteral@17..18 "3"
+                        Whitespace@18..19 " "
+                        Minus@19..20 "-"
+                        Whitespace@20..21 " "
+                        LiteralExpr@21..22
+                          IntLiteral@21..22 "4""#]],
     );
 }
 
@@ -614,13 +623,15 @@ fn parse_range_type() {
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   RangeType@9..15
-                    LiteralExpr@9..10
-                      IntLiteral@9..10 "1"
+                    CompTimeExpr@9..10
+                      LiteralExpr@9..10
+                        IntLiteral@9..10 "1"
                     Whitespace@10..11 " "
                     Range@11..13 ".."
                     Whitespace@13..14 " "
-                    LiteralExpr@14..15
-                      IntLiteral@14..15 "2""#]],
+                    CompTimeExpr@14..15
+                      LiteralExpr@14..15
+                        IntLiteral@14..15 "2""#]],
     );
 }
 
@@ -629,26 +640,28 @@ fn parse_range_type_packed_attr() {
     check(
         "type _ : packed 1 .. 2",
         expect![[r#"
-        Source@0..22
-          StmtList@0..22
-            TypeDecl@0..22
-              KwType@0..4 "type"
-              Whitespace@4..5 " "
-              Name@5..6
-                Identifier@5..6 "_"
-              Whitespace@6..7 " "
-              Colon@7..8 ":"
-              Whitespace@8..9 " "
-              RangeType@9..22
-                KwPacked@9..15 "packed"
-                Whitespace@15..16 " "
-                LiteralExpr@16..17
-                  IntLiteral@16..17 "1"
-                Whitespace@17..18 " "
-                Range@18..20 ".."
-                Whitespace@20..21 " "
-                LiteralExpr@21..22
-                  IntLiteral@21..22 "2""#]],
+            Source@0..22
+              StmtList@0..22
+                TypeDecl@0..22
+                  KwType@0..4 "type"
+                  Whitespace@4..5 " "
+                  Name@5..6
+                    Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                  Colon@7..8 ":"
+                  Whitespace@8..9 " "
+                  RangeType@9..22
+                    KwPacked@9..15 "packed"
+                    Whitespace@15..16 " "
+                    CompTimeExpr@16..17
+                      LiteralExpr@16..17
+                        IntLiteral@16..17 "1"
+                    Whitespace@17..18 " "
+                    Range@18..20 ".."
+                    Whitespace@20..21 " "
+                    CompTimeExpr@21..22
+                      LiteralExpr@21..22
+                        IntLiteral@21..22 "2""#]],
     );
 }
 
@@ -657,23 +670,24 @@ fn recover_range_type_packed_only_head() {
     check(
         "type _ : packed 1",
         expect![[r#"
-            Source@0..17
-              StmtList@0..17
-                TypeDecl@0..17
-                  KwType@0..4 "type"
-                  Whitespace@4..5 " "
-                  Name@5..6
-                    Identifier@5..6 "_"
-                  Whitespace@6..7 " "
-                  Colon@7..8 ":"
-                  Whitespace@8..9 " "
-                  Error@9..17
-                    KwPacked@9..15 "packed"
-                    Whitespace@15..16 " "
-                    LiteralExpr@16..17
-                      IntLiteral@16..17 "1"
-            error at 16..17: unexpected end of file
-            | error for 16..17: expected type specifier after here"#]],
+                Source@0..17
+                  StmtList@0..17
+                    TypeDecl@0..17
+                      KwType@0..4 "type"
+                      Whitespace@4..5 " "
+                      Name@5..6
+                        Identifier@5..6 "_"
+                      Whitespace@6..7 " "
+                      Colon@7..8 ":"
+                      Whitespace@8..9 " "
+                      Error@9..17
+                        KwPacked@9..15 "packed"
+                        Whitespace@15..16 " "
+                        CompTimeExpr@16..17
+                          LiteralExpr@16..17
+                            IntLiteral@16..17 "1"
+                error at 16..17: unexpected end of file
+                | error for 16..17: expected type specifier after here"#]],
     )
 }
 
@@ -683,36 +697,38 @@ fn recover_range_type_packed_indirection_head() {
     check(
         "type _ : packed int @ (2) .. 3",
         expect![[r#"
-            Source@0..30
-              StmtList@0..30
-                TypeDecl@0..30
-                  KwType@0..4 "type"
-                  Whitespace@4..5 " "
-                  Name@5..6
-                    Identifier@5..6 "_"
-                  Whitespace@6..7 " "
-                  Colon@7..8 ":"
-                  Whitespace@8..9 " "
-                  RangeType@9..30
-                    KwPacked@9..15 "packed"
-                    Whitespace@15..16 " "
-                    IndirectExpr@16..25
-                      PrimType@16..19
-                        KwInt@16..19 "int"
-                      Whitespace@19..20 " "
-                      At@20..21 "@"
-                      Whitespace@21..22 " "
-                      LeftParen@22..23 "("
-                      LiteralExpr@23..24
-                        IntLiteral@23..24 "2"
-                      RightParen@24..25 ")"
-                    Whitespace@25..26 " "
-                    Range@26..28 ".."
-                    Whitespace@28..29 " "
-                    LiteralExpr@29..30
-                      IntLiteral@29..30 "3"
-            error at 16..19: unexpected token
-            | error for 16..19: expected `array`, `enum`, `set`, `record`, `union`, or a range type, but found `int`"#]],
+                Source@0..30
+                  StmtList@0..30
+                    TypeDecl@0..30
+                      KwType@0..4 "type"
+                      Whitespace@4..5 " "
+                      Name@5..6
+                        Identifier@5..6 "_"
+                      Whitespace@6..7 " "
+                      Colon@7..8 ":"
+                      Whitespace@8..9 " "
+                      RangeType@9..30
+                        KwPacked@9..15 "packed"
+                        Whitespace@15..16 " "
+                        CompTimeExpr@16..25
+                          IndirectExpr@16..25
+                            PrimType@16..19
+                              KwInt@16..19 "int"
+                            Whitespace@19..20 " "
+                            At@20..21 "@"
+                            Whitespace@21..22 " "
+                            LeftParen@22..23 "("
+                            LiteralExpr@23..24
+                              IntLiteral@23..24 "2"
+                            RightParen@24..25 ")"
+                        Whitespace@25..26 " "
+                        Range@26..28 ".."
+                        Whitespace@28..29 " "
+                        CompTimeExpr@29..30
+                          LiteralExpr@29..30
+                            IntLiteral@29..30 "3"
+                error at 16..19: unexpected token
+                | error for 16..19: expected `array`, `enum`, `set`, `record`, `union`, or a range type, but found `int`"#]],
     )
 }
 
@@ -721,30 +737,33 @@ fn parse_range_type_size_spec() {
     check(
         "type _ : 1 .. 2 : 2",
         expect![[r#"
-        Source@0..19
-          StmtList@0..19
-            TypeDecl@0..19
-              KwType@0..4 "type"
-              Whitespace@4..5 " "
-              Name@5..6
-                Identifier@5..6 "_"
-              Whitespace@6..7 " "
-              Colon@7..8 ":"
-              Whitespace@8..9 " "
-              RangeType@9..19
-                LiteralExpr@9..10
-                  IntLiteral@9..10 "1"
-                Whitespace@10..11 " "
-                Range@11..13 ".."
-                Whitespace@13..14 " "
-                LiteralExpr@14..15
-                  IntLiteral@14..15 "2"
-                Whitespace@15..16 " "
-                SizeSpec@16..19
-                  Colon@16..17 ":"
-                  Whitespace@17..18 " "
-                  LiteralExpr@18..19
-                    IntLiteral@18..19 "2""#]],
+            Source@0..19
+              StmtList@0..19
+                TypeDecl@0..19
+                  KwType@0..4 "type"
+                  Whitespace@4..5 " "
+                  Name@5..6
+                    Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                  Colon@7..8 ":"
+                  Whitespace@8..9 " "
+                  RangeType@9..19
+                    CompTimeExpr@9..10
+                      LiteralExpr@9..10
+                        IntLiteral@9..10 "1"
+                    Whitespace@10..11 " "
+                    Range@11..13 ".."
+                    Whitespace@13..14 " "
+                    CompTimeExpr@14..15
+                      LiteralExpr@14..15
+                        IntLiteral@14..15 "2"
+                    Whitespace@15..16 " "
+                    SizeSpec@16..19
+                      Colon@16..17 ":"
+                      Whitespace@17..18 " "
+                      CompTimeExpr@18..19
+                        LiteralExpr@18..19
+                          IntLiteral@18..19 "2""#]],
     )
 }
 
@@ -753,30 +772,32 @@ fn recover_range_type_size_spec_missing_expr() {
     check(
         "type _ : 1 .. 2 : ",
         expect![[r#"
-            Source@0..18
-              StmtList@0..17
-                TypeDecl@0..17
-                  KwType@0..4 "type"
-                  Whitespace@4..5 " "
-                  Name@5..6
-                    Identifier@5..6 "_"
-                  Whitespace@6..7 " "
-                  Colon@7..8 ":"
-                  Whitespace@8..9 " "
-                  RangeType@9..17
-                    LiteralExpr@9..10
-                      IntLiteral@9..10 "1"
-                    Whitespace@10..11 " "
-                    Range@11..13 ".."
-                    Whitespace@13..14 " "
-                    LiteralExpr@14..15
-                      IntLiteral@14..15 "2"
-                    Whitespace@15..16 " "
-                    SizeSpec@16..17
-                      Colon@16..17 ":"
-              Whitespace@17..18 " "
-            error at 16..17: unexpected end of file
-            | error for 16..17: expected expression after here"#]],
+                Source@0..18
+                  StmtList@0..17
+                    TypeDecl@0..17
+                      KwType@0..4 "type"
+                      Whitespace@4..5 " "
+                      Name@5..6
+                        Identifier@5..6 "_"
+                      Whitespace@6..7 " "
+                      Colon@7..8 ":"
+                      Whitespace@8..9 " "
+                      RangeType@9..17
+                        CompTimeExpr@9..10
+                          LiteralExpr@9..10
+                            IntLiteral@9..10 "1"
+                        Whitespace@10..11 " "
+                        Range@11..13 ".."
+                        Whitespace@13..14 " "
+                        CompTimeExpr@14..15
+                          LiteralExpr@14..15
+                            IntLiteral@14..15 "2"
+                        Whitespace@15..16 " "
+                        SizeSpec@16..17
+                          Colon@16..17 ":"
+                  Whitespace@17..18 " "
+                error at 16..17: unexpected end of file
+                | error for 16..17: expected expression after here"#]],
     );
 }
 
@@ -796,8 +817,9 @@ fn parse_unbounded_range_type() {
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   RangeType@9..15
-                    LiteralExpr@9..10
-                      IntLiteral@9..10 "1"
+                    CompTimeExpr@9..10
+                      LiteralExpr@9..10
+                        IntLiteral@9..10 "1"
                     Whitespace@10..11 " "
                     Range@11..13 ".."
                     Whitespace@13..14 " "
@@ -822,8 +844,9 @@ fn recover_range_type_missing_tail() {
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   RangeType@9..13
-                    LiteralExpr@9..10
-                      IntLiteral@9..10 "1"
+                    CompTimeExpr@9..10
+                      LiteralExpr@9..10
+                        IntLiteral@9..10 "1"
                     Whitespace@10..11 " "
                     Range@11..13 ".."
             error at 11..13: unexpected end of file
@@ -836,23 +859,24 @@ fn recover_range_type_missing_head() {
     check(
         "type _ : .. 1",
         expect![[r#"
-            Source@0..13
-              StmtList@0..13
-                TypeDecl@0..13
-                  KwType@0..4 "type"
-                  Whitespace@4..5 " "
-                  Name@5..6
-                    Identifier@5..6 "_"
-                  Whitespace@6..7 " "
-                  Colon@7..8 ":"
-                  Whitespace@8..9 " "
-                  RangeType@9..13
-                    Range@9..11 ".."
-                    Whitespace@11..12 " "
-                    LiteralExpr@12..13
-                      IntLiteral@12..13 "1"
-            error at 9..11: unexpected token
-            | error for 9..11: expected expression, but found `..`"#]],
+                Source@0..13
+                  StmtList@0..13
+                    TypeDecl@0..13
+                      KwType@0..4 "type"
+                      Whitespace@4..5 " "
+                      Name@5..6
+                        Identifier@5..6 "_"
+                      Whitespace@6..7 " "
+                      Colon@7..8 ":"
+                      Whitespace@8..9 " "
+                      RangeType@9..13
+                        Range@9..11 ".."
+                        Whitespace@11..12 " "
+                        CompTimeExpr@12..13
+                          LiteralExpr@12..13
+                            IntLiteral@12..13 "1"
+                error at 9..11: unexpected token
+                | error for 9..11: expected expression, but found `..`"#]],
     );
 }
 
@@ -872,8 +896,9 @@ fn recover_range_type_not_an_expr() {
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   RangeType@9..21
-                    LiteralExpr@9..10
-                      IntLiteral@9..10 "1"
+                    CompTimeExpr@9..10
+                      LiteralExpr@9..10
+                        IntLiteral@9..10 "1"
                     Whitespace@10..11 " "
                     Range@11..13 ".."
                     Whitespace@13..14 " "
@@ -931,17 +956,18 @@ fn parse_pointer_type_to_named() {
                     KwTo@17..19 "to"
                     Whitespace@19..20 " "
                     NameType@20..33
-                      FieldExpr@20..33
-                        FieldExpr@20..30
-                          NameExpr@20..24
-                            NameRef@20..24
-                              Identifier@20..24 "some"
-                          Dot@24..25 "."
-                          NameRef@25..30
-                            Identifier@25..30 "named"
-                        Dot@30..31 "."
-                        NameRef@31..33
-                          Identifier@31..33 "ty""#]],
+                      CompTimeExpr@20..33
+                        FieldExpr@20..33
+                          FieldExpr@20..30
+                            NameExpr@20..24
+                              NameRef@20..24
+                                Identifier@20..24 "some"
+                            Dot@24..25 "."
+                            NameRef@25..30
+                              Identifier@25..30 "named"
+                          Dot@30..31 "."
+                          NameRef@31..33
+                            Identifier@31..33 "ty""#]],
     );
 }
 
@@ -1126,35 +1152,36 @@ fn parse_enum_type_size_spec() {
     check(
         "type _ : enum(a) : 1 + 2",
         expect![[r#"
-        Source@0..24
-          StmtList@0..24
-            TypeDecl@0..24
-              KwType@0..4 "type"
-              Whitespace@4..5 " "
-              Name@5..6
-                Identifier@5..6 "_"
-              Whitespace@6..7 " "
-              Colon@7..8 ":"
-              Whitespace@8..9 " "
-              EnumType@9..24
-                KwEnum@9..13 "enum"
-                LeftParen@13..14 "("
-                NameList@14..15
-                  Name@14..15
-                    Identifier@14..15 "a"
-                RightParen@15..16 ")"
-                Whitespace@16..17 " "
-                SizeSpec@17..24
-                  Colon@17..18 ":"
-                  Whitespace@18..19 " "
-                  BinaryExpr@19..24
-                    LiteralExpr@19..20
-                      IntLiteral@19..20 "1"
-                    Whitespace@20..21 " "
-                    Plus@21..22 "+"
-                    Whitespace@22..23 " "
-                    LiteralExpr@23..24
-                      IntLiteral@23..24 "2""#]],
+            Source@0..24
+              StmtList@0..24
+                TypeDecl@0..24
+                  KwType@0..4 "type"
+                  Whitespace@4..5 " "
+                  Name@5..6
+                    Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                  Colon@7..8 ":"
+                  Whitespace@8..9 " "
+                  EnumType@9..24
+                    KwEnum@9..13 "enum"
+                    LeftParen@13..14 "("
+                    NameList@14..15
+                      Name@14..15
+                        Identifier@14..15 "a"
+                    RightParen@15..16 ")"
+                    Whitespace@16..17 " "
+                    SizeSpec@17..24
+                      Colon@17..18 ":"
+                      Whitespace@18..19 " "
+                      CompTimeExpr@19..24
+                        BinaryExpr@19..24
+                          LiteralExpr@19..20
+                            IntLiteral@19..20 "1"
+                          Whitespace@20..21 " "
+                          Plus@21..22 "+"
+                          Whitespace@22..23 " "
+                          LiteralExpr@23..24
+                            IntLiteral@23..24 "2""#]],
     );
 }
 
@@ -1474,35 +1501,36 @@ fn parse_set_type_size_spec() {
     check(
         "type _ : set of boolean : 1 + 2",
         expect![[r#"
-        Source@0..31
-          StmtList@0..31
-            TypeDecl@0..31
-              KwType@0..4 "type"
-              Whitespace@4..5 " "
-              Name@5..6
-                Identifier@5..6 "_"
-              Whitespace@6..7 " "
-              Colon@7..8 ":"
-              Whitespace@8..9 " "
-              SetType@9..31
-                KwSet@9..12 "set"
-                Whitespace@12..13 " "
-                KwOf@13..15 "of"
-                Whitespace@15..16 " "
-                PrimType@16..23
-                  KwBoolean@16..23 "boolean"
-                Whitespace@23..24 " "
-                SizeSpec@24..31
-                  Colon@24..25 ":"
-                  Whitespace@25..26 " "
-                  BinaryExpr@26..31
-                    LiteralExpr@26..27
-                      IntLiteral@26..27 "1"
-                    Whitespace@27..28 " "
-                    Plus@28..29 "+"
-                    Whitespace@29..30 " "
-                    LiteralExpr@30..31
-                      IntLiteral@30..31 "2""#]],
+            Source@0..31
+              StmtList@0..31
+                TypeDecl@0..31
+                  KwType@0..4 "type"
+                  Whitespace@4..5 " "
+                  Name@5..6
+                    Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                  Colon@7..8 ":"
+                  Whitespace@8..9 " "
+                  SetType@9..31
+                    KwSet@9..12 "set"
+                    Whitespace@12..13 " "
+                    KwOf@13..15 "of"
+                    Whitespace@15..16 " "
+                    PrimType@16..23
+                      KwBoolean@16..23 "boolean"
+                    Whitespace@23..24 " "
+                    SizeSpec@24..31
+                      Colon@24..25 ":"
+                      Whitespace@25..26 " "
+                      CompTimeExpr@26..31
+                        BinaryExpr@26..31
+                          LiteralExpr@26..27
+                            IntLiteral@26..27 "1"
+                          Whitespace@27..28 " "
+                          Plus@28..29 "+"
+                          Whitespace@29..30 " "
+                          LiteralExpr@30..31
+                            IntLiteral@30..31 "2""#]],
     );
 }
 
@@ -1584,13 +1612,15 @@ fn parse_set_type_of_range() {
                     KwOf@13..15 "of"
                     Whitespace@15..16 " "
                     RangeType@16..22
-                      LiteralExpr@16..17
-                        IntLiteral@16..17 "1"
+                      CompTimeExpr@16..17
+                        LiteralExpr@16..17
+                          IntLiteral@16..17 "1"
                       Whitespace@17..18 " "
                       Range@18..20 ".."
                       Whitespace@20..21 " "
-                      LiteralExpr@21..22
-                        IntLiteral@21..22 "3""#]],
+                      CompTimeExpr@21..22
+                        LiteralExpr@21..22
+                          IntLiteral@21..22 "3""#]],
     );
 }
 
@@ -1616,8 +1646,9 @@ fn parse_set_type_of_unbounded_range() {
                     KwOf@13..15 "of"
                     Whitespace@15..16 " "
                     RangeType@16..22
-                      LiteralExpr@16..17
-                        IntLiteral@16..17 "1"
+                      CompTimeExpr@16..17
+                        LiteralExpr@16..17
+                          IntLiteral@16..17 "1"
                       Whitespace@17..18 " "
                       Range@18..20 ".."
                       Whitespace@20..21 " "
@@ -1976,13 +2007,15 @@ fn parse_array_type() {
                     Whitespace@14..15 " "
                     RangeList@15..21
                       RangeType@15..21
-                        LiteralExpr@15..16
-                          IntLiteral@15..16 "1"
+                        CompTimeExpr@15..16
+                          LiteralExpr@15..16
+                            IntLiteral@15..16 "1"
                         Whitespace@16..17 " "
                         Range@17..19 ".."
                         Whitespace@19..20 " "
-                        LiteralExpr@20..21
-                          IntLiteral@20..21 "3"
+                        CompTimeExpr@20..21
+                          LiteralExpr@20..21
+                            IntLiteral@20..21 "3"
                     Whitespace@21..22 " "
                     KwOf@22..24 "of"
                     Whitespace@24..25 " "
@@ -1996,35 +2029,37 @@ fn parse_array_type_packed_attr() {
     check(
         "type _ : packed array 1 .. 3 of int",
         expect![[r#"
-        Source@0..35
-          StmtList@0..35
-            TypeDecl@0..35
-              KwType@0..4 "type"
-              Whitespace@4..5 " "
-              Name@5..6
-                Identifier@5..6 "_"
-              Whitespace@6..7 " "
-              Colon@7..8 ":"
-              Whitespace@8..9 " "
-              ArrayType@9..35
-                KwPacked@9..15 "packed"
-                Whitespace@15..16 " "
-                KwArray@16..21 "array"
-                Whitespace@21..22 " "
-                RangeList@22..28
-                  RangeType@22..28
-                    LiteralExpr@22..23
-                      IntLiteral@22..23 "1"
-                    Whitespace@23..24 " "
-                    Range@24..26 ".."
-                    Whitespace@26..27 " "
-                    LiteralExpr@27..28
-                      IntLiteral@27..28 "3"
-                Whitespace@28..29 " "
-                KwOf@29..31 "of"
-                Whitespace@31..32 " "
-                PrimType@32..35
-                  KwInt@32..35 "int""#]],
+            Source@0..35
+              StmtList@0..35
+                TypeDecl@0..35
+                  KwType@0..4 "type"
+                  Whitespace@4..5 " "
+                  Name@5..6
+                    Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                  Colon@7..8 ":"
+                  Whitespace@8..9 " "
+                  ArrayType@9..35
+                    KwPacked@9..15 "packed"
+                    Whitespace@15..16 " "
+                    KwArray@16..21 "array"
+                    Whitespace@21..22 " "
+                    RangeList@22..28
+                      RangeType@22..28
+                        CompTimeExpr@22..23
+                          LiteralExpr@22..23
+                            IntLiteral@22..23 "1"
+                        Whitespace@23..24 " "
+                        Range@24..26 ".."
+                        Whitespace@26..27 " "
+                        CompTimeExpr@27..28
+                          LiteralExpr@27..28
+                            IntLiteral@27..28 "3"
+                    Whitespace@28..29 " "
+                    KwOf@29..31 "of"
+                    Whitespace@31..32 " "
+                    PrimType@32..35
+                      KwInt@32..35 "int""#]],
     );
 }
 
@@ -2048,13 +2083,15 @@ fn parse_array_type_with_many_ranges() {
                     Whitespace@14..15 " "
                     RangeList@15..36
                       RangeType@15..21
-                        LiteralExpr@15..16
-                          IntLiteral@15..16 "1"
+                        CompTimeExpr@15..16
+                          LiteralExpr@15..16
+                            IntLiteral@15..16 "1"
                         Whitespace@16..17 " "
                         Range@17..19 ".."
                         Whitespace@19..20 " "
-                        LiteralExpr@20..21
-                          IntLiteral@20..21 "3"
+                        CompTimeExpr@20..21
+                          LiteralExpr@20..21
+                            IntLiteral@20..21 "3"
                       Comma@21..22 ","
                       Whitespace@22..23 " "
                       PrimType@23..30
@@ -2093,13 +2130,15 @@ fn parse_flexible_array_type() {
                     Whitespace@23..24 " "
                     RangeList@24..30
                       RangeType@24..30
-                        LiteralExpr@24..25
-                          IntLiteral@24..25 "1"
+                        CompTimeExpr@24..25
+                          LiteralExpr@24..25
+                            IntLiteral@24..25 "1"
                         Whitespace@25..26 " "
                         Range@26..28 ".."
                         Whitespace@28..29 " "
-                        LiteralExpr@29..30
-                          IntLiteral@29..30 "3"
+                        CompTimeExpr@29..30
+                          LiteralExpr@29..30
+                            IntLiteral@29..30 "3"
                     Whitespace@30..31 " "
                     KwOf@31..33 "of"
                     Whitespace@33..34 " "
@@ -2118,45 +2157,6 @@ fn parse_flexible_array_type_packed_attr() {
     check(
         "type _ : packed flexible array 1 .. 2 of int",
         expect![[r#"
-        Source@0..44
-          StmtList@0..44
-            TypeDecl@0..44
-              KwType@0..4 "type"
-              Whitespace@4..5 " "
-              Name@5..6
-                Identifier@5..6 "_"
-              Whitespace@6..7 " "
-              Colon@7..8 ":"
-              Whitespace@8..9 " "
-              ArrayType@9..44
-                KwPacked@9..15 "packed"
-                Whitespace@15..16 " "
-                KwFlexible@16..24 "flexible"
-                Whitespace@24..25 " "
-                KwArray@25..30 "array"
-                Whitespace@30..31 " "
-                RangeList@31..37
-                  RangeType@31..37
-                    LiteralExpr@31..32
-                      IntLiteral@31..32 "1"
-                    Whitespace@32..33 " "
-                    Range@33..35 ".."
-                    Whitespace@35..36 " "
-                    LiteralExpr@36..37
-                      IntLiteral@36..37 "2"
-                Whitespace@37..38 " "
-                KwOf@38..40 "of"
-                Whitespace@40..41 " "
-                PrimType@41..44
-                  KwInt@41..44 "int""#]],
-    );
-}
-
-#[test]
-fn recover_flexible_packed_array() {
-    check(
-        "type _ : flexible packed array 1 .. 2 of int",
-        expect![[r#"
             Source@0..44
               StmtList@0..44
                 TypeDecl@0..44
@@ -2168,29 +2168,72 @@ fn recover_flexible_packed_array() {
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   ArrayType@9..44
-                    KwFlexible@9..17 "flexible"
-                    Whitespace@17..18 " "
-                    Error@18..24
-                      KwPacked@18..24 "packed"
+                    KwPacked@9..15 "packed"
+                    Whitespace@15..16 " "
+                    KwFlexible@16..24 "flexible"
                     Whitespace@24..25 " "
                     KwArray@25..30 "array"
                     Whitespace@30..31 " "
                     RangeList@31..37
                       RangeType@31..37
-                        LiteralExpr@31..32
-                          IntLiteral@31..32 "1"
+                        CompTimeExpr@31..32
+                          LiteralExpr@31..32
+                            IntLiteral@31..32 "1"
                         Whitespace@32..33 " "
                         Range@33..35 ".."
                         Whitespace@35..36 " "
-                        LiteralExpr@36..37
-                          IntLiteral@36..37 "2"
+                        CompTimeExpr@36..37
+                          LiteralExpr@36..37
+                            IntLiteral@36..37 "2"
                     Whitespace@37..38 " "
                     KwOf@38..40 "of"
                     Whitespace@40..41 " "
                     PrimType@41..44
-                      KwInt@41..44 "int"
-            error at 18..24: unexpected token
-            | error for 18..24: expected `array`, but found `packed`"#]],
+                      KwInt@41..44 "int""#]],
+    );
+}
+
+#[test]
+fn recover_flexible_packed_array() {
+    check(
+        "type _ : flexible packed array 1 .. 2 of int",
+        expect![[r#"
+                Source@0..44
+                  StmtList@0..44
+                    TypeDecl@0..44
+                      KwType@0..4 "type"
+                      Whitespace@4..5 " "
+                      Name@5..6
+                        Identifier@5..6 "_"
+                      Whitespace@6..7 " "
+                      Colon@7..8 ":"
+                      Whitespace@8..9 " "
+                      ArrayType@9..44
+                        KwFlexible@9..17 "flexible"
+                        Whitespace@17..18 " "
+                        Error@18..24
+                          KwPacked@18..24 "packed"
+                        Whitespace@24..25 " "
+                        KwArray@25..30 "array"
+                        Whitespace@30..31 " "
+                        RangeList@31..37
+                          RangeType@31..37
+                            CompTimeExpr@31..32
+                              LiteralExpr@31..32
+                                IntLiteral@31..32 "1"
+                            Whitespace@32..33 " "
+                            Range@33..35 ".."
+                            Whitespace@35..36 " "
+                            CompTimeExpr@36..37
+                              LiteralExpr@36..37
+                                IntLiteral@36..37 "2"
+                        Whitespace@37..38 " "
+                        KwOf@38..40 "of"
+                        Whitespace@40..41 " "
+                        PrimType@41..44
+                          KwInt@41..44 "int"
+                error at 18..24: unexpected token
+                | error for 18..24: expected `array`, but found `packed`"#]],
     );
 }
 
@@ -2271,13 +2314,15 @@ fn recover_array_no_elem_ty() {
                     Whitespace@14..15 " "
                     RangeList@15..21
                       RangeType@15..21
-                        LiteralExpr@15..16
-                          IntLiteral@15..16 "1"
+                        CompTimeExpr@15..16
+                          LiteralExpr@15..16
+                            IntLiteral@15..16 "1"
                         Whitespace@16..17 " "
                         Range@17..19 ".."
                         Whitespace@19..20 " "
-                        LiteralExpr@20..21
-                          IntLiteral@20..21 "3"
+                        CompTimeExpr@20..21
+                          LiteralExpr@20..21
+                            IntLiteral@20..21 "3"
                     Whitespace@21..22 " "
                     KwOf@22..24 "of"
             error at 22..24: unexpected end of file
@@ -3176,9 +3221,10 @@ fn parse_union_type() {
                     UnionVariant@25..41
                       KwLabel@25..30 "label"
                       Whitespace@30..31 " "
-                      ExprList@31..32
-                        LiteralExpr@31..32
-                          IntLiteral@31..32 "1"
+                      CompTimeExprList@31..32
+                        CompTimeExpr@31..32
+                          LiteralExpr@31..32
+                            IntLiteral@31..32 "1"
                       Colon@32..33 ":"
                       Whitespace@33..34 " "
                       RecordField@34..41
@@ -3360,13 +3406,15 @@ fn union_type_many_variants() {
                     UnionVariant@28..55
                       KwLabel@28..33 "label"
                       Whitespace@33..34 " "
-                      ExprList@34..38
-                        LiteralExpr@34..35
-                          IntLiteral@34..35 "1"
+                      CompTimeExprList@34..38
+                        CompTimeExpr@34..35
+                          LiteralExpr@34..35
+                            IntLiteral@34..35 "1"
                         Comma@35..36 ","
                         Whitespace@36..37 " "
-                        LiteralExpr@37..38
-                          IntLiteral@37..38 "2"
+                        CompTimeExpr@37..38
+                          LiteralExpr@37..38
+                            IntLiteral@37..38 "2"
                       Colon@38..39 ":"
                       Whitespace@39..40 " "
                       RecordField@40..47
@@ -3422,11 +3470,13 @@ fn union_type_default_variant() {
                     Colon@15..16 ":"
                     Whitespace@16..17 " "
                     RangeType@17..21
-                      LiteralExpr@17..18
-                        IntLiteral@17..18 "1"
+                      CompTimeExpr@17..18
+                        LiteralExpr@17..18
+                          IntLiteral@17..18 "1"
                       Range@18..20 ".."
-                      LiteralExpr@20..21
-                        IntLiteral@20..21 "2"
+                      CompTimeExpr@20..21
+                        LiteralExpr@20..21
+                          IntLiteral@20..21 "2"
                     Whitespace@21..22 " "
                     KwOf@22..24 "of"
                     Whitespace@24..25 " "
@@ -3463,18 +3513,20 @@ fn recover_union_type_missing_label_colon() {
                     Colon@15..16 ":"
                     Whitespace@16..17 " "
                     RangeType@17..21
-                      LiteralExpr@17..18
-                        IntLiteral@17..18 "1"
+                      CompTimeExpr@17..18
+                        LiteralExpr@17..18
+                          IntLiteral@17..18 "1"
                       Range@18..20 ".."
-                      LiteralExpr@20..21
-                        IntLiteral@20..21 "2"
+                      CompTimeExpr@20..21
+                        LiteralExpr@20..21
+                          IntLiteral@20..21 "2"
                     Whitespace@21..22 " "
                     KwOf@22..24 "of"
                     Whitespace@24..25 " "
                     UnionVariant@25..31
                       KwLabel@25..30 "label"
                       Whitespace@30..31 " "
-                      ExprList@31..31
+                      CompTimeExprList@31..31
                     EndGroup@31..40
                       KwEnd@31..34 "end"
                       Whitespace@34..35 " "
@@ -3505,11 +3557,13 @@ fn recover_union_type_not_label() {
                     Colon@15..16 ":"
                     Whitespace@16..17 " "
                     RangeType@17..21
-                      LiteralExpr@17..18
-                        IntLiteral@17..18 "1"
+                      CompTimeExpr@17..18
+                        LiteralExpr@17..18
+                          IntLiteral@17..18 "1"
                       Range@18..20 ".."
-                      LiteralExpr@20..21
-                        IntLiteral@20..21 "2"
+                      CompTimeExpr@20..21
+                        LiteralExpr@20..21
+                          IntLiteral@20..21 "2"
                     Whitespace@21..22 " "
                     KwOf@22..24 "of"
                     Whitespace@24..25 " "

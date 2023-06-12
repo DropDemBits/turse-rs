@@ -20,7 +20,10 @@ impl super::BodyLowering<'_, '_> {
     }
 
     /// Lowers a required expr body. If not present, constructs an empty expression body
-    pub(super) fn lower_required_expr_body(&mut self, expr: Option<ast::Expr>) -> body::BodyId {
+    pub(super) fn lower_required_expr_body(
+        &mut self,
+        expr: Option<ast::CompTimeExpr>,
+    ) -> body::BodyId {
         match expr {
             Some(expr) => self.ctx.lower_expr_body(expr),
             None => self.ctx.lower_empty_expr_body(),
@@ -28,7 +31,7 @@ impl super::BodyLowering<'_, '_> {
     }
 
     /// Lowers an expression body
-    pub(super) fn lower_expr_body(&mut self, expr: ast::Expr) -> body::BodyId {
+    pub(super) fn lower_expr_body(&mut self, expr: ast::CompTimeExpr) -> body::BodyId {
         self.ctx.lower_expr_body(expr)
     }
 
@@ -140,7 +143,7 @@ impl super::BodyLowering<'_, '_> {
 
     fn lower_init_expr(&mut self, expr: ast::InitExpr) -> Option<expr::ExprKind> {
         let exprs = expr
-            .expr_list()
+            .comp_time_expr_list()
             .unwrap()
             .exprs()
             .map(|expr| self.lower_expr_body(expr))

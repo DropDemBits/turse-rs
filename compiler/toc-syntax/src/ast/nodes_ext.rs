@@ -786,7 +786,7 @@ impl PrimType {
 }
 
 impl RangeType {
-    pub fn start(&self) -> Option<Expr> {
+    pub fn start(&self) -> Option<CompTimeExpr> {
         helper::nodes(self.syntax()).next()
     }
 

@@ -257,7 +257,28 @@ impl<'ctx> FileLowering<'ctx> {
         (body, declared_items)
     }
 
-    fn lower_expr_body(&mut self, expr: ast::Expr) -> body::BodyId {
+    /// ConstVar and StackSize gets a special exception for now
+    fn lower_constvar_expr_body(&mut self, expr: ast::Expr) -> body::BodyId {
+        // Lower expr
+        let mut body = builder::BodyBuilder::default();
+        let root_expr = BodyLowering::new(self, &mut body).lower_expr(expr);
+
+        // Actually make the body
+        let body = body.finish_expr(root_expr);
+        self.package.add_body(body)
+    }
+
+    /// Bind gets a special exception for now
+    fn lower_required_bind_expr_body(&mut self, expr: Option<ast::Expr>) -> body::BodyId {
+        match expr {
+            Some(expr) => self.lower_constvar_expr_body(expr),
+            None => self.lower_empty_expr_body(),
+        }
+    }
+
+    fn lower_expr_body(&mut self, expr: ast::CompTimeExpr) -> body::BodyId {
+        let expr = expr.expr().unwrap();
+
         // Lower expr
         let mut body = builder::BodyBuilder::default();
         let root_expr = BodyLowering::new(self, &mut body).lower_expr(expr);

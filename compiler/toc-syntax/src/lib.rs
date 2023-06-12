@@ -376,6 +376,8 @@ pub enum SyntaxKind {
     RangeList,
     EndGroup,
     UnsizedBound,
+    CompTimeExpr,
+    CompTimeExprList,
 }
 
 impl From<SyntaxKind> for rowan::SyntaxKind {

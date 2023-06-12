@@ -750,7 +750,7 @@ impl AstNode for ExternalDecl {
 }
 impl ExternalDecl {
     pub fn external_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwExternal) }
-    pub fn external_spec(&self) -> Option<Expr> { helper::node(&self.0) }
+    pub fn external_spec(&self) -> Option<CompTimeExpr> { helper::node(&self.0) }
     pub fn external_kind(&self) -> Option<ExternalKind> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -1967,6 +1967,28 @@ impl AstNode for DeviceSpec {
 }
 impl DeviceSpec {
     pub fn colon_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Colon) }
+    pub fn comp_time_expr(&self) -> Option<CompTimeExpr> { helper::node(&self.0) }
+}
+#[derive(Debug, PartialEq, Eq, Hash)]
+#[repr(transparent)]
+pub struct CompTimeExpr(SyntaxNode);
+impl AstNode for CompTimeExpr {
+    type Language = crate::Lang;
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        match syntax.kind() {
+            SyntaxKind::CompTimeExpr => Some(Self(syntax)),
+            _ => None,
+        }
+    }
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
+            SyntaxKind::CompTimeExpr => true,
+            _ => false,
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
+}
+impl CompTimeExpr {
     pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -2656,9 +2678,31 @@ impl AstNode for CaseArm {
 }
 impl CaseArm {
     pub fn label_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwLabel) }
-    pub fn select(&self) -> Option<ExprList> { helper::node(&self.0) }
+    pub fn select(&self) -> Option<CompTimeExprList> { helper::node(&self.0) }
     pub fn colon_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Colon) }
     pub fn stmt_list(&self) -> Option<StmtList> { helper::node(&self.0) }
+}
+#[derive(Debug, PartialEq, Eq, Hash)]
+#[repr(transparent)]
+pub struct CompTimeExprList(SyntaxNode);
+impl AstNode for CompTimeExprList {
+    type Language = crate::Lang;
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        match syntax.kind() {
+            SyntaxKind::CompTimeExprList => Some(Self(syntax)),
+            _ => None,
+        }
+    }
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
+            SyntaxKind::CompTimeExprList => true,
+            _ => false,
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
+}
+impl CompTimeExprList {
+    pub fn exprs(&self) -> impl Iterator<Item = CompTimeExpr> + '_ { helper::nodes(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -2986,7 +3030,7 @@ impl AstNode for InitExpr {
 impl InitExpr {
     pub fn init_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwInit) }
     pub fn l_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::LeftParen) }
-    pub fn expr_list(&self) -> Option<ExprList> { helper::node(&self.0) }
+    pub fn comp_time_expr_list(&self) -> Option<CompTimeExprList> { helper::node(&self.0) }
     pub fn r_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::RightParen) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -3411,7 +3455,7 @@ impl AstNode for SizeSpec {
 }
 impl SizeSpec {
     pub fn colon_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Colon) }
-    pub fn size(&self) -> Option<Expr> { helper::node(&self.0) }
+    pub fn size(&self) -> Option<CompTimeExpr> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -3453,7 +3497,7 @@ impl AstNode for NameType {
     fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl NameType {
-    pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
+    pub fn comp_time_expr(&self) -> Option<CompTimeExpr> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -3899,7 +3943,7 @@ impl AstNode for SeqLength {
     fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl SeqLength {
-    pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
+    pub fn comp_time_expr(&self) -> Option<CompTimeExpr> { helper::node(&self.0) }
     pub fn star_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Star) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -3992,7 +4036,7 @@ impl AstNode for UnionVariant {
 }
 impl UnionVariant {
     pub fn label_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwLabel) }
-    pub fn selectors(&self) -> Option<ExprList> { helper::node(&self.0) }
+    pub fn selectors(&self) -> Option<CompTimeExprList> { helper::node(&self.0) }
     pub fn colon_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Colon) }
     pub fn record_field(&self) -> impl Iterator<Item = RecordField> + '_ { helper::nodes(&self.0) }
 }
@@ -4950,28 +4994,28 @@ impl AstNode for RangeBound {
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum EndBound {
     UnsizedBound(UnsizedBound),
-    Expr(Expr),
+    CompTimeExpr(CompTimeExpr),
 }
 impl AstNode for EndBound {
     type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::UnsizedBound => Some(Self::UnsizedBound(AstNode::cast(syntax)?)),
-            _ if Expr::can_cast(syntax.kind()) => Some(Self::Expr(AstNode::cast(syntax)?)),
+            SyntaxKind::CompTimeExpr => Some(Self::CompTimeExpr(AstNode::cast(syntax)?)),
             _ => None,
         }
     }
     fn can_cast(kind: SyntaxKind) -> bool {
         match kind {
             SyntaxKind::UnsizedBound => true,
-            _ if Expr::can_cast(kind) => true,
+            SyntaxKind::CompTimeExpr => true,
             _ => false,
         }
     }
     fn syntax(&self) -> &SyntaxNode {
         match self {
             Self::UnsizedBound(node) => node.syntax(),
-            Self::Expr(node) => node.syntax(),
+            Self::CompTimeExpr(node) => node.syntax(),
         }
     }
 }

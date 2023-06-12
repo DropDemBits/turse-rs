@@ -2591,9 +2591,10 @@ fn parse_init_expr() {
                   InitExpr@3..10
                     KwInit@3..7 "init"
                     LeftParen@7..8 "("
-                    ExprList@8..9
-                      LiteralExpr@8..9
-                        IntLiteral@8..9 "1"
+                    CompTimeExprList@8..9
+                      CompTimeExpr@8..9
+                        LiteralExpr@8..9
+                          IntLiteral@8..9 "1"
                     RightParen@9..10 ")""#]],
     );
 }
@@ -2614,17 +2615,20 @@ fn init_expr_multiple_exprs() {
                   InitExpr@3..16
                     KwInit@3..7 "init"
                     LeftParen@7..8 "("
-                    ExprList@8..15
-                      LiteralExpr@8..9
-                        IntLiteral@8..9 "1"
+                    CompTimeExprList@8..15
+                      CompTimeExpr@8..9
+                        LiteralExpr@8..9
+                          IntLiteral@8..9 "1"
                       Comma@9..10 ","
                       Whitespace@10..11 " "
-                      LiteralExpr@11..12
-                        IntLiteral@11..12 "2"
+                      CompTimeExpr@11..12
+                        LiteralExpr@11..12
+                          IntLiteral@11..12 "2"
                       Comma@12..13 ","
                       Whitespace@13..14 " "
-                      LiteralExpr@14..15
-                        IntLiteral@14..15 "3"
+                      CompTimeExpr@14..15
+                        LiteralExpr@14..15
+                          IntLiteral@14..15 "3"
                     RightParen@15..16 ")""#]],
     );
 }
@@ -2645,15 +2649,18 @@ fn init_expr_opt_trailing_comma() {
                   InitExpr@3..15
                     KwInit@3..7 "init"
                     LeftParen@7..8 "("
-                    ExprList@8..14
-                      LiteralExpr@8..9
-                        IntLiteral@8..9 "1"
+                    CompTimeExprList@8..14
+                      CompTimeExpr@8..9
+                        LiteralExpr@8..9
+                          IntLiteral@8..9 "1"
                       Comma@9..10 ","
-                      LiteralExpr@10..11
-                        IntLiteral@10..11 "2"
+                      CompTimeExpr@10..11
+                        LiteralExpr@10..11
+                          IntLiteral@10..11 "2"
                       Comma@11..12 ","
-                      LiteralExpr@12..13
-                        IntLiteral@12..13 "3"
+                      CompTimeExpr@12..13
+                        LiteralExpr@12..13
+                          IntLiteral@12..13 "3"
                       Comma@13..14 ","
                     RightParen@14..15 ")""#]],
     );
@@ -2675,13 +2682,15 @@ fn recover_init_expr_missing_expr_in_list() {
                   InitExpr@3..13
                     KwInit@3..7 "init"
                     LeftParen@7..8 "("
-                    ExprList@8..12
-                      LiteralExpr@8..9
-                        IntLiteral@8..9 "1"
+                    CompTimeExprList@8..12
+                      CompTimeExpr@8..9
+                        LiteralExpr@8..9
+                          IntLiteral@8..9 "1"
                       Comma@9..10 ","
                       Comma@10..11 ","
-                      LiteralExpr@11..12
-                        IntLiteral@11..12 "3"
+                      CompTimeExpr@11..12
+                        LiteralExpr@11..12
+                          IntLiteral@11..12 "3"
                     RightParen@12..13 ")"
             error at 10..11: unexpected token
             | error for 10..11: expected expression, but found `,`"#]],
@@ -2703,13 +2712,15 @@ fn recover_init_expr_missing_delimiter() {
                   InitExpr@3..12
                     KwInit@3..7 "init"
                     LeftParen@7..8 "("
-                    ExprList@8..12
-                      LiteralExpr@8..9
-                        IntLiteral@8..9 "1"
+                    CompTimeExprList@8..12
+                      CompTimeExpr@8..9
+                        LiteralExpr@8..9
+                          IntLiteral@8..9 "1"
                       Comma@9..10 ","
                       Whitespace@10..11 " "
-                      LiteralExpr@11..12
-                        IntLiteral@11..12 "2"
+                      CompTimeExpr@11..12
+                        LiteralExpr@11..12
+                          IntLiteral@11..12 "2"
                 Whitespace@12..13 " "
                 CallStmt@13..14
                   LiteralExpr@13..14
@@ -2739,13 +2750,15 @@ fn recover_init_expr_missing_right_paren() {
                   InitExpr@3..12
                     KwInit@3..7 "init"
                     LeftParen@7..8 "("
-                    ExprList@8..12
-                      LiteralExpr@8..9
-                        IntLiteral@8..9 "1"
+                    CompTimeExprList@8..12
+                      CompTimeExpr@8..9
+                        LiteralExpr@8..9
+                          IntLiteral@8..9 "1"
                       Comma@9..10 ","
                       Whitespace@10..11 " "
-                      LiteralExpr@11..12
-                        IntLiteral@11..12 "2"
+                      CompTimeExpr@11..12
+                        LiteralExpr@11..12
+                          IntLiteral@11..12 "2"
             error at 11..12: unexpected end of file
             | error for 11..12: expected `)` after here"#]],
     );
@@ -2767,13 +2780,15 @@ fn recover_init_expr_missing_left_paren() {
                   InitExpr@3..12
                     KwInit@3..7 "init"
                     Whitespace@7..8 " "
-                    ExprList@8..12
-                      LiteralExpr@8..9
-                        IntLiteral@8..9 "1"
+                    CompTimeExprList@8..12
+                      CompTimeExpr@8..9
+                        LiteralExpr@8..9
+                          IntLiteral@8..9 "1"
                       Comma@9..10 ","
                       Whitespace@10..11 " "
-                      LiteralExpr@11..12
-                        IntLiteral@11..12 "2"
+                      CompTimeExpr@11..12
+                        LiteralExpr@11..12
+                          IntLiteral@11..12 "2"
             error at 8..9: unexpected token
             | error for 8..9: expected `(`, but found int literal
             error at 11..12: unexpected end of file
@@ -2797,7 +2812,7 @@ fn recover_init_expr_empty() {
                   InitExpr@3..9
                     KwInit@3..7 "init"
                     LeftParen@7..8 "("
-                    ExprList@8..8
+                    CompTimeExprList@8..8
                     RightParen@8..9 ")"
             error at 8..9: unexpected token
             | error for 8..9: expected expression, but found `)`"#]],
@@ -2820,7 +2835,7 @@ fn recover_init_expr_just_comma() {
                   InitExpr@3..10
                     KwInit@3..7 "init"
                     LeftParen@7..8 "("
-                    ExprList@8..9
+                    CompTimeExprList@8..9
                       Comma@8..9 ","
                     RightParen@9..10 ")"
             error at 8..9: unexpected token
@@ -3177,16 +3192,17 @@ fn parse_indirect_expr_ty() {
                         KwString@3..9 "string"
                         LeftParen@9..10 "("
                         SeqLength@10..15
-                          BinaryExpr@10..15
-                            BinaryExpr@10..13
-                              LiteralExpr@10..11
-                                IntLiteral@10..11 "1"
-                              Plus@11..12 "+"
-                              LiteralExpr@12..13
-                                IntLiteral@12..13 "2"
-                            Plus@13..14 "+"
-                            LiteralExpr@14..15
-                              IntLiteral@14..15 "3"
+                          CompTimeExpr@10..15
+                            BinaryExpr@10..15
+                              BinaryExpr@10..13
+                                LiteralExpr@10..11
+                                  IntLiteral@10..11 "1"
+                                Plus@11..12 "+"
+                                LiteralExpr@12..13
+                                  IntLiteral@12..13 "2"
+                              Plus@13..14 "+"
+                              LiteralExpr@14..15
+                                IntLiteral@14..15 "3"
                         RightParen@15..16 ")"
                     Whitespace@16..17 " "
                     At@17..18 "@"
@@ -3213,16 +3229,17 @@ fn parse_indirect_expr_ty() {
                         KwChar@3..7 "char"
                         LeftParen@7..8 "("
                         SeqLength@8..13
-                          BinaryExpr@8..13
-                            BinaryExpr@8..11
-                              LiteralExpr@8..9
-                                IntLiteral@8..9 "3"
-                              Plus@9..10 "+"
-                              LiteralExpr@10..11
-                                IntLiteral@10..11 "4"
-                            Plus@11..12 "+"
-                            LiteralExpr@12..13
-                              IntLiteral@12..13 "5"
+                          CompTimeExpr@8..13
+                            BinaryExpr@8..13
+                              BinaryExpr@8..11
+                                LiteralExpr@8..9
+                                  IntLiteral@8..9 "3"
+                                Plus@9..10 "+"
+                                LiteralExpr@10..11
+                                  IntLiteral@10..11 "4"
+                              Plus@11..12 "+"
+                              LiteralExpr@12..13
+                                IntLiteral@12..13 "5"
                         RightParen@13..14 ")"
                     Whitespace@14..15 " "
                     At@15..16 "@"
@@ -3828,8 +3845,9 @@ fn parse_cheat_expr() {
                         KwChar@11..15 "char"
                         LeftParen@15..16 "("
                         SeqLength@16..18
-                          LiteralExpr@16..18
-                            IntLiteral@16..18 "80"
+                          CompTimeExpr@16..18
+                            LiteralExpr@16..18
+                              IntLiteral@16..18 "80"
                         RightParen@18..19 ")"
                     Comma@19..20 ","
                     Whitespace@20..21 " "
@@ -3867,8 +3885,9 @@ fn parse_cheat_expr_with_opt_size_spec() {
                     SizeSpec@18..21
                       Colon@18..19 ":"
                       Whitespace@19..20 " "
-                      LiteralExpr@20..21
-                        IntLiteral@20..21 "4"
+                      CompTimeExpr@20..21
+                        LiteralExpr@20..21
+                          IntLiteral@20..21 "4"
                     RightParen@21..22 ")""#]],
     );
 }
@@ -4846,8 +4865,9 @@ fn parse_sizeof_expr_ty_prim_sized() {
                         KwChar@10..14 "char"
                         LeftParen@14..15 "("
                         SeqLength@15..16
-                          LiteralExpr@15..16
-                            IntLiteral@15..16 "8"
+                          CompTimeExpr@15..16
+                            LiteralExpr@15..16
+                              IntLiteral@15..16 "8"
                         RightParen@16..17 ")"
                     RightParen@17..18 ")""#]],
     );
