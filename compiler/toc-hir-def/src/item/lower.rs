@@ -11,7 +11,7 @@ use crate::{
 use super::{ConstVar, ConstVarOrigin, Item};
 
 /// Collects the immediately accessible items from a [`ast::StmtList`]
-pub(crate) fn collect_items(db: &dyn Db, stmt_list: SemanticLoc<ast::StmtList>) -> Vec<Item> {
+pub(crate) fn collect_items(db: &dyn Db, stmt_list: SemanticLoc<ast::StmtList>) -> Box<[Item]> {
     let ast_locations = stmt_list.file(db.up()).ast_locations(db.up());
     let stmt_list = stmt_list.to_node(db.up());
 
@@ -19,7 +19,8 @@ pub(crate) fn collect_items(db: &dyn Db, stmt_list: SemanticLoc<ast::StmtList>) 
         .stmts()
         .filter_map(|stmt| item(db, stmt, ast_locations))
         .flatten()
-        .collect()
+        .collect::<Vec<_>>()
+        .into()
 }
 
 /// Lowers a potential item, and returns either the new item, or `None`

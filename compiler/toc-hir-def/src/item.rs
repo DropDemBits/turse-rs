@@ -5,7 +5,7 @@ use toc_syntax::ast::{self, AstNode};
 use toc_vfs_db::SourceFile;
 
 use crate::{
-    body::{Body, BodyOrigin},
+    body::{Body, BodyOrigin, ModuleBlock},
     Db, Mutability, Symbol,
 };
 
@@ -74,8 +74,8 @@ impl Module {
     /// Note: This does not include items that are in the top level but
     /// are hidden inside of scopes
     #[salsa::tracked(return_ref)]
-    pub fn items(self, db: &dyn Db) -> Vec<Item> {
-        lower::collect_items(db, self.stmt_list(db))
+    pub(crate) fn items(self, db: &dyn Db) -> Box<[Item]> {
+        lower::collect_items(db, self.stmt_list(db)).into()
     }
 
     /// Executable portion of a module
@@ -101,4 +101,36 @@ impl Module {
             ModuleOrigin::Item(module) => module.map(db.up(), |it| it.stmt_list().unwrap()),
         }
     }
+}
+
+/// Any item which has nested child items
+pub trait HasItems {
+    type Item;
+
+    /// All immediate child items of an item
+    ///
+    /// Note: This does not include items that are in the top level but
+    /// are hidden inside of scopes
+    fn items(self, db: &dyn Db) -> &Box<[Self::Item]>;
+}
+
+impl HasItems for Module {
+    type Item = Item;
+
+    fn items(self, db: &dyn Db) -> &Box<[Self::Item]> {
+        Module::items(self, db)
+    }
+}
+
+impl HasItems for crate::body::ModuleBlock {
+    type Item = Item;
+
+    fn items(self, db: &dyn Db) -> &Box<[Self::Item]> {
+        module_block_items(db, self)
+    }
+}
+
+#[salsa::tracked(return_ref)]
+pub(crate) fn module_block_items(db: &dyn Db, block: crate::body::ModuleBlock) -> Box<[Item]> {
+    lower::collect_items(db, block.stmt_list(db))
 }

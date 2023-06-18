@@ -3,9 +3,13 @@
 use toc_hir_expand::{
     AstLocations, SemanticFile, SemanticLoc, SemanticNodePtr, UnstableSemanticLoc,
 };
-use toc_syntax::ast;
+use toc_syntax::ast::{self, AstNode};
 
-use crate::{stmt::LocalStmt, Db};
+use crate::{
+    body::ModuleBlock,
+    stmt::{self, LocalStmt},
+    Db,
+};
 
 use super::{Body, BodyContents, BodySpans};
 
@@ -62,6 +66,16 @@ impl<'db> BodyLower<'db> {
         mut self,
         root: ast::StmtList,
     ) -> (BodyContents, BodySpans, Vec<BodyLowerError>) {
+        let has_items = root.stmts().any(|node| {
+            let kind = node.syntax().kind();
+            ast::Item::can_cast(kind) || ast::PreprocGlob::can_cast(kind)
+        });
+
+        self.contents.root_block = has_items.then(|| {
+            let loc = self.ast_locations.get(&root);
+            ModuleBlock::new(self.db, loc)
+        });
+
         let mut top_level = vec![];
         for stmt in root.stmts() {
             let new_stmts = self.lower_statement(stmt);
@@ -123,7 +137,7 @@ impl<'db> BodyLower<'db> {
             ast::Stmt::ExitStmt(_) => None,
             ast::Stmt::IfStmt(_) => None,
             ast::Stmt::CaseStmt(_) => None,
-            ast::Stmt::BlockStmt(_) => None,
+            ast::Stmt::BlockStmt(node) => Some(self.lower_block_stmt(node)),
             ast::Stmt::InvariantStmt(_) => None,
             ast::Stmt::AssertStmt(_) => None,
             ast::Stmt::CallStmt(_) => None,
@@ -169,10 +183,45 @@ impl<'db> BodyLower<'db> {
         let place = self
             .contents
             .stmts
-            .alloc(crate::stmt::Stmt::InitializeConstVar(loc));
+            .alloc(stmt::Stmt::InitializeConstVar(loc));
         self.spans.stmts.insert(
             place,
             loc.map_unstable(self.db.up(), |node| ast::Stmt::ConstVarDecl(node)),
+        );
+
+        vec![LocalStmt(place)]
+    }
+
+    fn lower_block_stmt(&mut self, node: ast::BlockStmt) -> Vec<LocalStmt> {
+        let stmts = node.stmt_list().unwrap();
+
+        let has_items = stmts.stmts().any(|node| {
+            let kind = node.syntax().kind();
+            ast::Item::can_cast(kind) || ast::PreprocGlob::can_cast(kind)
+        });
+
+        let module_block = has_items.then(|| {
+            let loc = self.ast_locations.get(&stmts);
+            ModuleBlock::new(self.db, loc)
+        });
+
+        // Lower child statements
+        let mut child_stmts = vec![];
+        {
+            for stmt in stmts.stmts() {
+                let new_stmts = self.lower_statement(stmt);
+                child_stmts.extend(new_stmts.into_iter());
+            }
+        }
+
+        let place = self.contents.stmts.alloc(stmt::Stmt::Block(stmt::Block {
+            module_block,
+            kind: stmt::BlockKind::Normal,
+            stmts: child_stmts.into(),
+        }));
+        self.spans.stmts.insert(
+            place,
+            UnstableSemanticLoc::new(self.file, &ast::Stmt::BlockStmt(node)),
         );
 
         vec![LocalStmt(place)]

@@ -12,27 +12,31 @@ use crate::{
 
 pub(crate) mod lower;
 
+/// Executable block of code
 #[salsa::tracked]
 pub struct Body {
     origin: BodyOrigin,
 }
 
-// either: attached to a module-like, or a function-like
+/// Where a `Body` comes from
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum BodyOrigin {
+    /// Attached to a module-like item
     ModuleBody(SemanticLoc<ast::StmtList>),
+    /// Attached to a function-like item
     FunctionBody(SemanticLoc<ast::StmtList>),
 }
 
-// Lowered body contents
+/// Lowered body contents
 #[derive(Debug, Default, PartialEq, Eq)]
-pub(crate) struct BodyContents {
+pub struct BodyContents {
     exprs: Arena<expr::Expr>,
     stmts: Arena<stmt::Stmt>,
     top_level: Box<[StmtId]>,
+    root_block: Option<ModuleBlock>,
 }
 
-// Per-item spans
+/// Spans of
 #[derive(Debug, Default, PartialEq, Eq)]
 pub(crate) struct BodySpans {
     exprs: ArenaMap<expr::ExprIndex, UnstableSemanticLoc<ast::Expr>>,
@@ -65,5 +69,17 @@ impl Body {
         };
 
         (Arc::new(contents), Arc::new(spans))
+    }
+}
+
+/// A block that contains items
+#[salsa::tracked]
+pub struct ModuleBlock {
+    origin: SemanticLoc<ast::StmtList>,
+}
+
+impl ModuleBlock {
+    pub(crate) fn stmt_list(self, db: &dyn Db) -> SemanticLoc<ast::StmtList> {
+        self.origin(db)
     }
 }

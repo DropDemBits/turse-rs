@@ -131,10 +131,12 @@ pub struct Jar(
     item::Module_items,
     item::Module_body,
     item::Module_stmt_list,
+    item::module_block_items,
     body::Body,
     body::Body_top_level_stmts,
     body::Body_contents,
     body::Body_lower_contents,
+    body::ModuleBlock,
 );
 
 #[salsa::interned]

@@ -3,7 +3,10 @@
 use toc_hir_expand::SemanticLoc;
 use toc_syntax::ast;
 
-use crate::{body::Body, expr, Symbol};
+use crate::{
+    body::{Body, ModuleBlock},
+    expr, Symbol,
+};
 
 crate::arena_id_wrapper!(
     /// A [`Body`] local reference to a statement.
@@ -208,8 +211,9 @@ pub enum CaseSelector {
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Block {
+    pub module_block: Option<ModuleBlock>,
     pub kind: BlockKind,
-    pub stmts: Vec<LocalStmt>,
+    pub stmts: Box<[LocalStmt]>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
