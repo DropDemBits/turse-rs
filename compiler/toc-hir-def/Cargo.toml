@@ -16,6 +16,7 @@ toc-syntax = { workspace = true }
 toc-vfs-db = { workspace = true }
 toc-ast-db = { workspace = true }
 rustc-hash = "1.1"
+bitflags = "2.3.2"
 
 toc-hir-expand.workspace = true
 

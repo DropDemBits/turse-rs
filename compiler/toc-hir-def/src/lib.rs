@@ -126,11 +126,12 @@ pub struct Jar(
     Symbol,
     item::root_module,
     item::ConstVar,
-    item::ConstVar_mutability,
+    item::ConstVar_item_attrs,
     item::Module,
     item::Module_items,
     item::Module_body,
     item::Module_stmt_list,
+    item::Module_item_attrs,
     item::module_block_items,
     body::Body,
     body::Body_top_level_stmts,
@@ -156,5 +157,46 @@ impl Mutability {
             true => Mutability::Var,
             false => Mutability::Const,
         }
+    }
+}
+
+crate::make_named_bool! {
+    pub enum IsPervasive;
+}
+
+crate::make_named_bool! {
+    pub enum IsRegister;
+}
+
+crate::make_named_bool! {
+    pub enum IsMonitor;
+}
+
+bitflags::bitflags! {
+    #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
+    pub(crate) struct ItemAttrs: u32 {
+        const NONE = 0;
+        const MUTABLE = 1 << 0;
+        const PERVASIVE = 1 << 1;
+        const REGISTER = 1 << 2;
+        const MONITOR = 1 << 3;
+    }
+}
+
+impl ItemAttrs {
+    pub(crate) fn mutablity(self) -> Mutability {
+        Mutability::from_is_mutable(self.contains(ItemAttrs::MUTABLE))
+    }
+
+    pub(crate) fn is_pervasive(self) -> IsPervasive {
+        self.contains(ItemAttrs::PERVASIVE).into()
+    }
+
+    pub(crate) fn is_register(self) -> IsRegister {
+        self.contains(ItemAttrs::REGISTER).into()
+    }
+
+    pub(crate) fn is_monitor(self) -> IsMonitor {
+        self.contains(ItemAttrs::MONITOR).into()
     }
 }

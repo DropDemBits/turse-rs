@@ -5,8 +5,8 @@ use toc_syntax::ast::{self, AstNode};
 use toc_vfs_db::SourceFile;
 
 use crate::{
-    body::{Body, BodyOrigin, ModuleBlock},
-    Db, Mutability, Symbol,
+    body::{Body, BodyOrigin},
+    Db, IsMonitor, IsPervasive, IsRegister, ItemAttrs, Mutability, Symbol,
 };
 
 mod lower;
@@ -35,10 +35,34 @@ pub struct ConstVarOrigin {
 
 #[salsa::tracked]
 impl ConstVar {
-    #[salsa::tracked]
     pub fn mutability(self, db: &dyn Db) -> Mutability {
+        self.item_attrs(db).mutablity()
+    }
+
+    pub fn is_pervasive(self, db: &dyn Db) -> IsPervasive {
+        self.item_attrs(db).is_pervasive()
+    }
+
+    pub fn is_register(self, db: &dyn Db) -> IsRegister {
+        self.item_attrs(db).is_register()
+    }
+
+    #[salsa::tracked]
+    pub(crate) fn item_attrs(self, db: &dyn Db) -> ItemAttrs {
         let ast = self.origin(db).loc.to_node(db.up());
-        Mutability::from_is_mutable(ast.var_token().is_some())
+
+        let mut attrs = ItemAttrs::NONE;
+        attrs |= ast
+            .var_token()
+            .map_or(ItemAttrs::NONE, |_| ItemAttrs::MUTABLE);
+        attrs |= ast
+            .pervasive_attr()
+            .map_or(ItemAttrs::NONE, |_| ItemAttrs::PERVASIVE);
+        attrs |= ast
+            .register_attr()
+            .map_or(ItemAttrs::NONE, |_| ItemAttrs::REGISTER);
+
+        attrs
     }
 }
 
@@ -99,6 +123,31 @@ impl Module {
                 unimplemented!()
             }
             ModuleOrigin::Item(module) => module.map(db.up(), |it| it.stmt_list().unwrap()),
+        }
+    }
+
+    pub fn is_pervasive(self, db: &dyn Db) -> IsPervasive {
+        self.item_attrs(db).is_pervasive()
+    }
+
+    pub fn is_monitor(self, db: &dyn Db) -> IsMonitor {
+        self.item_attrs(db).is_monitor()
+    }
+
+    #[salsa::tracked]
+    pub(crate) fn item_attrs(self, db: &dyn Db) -> ItemAttrs {
+        match self.origin(db) {
+            ModuleOrigin::Item(module) => {
+                let ast = module.to_node(db.up());
+
+                let mut attrs = ItemAttrs::NONE;
+                attrs |= ast
+                    .pervasive_attr()
+                    .map_or(ItemAttrs::NONE, |_| ItemAttrs::PERVASIVE);
+
+                attrs
+            }
+            ModuleOrigin::Root(_) | ModuleOrigin::Unit(_) => ItemAttrs::NONE,
         }
     }
 }
