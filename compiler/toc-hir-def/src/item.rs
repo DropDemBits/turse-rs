@@ -27,10 +27,19 @@ pub struct ConstVar {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ConstVarOrigin {
-    /// Original parent node
-    loc: SemanticLoc<ast::ConstVarDecl>,
-    /// Which name in the original declaration list the name comes from
-    index: usize,
+    /// Original name node
+    loc: SemanticLoc<ast::ConstVarDeclName>,
+}
+
+impl ConstVarOrigin {
+    fn to_parent_constvar(self, db: &dyn Db) -> SemanticLoc<ast::ConstVarDecl> {
+        self.loc.map(db.up(), |name| {
+            name.syntax()
+                .ancestors()
+                .find_map(ast::ConstVarDecl::cast)
+                .unwrap()
+        })
+    }
 }
 
 #[salsa::tracked]
@@ -49,7 +58,7 @@ impl ConstVar {
 
     #[salsa::tracked]
     pub(crate) fn item_attrs(self, db: &dyn Db) -> ItemAttrs {
-        let ast = self.origin(db).loc.to_node(db.up());
+        let ast = self.origin(db).to_parent_constvar(db).to_node(db.up());
 
         let mut attrs = ItemAttrs::NONE;
         attrs |= ast

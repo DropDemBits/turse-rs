@@ -37,16 +37,16 @@ pub(crate) fn item(
 ) -> Option<Vec<Item>> {
     Some(match stmt {
         ast::Stmt::ConstVarDecl(constvar) => {
-            // uhhhhhhh
-            let loc = ast_locations.get(&constvar);
-            let names = constvar.decl_list().unwrap();
+            let names = constvar.constvar_names().unwrap();
+
             let items = names
                 .names()
-                .enumerate()
-                .map(|(index, name)| {
-                    let name = Symbol::new(db, name.identifier_token().unwrap().text().to_owned());
+                .map(|decl_name| {
+                    let loc = ast_locations.get(&decl_name);
+                    let name = decl_name.name().unwrap().identifier_token().unwrap();
+                    let name = Symbol::new(db, name.text().to_owned());
 
-                    Item::ConstVar(ConstVar::new(db, name, ConstVarOrigin { loc, index }))
+                    Item::ConstVar(ConstVar::new(db, name, ConstVarOrigin { loc }))
                 })
                 .collect::<Vec<_>>();
 
