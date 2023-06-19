@@ -6,11 +6,76 @@ use toc_vfs_db::SourceFile;
 
 use crate::{
     body::{Body, BodyOrigin},
+    item::item_loc_map::ItemLocMap,
     Db, IsMonitor, IsPervasive, IsRegister, ItemAttrs, Mutability, Symbol,
 };
 
 mod lower;
 pub mod pretty;
+
+pub mod item_loc_map {
+    //! Mapping to go from [`SemanticLoc`]'s to [`Item`](super::Item)'s
+
+    use toc_hir_expand::{ErasedSemanticLoc, SemanticLoc};
+    use toc_syntax::ast::AstNode;
+
+    use crate::item::{ConstVar, Module};
+
+    #[derive(Debug, Default, Clone, PartialEq, Eq)]
+    pub struct ItemLocMap {
+        to_items: rustc_hash::FxHashMap<ErasedSemanticLoc, salsa::Id>,
+    }
+
+    impl ItemLocMap {
+        pub(crate) fn new() -> Self {
+            Self::default()
+        }
+
+        pub(crate) fn insert<N: ToHirItem>(&mut self, loc: SemanticLoc<N>, item: N::Item) {
+            use salsa::AsId;
+
+            self.to_items
+                .insert(loc.into_erased(), item.as_id())
+                .expect("duplicate ItemLocMap entry");
+        }
+
+        pub(crate) fn shrink_to_fit(&mut self) {
+            self.to_items.shrink_to_fit();
+        }
+
+        /// Looks up the stable location's item
+        pub fn get<N: ToHirItem>(&self, loc: SemanticLoc<N>) -> Option<N::Item> {
+            use salsa::AsId;
+
+            self.to_items
+                .get(&loc.into_erased())
+                .copied()
+                .map(N::Item::from_id)
+        }
+    }
+
+    pub trait ToHirItem: AstNode<Language = toc_syntax::Lang> {
+        type Item: salsa::AsId;
+    }
+
+    impl ToHirItem for toc_syntax::ast::ConstVarDeclName {
+        type Item = ConstVar;
+    }
+
+    type Type = toc_syntax::ast::ModuleDecl;
+
+    impl ToHirItem for Type {
+        type Item = Module;
+    }
+}
+
+#[salsa::tracked]
+pub struct ItemsWithLocMap {
+    #[return_ref]
+    pub items: Box<[Item]>,
+    #[return_ref]
+    pub loc_map: ItemLocMap,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Item {
@@ -102,13 +167,14 @@ pub fn root_module(db: &dyn Db, package: Package) -> Module {
 
 #[salsa::tracked]
 impl Module {
-    /// All immediate items of a module
+    /// All immediate items of a module, as well as a location map to
+    /// map locations back to the immediate items.
     ///
     /// Note: This does not include items that are in the top level but
     /// are hidden inside of scopes
     #[salsa::tracked(return_ref)]
-    pub(crate) fn items(self, db: &dyn Db) -> Box<[Item]> {
-        lower::collect_items(db, self.stmt_list(db)).into()
+    pub(crate) fn items(self, db: &dyn Db) -> ItemsWithLocMap {
+        lower::collect_items(db, self.stmt_list(db))
     }
 
     /// Executable portion of a module
@@ -170,13 +236,20 @@ pub trait HasItems {
     /// Note: This does not include items that are in the top level but
     /// are hidden inside of scopes
     fn items(self, db: &dyn Db) -> &Box<[Self::Item]>;
+
+    /// Map to go from semantic locations back to the immediate item
+    fn loc_map(self, db: &dyn Db) -> &ItemLocMap;
 }
 
 impl HasItems for Module {
     type Item = Item;
 
     fn items(self, db: &dyn Db) -> &Box<[Self::Item]> {
-        Module::items(self, db)
+        Module::items(self, db).items(db)
+    }
+
+    fn loc_map(self, db: &dyn Db) -> &ItemLocMap {
+        Module::items(self, db).loc_map(db)
     }
 }
 
@@ -184,11 +257,15 @@ impl HasItems for crate::body::ModuleBlock {
     type Item = Item;
 
     fn items(self, db: &dyn Db) -> &Box<[Self::Item]> {
-        module_block_items(db, self)
+        module_block_items(db, self).items(db)
+    }
+
+    fn loc_map(self, db: &dyn Db) -> &ItemLocMap {
+        module_block_items(db, self).loc_map(db)
     }
 }
 
 #[salsa::tracked(return_ref)]
-pub(crate) fn module_block_items(db: &dyn Db, block: crate::body::ModuleBlock) -> Box<[Item]> {
+pub(crate) fn module_block_items(db: &dyn Db, block: crate::body::ModuleBlock) -> ItemsWithLocMap {
     lower::collect_items(db, block.stmt_list(db))
 }

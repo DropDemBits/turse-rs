@@ -124,6 +124,7 @@ impl<'db, DB: Db + 'db> UpcastFrom<DB> for dyn Db + 'db {
 #[salsa::jar(db = Db)]
 pub struct Jar(
     Symbol,
+    item::ItemsWithLocMap,
     item::root_module,
     item::ConstVar,
     item::ConstVar_item_attrs,

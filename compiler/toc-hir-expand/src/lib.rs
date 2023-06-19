@@ -59,7 +59,7 @@ pub struct Jar(ErasedSemanticLoc, SemanticFile, SemanticFile_ast_locations);
 
 /// An untyped reference to a location in a [`SemanticFile`]
 #[salsa::tracked]
-pub(crate) struct ErasedSemanticLoc {
+pub struct ErasedSemanticLoc {
     pub(crate) file: SemanticFile,
     pub(crate) ptr: SyntaxNodePtr,
 }
@@ -83,7 +83,7 @@ impl<T: AstNode> Clone for SemanticLoc<T> {
 impl<T: AstNode> Copy for SemanticLoc<T> {}
 
 impl<T: AstNode<Language = toc_syntax::Lang>> SemanticLoc<T> {
-    /// Yields the underlying AST node at this location
+    /// Yields the underlying AST node at this location.
     pub fn to_node(self, db: &dyn Db) -> T {
         let ast = self.loc.file(db).ast(db);
         let node = self.loc.ptr(db).to_node(&ast);
@@ -93,6 +93,14 @@ impl<T: AstNode<Language = toc_syntax::Lang>> SemanticLoc<T> {
     /// Gets which [`SemanticFile`] this location comes from
     pub fn file(self, db: &dyn Db) -> SemanticFile {
         self.loc.file(db)
+    }
+
+    /// Yields the erased version of the location.
+    ///
+    /// Primarily used so that maps can use `SemanticLocs` as a key,
+    /// without having to worry about matching the exact node type.
+    pub fn into_erased(self) -> ErasedSemanticLoc {
+        self.loc
     }
 
     /// Projects from `T` into `U`.

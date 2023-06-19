@@ -4,23 +4,27 @@ use toc_hir_expand::{AstLocations, SemanticLoc};
 use toc_syntax::ast;
 
 use crate::{
-    item::{Module, ModuleOrigin},
+    item::{item_loc_map::ItemLocMap, ItemsWithLocMap, Module, ModuleOrigin},
     Db, Symbol,
 };
 
 use super::{ConstVar, ConstVarOrigin, Item};
 
 /// Collects the immediately accessible items from a [`ast::StmtList`]
-pub(crate) fn collect_items(db: &dyn Db, stmt_list: SemanticLoc<ast::StmtList>) -> Box<[Item]> {
+pub(crate) fn collect_items(db: &dyn Db, stmt_list: SemanticLoc<ast::StmtList>) -> ItemsWithLocMap {
     let ast_locations = stmt_list.file(db.up()).ast_locations(db.up());
     let stmt_list = stmt_list.to_node(db.up());
 
-    stmt_list
+    let mut loc_map = ItemLocMap::new();
+    let items = stmt_list
         .stmts()
-        .filter_map(|stmt| item(db, stmt, ast_locations))
+        .filter_map(|stmt| item(db, stmt, ast_locations, &mut loc_map))
         .flatten()
-        .collect::<Vec<_>>()
-        .into()
+        .collect::<Vec<_>>();
+
+    loc_map.shrink_to_fit();
+
+    ItemsWithLocMap::new(db, items.into(), loc_map)
 }
 
 /// Lowers a potential item, and returns either the new item, or `None`
@@ -34,6 +38,7 @@ pub(crate) fn item(
     db: &dyn Db,
     stmt: ast::Stmt,
     ast_locations: &AstLocations,
+    loc_map: &mut ItemLocMap,
 ) -> Option<Vec<Item>> {
     Some(match stmt {
         ast::Stmt::ConstVarDecl(constvar) => {
@@ -45,8 +50,10 @@ pub(crate) fn item(
                     let loc = ast_locations.get(&decl_name);
                     let name = decl_name.name().unwrap().identifier_token().unwrap();
                     let name = Symbol::new(db, name.text().to_owned());
+                    let item = ConstVar::new(db, name, ConstVarOrigin { loc });
+                    loc_map.insert(loc, item);
 
-                    Item::ConstVar(ConstVar::new(db, name, ConstVarOrigin { loc }))
+                    Item::ConstVar(item)
                 })
                 .collect::<Vec<_>>();
 
@@ -62,14 +69,13 @@ pub(crate) fn item(
         // ast::Stmt::DeferredDecl(_) => todo!(),
         // ast::Stmt::BodyDecl(_) => todo!(),
         ast::Stmt::ModuleDecl(module) => {
+            let loc = ast_locations.get(&module);
             let name = module.name()?.identifier_token().unwrap();
             let name = Symbol::new(db, name.text().to_owned());
+            let item = Module::new(db, name, ModuleOrigin::Item(loc));
+            loc_map.insert(loc, item);
 
-            vec![Item::Module(Module::new(
-                db,
-                name,
-                ModuleOrigin::Item(ast_locations.get(&module)),
-            ))]
+            vec![Item::Module(item)]
         }
         // ast::Stmt::ClassDecl(_) => todo!(),
         // ast::Stmt::MonitorDecl(_) => todo!(),
