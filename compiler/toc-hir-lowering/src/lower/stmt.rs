@@ -123,7 +123,13 @@ impl super::BodyLowering<'_, '_> {
         let is_var = decl.var_token().is_some();
         let mutability = Mutability::from_is_mutable(is_var);
 
-        let names = self.ctx.collect_name_defs(decl.decl_list().unwrap(), span);
+        let names = self.ctx.collect_name_defs(
+            decl.constvar_names()
+                .unwrap()
+                .names()
+                .flat_map(|it| it.name()),
+            span,
+        );
         let type_spec = decl.type_spec().and_then(|ty| self.lower_type(ty));
         let init_expr = decl
             .init()
@@ -351,9 +357,10 @@ impl super::BodyLowering<'_, '_> {
                     let coerced_type = param.coerce_type().is_some();
                     let param_ty = self.lower_required_type(param.param_ty());
 
-                    let names = self
-                        .ctx
-                        .collect_name_defs_with_missing(param.param_names().unwrap(), missing_name);
+                    let names = self.ctx.collect_name_defs_with_missing(
+                        param.param_names().unwrap().names().map(|it| it.name()),
+                        missing_name,
+                    );
 
                     for name in names {
                         param_names.push(name);

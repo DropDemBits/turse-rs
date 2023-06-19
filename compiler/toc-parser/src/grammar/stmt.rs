@@ -216,7 +216,12 @@ fn const_var_decl(p: &mut Parser) -> Option<CompletedMarker> {
     attr_register(p);
 
     p.with_extra_recovery(&[TokenKind::Colon], |p| {
-        super::name_list(p);
+        super::name_list_of(
+            p,
+            SyntaxKind::ConstVarDeclNameList,
+            SyntaxKind::ConstVarDeclName,
+            false,
+        );
     });
 
     if p.eat(TokenKind::Colon) {

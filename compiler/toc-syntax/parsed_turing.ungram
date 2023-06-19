@@ -4,10 +4,6 @@
 Name =
   'identifier'
 
-// Defines a list of new names
-NameList =
-  names:( Name ( ',' Name )* )
-
 // References an existing name
 NameRef =
   'identifier'
@@ -193,9 +189,15 @@ StmtList =
 ConstVarDecl =
   ( 'var' | 'const' )
   PervasiveAttr? RegisterAttr?
-  decl_list:NameList
+  constvar_names:ConstVarDeclNameList
   ( ':' type_spec:Type )?
   ( ':=' init:Expr )?
+
+ConstVarDeclNameList =
+  names:ConstVarDeclName*
+
+ConstVarDeclName =
+  Name ','?
 
 TypeDecl =
   'type' PervasiveAttr? decl_name:Name ':' ( 'forward' | named_ty:Type )
@@ -816,7 +818,13 @@ SizeSpec =
   
 
 EnumType =
-  'packed'? 'enum' '(' fields:NameList ')' SizeSpec?
+  'packed'? 'enum' '(' fields:EnumVariantList ')' SizeSpec?
+
+EnumVariantList =
+  EnumVariant*
+
+EnumVariant =
+  Name ','?
 
 ArrayType =
   'packed'? 'flexible'? 'array' RangeList 'of' elem_ty:Type
@@ -842,7 +850,13 @@ UnionVariant =
     RecordField*
 
 RecordField =
-  field_names:NameList ':' field_ty:Type ';'?
+  field_names:RecordFieldNameList ':' field_ty:Type ';'?
+
+RecordFieldNameList =
+  names:RecordFieldName*
+
+RecordFieldName =
+  Name ','?
 
 PointerType =
   is_checked:Checkedness?
@@ -874,8 +888,14 @@ ParamDecl =
 ConstVarParam =
   pass_as_ref:VarAttr?
   bind_to_register:RegisterAttr?
-  param_names:NameList
+  param_names:ParamNameList
   ':' coerce_type:CheatAttr? param_ty:Type
+
+ParamNameList =
+  names:ParamName*
+
+ParamName =
+  Name ','?
 
 CollectionType =
   'collection' 'of' ( elem_ty:Type | ( 'forward' Name ) )

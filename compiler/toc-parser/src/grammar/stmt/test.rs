@@ -19,9 +19,10 @@ fn parse_opt_semicolon() {
                 ConstVarDecl@0..11
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..5
-                    Name@4..5
-                      Identifier@4..5 "i"
+                  ConstVarDeclNameList@4..5
+                    ConstVarDeclName@4..5
+                      Name@4..5
+                        Identifier@4..5 "i"
                   Whitespace@5..6 " "
                   Colon@6..7 ":"
                   Whitespace@7..8 " "
@@ -112,7 +113,7 @@ fn recover_just_var() {
               StmtList@0..3
                 ConstVarDecl@0..3
                   KwVar@0..3 "var"
-                  NameList@3..3
+                  ConstVarDeclNameList@3..3
             error at 0..3: unexpected end of file
             | error for 0..3: expected identifier after here"#]],
     )
@@ -128,9 +129,10 @@ fn parse_var_decl() {
                 ConstVarDecl@0..16
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..5
-                    Name@4..5
-                      Identifier@4..5 "a"
+                  ConstVarDeclNameList@4..5
+                    ConstVarDeclName@4..5
+                      Name@4..5
+                        Identifier@4..5 "a"
                   Whitespace@5..6 " "
                   Colon@6..7 ":"
                   Whitespace@7..8 " "
@@ -154,9 +156,10 @@ fn parse_const_decl() {
                 ConstVarDecl@0..18
                   KwConst@0..5 "const"
                   Whitespace@5..6 " "
-                  NameList@6..7
-                    Name@6..7
-                      Identifier@6..7 "a"
+                  ConstVarDeclNameList@6..7
+                    ConstVarDeclName@6..7
+                      Name@6..7
+                        Identifier@6..7 "a"
                   Whitespace@7..8 " "
                   Colon@8..9 ":"
                   Whitespace@9..10 " "
@@ -180,9 +183,10 @@ fn parse_var_decl_with_alt_eq() {
                 ConstVarDecl@0..15
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..5
-                    Name@4..5
-                      Identifier@4..5 "a"
+                  ConstVarDeclNameList@4..5
+                    ConstVarDeclName@4..5
+                      Name@4..5
+                        Identifier@4..5 "a"
                   Whitespace@5..6 " "
                   Colon@6..7 ":"
                   Whitespace@7..8 " "
@@ -208,9 +212,10 @@ fn parse_const_decl_with_alt_eq() {
                 ConstVarDecl@0..17
                   KwConst@0..5 "const"
                   Whitespace@5..6 " "
-                  NameList@6..7
-                    Name@6..7
-                      Identifier@6..7 "a"
+                  ConstVarDeclNameList@6..7
+                    ConstVarDeclName@6..7
+                      Name@6..7
+                        Identifier@6..7 "a"
                   Whitespace@7..8 " "
                   Colon@8..9 ":"
                   Whitespace@9..10 " "
@@ -239,9 +244,10 @@ fn parse_var_decl_with_pervasive_attr() {
                   PervasiveAttr@4..13
                     KwPervasive@4..13 "pervasive"
                   Whitespace@13..14 " "
-                  NameList@14..15
-                    Name@14..15
-                      Identifier@14..15 "a"
+                  ConstVarDeclNameList@14..15
+                    ConstVarDeclName@14..15
+                      Name@14..15
+                        Identifier@14..15 "a"
                   Whitespace@15..16 " "
                   Colon@16..17 ":"
                   Whitespace@17..18 " "
@@ -263,9 +269,10 @@ fn parse_var_decl_with_alt_pervasive_attr() {
                   PervasiveAttr@4..5
                     Star@4..5 "*"
                   Whitespace@5..6 " "
-                  NameList@6..7
-                    Name@6..7
-                      Identifier@6..7 "a"
+                  ConstVarDeclNameList@6..7
+                    ConstVarDeclName@6..7
+                      Name@6..7
+                        Identifier@6..7 "a"
                   Whitespace@7..8 " "
                   Colon@8..9 ":"
                   Whitespace@9..10 " "
@@ -287,9 +294,10 @@ fn parse_var_decl_with_register_attr() {
                   RegisterAttr@4..12
                     KwRegister@4..12 "register"
                   Whitespace@12..13 " "
-                  NameList@13..14
-                    Name@13..14
-                      Identifier@13..14 "a"
+                  ConstVarDeclNameList@13..14
+                    ConstVarDeclName@13..14
+                      Name@13..14
+                        Identifier@13..14 "a"
                   Whitespace@14..15 " "
                   Colon@15..16 ":"
                   Whitespace@16..17 " "
@@ -314,9 +322,10 @@ fn parse_var_decl_with_all_attrs() {
                   RegisterAttr@14..22
                     KwRegister@14..22 "register"
                   Whitespace@22..23 " "
-                  NameList@23..24
-                    Name@23..24
-                      Identifier@23..24 "a"
+                  ConstVarDeclNameList@23..24
+                    ConstVarDeclName@23..24
+                      Name@23..24
+                        Identifier@23..24 "a"
                   Whitespace@24..25 " "
                   Colon@25..26 ":"
                   Whitespace@26..27 " "
@@ -335,9 +344,10 @@ fn parse_var_decl_no_init() {
                 ConstVarDecl@0..11
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..5
-                    Name@4..5
-                      Identifier@4..5 "a"
+                  ConstVarDeclNameList@4..5
+                    ConstVarDeclName@4..5
+                      Name@4..5
+                        Identifier@4..5 "a"
                   Whitespace@5..6 " "
                   Colon@6..7 ":"
                   Whitespace@7..8 " "
@@ -356,9 +366,10 @@ fn recover_const_decl_no_init() {
                 ConstVarDecl@0..13
                   KwConst@0..5 "const"
                   Whitespace@5..6 " "
-                  NameList@6..7
-                    Name@6..7
-                      Identifier@6..7 "a"
+                  ConstVarDeclNameList@6..7
+                    ConstVarDeclName@6..7
+                      Name@6..7
+                        Identifier@6..7 "a"
                   Whitespace@7..8 " "
                   Colon@8..9 ":"
                   Whitespace@9..10 " "
@@ -379,17 +390,20 @@ fn parse_var_decl_multiple_names() {
                 ConstVarDecl@0..16
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..11
-                    Name@4..5
-                      Identifier@4..5 "a"
-                    Comma@5..6 ","
+                  ConstVarDeclNameList@4..11
+                    ConstVarDeclName@4..6
+                      Name@4..5
+                        Identifier@4..5 "a"
+                      Comma@5..6 ","
                     Whitespace@6..7 " "
-                    Name@7..8
-                      Identifier@7..8 "b"
-                    Comma@8..9 ","
+                    ConstVarDeclName@7..9
+                      Name@7..8
+                        Identifier@7..8 "b"
+                      Comma@8..9 ","
                     Whitespace@9..10 " "
-                    Name@10..11
-                      Identifier@10..11 "c"
+                    ConstVarDeclName@10..11
+                      Name@10..11
+                        Identifier@10..11 "c"
                   Whitespace@11..12 " "
                   Assign@12..14 ":="
                   Whitespace@14..15 " "
@@ -400,32 +414,40 @@ fn parse_var_decl_multiple_names() {
 
 #[test]
 fn recover_not_name_in_var_decl_multiple_names() {
+    // FIXME: regressed, add general kw as name recovery
     check(
         "var a, to, c := 1",
         expect![[r#"
             Source@0..17
               StmtList@0..17
-                ConstVarDecl@0..17
+                ConstVarDecl@0..9
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..12
-                    Name@4..5
-                      Identifier@4..5 "a"
-                    Comma@5..6 ","
+                  ConstVarDeclNameList@4..9
+                    ConstVarDeclName@4..6
+                      Name@4..5
+                        Identifier@4..5 "a"
+                      Comma@5..6 ","
                     Whitespace@6..7 " "
                     Error@7..9
                       KwTo@7..9 "to"
-                    Comma@9..10 ","
-                    Whitespace@10..11 " "
-                    Name@11..12
+                Error@9..10
+                  Comma@9..10 ","
+                Whitespace@10..11 " "
+                AssignStmt@11..17
+                  NameExpr@11..12
+                    NameRef@11..12
                       Identifier@11..12 "c"
                   Whitespace@12..13 " "
-                  Assign@13..15 ":="
+                  AsnOp@13..15
+                    Assign@13..15 ":="
                   Whitespace@15..16 " "
                   LiteralExpr@16..17
                     IntLiteral@16..17 "1"
             error at 7..9: unexpected token
-            | error for 7..9: expected identifier, but found `to`"#]],
+            | error for 7..9: expected identifier, but found `to`
+            error at 9..10: unexpected token
+            | error for 9..10: expected `:` or `:=`, but found `,`"#]],
     );
 }
 
@@ -439,7 +461,7 @@ fn recover_not_name_in_var_decl() {
                 ConstVarDecl@0..11
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..6
+                  ConstVarDeclNameList@4..6
                     Error@4..6
                       KwTo@4..6 "to"
                   Whitespace@6..7 " "
@@ -462,9 +484,10 @@ fn recover_bare_var_decl() {
                 ConstVarDecl@0..5
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..5
-                    Name@4..5
-                      Identifier@4..5 "a"
+                  ConstVarDeclNameList@4..5
+                    ConstVarDeclName@4..5
+                      Name@4..5
+                        Identifier@4..5 "a"
             error at 4..5: unexpected end of file
             | error for 4..5: expected `,`, `:` or `:=` after here"#]],
     )
@@ -480,9 +503,10 @@ fn recover_bare_const_decl() {
                 ConstVarDecl@0..7
                   KwConst@0..5 "const"
                   Whitespace@5..6 " "
-                  NameList@6..7
-                    Name@6..7
-                      Identifier@6..7 "a"
+                  ConstVarDeclNameList@6..7
+                    ConstVarDeclName@6..7
+                      Name@6..7
+                        Identifier@6..7 "a"
             error at 6..7: unexpected end of file
             | error for 6..7: expected `,`, `:` or `:=` after here"#]],
     )
@@ -498,9 +522,10 @@ fn recover_var_decl_missing_ty() {
                 ConstVarDecl@0..12
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..5
-                    Name@4..5
-                      Identifier@4..5 "a"
+                  ConstVarDeclNameList@4..5
+                    ConstVarDeclName@4..5
+                      Name@4..5
+                        Identifier@4..5 "a"
                   Whitespace@5..6 " "
                   Colon@6..7 ":"
                   Whitespace@7..8 " "
@@ -523,9 +548,10 @@ fn recover_var_decl_not_a_ty() {
                 ConstVarDecl@0..15
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..5
-                    Name@4..5
-                      Identifier@4..5 "a"
+                  ConstVarDeclNameList@4..5
+                    ConstVarDeclName@4..5
+                      Name@4..5
+                        Identifier@4..5 "a"
                   Whitespace@5..6 " "
                   Colon@6..7 ":"
                   Whitespace@7..8 " "
@@ -551,7 +577,7 @@ fn recover_var_decl_missing_name() {
                 ConstVarDecl@0..9
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..4
+                  ConstVarDeclNameList@4..4
                   Colon@4..5 ":"
                   Whitespace@5..6 " "
                   PrimType@6..9
@@ -571,10 +597,11 @@ fn recover_var_decl_missing_final_name() {
                 ConstVarDecl@0..12
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..6
-                    Name@4..5
-                      Identifier@4..5 "a"
-                    Comma@5..6 ","
+                  ConstVarDeclNameList@4..6
+                    ConstVarDeclName@4..6
+                      Name@4..5
+                        Identifier@4..5 "a"
+                      Comma@5..6 ","
                   Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
@@ -595,9 +622,10 @@ fn parse_var_decl_inferred_ty() {
                 ConstVarDecl@0..10
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..5
-                    Name@4..5
-                      Identifier@4..5 "a"
+                  ConstVarDeclNameList@4..5
+                    ConstVarDeclName@4..5
+                      Name@4..5
+                        Identifier@4..5 "a"
                   Whitespace@5..6 " "
                   Assign@6..8 ":="
                   Whitespace@8..9 " "
@@ -616,9 +644,10 @@ fn parse_const_decl_inferred_ty() {
                 ConstVarDecl@0..12
                   KwConst@0..5 "const"
                   Whitespace@5..6 " "
-                  NameList@6..7
-                    Name@6..7
-                      Identifier@6..7 "a"
+                  ConstVarDeclNameList@6..7
+                    ConstVarDeclName@6..7
+                      Name@6..7
+                        Identifier@6..7 "a"
                   Whitespace@7..8 " "
                   Assign@8..10 ":="
                   Whitespace@10..11 " "
@@ -637,9 +666,10 @@ fn parse_several_stmts() {
                 ConstVarDecl@0..12
                   KwConst@0..5 "const"
                   Whitespace@5..6 " "
-                  NameList@6..7
-                    Name@6..7
-                      Identifier@6..7 "a"
+                  ConstVarDeclNameList@6..7
+                    ConstVarDeclName@6..7
+                      Name@6..7
+                        Identifier@6..7 "a"
                   Whitespace@7..8 " "
                   Assign@8..10 ":="
                   Whitespace@10..11 " "
@@ -663,18 +693,20 @@ fn recover_on_var() {
                 ConstVarDecl@0..10
                   KwConst@0..5 "const"
                   Whitespace@5..6 " "
-                  NameList@6..7
-                    Name@6..7
-                      Identifier@6..7 "a"
+                  ConstVarDeclNameList@6..7
+                    ConstVarDeclName@6..7
+                      Name@6..7
+                        Identifier@6..7 "a"
                   Whitespace@7..8 " "
                   Assign@8..10 ":="
                 Whitespace@10..12 " \n"
                 ConstVarDecl@12..22
                   KwVar@12..15 "var"
                   Whitespace@15..16 " "
-                  NameList@16..17
-                    Name@16..17
-                      Identifier@16..17 "b"
+                  ConstVarDeclNameList@16..17
+                    ConstVarDeclName@16..17
+                      Name@16..17
+                        Identifier@16..17 "b"
                   Whitespace@17..18 " "
                   Assign@18..20 ":="
                   Whitespace@20..21 " "
@@ -695,18 +727,20 @@ fn recover_on_const() {
                 ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..5
-                    Name@4..5
-                      Identifier@4..5 "a"
+                  ConstVarDeclNameList@4..5
+                    ConstVarDeclName@4..5
+                      Name@4..5
+                        Identifier@4..5 "a"
                   Whitespace@5..6 " "
                   Assign@6..8 ":="
                 Whitespace@8..10 " \n"
                 ConstVarDecl@10..22
                   KwConst@10..15 "const"
                   Whitespace@15..16 " "
-                  NameList@16..17
-                    Name@16..17
-                      Identifier@16..17 "b"
+                  ConstVarDeclNameList@16..17
+                    ConstVarDeclName@16..17
+                      Name@16..17
+                        Identifier@16..17 "b"
                   Whitespace@17..18 " "
                   Assign@18..20 ":="
                   Whitespace@20..21 " "
@@ -1582,9 +1616,10 @@ fn recover_on_type() {
                 ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..5
-                    Name@4..5
-                      Identifier@4..5 "a"
+                  ConstVarDeclNameList@4..5
+                    ConstVarDeclName@4..5
+                      Name@4..5
+                        Identifier@4..5 "a"
                   Whitespace@5..6 " "
                   Assign@6..8 ":="
                 Whitespace@8..10 " \n"
@@ -1617,9 +1652,10 @@ fn parse_block_stmt() {
                     ConstVarDecl@6..16
                       KwVar@6..9 "var"
                       Whitespace@9..10 " "
-                      NameList@10..11
-                        Name@10..11
-                          Identifier@10..11 "a"
+                      ConstVarDeclNameList@10..11
+                        ConstVarDeclName@10..11
+                          Name@10..11
+                            Identifier@10..11 "a"
                       Whitespace@11..12 " "
                       Assign@12..14 ":="
                       Whitespace@14..15 " "
@@ -1657,9 +1693,10 @@ fn recover_on_block_stmt() {
                 ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..5
-                    Name@4..5
-                      Identifier@4..5 "a"
+                  ConstVarDeclNameList@4..5
+                    ConstVarDeclName@4..5
+                      Name@4..5
+                        Identifier@4..5 "a"
                   Whitespace@5..6 " "
                   Assign@6..8 ":="
                 Whitespace@8..9 " "
@@ -1694,9 +1731,10 @@ fn parse_if_stmt() {
                       ConstVarDecl@13..26
                         KwVar@13..16 "var"
                         Whitespace@16..17 " "
-                        NameList@17..20
-                          Name@17..20
-                            Identifier@17..20 "key"
+                        ConstVarDeclNameList@17..20
+                          ConstVarDeclName@17..20
+                            Name@17..20
+                              Identifier@17..20 "key"
                         Whitespace@20..21 " "
                         Colon@21..22 ":"
                         Whitespace@22..23 " "
@@ -2119,9 +2157,10 @@ fn recover_on_if() {
                 ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..5
-                    Name@4..5
-                      Identifier@4..5 "a"
+                  ConstVarDeclNameList@4..5
+                    ConstVarDeclName@4..5
+                      Name@4..5
+                        Identifier@4..5 "a"
                   Whitespace@5..6 " "
                   Assign@6..8 ":="
                 Whitespace@8..10 " \n"
@@ -2154,9 +2193,10 @@ fn recover_on_else() {
                 ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..5
-                    Name@4..5
-                      Identifier@4..5 "a"
+                  ConstVarDeclNameList@4..5
+                    ConstVarDeclName@4..5
+                      Name@4..5
+                        Identifier@4..5 "a"
                   Whitespace@5..6 " "
                   Assign@6..8 ":="
                 Whitespace@8..10 " \n"
@@ -2183,9 +2223,10 @@ fn recover_on_elseif() {
                 ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..5
-                    Name@4..5
-                      Identifier@4..5 "a"
+                  ConstVarDeclNameList@4..5
+                    ConstVarDeclName@4..5
+                      Name@4..5
+                        Identifier@4..5 "a"
                   Whitespace@5..6 " "
                   Assign@6..8 ":="
                 Whitespace@8..10 " \n"
@@ -2220,9 +2261,10 @@ fn recover_on_elsif() {
                 ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..5
-                    Name@4..5
-                      Identifier@4..5 "a"
+                  ConstVarDeclNameList@4..5
+                    ConstVarDeclName@4..5
+                      Name@4..5
+                        Identifier@4..5 "a"
                   Whitespace@5..6 " "
                   Assign@6..8 ":="
                 Whitespace@8..10 " \n"
@@ -2255,9 +2297,10 @@ fn recover_on_elif() {
                 ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..5
-                    Name@4..5
-                      Identifier@4..5 "a"
+                  ConstVarDeclNameList@4..5
+                    ConstVarDeclName@4..5
+                      Name@4..5
+                        Identifier@4..5 "a"
                   Whitespace@5..6 " "
                   Assign@6..8 ":="
                 Whitespace@8..10 " \n"
@@ -2421,9 +2464,10 @@ fn recover_on_invariant() {
                 ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..5
-                    Name@4..5
-                      Identifier@4..5 "i"
+                  ConstVarDeclNameList@4..5
+                    ConstVarDeclName@4..5
+                      Name@4..5
+                        Identifier@4..5 "i"
                   Whitespace@5..6 " "
                   Assign@6..8 ":="
                 Whitespace@8..10 " \n"
@@ -2485,9 +2529,10 @@ fn recover_on_assert() {
                 ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..5
-                    Name@4..5
-                      Identifier@4..5 "i"
+                  ConstVarDeclNameList@4..5
+                    ConstVarDeclName@4..5
+                      Name@4..5
+                        Identifier@4..5 "i"
                   Whitespace@5..6 " "
                   Assign@6..8 ":="
                 Whitespace@8..10 " \n"
@@ -2557,9 +2602,10 @@ fn recover_on_signal() {
                 ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..5
-                    Name@4..5
-                      Identifier@4..5 "i"
+                  ConstVarDeclNameList@4..5
+                    ConstVarDeclName@4..5
+                      Name@4..5
+                        Identifier@4..5 "i"
                   Whitespace@5..6 " "
                   Assign@6..8 ":="
                 Whitespace@8..10 " \n"
@@ -2625,9 +2671,10 @@ fn recover_on_pause() {
                 ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..5
-                    Name@4..5
-                      Identifier@4..5 "i"
+                  ConstVarDeclNameList@4..5
+                    ConstVarDeclName@4..5
+                      Name@4..5
+                        Identifier@4..5 "i"
                   Whitespace@5..6 " "
                   Assign@6..8 ":="
                 Whitespace@8..10 " \n"
@@ -2680,9 +2727,10 @@ fn recover_on_result() {
                 ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..5
-                    Name@4..5
-                      Identifier@4..5 "i"
+                  ConstVarDeclNameList@4..5
+                    ConstVarDeclName@4..5
+                      Name@4..5
+                        Identifier@4..5 "i"
                   Whitespace@5..6 " "
                   Assign@6..8 ":="
                 Whitespace@8..10 " \n"
@@ -2718,9 +2766,10 @@ fn recover_on_return() {
                 ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..5
-                    Name@4..5
-                      Identifier@4..5 "i"
+                  ConstVarDeclNameList@4..5
+                    ConstVarDeclName@4..5
+                      Name@4..5
+                        Identifier@4..5 "i"
                   Whitespace@5..6 " "
                   Assign@6..8 ":="
                 Whitespace@8..10 " \n"
@@ -2753,9 +2802,10 @@ fn recover_on_checked() {
                 ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..5
-                    Name@4..5
-                      Identifier@4..5 "i"
+                  ConstVarDeclNameList@4..5
+                    ConstVarDeclName@4..5
+                      Name@4..5
+                        Identifier@4..5 "i"
                   Whitespace@5..6 " "
                   Assign@6..8 ":="
                 Whitespace@8..10 " \n"
@@ -2788,9 +2838,10 @@ fn recover_on_unchecked() {
                 ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..5
-                    Name@4..5
-                      Identifier@4..5 "i"
+                  ConstVarDeclNameList@4..5
+                    ConstVarDeclName@4..5
+                      Name@4..5
+                        Identifier@4..5 "i"
                   Whitespace@5..6 " "
                   Assign@6..8 ":="
                 Whitespace@8..10 " \n"
@@ -2945,9 +2996,10 @@ fn recover_on_loop() {
                 ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..5
-                    Name@4..5
-                      Identifier@4..5 "i"
+                  ConstVarDeclNameList@4..5
+                    ConstVarDeclName@4..5
+                      Name@4..5
+                        Identifier@4..5 "i"
                   Whitespace@5..6 " "
                   Assign@6..8 ":="
                 Whitespace@8..10 " \n"
@@ -3019,9 +3071,10 @@ fn recover_on_exit() {
                 ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..5
-                    Name@4..5
-                      Identifier@4..5 "i"
+                  ConstVarDeclNameList@4..5
+                    ConstVarDeclName@4..5
+                      Name@4..5
+                        Identifier@4..5 "i"
                   Whitespace@5..6 " "
                   Assign@6..8 ":="
                 Whitespace@8..10 " \n"
@@ -3491,9 +3544,10 @@ fn recover_on_for_loop() {
                 ConstVarDecl@5..13
                   KwVar@5..8 "var"
                   Whitespace@8..9 " "
-                  NameList@9..10
-                    Name@9..10
-                      Identifier@9..10 "i"
+                  ConstVarDeclNameList@9..10
+                    ConstVarDeclName@9..10
+                      Name@9..10
+                        Identifier@9..10 "i"
                   Whitespace@10..11 " "
                   Assign@11..13 ":="
                 Whitespace@13..18 "\n    "
@@ -3742,9 +3796,10 @@ fn recover_on_case_stmt() {
                 ConstVarDecl@5..13
                   KwVar@5..8 "var"
                   Whitespace@8..9 " "
-                  NameList@9..10
-                    Name@9..10
-                      Identifier@9..10 "i"
+                  ConstVarDeclNameList@9..10
+                    ConstVarDeclName@9..10
+                      Name@9..10
+                        Identifier@9..10 "i"
                   Whitespace@10..11 " "
                   Assign@11..13 ":="
                 Whitespace@13..18 "\n    "
@@ -4038,9 +4093,10 @@ fn recover_on_bind() {
                 ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..5
-                    Name@4..5
-                      Identifier@4..5 "i"
+                  ConstVarDeclNameList@4..5
+                    ConstVarDeclName@4..5
+                      Name@4..5
+                        Identifier@4..5 "i"
                   Whitespace@5..6 " "
                   Assign@6..8 ":="
                 Whitespace@8..10 " \n"
@@ -4082,9 +4138,10 @@ fn parse_proc_decl() {
                     ParamSpec@17..26
                       LeftParen@17..18 "("
                       ConstVarParam@18..25
-                        NameList@18..19
-                          Name@18..19
-                            Identifier@18..19 "a"
+                        ParamNameList@18..19
+                          ParamName@18..19
+                            Name@18..19
+                              Identifier@18..19 "a"
                         Whitespace@19..20 " "
                         Colon@20..21 ":"
                         Whitespace@21..22 " "
@@ -4128,9 +4185,10 @@ fn parse_proc_decl_opt_devspec() {
                     ParamSpec@17..26
                       LeftParen@17..18 "("
                       ConstVarParam@18..25
-                        NameList@18..19
-                          Name@18..19
-                            Identifier@18..19 "a"
+                        ParamNameList@18..19
+                          ParamName@18..19
+                            Name@18..19
+                              Identifier@18..19 "a"
                         Whitespace@19..20 " "
                         Colon@20..21 ":"
                         Whitespace@21..22 " "
@@ -4308,9 +4366,10 @@ fn recover_on_proc() {
                 ConstVarDecl@5..13
                   KwVar@5..8 "var"
                   Whitespace@8..9 " "
-                  NameList@9..10
-                    Name@9..10
-                      Identifier@9..10 "i"
+                  ConstVarDeclNameList@9..10
+                    ConstVarDeclName@9..10
+                      Name@9..10
+                        Identifier@9..10 "i"
                   Whitespace@10..11 " "
                   Assign@11..13 ":="
                 Whitespace@13..18 "\n    "
@@ -4359,9 +4418,10 @@ fn parse_fcn_decl() {
                     ParamSpec@16..25
                       LeftParen@16..17 "("
                       ConstVarParam@17..24
-                        NameList@17..18
-                          Name@17..18
-                            Identifier@17..18 "a"
+                        ParamNameList@17..18
+                          ParamName@17..18
+                            Name@17..18
+                              Identifier@17..18 "a"
                         Whitespace@18..19 " "
                         Colon@19..20 ":"
                         Whitespace@20..21 " "
@@ -4411,9 +4471,10 @@ fn parse_fcn_decl_opt_ret_name() {
                     ParamSpec@11..20
                       LeftParen@11..12 "("
                       ConstVarParam@12..19
-                        NameList@12..13
-                          Name@12..13
-                            Identifier@12..13 "a"
+                        ParamNameList@12..13
+                          ParamName@12..13
+                            Name@12..13
+                              Identifier@12..13 "a"
                         Whitespace@13..14 " "
                         Colon@14..15 ":"
                         Whitespace@15..16 " "
@@ -4844,9 +4905,10 @@ fn recover_on_fcn() {
                 ConstVarDecl@5..13
                   KwVar@5..8 "var"
                   Whitespace@8..9 " "
-                  NameList@9..10
-                    Name@9..10
-                      Identifier@9..10 "i"
+                  ConstVarDeclNameList@9..10
+                    ConstVarDeclName@9..10
+                      Name@9..10
+                        Identifier@9..10 "i"
                   Whitespace@10..11 " "
                   Assign@11..13 ":="
                 Whitespace@13..18 "\n    "
@@ -4931,9 +4993,10 @@ fn recover_on_pre() {
                 ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..5
-                    Name@4..5
-                      Identifier@4..5 "i"
+                  ConstVarDeclNameList@4..5
+                    ConstVarDeclName@4..5
+                      Name@4..5
+                        Identifier@4..5 "i"
                   Whitespace@5..6 " "
                   Assign@6..8 ":="
                 Whitespace@8..10 " \n"
@@ -4998,9 +5061,10 @@ fn recover_on_post() {
                 ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..5
-                    Name@4..5
-                      Identifier@4..5 "i"
+                  ConstVarDeclNameList@4..5
+                    ConstVarDeclName@4..5
+                      Name@4..5
+                        Identifier@4..5 "i"
                   Whitespace@5..6 " "
                   Assign@6..8 ":="
                 Whitespace@8..10 " \n"
@@ -5387,9 +5451,10 @@ fn recover_on_handler() {
                 ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..5
-                    Name@4..5
-                      Identifier@4..5 "i"
+                  ConstVarDeclNameList@4..5
+                    ConstVarDeclName@4..5
+                      Name@4..5
+                        Identifier@4..5 "i"
                   Whitespace@5..6 " "
                   Assign@6..8 ":="
                 Whitespace@8..10 " \n"
@@ -5529,9 +5594,10 @@ fn recover_on_quit() {
                 ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..5
-                    Name@4..5
-                      Identifier@4..5 "i"
+                  ConstVarDeclNameList@4..5
+                    ConstVarDeclName@4..5
+                      Name@4..5
+                        Identifier@4..5 "i"
                   Whitespace@5..6 " "
                   Assign@6..8 ":="
                 Whitespace@8..10 " \n"
@@ -5652,9 +5718,10 @@ fn recover_on_tag() {
                 ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..5
-                    Name@4..5
-                      Identifier@4..5 "i"
+                  ConstVarDeclNameList@4..5
+                    ConstVarDeclName@4..5
+                      Name@4..5
+                        Identifier@4..5 "i"
                   Whitespace@5..6 " "
                   Assign@6..8 ":="
                 Whitespace@8..10 " \n"
@@ -5948,9 +6015,10 @@ fn recover_on_fork() {
                 ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..5
-                    Name@4..5
-                      Identifier@4..5 "i"
+                  ConstVarDeclNameList@4..5
+                    ConstVarDeclName@4..5
+                      Name@4..5
+                        Identifier@4..5 "i"
                   Whitespace@5..6 " "
                   Assign@6..8 ":="
                 Whitespace@8..10 " \n"
@@ -6062,9 +6130,10 @@ fn recover_on_new() {
                 ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..5
-                    Name@4..5
-                      Identifier@4..5 "i"
+                  ConstVarDeclNameList@4..5
+                    ConstVarDeclName@4..5
+                      Name@4..5
+                        Identifier@4..5 "i"
                   Whitespace@5..6 " "
                   Assign@6..8 ":="
                 Whitespace@8..10 " \n"
@@ -6178,9 +6247,10 @@ fn recover_on_free() {
                 ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..5
-                    Name@4..5
-                      Identifier@4..5 "i"
+                  ConstVarDeclNameList@4..5
+                    ConstVarDeclName@4..5
+                      Name@4..5
+                        Identifier@4..5 "i"
                   Whitespace@5..6 " "
                   Assign@6..8 ":="
                 Whitespace@8..10 " \n"
@@ -6271,9 +6341,10 @@ fn recover_on_deferred() {
                 ConstVarDecl@5..13
                   KwVar@5..8 "var"
                   Whitespace@8..9 " "
-                  NameList@9..10
-                    Name@9..10
-                      Identifier@9..10 "i"
+                  ConstVarDeclNameList@9..10
+                    ConstVarDeclName@9..10
+                      Name@9..10
+                        Identifier@9..10 "i"
                   Whitespace@10..11 " "
                   Assign@11..13 ":="
                 Whitespace@13..19 " \n    "
@@ -6443,9 +6514,10 @@ fn recover_on_forward() {
                 ConstVarDecl@5..13
                   KwVar@5..8 "var"
                   Whitespace@8..9 " "
-                  NameList@9..10
-                    Name@9..10
-                      Identifier@9..10 "i"
+                  ConstVarDeclNameList@9..10
+                    ConstVarDeclName@9..10
+                      Name@9..10
+                        Identifier@9..10 "i"
                   Whitespace@10..11 " "
                   Assign@11..13 ":="
                 Whitespace@13..19 " \n    "
@@ -6671,9 +6743,10 @@ fn parse_body_plain_with_params() {
                     ParamSpec@12..21
                       LeftParen@12..13 "("
                       ConstVarParam@13..20
-                        NameList@13..14
-                          Name@13..14
-                            Identifier@13..14 "k"
+                        ParamNameList@13..14
+                          ParamName@13..14
+                            Name@13..14
+                              Identifier@13..14 "k"
                         Whitespace@14..15 " "
                         Colon@15..16 ":"
                         Whitespace@16..17 " "
@@ -6710,9 +6783,10 @@ fn parse_body_plain_with_params_and_ret_ty() {
                     ParamSpec@12..21
                       LeftParen@12..13 "("
                       ConstVarParam@13..20
-                        NameList@13..14
-                          Name@13..14
-                            Identifier@13..14 "k"
+                        ParamNameList@13..14
+                          ParamName@13..14
+                            Name@13..14
+                              Identifier@13..14 "k"
                         Whitespace@14..15 " "
                         Colon@15..16 ":"
                         Whitespace@16..17 " "
@@ -6788,9 +6862,10 @@ fn parse_body_plain_with_params_and_full_ret_ty() {
                     ParamSpec@12..21
                       LeftParen@12..13 "("
                       ConstVarParam@13..20
-                        NameList@13..14
-                          Name@13..14
-                            Identifier@13..14 "k"
+                        ParamNameList@13..14
+                          ParamName@13..14
+                            Name@13..14
+                              Identifier@13..14 "k"
                         Whitespace@14..15 " "
                         Colon@15..16 ":"
                         Whitespace@16..17 " "
@@ -6889,9 +6964,10 @@ fn recover_body_plain_missing_name() {
                     ParamSpec@5..14
                       LeftParen@5..6 "("
                       ConstVarParam@6..13
-                        NameList@6..7
-                          Name@6..7
-                            Identifier@6..7 "k"
+                        ParamNameList@6..7
+                          ParamName@6..7
+                            Name@6..7
+                              Identifier@6..7 "k"
                         Whitespace@7..8 " "
                         Colon@8..9 ":"
                         Whitespace@9..10 " "
@@ -6942,9 +7018,10 @@ fn recover_on_body() {
                 ConstVarDecl@5..13
                   KwVar@5..8 "var"
                   Whitespace@8..9 " "
-                  NameList@9..10
-                    Name@9..10
-                      Identifier@9..10 "i"
+                  ConstVarDeclNameList@9..10
+                    ConstVarDeclName@9..10
+                      Name@9..10
+                        Identifier@9..10 "i"
                   Whitespace@10..11 " "
                   Assign@11..13 ":="
                 Whitespace@13..18 "\n    "
@@ -7416,9 +7493,10 @@ fn recover_on_module() {
                 ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..5
-                    Name@4..5
-                      Identifier@4..5 "i"
+                  ConstVarDeclNameList@4..5
+                    ConstVarDeclName@4..5
+                      Name@4..5
+                        Identifier@4..5 "i"
                   Whitespace@5..6 " "
                   Assign@6..8 ":="
                 Whitespace@8..10 " \n"
@@ -7578,9 +7656,10 @@ fn recover_on_class() {
                 ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..5
-                    Name@4..5
-                      Identifier@4..5 "i"
+                  ConstVarDeclNameList@4..5
+                    ConstVarDeclName@4..5
+                      Name@4..5
+                        Identifier@4..5 "i"
                   Whitespace@5..6 " "
                   Assign@6..8 ":="
                 Whitespace@8..10 " \n"
@@ -7772,9 +7851,10 @@ fn recover_on_monitor() {
                 ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..5
-                    Name@4..5
-                      Identifier@4..5 "i"
+                  ConstVarDeclNameList@4..5
+                    ConstVarDeclName@4..5
+                      Name@4..5
+                        Identifier@4..5 "i"
                   Whitespace@5..6 " "
                   Assign@6..8 ":="
                 Whitespace@8..10 " \n"
@@ -7930,9 +8010,10 @@ fn parse_process_decl() {
                     ParamSpec@15..18
                       LeftParen@15..16 "("
                       ConstVarParam@16..17
-                        NameList@16..17
-                          Name@16..17
-                            Identifier@16..17 "a"
+                        ParamNameList@16..17
+                          ParamName@16..17
+                            Name@16..17
+                              Identifier@16..17 "a"
                       RightParen@17..18 ")"
                   Whitespace@18..27 "\n        "
                   SubprogBody@27..40
@@ -7973,9 +8054,10 @@ fn parse_process_decl_opt_stack_size() {
                     ParamSpec@15..18
                       LeftParen@15..16 "("
                       ConstVarParam@16..17
-                        NameList@16..17
-                          Name@16..17
-                            Identifier@16..17 "a"
+                        ParamNameList@16..17
+                          ParamName@16..17
+                            Name@16..17
+                              Identifier@16..17 "a"
                       RightParen@17..18 ")"
                     Whitespace@18..19 " "
                     Colon@19..20 ":"
@@ -8182,9 +8264,10 @@ fn recover_on_process() {
                 ConstVarDecl@5..13
                   KwVar@5..8 "var"
                   Whitespace@8..9 " "
-                  NameList@9..10
-                    Name@9..10
-                      Identifier@9..10 "i"
+                  ConstVarDeclNameList@9..10
+                    ConstVarDeclName@9..10
+                      Name@9..10
+                        Identifier@9..10 "i"
                   Whitespace@10..11 " "
                   Assign@11..13 ":="
                 Whitespace@13..18 "\n    "
@@ -8538,9 +8621,10 @@ fn recover_external_on_const() {
                 ConstVarDecl@9..27
                   KwConst@9..14 "const"
                   Whitespace@14..15 " "
-                  NameList@15..16
-                    Name@15..16
-                      Identifier@15..16 "a"
+                  ConstVarDeclNameList@15..16
+                    ConstVarDeclName@15..16
+                      Name@15..16
+                        Identifier@15..16 "a"
                   Whitespace@16..17 " "
                   Colon@17..18 ":"
                   Whitespace@18..19 " "
@@ -8580,9 +8664,10 @@ fn recover_on_external() {
                 ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..5
-                    Name@4..5
-                      Identifier@4..5 "i"
+                  ConstVarDeclNameList@4..5
+                    ConstVarDeclName@4..5
+                      Name@4..5
+                        Identifier@4..5 "i"
                   Whitespace@5..6 " "
                   Assign@6..8 ":="
                 Whitespace@8..10 " \n"
@@ -8733,9 +8818,10 @@ fn recover_on_inherit() {
                 ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..5
-                    Name@4..5
-                      Identifier@4..5 "i"
+                  ConstVarDeclNameList@4..5
+                    ConstVarDeclName@4..5
+                      Name@4..5
+                        Identifier@4..5 "i"
                   Whitespace@5..6 " "
                   Assign@6..8 ":="
                 Whitespace@8..9 " "
@@ -8885,9 +8971,10 @@ fn recover_on_implement() {
                 ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..5
-                    Name@4..5
-                      Identifier@4..5 "i"
+                  ConstVarDeclNameList@4..5
+                    ConstVarDeclName@4..5
+                      Name@4..5
+                        Identifier@4..5 "i"
                   Whitespace@5..6 " "
                   Assign@6..8 ":="
                 Whitespace@8..9 " "
@@ -9148,9 +9235,10 @@ fn recover_on_import() {
                 ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..5
-                    Name@4..5
-                      Identifier@4..5 "i"
+                  ConstVarDeclNameList@4..5
+                    ConstVarDeclName@4..5
+                      Name@4..5
+                        Identifier@4..5 "i"
                   Whitespace@5..6 " "
                   Assign@6..8 ":="
                 Whitespace@8..10 " \n"
@@ -9378,9 +9466,10 @@ fn recover_on_export() {
                 ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..5
-                    Name@4..5
-                      Identifier@4..5 "i"
+                  ConstVarDeclNameList@4..5
+                    ConstVarDeclName@4..5
+                      Name@4..5
+                        Identifier@4..5 "i"
                   Whitespace@5..6 " "
                   Assign@6..8 ":="
                 Whitespace@8..10 " \n"
@@ -9604,9 +9693,10 @@ fn recover_on_tell() {
                 ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..5
-                    Name@4..5
-                      Identifier@4..5 "i"
+                  ConstVarDeclNameList@4..5
+                    ConstVarDeclName@4..5
+                      Name@4..5
+                        Identifier@4..5 "i"
                   Whitespace@5..6 " "
                   Assign@6..8 ":="
                 Whitespace@8..10 " \n"
@@ -9751,9 +9841,10 @@ fn recover_on_seek() {
                 ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..5
-                    Name@4..5
-                      Identifier@4..5 "i"
+                  ConstVarDeclNameList@4..5
+                    ConstVarDeclName@4..5
+                      Name@4..5
+                        Identifier@4..5 "i"
                   Whitespace@5..6 " "
                   Assign@6..8 ":="
                 Whitespace@8..10 " \n"
@@ -10181,9 +10272,10 @@ fn recover_on_read() {
                 ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..5
-                    Name@4..5
-                      Identifier@4..5 "i"
+                  ConstVarDeclNameList@4..5
+                    ConstVarDeclName@4..5
+                      Name@4..5
+                        Identifier@4..5 "i"
                   Whitespace@5..6 " "
                   Assign@6..8 ":="
                 Whitespace@8..10 " \n"
@@ -10613,9 +10705,10 @@ fn recover_on_write() {
                 ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..5
-                    Name@4..5
-                      Identifier@4..5 "i"
+                  ConstVarDeclNameList@4..5
+                    ConstVarDeclName@4..5
+                      Name@4..5
+                        Identifier@4..5 "i"
                   Whitespace@5..6 " "
                   Assign@6..8 ":="
                 Whitespace@8..10 " \n"
@@ -11073,9 +11166,10 @@ fn recover_on_open() {
                 ConstVarDecl@9..17
                   KwVar@9..12 "var"
                   Whitespace@12..13 " "
-                  NameList@13..14
-                    Name@13..14
-                      Identifier@13..14 "i"
+                  ConstVarDeclNameList@13..14
+                    ConstVarDeclName@13..14
+                      Name@13..14
+                        Identifier@13..14 "i"
                   Whitespace@14..15 " "
                   Assign@15..17 ":="
                 Whitespace@17..26 "\n        "
@@ -11273,9 +11367,10 @@ fn recover_on_close() {
                 ConstVarDecl@9..17
                   KwVar@9..12 "var"
                   Whitespace@12..13 " "
-                  NameList@13..14
-                    Name@13..14
-                      Identifier@13..14 "i"
+                  ConstVarDeclNameList@13..14
+                    ConstVarDeclName@13..14
+                      Name@13..14
+                        Identifier@13..14 "i"
                   Whitespace@14..15 " "
                   Assign@15..17 ":="
                 Whitespace@17..26 "\n        "
@@ -11683,9 +11778,10 @@ fn recover_on_put() {
                 ConstVarDecl@5..13
                   KwVar@5..8 "var"
                   Whitespace@8..9 " "
-                  NameList@9..10
-                    Name@9..10
-                      Identifier@9..10 "i"
+                  ConstVarDeclNameList@9..10
+                    ConstVarDeclName@9..10
+                      Name@9..10
+                        Identifier@9..10 "i"
                   Whitespace@10..11 " "
                   Assign@11..13 ":="
                 Whitespace@13..18 "\n    "
@@ -11973,9 +12069,10 @@ fn recover_on_get() {
                 ConstVarDecl@5..13
                   KwVar@5..8 "var"
                   Whitespace@8..9 " "
-                  NameList@9..10
-                    Name@9..10
-                      Identifier@9..10 "i"
+                  ConstVarDeclNameList@9..10
+                    ConstVarDeclName@9..10
+                      Name@9..10
+                        Identifier@9..10 "i"
                   Whitespace@10..11 " "
                   Assign@11..13 ":="
                 Whitespace@13..18 "\n    "
@@ -12124,9 +12221,10 @@ fn recover_on_wait() {
                 ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..5
-                    Name@4..5
-                      Identifier@4..5 "i"
+                  ConstVarDeclNameList@4..5
+                    ConstVarDeclName@4..5
+                      Name@4..5
+                        Identifier@4..5 "i"
                   Whitespace@5..6 " "
                   Assign@6..8 ":="
                 Whitespace@8..10 " \n"
@@ -12163,9 +12261,10 @@ fn recover_on_break() {
                 ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..5
-                    Name@4..5
-                      Identifier@4..5 "i"
+                  ConstVarDeclNameList@4..5
+                    ConstVarDeclName@4..5
+                      Name@4..5
+                        Identifier@4..5 "i"
                   Whitespace@5..6 " "
                   Assign@6..8 ":="
                 Whitespace@8..10 " \n"
@@ -12803,5 +12902,137 @@ fn recover_mixed_endings() {
             | error for 11..18: expected `end`, but found `endloop`
             warn at 11..18: `endloop` found
             | warn for 11..18: assuming it to be `end loop`"#]],
+    );
+}
+
+#[test]
+fn dont_eager_eat_constvar_name_list() {
+    check(
+        "const k k := 3",
+        expect![[r#"
+        Source@0..14
+          StmtList@0..14
+            ConstVarDecl@0..7
+              KwConst@0..5 "const"
+              Whitespace@5..6 " "
+              ConstVarDeclNameList@6..7
+                ConstVarDeclName@6..7
+                  Name@6..7
+                    Identifier@6..7 "k"
+            Whitespace@7..8 " "
+            AssignStmt@8..14
+              NameExpr@8..9
+                NameRef@8..9
+                  Identifier@8..9 "k"
+              Whitespace@9..10 " "
+              AsnOp@10..12
+                Assign@10..12 ":="
+              Whitespace@12..13 " "
+              LiteralExpr@13..14
+                IntLiteral@13..14 "3"
+        error at 8..9: unexpected token
+        | error for 8..9: expected `,`, `:` or `:=`, but found identifier"#]],
+    );
+}
+
+#[test]
+fn dont_eager_eat_constvar_param_name_list() {
+    check(
+        "proc a(k k : int) end a",
+        expect![[r#"
+        Source@0..23
+          StmtList@0..23
+            ProcDecl@0..23
+              ProcHeader@0..17
+                KwProcedure@0..4 "proc"
+                Whitespace@4..5 " "
+                Name@5..6
+                  Identifier@5..6 "a"
+                ParamSpec@6..17
+                  LeftParen@6..7 "("
+                  ConstVarParam@7..16
+                    ParamNameList@7..10
+                      ParamName@7..8
+                        Name@7..8
+                          Identifier@7..8 "k"
+                      Whitespace@8..9 " "
+                      ParamName@9..10
+                        Name@9..10
+                          Identifier@9..10 "k"
+                    Whitespace@10..11 " "
+                    Colon@11..12 ":"
+                    Whitespace@12..13 " "
+                    PrimType@13..16
+                      KwInt@13..16 "int"
+                  RightParen@16..17 ")"
+              Whitespace@17..18 " "
+              SubprogBody@18..18
+                StmtList@18..18
+              EndGroup@18..23
+                KwEnd@18..21 "end"
+                Whitespace@21..22 " "
+                Identifier@22..23 "a"
+        error at 9..10: unexpected token
+        | error for 9..10: expected `,`, but found identifier"#]],
+    );
+}
+
+#[test]
+fn eager_eat_constvar_param_name_list_without_colon() {
+    check(
+        "proc a(k k int, c c : int) end a",
+        expect![[r#"
+        Source@0..32
+          StmtList@0..32
+            ProcDecl@0..32
+              ProcHeader@0..26
+                KwProcedure@0..4 "proc"
+                Whitespace@4..5 " "
+                Name@5..6
+                  Identifier@5..6 "a"
+                ParamSpec@6..26
+                  LeftParen@6..7 "("
+                  ConstVarParam@7..14
+                    ParamNameList@7..10
+                      ParamName@7..8
+                        Name@7..8
+                          Identifier@7..8 "k"
+                      Whitespace@8..9 " "
+                      ParamName@9..10
+                        Name@9..10
+                          Identifier@9..10 "k"
+                    Whitespace@10..11 " "
+                    PrimType@11..14
+                      KwInt@11..14 "int"
+                  Comma@14..15 ","
+                  Whitespace@15..16 " "
+                  ConstVarParam@16..25
+                    ParamNameList@16..19
+                      ParamName@16..17
+                        Name@16..17
+                          Identifier@16..17 "c"
+                      Whitespace@17..18 " "
+                      ParamName@18..19
+                        Name@18..19
+                          Identifier@18..19 "c"
+                    Whitespace@19..20 " "
+                    Colon@20..21 ":"
+                    Whitespace@21..22 " "
+                    PrimType@22..25
+                      KwInt@22..25 "int"
+                  RightParen@25..26 ")"
+              Whitespace@26..27 " "
+              SubprogBody@27..27
+                StmtList@27..27
+              EndGroup@27..32
+                KwEnd@27..30 "end"
+                Whitespace@30..31 " "
+                Identifier@31..32 "a"
+        error at 9..10: unexpected token
+        | error for 9..10: expected `,`, but found identifier
+        error at 11..14: unexpected token
+        | error for 11..14: expected `,` or `:`, but found `int`
+        error at 18..19: unexpected token
+        | error for 18..19: expected `,`, but found identifier"#]],
     );
 }

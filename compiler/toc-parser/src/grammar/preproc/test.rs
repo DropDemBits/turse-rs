@@ -686,9 +686,10 @@ mod cond {
                     ConstVarDecl@5..13
                       KwVar@5..8 "var"
                       Whitespace@8..9 " "
-                      NameList@9..10
-                        Name@9..10
-                          Identifier@9..10 "i"
+                      ConstVarDeclNameList@9..10
+                        ConstVarDeclName@9..10
+                          Name@9..10
+                            Identifier@9..10 "i"
                       Whitespace@10..11 " "
                       Assign@11..13 ":="
                     Whitespace@13..18 "\n    "
@@ -737,9 +738,10 @@ mod cond {
                     ConstVarDecl@5..13
                       KwVar@5..8 "var"
                       Whitespace@8..9 " "
-                      NameList@9..10
-                        Name@9..10
-                          Identifier@9..10 "i"
+                      ConstVarDeclNameList@9..10
+                        ConstVarDeclName@9..10
+                          Name@9..10
+                            Identifier@9..10 "i"
                       Whitespace@10..11 " "
                       Assign@11..13 ":="
                     Whitespace@13..18 "\n    "
@@ -788,9 +790,10 @@ mod cond {
                     ConstVarDecl@5..13
                       KwVar@5..8 "var"
                       Whitespace@8..9 " "
-                      NameList@9..10
-                        Name@9..10
-                          Identifier@9..10 "i"
+                      ConstVarDeclNameList@9..10
+                        ConstVarDeclName@9..10
+                          Name@9..10
+                            Identifier@9..10 "i"
                       Whitespace@10..11 " "
                       Assign@11..13 ":="
                     Whitespace@13..18 "\n    "
@@ -841,9 +844,10 @@ mod cond {
                     ConstVarDecl@5..13
                       KwVar@5..8 "var"
                       Whitespace@8..9 " "
-                      NameList@9..10
-                        Name@9..10
-                          Identifier@9..10 "i"
+                      ConstVarDeclNameList@9..10
+                        ConstVarDeclName@9..10
+                          Name@9..10
+                            Identifier@9..10 "i"
                       Whitespace@10..11 " "
                       Assign@11..13 ":="
                     Whitespace@13..18 "\n    "
@@ -884,9 +888,10 @@ mod cond {
                     ConstVarDecl@5..13
                       KwVar@5..8 "var"
                       Whitespace@8..9 " "
-                      NameList@9..10
-                        Name@9..10
-                          Identifier@9..10 "i"
+                      ConstVarDeclNameList@9..10
+                        ConstVarDeclName@9..10
+                          Name@9..10
+                            Identifier@9..10 "i"
                       Whitespace@10..11 " "
                       Assign@11..13 ":="
                     Whitespace@13..18 "\n    "
@@ -914,9 +919,10 @@ mod cond {
                     ConstVarDecl@5..13
                       KwVar@5..8 "var"
                       Whitespace@8..9 " "
-                      NameList@9..10
-                        Name@9..10
-                          Identifier@9..10 "i"
+                      ConstVarDeclNameList@9..10
+                        ConstVarDeclName@9..10
+                          Name@9..10
+                            Identifier@9..10 "i"
                       Whitespace@10..11 " "
                       Assign@11..13 ":="
                     Whitespace@13..18 "\n    "

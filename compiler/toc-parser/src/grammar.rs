@@ -338,24 +338,47 @@ pub(self) fn name(p: &mut Parser) -> Option<CompletedMarker> {
     }
 }
 
-pub(self) fn name_list(p: &mut Parser) -> Option<CompletedMarker> {
-    let mut parsed_any = false;
+/// eager eating can only be done if it doesn't leak out to other statements,
+/// even when there's missing chars
+pub(self) fn name_list_of(
+    p: &mut Parser,
+    list_kind: SyntaxKind,
+    item_kind: SyntaxKind,
+    eagerly_eat: bool,
+) -> Option<CompletedMarker> {
+    let mut eaten_anything = false;
     let m = p.start();
 
     p.with_extra_recovery(&[TokenKind::Comma], |p| {
-        parsed_any |= self::name(p).is_some();
+        let mut ate_comma = false;
 
-        while p.at(TokenKind::Comma) {
-            // did parse something
-            parsed_any = true;
+        while p.at_hidden(TokenKind::Identifier) || p.at_hidden(TokenKind::Comma) {
+            let m = p.start();
+            let ate_name = name(p).is_some();
+            ate_comma = p.eat(TokenKind::Comma);
+            m.complete(p, item_kind);
 
-            p.bump();
+            eaten_anything |= ate_name || ate_comma;
 
-            self::name(p);
+            if !eagerly_eat && !ate_comma {
+                break;
+            } else if !ate_comma && p.at_hidden(TokenKind::Identifier) {
+                // missing separating comma
+                p.error_unexpected().dont_eat().report();
+            }
+        }
+
+        if !eaten_anything {
+            // need to add identifer to the expeceted tokens list,
+            // as we only passed through hidden eats
+            p.at(TokenKind::Identifier);
+            p.error_unexpected().report();
+        } else if ate_comma && !p.at(TokenKind::Identifier) {
+            p.error_unexpected().report();
         }
     });
 
-    Some(m.complete(p, SyntaxKind::NameList)).filter(|_| parsed_any)
+    Some(m.complete(p, list_kind)).filter(|_| eaten_anything)
 }
 
 pub(self) fn name_ref(p: &mut Parser) -> Option<CompletedMarker> {
@@ -527,9 +550,10 @@ mod test {
                     ConstVarDecl@0..14
                       KwVar@0..3 "var"
                       Whitespace@3..4 " "
-                      NameList@4..5
-                        Name@4..5
-                          Identifier@4..5 "i"
+                      ConstVarDeclNameList@4..5
+                        ConstVarDeclName@4..5
+                          Name@4..5
+                            Identifier@4..5 "i"
                       Whitespace@5..6 " "
                       Assign@6..8 ":="
                       Whitespace@8..9 " "
@@ -562,9 +586,10 @@ mod test {
                     ConstVarDecl@0..8
                       KwVar@0..3 "var"
                       Whitespace@3..4 " "
-                      NameList@4..5
-                        Name@4..5
-                          Identifier@4..5 "i"
+                      ConstVarDeclNameList@4..5
+                        ConstVarDeclName@4..5
+                          Name@4..5
+                            Identifier@4..5 "i"
                       Whitespace@5..6 " "
                       Assign@6..8 ":="
                   Whitespace@8..9 " "

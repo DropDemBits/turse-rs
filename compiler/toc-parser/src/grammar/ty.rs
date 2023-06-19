@@ -240,7 +240,12 @@ fn enum_type(p: &mut Parser, m: Option<Marker>) -> Option<CompletedMarker> {
 
     p.expect_punct(TokenKind::LeftParen);
     p.with_extra_recovery(&[TokenKind::RightParen], |p| {
-        super::name_list(p);
+        super::name_list_of(
+            p,
+            SyntaxKind::EnumVariantList,
+            SyntaxKind::EnumVariant,
+            true,
+        );
     });
     p.expect_punct(TokenKind::RightParen);
 
@@ -353,7 +358,7 @@ pub(super) fn constvar_param(p: &mut Parser) -> Option<CompletedMarker> {
     attr_register(p);
 
     p.with_extra_recovery(&[TokenKind::Colon], |p| {
-        super::name_list(p);
+        super::name_list_of(p, SyntaxKind::ParamNameList, SyntaxKind::ParamName, true);
     });
 
     p.expect_punct(TokenKind::Colon);
@@ -393,7 +398,13 @@ fn record_field(p: &mut Parser) -> Option<CompletedMarker> {
 
     p.with_extra_recovery(&[TokenKind::Semicolon], |p| {
         p.with_extra_recovery(&[TokenKind::Colon], |p| {
-            parsed_any |= super::name_list(p).is_some();
+            parsed_any |= super::name_list_of(
+                p,
+                SyntaxKind::RecordFieldNameList,
+                SyntaxKind::RecordFieldName,
+                false,
+            )
+            .is_some();
         });
 
         p.expect_punct(TokenKind::Colon);

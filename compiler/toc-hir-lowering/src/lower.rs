@@ -328,7 +328,7 @@ impl<'ctx> FileLowering<'ctx> {
     /// `no_name_span` is used if there isn't any names in `name_list`
     fn collect_name_defs(
         &mut self,
-        name_list: ast::NameList,
+        name_list: impl Iterator<Item = ast::Name>,
         no_name_span: SpanId,
     ) -> Vec<LocalDefId> {
         let mut names = self.collect_optional_name_defs(name_list);
@@ -348,11 +348,10 @@ impl<'ctx> FileLowering<'ctx> {
     /// filling empty name places with `fill_with`
     fn collect_name_defs_with_missing(
         &mut self,
-        name_list: ast::NameList,
+        name_list: impl Iterator<Item = Option<ast::Name>>,
         fill_with: LocalDefId,
     ) -> Vec<LocalDefId> {
         let mut names = name_list
-            .names_with_missing()
             .map(|name| match name {
                 Some(name) => self.collect_required_name(name),
                 None => fill_with,
@@ -369,9 +368,11 @@ impl<'ctx> FileLowering<'ctx> {
 
     /// Gathers the defs associated with `name_list`, but allows
     /// no names to be present
-    fn collect_optional_name_defs(&mut self, name_list: ast::NameList) -> Vec<LocalDefId> {
+    fn collect_optional_name_defs(
+        &mut self,
+        name_list: impl Iterator<Item = ast::Name>,
+    ) -> Vec<LocalDefId> {
         let names = name_list
-            .names()
             .map(|name| self.collect_required_name(name))
             .collect::<Vec<_>>();
 

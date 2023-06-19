@@ -27,28 +27,6 @@ impl Name {
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
-pub struct NameList(SyntaxNode);
-impl AstNode for NameList {
-    type Language = crate::Lang;
-    fn cast(syntax: SyntaxNode) -> Option<Self> {
-        match syntax.kind() {
-            SyntaxKind::NameList => Some(Self(syntax)),
-            _ => None,
-        }
-    }
-    fn can_cast(kind: SyntaxKind) -> bool {
-        match kind {
-            SyntaxKind::NameList => true,
-            _ => false,
-        }
-    }
-    fn syntax(&self) -> &SyntaxNode { &self.0 }
-}
-impl NameList {
-    pub fn names(&self) -> impl Iterator<Item = Name> + '_ { helper::nodes(&self.0) }
-}
-#[derive(Debug, PartialEq, Eq, Hash)]
-#[repr(transparent)]
 pub struct NameRef(SyntaxNode);
 impl AstNode for NameRef {
     type Language = crate::Lang;
@@ -598,7 +576,7 @@ impl ConstVarDecl {
     pub fn const_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwConst) }
     pub fn pervasive_attr(&self) -> Option<PervasiveAttr> { helper::node(&self.0) }
     pub fn register_attr(&self) -> Option<RegisterAttr> { helper::node(&self.0) }
-    pub fn decl_list(&self) -> Option<NameList> { helper::node(&self.0) }
+    pub fn constvar_names(&self) -> Option<ConstVarDeclNameList> { helper::node(&self.0) }
     pub fn colon_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Colon) }
     pub fn type_spec(&self) -> Option<Type> { helper::node(&self.0) }
     pub fn assign_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Assign) }
@@ -1836,6 +1814,51 @@ impl ExportStmt {
     pub fn l_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::LeftParen) }
     pub fn exports(&self) -> impl Iterator<Item = ExportItem> + '_ { helper::nodes(&self.0) }
     pub fn r_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::RightParen) }
+}
+#[derive(Debug, PartialEq, Eq, Hash)]
+#[repr(transparent)]
+pub struct ConstVarDeclNameList(SyntaxNode);
+impl AstNode for ConstVarDeclNameList {
+    type Language = crate::Lang;
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        match syntax.kind() {
+            SyntaxKind::ConstVarDeclNameList => Some(Self(syntax)),
+            _ => None,
+        }
+    }
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
+            SyntaxKind::ConstVarDeclNameList => true,
+            _ => false,
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
+}
+impl ConstVarDeclNameList {
+    pub fn names(&self) -> impl Iterator<Item = ConstVarDeclName> + '_ { helper::nodes(&self.0) }
+}
+#[derive(Debug, PartialEq, Eq, Hash)]
+#[repr(transparent)]
+pub struct ConstVarDeclName(SyntaxNode);
+impl AstNode for ConstVarDeclName {
+    type Language = crate::Lang;
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        match syntax.kind() {
+            SyntaxKind::ConstVarDeclName => Some(Self(syntax)),
+            _ => None,
+        }
+    }
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
+            SyntaxKind::ConstVarDeclName => true,
+            _ => false,
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
+}
+impl ConstVarDeclName {
+    pub fn name(&self) -> Option<Name> { helper::node(&self.0) }
+    pub fn comma_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Comma) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -3637,7 +3660,7 @@ impl EnumType {
     pub fn packed_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwPacked) }
     pub fn enum_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwEnum) }
     pub fn l_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::LeftParen) }
-    pub fn fields(&self) -> Option<NameList> { helper::node(&self.0) }
+    pub fn fields(&self) -> Option<EnumVariantList> { helper::node(&self.0) }
     pub fn r_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::RightParen) }
     pub fn size_spec(&self) -> Option<SizeSpec> { helper::node(&self.0) }
 }
@@ -3970,6 +3993,51 @@ impl UnsizedBound {
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
+pub struct EnumVariantList(SyntaxNode);
+impl AstNode for EnumVariantList {
+    type Language = crate::Lang;
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        match syntax.kind() {
+            SyntaxKind::EnumVariantList => Some(Self(syntax)),
+            _ => None,
+        }
+    }
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
+            SyntaxKind::EnumVariantList => true,
+            _ => false,
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
+}
+impl EnumVariantList {
+    pub fn enum_variant(&self) -> impl Iterator<Item = EnumVariant> + '_ { helper::nodes(&self.0) }
+}
+#[derive(Debug, PartialEq, Eq, Hash)]
+#[repr(transparent)]
+pub struct EnumVariant(SyntaxNode);
+impl AstNode for EnumVariant {
+    type Language = crate::Lang;
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        match syntax.kind() {
+            SyntaxKind::EnumVariant => Some(Self(syntax)),
+            _ => None,
+        }
+    }
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
+            SyntaxKind::EnumVariant => true,
+            _ => false,
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
+}
+impl EnumVariant {
+    pub fn name(&self) -> Option<Name> { helper::node(&self.0) }
+    pub fn comma_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Comma) }
+}
+#[derive(Debug, PartialEq, Eq, Hash)]
+#[repr(transparent)]
 pub struct RangeList(SyntaxNode);
 impl AstNode for RangeList {
     type Language = crate::Lang;
@@ -4010,7 +4078,7 @@ impl AstNode for RecordField {
     fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl RecordField {
-    pub fn field_names(&self) -> Option<NameList> { helper::node(&self.0) }
+    pub fn field_names(&self) -> Option<RecordFieldNameList> { helper::node(&self.0) }
     pub fn colon_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Colon) }
     pub fn field_ty(&self) -> Option<Type> { helper::node(&self.0) }
     pub fn semicolon_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Semicolon) }
@@ -4042,6 +4110,51 @@ impl UnionVariant {
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
+pub struct RecordFieldNameList(SyntaxNode);
+impl AstNode for RecordFieldNameList {
+    type Language = crate::Lang;
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        match syntax.kind() {
+            SyntaxKind::RecordFieldNameList => Some(Self(syntax)),
+            _ => None,
+        }
+    }
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
+            SyntaxKind::RecordFieldNameList => true,
+            _ => false,
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
+}
+impl RecordFieldNameList {
+    pub fn names(&self) -> impl Iterator<Item = RecordFieldName> + '_ { helper::nodes(&self.0) }
+}
+#[derive(Debug, PartialEq, Eq, Hash)]
+#[repr(transparent)]
+pub struct RecordFieldName(SyntaxNode);
+impl AstNode for RecordFieldName {
+    type Language = crate::Lang;
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        match syntax.kind() {
+            SyntaxKind::RecordFieldName => Some(Self(syntax)),
+            _ => None,
+        }
+    }
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
+            SyntaxKind::RecordFieldName => true,
+            _ => false,
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
+}
+impl RecordFieldName {
+    pub fn name(&self) -> Option<Name> { helper::node(&self.0) }
+    pub fn comma_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Comma) }
+}
+#[derive(Debug, PartialEq, Eq, Hash)]
+#[repr(transparent)]
 pub struct ConstVarParam(SyntaxNode);
 impl AstNode for ConstVarParam {
     type Language = crate::Lang;
@@ -4062,10 +4175,55 @@ impl AstNode for ConstVarParam {
 impl ConstVarParam {
     pub fn pass_as_ref(&self) -> Option<VarAttr> { helper::node(&self.0) }
     pub fn bind_to_register(&self) -> Option<RegisterAttr> { helper::node(&self.0) }
-    pub fn param_names(&self) -> Option<NameList> { helper::node(&self.0) }
+    pub fn param_names(&self) -> Option<ParamNameList> { helper::node(&self.0) }
     pub fn colon_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Colon) }
     pub fn coerce_type(&self) -> Option<CheatAttr> { helper::node(&self.0) }
     pub fn param_ty(&self) -> Option<Type> { helper::node(&self.0) }
+}
+#[derive(Debug, PartialEq, Eq, Hash)]
+#[repr(transparent)]
+pub struct ParamNameList(SyntaxNode);
+impl AstNode for ParamNameList {
+    type Language = crate::Lang;
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        match syntax.kind() {
+            SyntaxKind::ParamNameList => Some(Self(syntax)),
+            _ => None,
+        }
+    }
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
+            SyntaxKind::ParamNameList => true,
+            _ => false,
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
+}
+impl ParamNameList {
+    pub fn names(&self) -> impl Iterator<Item = ParamName> + '_ { helper::nodes(&self.0) }
+}
+#[derive(Debug, PartialEq, Eq, Hash)]
+#[repr(transparent)]
+pub struct ParamName(SyntaxNode);
+impl AstNode for ParamName {
+    type Language = crate::Lang;
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        match syntax.kind() {
+            SyntaxKind::ParamName => Some(Self(syntax)),
+            _ => None,
+        }
+    }
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
+            SyntaxKind::ParamName => true,
+            _ => false,
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
+}
+impl ParamName {
+    pub fn name(&self) -> Option<Name> { helper::node(&self.0) }
+    pub fn comma_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Comma) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]

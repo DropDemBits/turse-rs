@@ -205,7 +205,6 @@ pub enum SyntaxKind {
 
     // Generated from 'turing.ungram'
     Name,
-    NameList,
     NameRef,
     UnqualifiedAttr,
     PervasiveAttr,
@@ -378,6 +377,14 @@ pub enum SyntaxKind {
     UnsizedBound,
     CompTimeExpr,
     CompTimeExprList,
+    ConstVarDeclNameList,
+    ConstVarDeclName,
+    EnumVariantList,
+    EnumVariant,
+    RecordFieldNameList,
+    RecordFieldName,
+    ParamNameList,
+    ParamName,
 }
 
 impl From<SyntaxKind> for rowan::SyntaxKind {

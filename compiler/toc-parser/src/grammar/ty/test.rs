@@ -1113,9 +1113,10 @@ fn parse_enum_type() {
                     KwEnum@9..13 "enum"
                     Whitespace@13..14 " "
                     LeftParen@14..15 "("
-                    NameList@15..16
-                      Name@15..16
-                        Identifier@15..16 "a"
+                    EnumVariantList@15..16
+                      EnumVariant@15..16
+                        Name@15..16
+                          Identifier@15..16 "a"
                     RightParen@16..17 ")""#]],
     )
 }
@@ -1125,25 +1126,26 @@ fn parse_enum_type_packed_attr() {
     check(
         "type _ : packed enum(a)",
         expect![[r#"
-        Source@0..23
-          StmtList@0..23
-            TypeDecl@0..23
-              KwType@0..4 "type"
-              Whitespace@4..5 " "
-              Name@5..6
-                Identifier@5..6 "_"
-              Whitespace@6..7 " "
-              Colon@7..8 ":"
-              Whitespace@8..9 " "
-              EnumType@9..23
-                KwPacked@9..15 "packed"
-                Whitespace@15..16 " "
-                KwEnum@16..20 "enum"
-                LeftParen@20..21 "("
-                NameList@21..22
-                  Name@21..22
-                    Identifier@21..22 "a"
-                RightParen@22..23 ")""#]],
+            Source@0..23
+              StmtList@0..23
+                TypeDecl@0..23
+                  KwType@0..4 "type"
+                  Whitespace@4..5 " "
+                  Name@5..6
+                    Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                  Colon@7..8 ":"
+                  Whitespace@8..9 " "
+                  EnumType@9..23
+                    KwPacked@9..15 "packed"
+                    Whitespace@15..16 " "
+                    KwEnum@16..20 "enum"
+                    LeftParen@20..21 "("
+                    EnumVariantList@21..22
+                      EnumVariant@21..22
+                        Name@21..22
+                          Identifier@21..22 "a"
+                    RightParen@22..23 ")""#]],
     );
 }
 
@@ -1165,9 +1167,10 @@ fn parse_enum_type_size_spec() {
                   EnumType@9..24
                     KwEnum@9..13 "enum"
                     LeftParen@13..14 "("
-                    NameList@14..15
-                      Name@14..15
-                        Identifier@14..15 "a"
+                    EnumVariantList@14..15
+                      EnumVariant@14..15
+                        Name@14..15
+                          Identifier@14..15 "a"
                     RightParen@15..16 ")"
                     Whitespace@16..17 " "
                     SizeSpec@17..24
@@ -1203,9 +1206,10 @@ fn recover_enum_type_size_spec_missing_expr() {
                   EnumType@9..18
                     KwEnum@9..13 "enum"
                     LeftParen@13..14 "("
-                    NameList@14..15
-                      Name@14..15
-                        Identifier@14..15 "a"
+                    EnumVariantList@14..15
+                      EnumVariant@14..15
+                        Name@14..15
+                          Identifier@14..15 "a"
                     RightParen@15..16 ")"
                     Whitespace@16..17 " "
                     SizeSpec@17..18
@@ -1235,17 +1239,20 @@ fn parse_enum_type_multiple_names() {
                     KwEnum@9..13 "enum"
                     Whitespace@13..14 " "
                     LeftParen@14..15 "("
-                    NameList@15..22
-                      Name@15..16
-                        Identifier@15..16 "a"
-                      Comma@16..17 ","
+                    EnumVariantList@15..22
+                      EnumVariant@15..17
+                        Name@15..16
+                          Identifier@15..16 "a"
+                        Comma@16..17 ","
                       Whitespace@17..18 " "
-                      Name@18..19
-                        Identifier@18..19 "b"
-                      Comma@19..20 ","
+                      EnumVariant@18..20
+                        Name@18..19
+                          Identifier@18..19 "b"
+                        Comma@19..20 ","
                       Whitespace@20..21 " "
-                      Name@21..22
-                        Identifier@21..22 "c"
+                      EnumVariant@21..22
+                        Name@21..22
+                          Identifier@21..22 "c"
                     RightParen@22..23 ")""#]],
     )
 }
@@ -1257,7 +1264,7 @@ fn recover_enum_type_missing_delimiter() {
         expect![[r#"
             Source@0..22
               StmtList@0..22
-                TypeDecl@0..19
+                TypeDecl@0..22
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
                   Name@5..6
@@ -1265,28 +1272,26 @@ fn recover_enum_type_missing_delimiter() {
                   Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
-                  EnumType@9..19
+                  EnumType@9..22
                     KwEnum@9..13 "enum"
                     Whitespace@13..14 " "
                     LeftParen@14..15 "("
-                    NameList@15..19
-                      Name@15..16
-                        Identifier@15..16 "a"
-                      Comma@16..17 ","
+                    EnumVariantList@15..21
+                      EnumVariant@15..17
+                        Name@15..16
+                          Identifier@15..16 "a"
+                        Comma@16..17 ","
                       Whitespace@17..18 " "
-                      Name@18..19
-                        Identifier@18..19 "b"
-                Whitespace@19..20 " "
-                CallStmt@20..21
-                  NameExpr@20..21
-                    NameRef@20..21
-                      Identifier@20..21 "c"
-                Error@21..22
-                  RightParen@21..22 ")"
+                      EnumVariant@18..19
+                        Name@18..19
+                          Identifier@18..19 "b"
+                      Whitespace@19..20 " "
+                      EnumVariant@20..21
+                        Name@20..21
+                          Identifier@20..21 "c"
+                    RightParen@21..22 ")"
             error at 20..21: unexpected token
-            | error for 20..21: expected `,` or `)`, but found identifier
-            error at 21..22: unexpected token
-            | error for 21..22: expected statement, but found `)`"#]],
+            | error for 20..21: expected `,`, but found identifier"#]],
     )
 }
 
@@ -1309,14 +1314,16 @@ fn recover_enum_type_missing_name() {
                     KwEnum@9..13 "enum"
                     Whitespace@13..14 " "
                     LeftParen@14..15 "("
-                    NameList@15..20
-                      Name@15..16
-                        Identifier@15..16 "a"
-                      Comma@16..17 ","
+                    EnumVariantList@15..20
+                      EnumVariant@15..17
+                        Name@15..16
+                          Identifier@15..16 "a"
+                        Comma@16..17 ","
                       Whitespace@17..18 " "
-                      Name@18..19
-                        Identifier@18..19 "b"
-                      Comma@19..20 ","
+                      EnumVariant@18..20
+                        Name@18..19
+                          Identifier@18..19 "b"
+                        Comma@19..20 ","
                     Whitespace@20..21 " "
                     RightParen@21..22 ")"
             error at 21..22: unexpected token
@@ -1340,15 +1347,18 @@ fn recover_enum_type_missing_name() {
                     KwEnum@9..13 "enum"
                     Whitespace@13..14 " "
                     LeftParen@14..15 "("
-                    NameList@15..21
-                      Name@15..16
-                        Identifier@15..16 "a"
-                      Comma@16..17 ","
+                    EnumVariantList@15..21
+                      EnumVariant@15..17
+                        Name@15..16
+                          Identifier@15..16 "a"
+                        Comma@16..17 ","
                       Whitespace@17..18 " "
-                      Comma@18..19 ","
+                      EnumVariant@18..19
+                        Comma@18..19 ","
                       Whitespace@19..20 " "
-                      Name@20..21
-                        Identifier@20..21 "c"
+                      EnumVariant@20..21
+                        Name@20..21
+                          Identifier@20..21 "c"
                     RightParen@21..22 ")"
             error at 18..19: unexpected token
             | error for 18..19: expected identifier, but found `,`"#]],
@@ -1374,14 +1384,16 @@ fn recover_enum_type_missing_name_and_right_paren() {
                     KwEnum@9..13 "enum"
                     Whitespace@13..14 " "
                     LeftParen@14..15 "("
-                    NameList@15..20
-                      Name@15..16
-                        Identifier@15..16 "a"
-                      Comma@16..17 ","
+                    EnumVariantList@15..20
+                      EnumVariant@15..17
+                        Name@15..16
+                          Identifier@15..16 "a"
+                        Comma@16..17 ","
                       Whitespace@17..18 " "
-                      Name@18..19
-                        Identifier@18..19 "b"
-                      Comma@19..20 ","
+                      EnumVariant@18..20
+                        Name@18..19
+                          Identifier@18..19 "b"
+                        Comma@19..20 ","
             error at 19..20: unexpected end of file
             | error for 19..20: expected identifier after here"#]],
     )
@@ -1406,13 +1418,15 @@ fn recover_enum_type_missing_right_paren() {
                     KwEnum@9..13 "enum"
                     Whitespace@13..14 " "
                     LeftParen@14..15 "("
-                    NameList@15..19
-                      Name@15..16
-                        Identifier@15..16 "a"
-                      Comma@16..17 ","
+                    EnumVariantList@15..19
+                      EnumVariant@15..17
+                        Name@15..16
+                          Identifier@15..16 "a"
+                        Comma@16..17 ","
                       Whitespace@17..18 " "
-                      Name@18..19
-                        Identifier@18..19 "b"
+                      EnumVariant@18..19
+                        Name@18..19
+                          Identifier@18..19 "b"
             error at 18..19: unexpected end of file
             | error for 18..19: expected `,` or `)` after here"#]],
     )
@@ -1437,7 +1451,7 @@ fn recover_enum_type_missing_names() {
                     KwEnum@9..13 "enum"
                     Whitespace@13..14 " "
                     LeftParen@14..15 "("
-                    NameList@15..15
+                    EnumVariantList@15..15
                     RightParen@15..16 ")"
             error at 15..16: unexpected token
             | error for 15..16: expected identifier, but found `)`"#]],
@@ -2354,13 +2368,15 @@ fn parse_fcn_type() {
                     ParamSpec@21..33
                       LeftParen@21..22 "("
                       ConstVarParam@22..32
-                        NameList@22..26
-                          Name@22..23
-                            Identifier@22..23 "a"
-                          Comma@23..24 ","
+                        ParamNameList@22..26
+                          ParamName@22..24
+                            Name@22..23
+                              Identifier@22..23 "a"
+                            Comma@23..24 ","
                           Whitespace@24..25 " "
-                          Name@25..26
-                            Identifier@25..26 "b"
+                          ParamName@25..26
+                            Name@25..26
+                              Identifier@25..26 "b"
                         Whitespace@26..27 " "
                         Colon@27..28 ":"
                         Whitespace@28..29 " "
@@ -2399,13 +2415,15 @@ fn parse_proc_type() {
                     ParamSpec@22..34
                       LeftParen@22..23 "("
                       ConstVarParam@23..33
-                        NameList@23..27
-                          Name@23..24
-                            Identifier@23..24 "a"
-                          Comma@24..25 ","
+                        ParamNameList@23..27
+                          ParamName@23..25
+                            Name@23..24
+                              Identifier@23..24 "a"
+                            Comma@24..25 ","
                           Whitespace@25..26 " "
-                          Name@26..27
-                            Identifier@26..27 "b"
+                          ParamName@26..27
+                            Name@26..27
+                              Identifier@26..27 "b"
                         Whitespace@27..28 " "
                         Colon@28..29 ":"
                         Whitespace@29..30 " "
@@ -2439,13 +2457,15 @@ fn recover_proc_type_with_result_ty() {
                     ParamSpec@22..34
                       LeftParen@22..23 "("
                       ConstVarParam@23..33
-                        NameList@23..27
-                          Name@23..24
-                            Identifier@23..24 "a"
-                          Comma@24..25 ","
+                        ParamNameList@23..27
+                          ParamName@23..25
+                            Name@23..24
+                              Identifier@23..24 "a"
+                            Comma@24..25 ","
                           Whitespace@25..26 " "
-                          Name@26..27
-                            Identifier@26..27 "b"
+                          ParamName@26..27
+                            Name@26..27
+                              Identifier@26..27 "b"
                         Whitespace@27..28 " "
                         Colon@28..29 ":"
                         Whitespace@29..30 " "
@@ -2490,13 +2510,15 @@ fn recover_fcn_type_without_result_ty() {
                     ParamSpec@21..33
                       LeftParen@21..22 "("
                       ConstVarParam@22..32
-                        NameList@22..26
-                          Name@22..23
-                            Identifier@22..23 "a"
-                          Comma@23..24 ","
+                        ParamNameList@22..26
+                          ParamName@22..24
+                            Name@22..23
+                              Identifier@22..23 "a"
+                            Comma@23..24 ","
                           Whitespace@24..25 " "
-                          Name@25..26
-                            Identifier@25..26 "b"
+                          ParamName@25..26
+                            Name@25..26
+                              Identifier@25..26 "b"
                         Whitespace@26..27 " "
                         Colon@27..28 ":"
                         Whitespace@28..29 " "
@@ -2529,13 +2551,15 @@ fn parse_fcn_type_opt_name() {
                     ParamSpec@18..30
                       LeftParen@18..19 "("
                       ConstVarParam@19..29
-                        NameList@19..23
-                          Name@19..20
-                            Identifier@19..20 "a"
-                          Comma@20..21 ","
+                        ParamNameList@19..23
+                          ParamName@19..21
+                            Name@19..20
+                              Identifier@19..20 "a"
+                            Comma@20..21 ","
                           Whitespace@21..22 " "
-                          Name@22..23
-                            Identifier@22..23 "b"
+                          ParamName@22..23
+                            Name@22..23
+                              Identifier@22..23 "b"
                         Whitespace@23..24 " "
                         Colon@24..25 ":"
                         Whitespace@25..26 " "
@@ -2642,9 +2666,10 @@ fn parse_proc_type_fcn_param() {
                         ParamSpec@38..48
                           LeftParen@38..39 "("
                           ConstVarParam@39..47
-                            NameList@39..40
-                              Name@39..40
-                                Identifier@39..40 "a"
+                            ParamNameList@39..40
+                              ParamName@39..40
+                                Name@39..40
+                                  Identifier@39..40 "a"
                             Whitespace@40..41 " "
                             Colon@41..42 ":"
                             Whitespace@42..43 " "
@@ -2690,9 +2715,10 @@ fn parse_proc_type_all_constvar_attrs() {
                         RegisterAttr@27..35
                           KwRegister@27..35 "register"
                         Whitespace@35..36 " "
-                        NameList@36..37
-                          Name@36..37
-                            Identifier@36..37 "a"
+                        ParamNameList@36..37
+                          ParamName@36..37
+                            Name@36..37
+                              Identifier@36..37 "a"
                         Whitespace@37..38 " "
                         Colon@38..39 ":"
                         Whitespace@39..40 " "
@@ -2735,7 +2761,7 @@ fn recover_proc_type_constvar_attrs_missing_name() {
                         RegisterAttr@27..35
                           KwRegister@27..35 "register"
                         Whitespace@35..36 " "
-                        NameList@36..36
+                        ParamNameList@36..36
                         Colon@36..37 ":"
                         Whitespace@37..38 " "
                         PrimType@38..41
@@ -2769,7 +2795,7 @@ fn recover_proc_type_constvar_attrs_missing_name() {
                         VarAttr@23..26
                           KwVar@23..26 "var"
                         Whitespace@26..27 " "
-                        NameList@27..27
+                        ParamNameList@27..27
                         Colon@27..28 ":"
                         Whitespace@28..29 " "
                         PrimType@29..32
@@ -2803,7 +2829,7 @@ fn recover_proc_type_constvar_attrs_missing_name() {
                         RegisterAttr@23..31
                           KwRegister@23..31 "register"
                         Whitespace@31..32 " "
-                        NameList@32..32
+                        ParamNameList@32..32
                         Colon@32..33 ":"
                         Whitespace@33..34 " "
                         PrimType@34..37
@@ -2835,7 +2861,7 @@ fn recover_proc_type_no_attrs_missing_name() {
                       LeftParen@18..19 "("
                       Whitespace@19..20 " "
                       ConstVarParam@20..25
-                        NameList@20..20
+                        ParamNameList@20..20
                         Colon@20..21 ":"
                         Whitespace@21..22 " "
                         PrimType@22..25
@@ -2870,9 +2896,10 @@ fn recover_proc_type_constvar_missing_ty() {
                     ParamSpec@22..28
                       LeftParen@22..23 "("
                       ConstVarParam@23..26
-                        NameList@23..24
-                          Name@23..24
-                            Identifier@23..24 "a"
+                        ParamNameList@23..24
+                          ParamName@23..24
+                            Name@23..24
+                              Identifier@23..24 "a"
                         Whitespace@24..25 " "
                         Colon@25..26 ":"
                       Whitespace@26..27 " "
@@ -2901,9 +2928,10 @@ fn parse_record_type() {
                     KwRecord@9..15 "record"
                     Whitespace@15..16 " "
                     RecordField@16..23
-                      NameList@16..17
-                        Name@16..17
-                          Identifier@16..17 "a"
+                      RecordFieldNameList@16..17
+                        RecordFieldName@16..17
+                          Name@16..17
+                            Identifier@16..17 "a"
                       Whitespace@17..18 " "
                       Colon@18..19 ":"
                       Whitespace@19..20 " "
@@ -2938,9 +2966,10 @@ fn parse_record_type_packed_attr() {
                     KwRecord@16..22 "record"
                     Whitespace@22..23 " "
                     RecordField@23..30
-                      NameList@23..24
-                        Name@23..24
-                          Identifier@23..24 "a"
+                      RecordFieldNameList@23..24
+                        RecordFieldName@23..24
+                          Name@23..24
+                            Identifier@23..24 "a"
                       Whitespace@24..25 " "
                       Colon@25..26 ":"
                       Whitespace@26..27 " "
@@ -2979,9 +3008,10 @@ fn parse_record_type_many_fields() {
                     KwRecord@14..20 "record"
                     Whitespace@20..29 "\n        "
                     RecordField@29..36
-                      NameList@29..30
-                        Name@29..30
-                          Identifier@29..30 "a"
+                      RecordFieldNameList@29..30
+                        RecordFieldName@29..30
+                          Name@29..30
+                            Identifier@29..30 "a"
                       Whitespace@30..31 " "
                       Colon@31..32 ":"
                       Whitespace@32..33 " "
@@ -2989,17 +3019,20 @@ fn parse_record_type_many_fields() {
                         KwInt@33..36 "int"
                     Whitespace@36..45 "\n        "
                     RecordField@45..58
-                      NameList@45..52
-                        Name@45..46
-                          Identifier@45..46 "b"
-                        Comma@46..47 ","
+                      RecordFieldNameList@45..52
+                        RecordFieldName@45..47
+                          Name@45..46
+                            Identifier@45..46 "b"
+                          Comma@46..47 ","
                         Whitespace@47..48 " "
-                        Name@48..49
-                          Identifier@48..49 "c"
-                        Comma@49..50 ","
+                        RecordFieldName@48..50
+                          Name@48..49
+                            Identifier@48..49 "c"
+                          Comma@49..50 ","
                         Whitespace@50..51 " "
-                        Name@51..52
-                          Identifier@51..52 "d"
+                        RecordFieldName@51..52
+                          Name@51..52
+                            Identifier@51..52 "d"
                       Whitespace@52..53 " "
                       Colon@53..54 ":"
                       Whitespace@54..55 " "
@@ -3007,9 +3040,10 @@ fn parse_record_type_many_fields() {
                         KwInt@55..58 "int"
                     Whitespace@58..67 "\n        "
                     RecordField@67..74
-                      NameList@67..68
-                        Name@67..68
-                          Identifier@67..68 "e"
+                      RecordFieldNameList@67..68
+                        RecordFieldName@67..68
+                          Name@67..68
+                            Identifier@67..68 "e"
                       Whitespace@68..69 " "
                       Colon@69..70 ":"
                       Whitespace@70..71 " "
@@ -3048,9 +3082,10 @@ fn parse_record_type_opt_semicolon() {
                     KwRecord@14..20 "record"
                     Whitespace@20..29 "\n        "
                     RecordField@29..37
-                      NameList@29..30
-                        Name@29..30
-                          Identifier@29..30 "a"
+                      RecordFieldNameList@29..30
+                        RecordFieldName@29..30
+                          Name@29..30
+                            Identifier@29..30 "a"
                       Whitespace@30..31 " "
                       Colon@31..32 ":"
                       Whitespace@32..33 " "
@@ -3059,17 +3094,20 @@ fn parse_record_type_opt_semicolon() {
                       Semicolon@36..37 ";"
                     Whitespace@37..46 "\n        "
                     RecordField@46..71
-                      NameList@46..53
-                        Name@46..47
-                          Identifier@46..47 "b"
-                        Comma@47..48 ","
+                      RecordFieldNameList@46..53
+                        RecordFieldName@46..48
+                          Name@46..47
+                            Identifier@46..47 "b"
+                          Comma@47..48 ","
                         Whitespace@48..49 " "
-                        Name@49..50
-                          Identifier@49..50 "c"
-                        Comma@50..51 ","
+                        RecordFieldName@49..51
+                          Name@49..50
+                            Identifier@49..50 "c"
+                          Comma@50..51 ","
                         Whitespace@51..52 " "
-                        Name@52..53
-                          Identifier@52..53 "d"
+                        RecordFieldName@52..53
+                          Name@52..53
+                            Identifier@52..53 "d"
                       Whitespace@53..54 " "
                       Colon@54..55 ":"
                       Whitespace@55..56 " "
@@ -3089,9 +3127,10 @@ fn parse_record_type_opt_semicolon() {
                       Semicolon@70..71 ";"
                     Whitespace@71..80 "\n        "
                     RecordField@80..88
-                      NameList@80..81
-                        Name@80..81
-                          Identifier@80..81 "e"
+                      RecordFieldNameList@80..81
+                        RecordFieldName@80..81
+                          Name@80..81
+                            Identifier@80..81 "e"
                       Whitespace@81..82 " "
                       Colon@82..83 ":"
                       Whitespace@83..84 " "
@@ -3151,10 +3190,11 @@ fn recover_record_type_missing_last_name() {
                     KwRecord@9..15 "record"
                     Whitespace@15..16 " "
                     RecordField@16..24
-                      NameList@16..18
-                        Name@16..17
-                          Identifier@16..17 "a"
-                        Comma@17..18 ","
+                      RecordFieldNameList@16..18
+                        RecordFieldName@16..18
+                          Name@16..17
+                            Identifier@16..17 "a"
+                          Comma@17..18 ","
                       Whitespace@18..19 " "
                       Colon@19..20 ":"
                       Whitespace@20..21 " "
@@ -3228,9 +3268,10 @@ fn parse_union_type() {
                       Colon@32..33 ":"
                       Whitespace@33..34 " "
                       RecordField@34..41
-                        NameList@34..35
-                          Name@34..35
-                            Identifier@34..35 "a"
+                        RecordFieldNameList@34..35
+                          RecordFieldName@34..35
+                            Name@34..35
+                              Identifier@34..35 "a"
                         Whitespace@35..36 " "
                         Colon@36..37 ":"
                         Whitespace@37..38 " "
@@ -3277,9 +3318,10 @@ fn parse_union_type_packed_attr() {
                       Colon@38..39 ":"
                       Whitespace@39..40 " "
                       RecordField@40..47
-                        NameList@40..41
-                          Name@40..41
-                            Identifier@40..41 "a"
+                        RecordFieldNameList@40..41
+                          RecordFieldName@40..41
+                            Name@40..41
+                              Identifier@40..41 "a"
                         Whitespace@41..42 " "
                         Colon@42..43 ":"
                         Whitespace@43..44 " "
@@ -3418,9 +3460,10 @@ fn union_type_many_variants() {
                       Colon@38..39 ":"
                       Whitespace@39..40 " "
                       RecordField@40..47
-                        NameList@40..41
-                          Name@40..41
-                            Identifier@40..41 "a"
+                        RecordFieldNameList@40..41
+                          RecordFieldName@40..41
+                            Name@40..41
+                              Identifier@40..41 "a"
                         Whitespace@41..42 " "
                         Colon@42..43 ":"
                         Whitespace@43..44 " "
@@ -3428,9 +3471,10 @@ fn union_type_many_variants() {
                           KwInt@44..47 "int"
                       Whitespace@47..48 " "
                       RecordField@48..55
-                        NameList@48..49
-                          Name@48..49
-                            Identifier@48..49 "b"
+                        RecordFieldNameList@48..49
+                          RecordFieldName@48..49
+                            Name@48..49
+                              Identifier@48..49 "b"
                         Whitespace@49..50 " "
                         Colon@50..51 ":"
                         Whitespace@51..52 " "
@@ -3666,14 +3710,15 @@ fn recover_record_type_on_var() {
                     KwRecord@9..15 "record"
                     Whitespace@15..16 "\n"
                     RecordField@16..16
-                      NameList@16..16
+                      RecordFieldNameList@16..16
                     EndGroup@16..16
                 ConstVarDecl@16..27
                   KwVar@16..19 "var"
                   Whitespace@19..20 " "
-                  NameList@20..21
-                    Name@20..21
-                      Identifier@20..21 "a"
+                  ConstVarDeclNameList@20..21
+                    ConstVarDeclName@20..21
+                      Name@20..21
+                        Identifier@20..21 "a"
                   Whitespace@21..22 " "
                   Colon@22..23 ":"
                   Whitespace@23..24 " "
@@ -3715,14 +3760,15 @@ fn recover_union_variant_type_on_var() {
                       Colon@34..35 ":"
                       Whitespace@35..36 "\n"
                       RecordField@36..36
-                        NameList@36..36
+                        RecordFieldNameList@36..36
                     EndGroup@36..36
                 ConstVarDecl@36..47
                   KwVar@36..39 "var"
                   Whitespace@39..40 " "
-                  NameList@40..41
-                    Name@40..41
-                      Identifier@40..41 "a"
+                  ConstVarDeclNameList@40..41
+                    ConstVarDeclName@40..41
+                      Name@40..41
+                        Identifier@40..41 "a"
                   Whitespace@41..42 " "
                   Colon@42..43 ":"
                   Whitespace@43..44 " "
@@ -3847,4 +3893,121 @@ fn recover_include_glob_ty() {
             error at 9..16: unexpected token
             | error for 9..16: expected type specifier, but found `include`"#]],
     )
+}
+
+#[test]
+fn dont_eager_eat_record_field_name_list() {
+    check(
+        "type _ : record a b : int end record",
+        expect![[r#"
+        Source@0..36
+          StmtList@0..36
+            TypeDecl@0..36
+              KwType@0..4 "type"
+              Whitespace@4..5 " "
+              Name@5..6
+                Identifier@5..6 "_"
+              Whitespace@6..7 " "
+              Colon@7..8 ":"
+              Whitespace@8..9 " "
+              RecordType@9..36
+                KwRecord@9..15 "record"
+                Whitespace@15..16 " "
+                RecordField@16..19
+                  RecordFieldNameList@16..17
+                    RecordFieldName@16..17
+                      Name@16..17
+                        Identifier@16..17 "a"
+                  Whitespace@17..18 " "
+                  NameType@18..19
+                    CompTimeExpr@18..19
+                      NameExpr@18..19
+                        NameRef@18..19
+                          Identifier@18..19 "b"
+                Whitespace@19..20 " "
+                RecordField@20..25
+                  RecordFieldNameList@20..20
+                  Colon@20..21 ":"
+                  Whitespace@21..22 " "
+                  PrimType@22..25
+                    KwInt@22..25 "int"
+                Whitespace@25..26 " "
+                EndGroup@26..36
+                  KwEnd@26..29 "end"
+                  Whitespace@29..30 " "
+                  KwRecord@30..36 "record"
+        error at 18..19: unexpected token
+        | error for 18..19: expected `,` or `:`, but found identifier
+        error at 20..21: unexpected token
+        | error for 20..21: expected `..`, `;`, `end` or identifier, but found `:`"#]],
+    );
+}
+
+#[test]
+fn dont_eager_eat_record_field_name_list_without_colon() {
+    check(
+        "type _ : record a b int a, c : int end record",
+        expect![[r#"
+            Source@0..45
+              StmtList@0..45
+                TypeDecl@0..45
+                  KwType@0..4 "type"
+                  Whitespace@4..5 " "
+                  Name@5..6
+                    Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                  Colon@7..8 ":"
+                  Whitespace@8..9 " "
+                  RecordType@9..45
+                    KwRecord@9..15 "record"
+                    Whitespace@15..16 " "
+                    RecordField@16..19
+                      RecordFieldNameList@16..17
+                        RecordFieldName@16..17
+                          Name@16..17
+                            Identifier@16..17 "a"
+                      Whitespace@17..18 " "
+                      NameType@18..19
+                        CompTimeExpr@18..19
+                          NameExpr@18..19
+                            NameRef@18..19
+                              Identifier@18..19 "b"
+                    Whitespace@19..20 " "
+                    RecordField@20..25
+                      RecordFieldNameList@20..23
+                        Error@20..23
+                          KwInt@20..23 "int"
+                      Whitespace@23..24 " "
+                      NameType@24..25
+                        CompTimeExpr@24..25
+                          NameExpr@24..25
+                            NameRef@24..25
+                              Identifier@24..25 "a"
+                    RecordField@25..34
+                      RecordFieldNameList@25..28
+                        RecordFieldName@25..26
+                          Comma@25..26 ","
+                        Whitespace@26..27 " "
+                        RecordFieldName@27..28
+                          Name@27..28
+                            Identifier@27..28 "c"
+                      Whitespace@28..29 " "
+                      Colon@29..30 ":"
+                      Whitespace@30..31 " "
+                      PrimType@31..34
+                        KwInt@31..34 "int"
+                    Whitespace@34..35 " "
+                    EndGroup@35..45
+                      KwEnd@35..38 "end"
+                      Whitespace@38..39 " "
+                      KwRecord@39..45 "record"
+            error at 18..19: unexpected token
+            | error for 18..19: expected `,` or `:`, but found identifier
+            error at 20..23: unexpected token
+            | error for 20..23: expected `..`, `;`, `end` or identifier, but found `int`
+            error at 24..25: unexpected token
+            | error for 24..25: expected `:`, but found identifier
+            error at 25..26: unexpected token
+            | error for 25..26: expected `..`, `;`, `end` or identifier, but found `,`"#]],
+    );
 }

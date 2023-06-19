@@ -276,7 +276,12 @@ impl super::BodyLowering<'_, '_> {
     fn lower_enum_type(&mut self, ty: ast::EnumType) -> Option<ty::TypeKind> {
         let node_span = self.ctx.node_span(ty.syntax().text_range());
         let def_id = self.ctx.node_def(node_span);
-        let variants = self.ctx.collect_optional_name_defs(ty.fields().unwrap());
+        let variants = self.ctx.collect_optional_name_defs(
+            ty.fields()
+                .unwrap()
+                .enum_variant()
+                .filter_map(|it| it.name()),
+        );
 
         Some(ty::TypeKind::Enum(ty::Enum { def_id, variants }))
     }
