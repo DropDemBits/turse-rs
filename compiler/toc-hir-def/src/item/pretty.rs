@@ -17,12 +17,12 @@ pub fn render_item_tree(db: &dyn Db, root: Package) -> PrettyTree {
     fn render_sub_tree(db: &dyn Db, item: AnyItem) -> PrettyItem {
         match item {
             AnyItem::ConstVar(item) => PrettyItem {
-                name: item.name(db).text(db),
+                name: item.name(db).text(db).to_owned(),
                 id: item.0.as_u32(),
                 kind: PrettyItemKind::ConstVar(item.mutability(db)),
             },
             AnyItem::Module(item) => PrettyItem {
-                name: item.name(db).text(db),
+                name: item.name(db).text(db).to_owned(),
                 id: item.0.as_u32(),
                 kind: PrettyItemKind::Module(
                     item.items(db)
@@ -32,7 +32,7 @@ pub fn render_item_tree(db: &dyn Db, root: Package) -> PrettyTree {
                 ),
             },
             AnyItem::RootModule(item) => PrettyItem {
-                name: item.name(db).text(db),
+                name: item.name(db).text(db).to_owned(),
                 id: item.0.as_u32(),
                 kind: PrettyItemKind::RootModule(
                     item.items(db)
