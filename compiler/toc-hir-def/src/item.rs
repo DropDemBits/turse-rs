@@ -17,7 +17,7 @@ pub mod item_loc_map {
     //! Mapping to go from [`SemanticLoc`]'s to [`Item`](super::Item)'s
 
     use toc_hir_expand::{ErasedSemanticLoc, SemanticLoc};
-    use toc_syntax::ast::AstNode;
+    use toc_syntax::ast::{self, AstNode};
 
     use crate::item::{ConstVar, Module};
 
@@ -34,9 +34,11 @@ pub mod item_loc_map {
         pub(crate) fn insert<N: ToHirItem>(&mut self, loc: SemanticLoc<N>, item: N::Item) {
             use salsa::AsId;
 
-            self.to_items
-                .insert(loc.into_erased(), item.as_id())
-                .expect("duplicate ItemLocMap entry");
+            let old = self.to_items.insert(loc.into_erased(), item.as_id());
+            assert!(
+                old.is_none(),
+                "duplicate ItemLocMap entry (replacing {old:?} with {item:?})"
+            )
         }
 
         pub(crate) fn shrink_to_fit(&mut self) {
@@ -58,13 +60,11 @@ pub mod item_loc_map {
         type Item: salsa::AsId;
     }
 
-    impl ToHirItem for toc_syntax::ast::ConstVarDeclName {
+    impl ToHirItem for ast::ConstVarDeclName {
         type Item = ConstVar;
     }
 
-    type Type = toc_syntax::ast::ModuleDecl;
-
-    impl ToHirItem for Type {
+    impl ToHirItem for ast::ModuleDecl {
         type Item = Module;
     }
 }
@@ -172,8 +172,8 @@ impl Module {
     ///
     /// Note: This does not include items that are in the top level but
     /// are hidden inside of scopes
-    #[salsa::tracked(return_ref)]
-    pub(crate) fn items(self, db: &dyn Db) -> ItemsWithLocMap {
+    #[salsa::tracked]
+    pub(crate) fn collect_items(self, db: &dyn Db) -> ItemsWithLocMap {
         lower::collect_items(db, self.stmt_list(db))
     }
 
@@ -245,11 +245,11 @@ impl HasItems for Module {
     type Item = Item;
 
     fn items(self, db: &dyn Db) -> &Box<[Self::Item]> {
-        Module::items(self, db).items(db)
+        Module::collect_items(self, db).items(db)
     }
 
     fn loc_map(self, db: &dyn Db) -> &ItemLocMap {
-        Module::items(self, db).loc_map(db)
+        Module::collect_items(self, db).loc_map(db)
     }
 }
 
@@ -257,15 +257,18 @@ impl HasItems for crate::body::ModuleBlock {
     type Item = Item;
 
     fn items(self, db: &dyn Db) -> &Box<[Self::Item]> {
-        module_block_items(db, self).items(db)
+        module_block_collect_items(db, self).items(db)
     }
 
     fn loc_map(self, db: &dyn Db) -> &ItemLocMap {
-        module_block_items(db, self).loc_map(db)
+        module_block_collect_items(db, self).loc_map(db)
     }
 }
 
-#[salsa::tracked(return_ref)]
-pub(crate) fn module_block_items(db: &dyn Db, block: crate::body::ModuleBlock) -> ItemsWithLocMap {
+#[salsa::tracked]
+pub(crate) fn module_block_collect_items(
+    db: &dyn Db,
+    block: crate::body::ModuleBlock,
+) -> ItemsWithLocMap {
     lower::collect_items(db, block.stmt_list(db))
 }

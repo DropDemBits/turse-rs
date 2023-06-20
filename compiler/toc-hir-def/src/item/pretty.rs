@@ -5,7 +5,7 @@ use std::fmt;
 use toc_source_graph::Package;
 
 use crate::{
-    item::{root_module, Item},
+    item::{root_module, HasItems, Item},
     Db, Mutability,
 };
 
