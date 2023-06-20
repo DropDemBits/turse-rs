@@ -4,14 +4,14 @@ use toc_hir_expand::{AstLocations, SemanticLoc};
 use toc_syntax::ast;
 
 use crate::{
-    item::{item_loc_map::ItemLocMap, ItemsWithLocMap, Module, ModuleOrigin},
+    item::{item_loc_map::ItemLocMap, ItemCollection, Module, ModuleOrigin},
     Db, Symbol,
 };
 
 use super::{ConstVar, ConstVarOrigin, Item};
 
 /// Collects the immediately accessible items from a [`ast::StmtList`]
-pub(crate) fn collect_items(db: &dyn Db, stmt_list: SemanticLoc<ast::StmtList>) -> ItemsWithLocMap {
+pub(crate) fn collect_items(db: &dyn Db, stmt_list: SemanticLoc<ast::StmtList>) -> ItemCollection {
     let ast_locations = stmt_list.file(db.up()).ast_locations(db.up());
     let stmt_list = stmt_list.to_node(db.up());
 
@@ -24,7 +24,7 @@ pub(crate) fn collect_items(db: &dyn Db, stmt_list: SemanticLoc<ast::StmtList>) 
 
     loc_map.shrink_to_fit();
 
-    ItemsWithLocMap::new(db, items.into(), loc_map)
+    ItemCollection::new(db, items.into(), loc_map)
 }
 
 /// Lowers a potential item, and returns either the new item, or `None`

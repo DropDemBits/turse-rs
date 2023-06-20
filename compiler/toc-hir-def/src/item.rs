@@ -69,8 +69,10 @@ pub mod item_loc_map {
     }
 }
 
+/// Immediately accessible child items of an item, pair with a semantic location map
+/// to go from `SemanticLoc` to the original item.
 #[salsa::tracked]
-pub struct ItemsWithLocMap {
+pub struct ItemCollection {
     #[return_ref]
     pub items: Box<[Item]>,
     #[return_ref]
@@ -167,20 +169,16 @@ pub fn root_module(db: &dyn Db, package: Package) -> Module {
 
 #[salsa::tracked]
 impl Module {
-    /// All immediate items of a module, as well as a location map to
-    /// map locations back to the immediate items.
-    ///
-    /// Note: This does not include items that are in the top level but
-    /// are hidden inside of scopes
-    #[salsa::tracked]
-    pub(crate) fn collect_items(self, db: &dyn Db) -> ItemsWithLocMap {
-        lower::collect_items(db, self.stmt_list(db))
-    }
-
     /// Executable portion of a module
     #[salsa::tracked]
     pub fn body(self, db: &dyn Db) -> Body {
         Body::new(db, BodyOrigin::ModuleBody(self.stmt_list(db)))
+    }
+
+    /// Collect the immediately accessible items
+    #[salsa::tracked]
+    pub(crate) fn collect_items(self, db: &dyn Db) -> ItemCollection {
+        lower::collect_items(db, self.stmt_list(db))
     }
 
     #[salsa::tracked]
@@ -234,7 +232,8 @@ pub trait HasItems {
     /// All immediate child items of an item
     ///
     /// Note: This does not include items that are in the top level but
-    /// are hidden inside of scopes
+    /// are hidden inside of scopes, nor does it include items hidden
+    /// behind macro expansions.
     fn items(self, db: &dyn Db) -> &Box<[Self::Item]>;
 
     /// Map to go from semantic locations back to the immediate item
@@ -269,6 +268,6 @@ impl HasItems for crate::body::ModuleBlock {
 pub(crate) fn module_block_collect_items(
     db: &dyn Db,
     block: crate::body::ModuleBlock,
-) -> ItemsWithLocMap {
+) -> ItemCollection {
     lower::collect_items(db, block.stmt_list(db))
 }
