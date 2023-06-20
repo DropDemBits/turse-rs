@@ -4,11 +4,9 @@ use toc_hir_expand::{AstLocations, SemanticLoc};
 use toc_syntax::ast;
 
 use crate::{
-    item::{item_loc_map::ItemLocMap, ItemCollection, Module, ModuleOrigin},
+    item::{item_loc_map::ItemLocMap, ConstVar, Item, ItemCollection, Module},
     Db, Symbol,
 };
-
-use super::{ConstVar, ConstVarOrigin, Item};
 
 /// Collects the immediately accessible items from a [`ast::StmtList`]
 pub(crate) fn collect_items(db: &dyn Db, stmt_list: SemanticLoc<ast::StmtList>) -> ItemCollection {
@@ -50,7 +48,7 @@ pub(crate) fn item(
                     let loc = ast_locations.get(&decl_name);
                     let name = decl_name.name().unwrap().identifier_token().unwrap();
                     let name = Symbol::new(db, name.text().to_owned());
-                    let item = ConstVar::new(db, name, ConstVarOrigin { loc });
+                    let item = ConstVar::new(db, name, loc);
                     loc_map.insert(loc, item);
 
                     Item::ConstVar(item)
@@ -72,7 +70,7 @@ pub(crate) fn item(
             let loc = ast_locations.get(&module);
             let name = module.name()?.identifier_token().unwrap();
             let name = Symbol::new(db, name.text().to_owned());
-            let item = Module::new(db, name, ModuleOrigin::Item(loc));
+            let item = Module::new(db, name, loc);
             loc_map.insert(loc, item);
 
             vec![Item::Module(item)]
