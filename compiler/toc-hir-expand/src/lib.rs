@@ -326,3 +326,11 @@ fn reverse_topo(node: &SyntaxNode, mut filter: impl FnMut(SyntaxNode) -> bool) {
         std::mem::swap(&mut curr_layer, &mut next_layer);
     }
 }
+
+/// Maps from the semantic entity back to the original ast node
+pub trait HasSource {
+    type Db<'db>: Db + ?Sized + 'db;
+    type Ast;
+
+    fn as_ast(&self, db: &Self::Db<'_>) -> Self::Ast;
+}

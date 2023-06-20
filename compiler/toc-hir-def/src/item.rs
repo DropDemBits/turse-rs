@@ -1,5 +1,5 @@
 use toc_ast_db::IntoAst;
-use toc_hir_expand::{SemanticFile, SemanticLoc};
+use toc_hir_expand::{HasSource, SemanticFile, SemanticLoc};
 use toc_source_graph::Package;
 use toc_syntax::ast::{self, AstNode};
 use toc_vfs_db::SourceFile;
@@ -141,6 +141,15 @@ impl ConstVar {
     }
 }
 
+impl HasSource for ConstVar {
+    type Db<'db> = dyn Db + 'db;
+    type Ast = ast::ConstVarDeclName;
+
+    fn as_ast(&self, db: &Self::Db<'_>) -> Self::Ast {
+        self.origin(db).to_node(db.up())
+    }
+}
+
 #[salsa::tracked]
 pub fn root_module(db: &dyn Db, package: Package) -> RootModule {
     // Take the name from the package
@@ -259,6 +268,15 @@ impl Module {
     }
 }
 
+impl HasSource for Module {
+    type Db<'db> = dyn Db + 'db;
+    type Ast = ast::ModuleDecl;
+
+    fn as_ast(&self, db: &Self::Db<'_>) -> Self::Ast {
+        self.origin(db).to_node(db.up())
+    }
+}
+
 impl HasItems for Module {
     type Item = Item;
 
@@ -271,6 +289,14 @@ impl HasItems for Module {
     }
 }
 
+#[salsa::tracked]
+pub(crate) fn module_block_collect_items(
+    db: &dyn Db,
+    block: crate::body::ModuleBlock,
+) -> ItemCollection {
+    lower::collect_items(db, block.stmt_list(db))
+}
+
 impl HasItems for crate::body::ModuleBlock {
     type Item = Item;
 
@@ -281,14 +307,6 @@ impl HasItems for crate::body::ModuleBlock {
     fn loc_map(self, db: &dyn Db) -> &ItemLocMap {
         module_block_collect_items(db, self).loc_map(db)
     }
-}
-
-#[salsa::tracked]
-pub(crate) fn module_block_collect_items(
-    db: &dyn Db,
-    block: crate::body::ModuleBlock,
-) -> ItemCollection {
-    lower::collect_items(db, block.stmt_list(db))
 }
 
 /// Any item which has nested child items
