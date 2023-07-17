@@ -269,7 +269,7 @@ impl SemanticFile {
         let root = self.ast(db);
         let mut locs = vec![];
 
-        reverse_topo(&root, |node| {
+        topo_visit(&root, |node| {
             let kind = node.kind();
 
             if ast::Item::can_cast(kind)
@@ -296,14 +296,14 @@ impl SemanticFile {
     }
 }
 
-/// Walks the subtree in reverse topological order, calling `filter` for each node.
+/// Walks the subtree in topological order, calling `filter` for each node.
 ///
 /// Nodes for which `filter` return true are put in the same layer, and
 /// the children of those nodes form the candidates for the next layer.
 /// All other nodes are explored depth-first.
 ///
 /// The size of the expand queue is bound by the number of filtered nodes.
-fn reverse_topo(node: &SyntaxNode, mut filter: impl FnMut(SyntaxNode) -> bool) {
+fn topo_visit(node: &SyntaxNode, mut filter: impl FnMut(SyntaxNode) -> bool) {
     // borrowed from:
     // https://github.com/rust-lang/rust-analyzer/blob/fc848495f45e4741849940a2be437a46b742ce53/crates/hir-expand/src/ast_id_map.rs#L126
     let mut curr_layer = vec![node.clone()];
