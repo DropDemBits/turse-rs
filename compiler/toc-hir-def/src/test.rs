@@ -1,3 +1,4 @@
+use salsa::DebugWithDb;
 use toc_paths::RawPath;
 use toc_source_graph::{ArtifactKind, DependencyList, Package, RootPackages};
 use toc_vfs_db::{SourceTable, VfsBridge, VfsDbExt};
@@ -14,9 +15,18 @@ use toc_vfs_db::{SourceTable, VfsBridge, VfsDbExt};
 struct TestDb {
     storage: salsa::Storage<Self>,
     source_table: SourceTable,
+
+    logger: std::sync::Mutex<Option<Vec<salsa::Event>>>,
 }
 
-impl salsa::Database for TestDb {}
+impl salsa::Database for TestDb {
+    fn salsa_event(&self, event: salsa::Event) {
+        let mut events = self.logger.lock().unwrap();
+        if let Some(events) = &mut *events {
+            events.push(event);
+        }
+    }
+}
 
 impl VfsBridge for TestDb {
     fn source_table(&self) -> &SourceTable {
@@ -42,6 +52,61 @@ impl TestDb {
 
         (db, package)
     }
+
+    #[allow(unused)]
+    fn log_output<R>(&self, f: impl FnOnce() -> R) -> (Vec<String>, R) {
+        self.logger.lock().unwrap().replace(vec![]);
+        let res = f();
+        let events = self.logger.lock().unwrap().take().unwrap();
+
+        (format_events(self, events), res)
+    }
+}
+
+fn format_events(db: &TestDb, events: Vec<salsa::Event>) -> Vec<String> {
+    events
+        .into_iter()
+        .filter_map(|event| {
+            let text = match event.kind {
+                salsa::EventKind::WillCheckCancellation => return None,
+                salsa::EventKind::DidValidateMemoizedValue { database_key } => {
+                    format!("validate {:?}", database_key.debug(db))
+                }
+                salsa::EventKind::WillBlockOn {
+                    other_runtime_id,
+                    database_key,
+                } => format!(
+                    "block_on {:?} {:?}",
+                    other_runtime_id,
+                    database_key.debug(db)
+                ),
+                salsa::EventKind::WillExecute { database_key } => {
+                    format!("exec {:?}", database_key.debug(db))
+                }
+                salsa::EventKind::WillDiscardStaleOutput {
+                    execute_key,
+                    output_key,
+                } => format!(
+                    "discard_output {:?} {:?}",
+                    execute_key.debug(db),
+                    output_key.debug(db)
+                ),
+                salsa::EventKind::DidDiscard { key } => {
+                    format!("discard_struct {:?}", key.debug(db))
+                }
+                salsa::EventKind::DidDiscardAccumulated {
+                    executor_key,
+                    accumulator,
+                } => format!(
+                    "discard_accum {:?} {:?}",
+                    executor_key.debug(db),
+                    accumulator.debug(db)
+                ),
+            };
+
+            Some(format!("{:?} -> {text}", event.runtime_id))
+        })
+        .collect()
 }
 
 #[test]
@@ -118,7 +183,7 @@ end a
 % according to all known laws of aviation
 % it is impossible for a bee to fly
 % yet, it does so anyway because a bee does not care
-% what human think is possible
+% what humans think is possible
 
 module b
     module d1 end d1
@@ -204,7 +269,7 @@ module c end c
 
 #[test]
 fn test_stable_constvar_locations_delete_swap() {
-    // constvars are a lil trickier since they also include an index
+    // constvars are a lil different since their locations are on the names
     let (mut db, package) = TestDb::from_source(
         "
 const a, b, c := 1
