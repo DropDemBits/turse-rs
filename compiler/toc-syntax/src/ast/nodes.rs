@@ -4289,6 +4289,21 @@ impl AstNode for PreprocKind {
         }
     }
 }
+impl From<PPInclude> for PreprocKind {
+    fn from(variant: PPInclude) -> Self { Self::PPInclude(variant) }
+}
+impl From<PPIf> for PreprocKind {
+    fn from(variant: PPIf) -> Self { Self::PPIf(variant) }
+}
+impl From<PPElseif> for PreprocKind {
+    fn from(variant: PPElseif) -> Self { Self::PPElseif(variant) }
+}
+impl From<PPElse> for PreprocKind {
+    fn from(variant: PPElse) -> Self { Self::PPElse(variant) }
+}
+impl From<PPEndIf> for PreprocKind {
+    fn from(variant: PPEndIf) -> Self { Self::PPEndIf(variant) }
+}
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum PPExpr {
     PPBinaryExpr(PPBinaryExpr),
@@ -4325,6 +4340,18 @@ impl AstNode for PPExpr {
         }
     }
 }
+impl From<PPBinaryExpr> for PPExpr {
+    fn from(variant: PPBinaryExpr) -> Self { Self::PPBinaryExpr(variant) }
+}
+impl From<PPUnaryExpr> for PPExpr {
+    fn from(variant: PPUnaryExpr) -> Self { Self::PPUnaryExpr(variant) }
+}
+impl From<PPNameExpr> for PPExpr {
+    fn from(variant: PPNameExpr) -> Self { Self::PPNameExpr(variant) }
+}
+impl From<PPParenExpr> for PPExpr {
+    fn from(variant: PPParenExpr) -> Self { Self::PPParenExpr(variant) }
+}
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum PPFalseBranch {
     PPElseif(PPElseif),
@@ -4352,6 +4379,12 @@ impl AstNode for PPFalseBranch {
             Self::PPElse(node) => node.syntax(),
         }
     }
+}
+impl From<PPElseif> for PPFalseBranch {
+    fn from(variant: PPElseif) -> Self { Self::PPElseif(variant) }
+}
+impl From<PPElse> for PPFalseBranch {
+    fn from(variant: PPElse) -> Self { Self::PPElse(variant) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum Stmt {
@@ -4581,6 +4614,162 @@ impl AstNode for Stmt {
         }
     }
 }
+impl From<ConstVarDecl> for Stmt {
+    fn from(variant: ConstVarDecl) -> Self { Self::ConstVarDecl(variant) }
+}
+impl From<TypeDecl> for Stmt {
+    fn from(variant: TypeDecl) -> Self { Self::TypeDecl(variant) }
+}
+impl From<BindDecl> for Stmt {
+    fn from(variant: BindDecl) -> Self { Self::BindDecl(variant) }
+}
+impl From<ProcDecl> for Stmt {
+    fn from(variant: ProcDecl) -> Self { Self::ProcDecl(variant) }
+}
+impl From<FcnDecl> for Stmt {
+    fn from(variant: FcnDecl) -> Self { Self::FcnDecl(variant) }
+}
+impl From<ProcessDecl> for Stmt {
+    fn from(variant: ProcessDecl) -> Self { Self::ProcessDecl(variant) }
+}
+impl From<ExternalDecl> for Stmt {
+    fn from(variant: ExternalDecl) -> Self { Self::ExternalDecl(variant) }
+}
+impl From<ForwardDecl> for Stmt {
+    fn from(variant: ForwardDecl) -> Self { Self::ForwardDecl(variant) }
+}
+impl From<DeferredDecl> for Stmt {
+    fn from(variant: DeferredDecl) -> Self { Self::DeferredDecl(variant) }
+}
+impl From<BodyDecl> for Stmt {
+    fn from(variant: BodyDecl) -> Self { Self::BodyDecl(variant) }
+}
+impl From<ModuleDecl> for Stmt {
+    fn from(variant: ModuleDecl) -> Self { Self::ModuleDecl(variant) }
+}
+impl From<ClassDecl> for Stmt {
+    fn from(variant: ClassDecl) -> Self { Self::ClassDecl(variant) }
+}
+impl From<MonitorDecl> for Stmt {
+    fn from(variant: MonitorDecl) -> Self { Self::MonitorDecl(variant) }
+}
+impl From<AssignStmt> for Stmt {
+    fn from(variant: AssignStmt) -> Self { Self::AssignStmt(variant) }
+}
+impl From<OpenStmt> for Stmt {
+    fn from(variant: OpenStmt) -> Self { Self::OpenStmt(variant) }
+}
+impl From<CloseStmt> for Stmt {
+    fn from(variant: CloseStmt) -> Self { Self::CloseStmt(variant) }
+}
+impl From<PutStmt> for Stmt {
+    fn from(variant: PutStmt) -> Self { Self::PutStmt(variant) }
+}
+impl From<GetStmt> for Stmt {
+    fn from(variant: GetStmt) -> Self { Self::GetStmt(variant) }
+}
+impl From<ReadStmt> for Stmt {
+    fn from(variant: ReadStmt) -> Self { Self::ReadStmt(variant) }
+}
+impl From<WriteStmt> for Stmt {
+    fn from(variant: WriteStmt) -> Self { Self::WriteStmt(variant) }
+}
+impl From<SeekStmt> for Stmt {
+    fn from(variant: SeekStmt) -> Self { Self::SeekStmt(variant) }
+}
+impl From<TellStmt> for Stmt {
+    fn from(variant: TellStmt) -> Self { Self::TellStmt(variant) }
+}
+impl From<ForStmt> for Stmt {
+    fn from(variant: ForStmt) -> Self { Self::ForStmt(variant) }
+}
+impl From<LoopStmt> for Stmt {
+    fn from(variant: LoopStmt) -> Self { Self::LoopStmt(variant) }
+}
+impl From<ExitStmt> for Stmt {
+    fn from(variant: ExitStmt) -> Self { Self::ExitStmt(variant) }
+}
+impl From<IfStmt> for Stmt {
+    fn from(variant: IfStmt) -> Self { Self::IfStmt(variant) }
+}
+impl From<CaseStmt> for Stmt {
+    fn from(variant: CaseStmt) -> Self { Self::CaseStmt(variant) }
+}
+impl From<BlockStmt> for Stmt {
+    fn from(variant: BlockStmt) -> Self { Self::BlockStmt(variant) }
+}
+impl From<InvariantStmt> for Stmt {
+    fn from(variant: InvariantStmt) -> Self { Self::InvariantStmt(variant) }
+}
+impl From<AssertStmt> for Stmt {
+    fn from(variant: AssertStmt) -> Self { Self::AssertStmt(variant) }
+}
+impl From<CallStmt> for Stmt {
+    fn from(variant: CallStmt) -> Self { Self::CallStmt(variant) }
+}
+impl From<ReturnStmt> for Stmt {
+    fn from(variant: ReturnStmt) -> Self { Self::ReturnStmt(variant) }
+}
+impl From<ResultStmt> for Stmt {
+    fn from(variant: ResultStmt) -> Self { Self::ResultStmt(variant) }
+}
+impl From<NewStmt> for Stmt {
+    fn from(variant: NewStmt) -> Self { Self::NewStmt(variant) }
+}
+impl From<FreeStmt> for Stmt {
+    fn from(variant: FreeStmt) -> Self { Self::FreeStmt(variant) }
+}
+impl From<TagStmt> for Stmt {
+    fn from(variant: TagStmt) -> Self { Self::TagStmt(variant) }
+}
+impl From<ForkStmt> for Stmt {
+    fn from(variant: ForkStmt) -> Self { Self::ForkStmt(variant) }
+}
+impl From<SignalStmt> for Stmt {
+    fn from(variant: SignalStmt) -> Self { Self::SignalStmt(variant) }
+}
+impl From<PauseStmt> for Stmt {
+    fn from(variant: PauseStmt) -> Self { Self::PauseStmt(variant) }
+}
+impl From<QuitStmt> for Stmt {
+    fn from(variant: QuitStmt) -> Self { Self::QuitStmt(variant) }
+}
+impl From<BreakStmt> for Stmt {
+    fn from(variant: BreakStmt) -> Self { Self::BreakStmt(variant) }
+}
+impl From<CheckednessStmt> for Stmt {
+    fn from(variant: CheckednessStmt) -> Self { Self::CheckednessStmt(variant) }
+}
+impl From<PreStmt> for Stmt {
+    fn from(variant: PreStmt) -> Self { Self::PreStmt(variant) }
+}
+impl From<InitStmt> for Stmt {
+    fn from(variant: InitStmt) -> Self { Self::InitStmt(variant) }
+}
+impl From<PostStmt> for Stmt {
+    fn from(variant: PostStmt) -> Self { Self::PostStmt(variant) }
+}
+impl From<HandlerStmt> for Stmt {
+    fn from(variant: HandlerStmt) -> Self { Self::HandlerStmt(variant) }
+}
+impl From<InheritStmt> for Stmt {
+    fn from(variant: InheritStmt) -> Self { Self::InheritStmt(variant) }
+}
+impl From<ImplementStmt> for Stmt {
+    fn from(variant: ImplementStmt) -> Self { Self::ImplementStmt(variant) }
+}
+impl From<ImplementByStmt> for Stmt {
+    fn from(variant: ImplementByStmt) -> Self { Self::ImplementByStmt(variant) }
+}
+impl From<ImportStmt> for Stmt {
+    fn from(variant: ImportStmt) -> Self { Self::ImportStmt(variant) }
+}
+impl From<ExportStmt> for Stmt {
+    fn from(variant: ExportStmt) -> Self { Self::ExportStmt(variant) }
+}
+impl From<PreprocGlob> for Stmt {
+    fn from(variant: PreprocGlob) -> Self { Self::PreprocGlob(variant) }
+}
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum Item {
     ConstVarDecl(ConstVarDecl),
@@ -4653,6 +4842,45 @@ impl AstNode for Item {
         }
     }
 }
+impl From<ConstVarDecl> for Item {
+    fn from(variant: ConstVarDecl) -> Self { Self::ConstVarDecl(variant) }
+}
+impl From<TypeDecl> for Item {
+    fn from(variant: TypeDecl) -> Self { Self::TypeDecl(variant) }
+}
+impl From<BindItem> for Item {
+    fn from(variant: BindItem) -> Self { Self::BindItem(variant) }
+}
+impl From<ProcDecl> for Item {
+    fn from(variant: ProcDecl) -> Self { Self::ProcDecl(variant) }
+}
+impl From<FcnDecl> for Item {
+    fn from(variant: FcnDecl) -> Self { Self::FcnDecl(variant) }
+}
+impl From<ProcessDecl> for Item {
+    fn from(variant: ProcessDecl) -> Self { Self::ProcessDecl(variant) }
+}
+impl From<ExternalDecl> for Item {
+    fn from(variant: ExternalDecl) -> Self { Self::ExternalDecl(variant) }
+}
+impl From<ForwardDecl> for Item {
+    fn from(variant: ForwardDecl) -> Self { Self::ForwardDecl(variant) }
+}
+impl From<DeferredDecl> for Item {
+    fn from(variant: DeferredDecl) -> Self { Self::DeferredDecl(variant) }
+}
+impl From<BodyDecl> for Item {
+    fn from(variant: BodyDecl) -> Self { Self::BodyDecl(variant) }
+}
+impl From<ModuleDecl> for Item {
+    fn from(variant: ModuleDecl) -> Self { Self::ModuleDecl(variant) }
+}
+impl From<ClassDecl> for Item {
+    fn from(variant: ClassDecl) -> Self { Self::ClassDecl(variant) }
+}
+impl From<MonitorDecl> for Item {
+    fn from(variant: MonitorDecl) -> Self { Self::MonitorDecl(variant) }
+}
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum Type {
     PrimType(PrimType),
@@ -4724,6 +4952,45 @@ impl AstNode for Type {
             Self::ConditionType(node) => node.syntax(),
         }
     }
+}
+impl From<PrimType> for Type {
+    fn from(variant: PrimType) -> Self { Self::PrimType(variant) }
+}
+impl From<NameType> for Type {
+    fn from(variant: NameType) -> Self { Self::NameType(variant) }
+}
+impl From<RangeType> for Type {
+    fn from(variant: RangeType) -> Self { Self::RangeType(variant) }
+}
+impl From<EnumType> for Type {
+    fn from(variant: EnumType) -> Self { Self::EnumType(variant) }
+}
+impl From<ArrayType> for Type {
+    fn from(variant: ArrayType) -> Self { Self::ArrayType(variant) }
+}
+impl From<SetType> for Type {
+    fn from(variant: SetType) -> Self { Self::SetType(variant) }
+}
+impl From<RecordType> for Type {
+    fn from(variant: RecordType) -> Self { Self::RecordType(variant) }
+}
+impl From<UnionType> for Type {
+    fn from(variant: UnionType) -> Self { Self::UnionType(variant) }
+}
+impl From<PointerType> for Type {
+    fn from(variant: PointerType) -> Self { Self::PointerType(variant) }
+}
+impl From<FcnType> for Type {
+    fn from(variant: FcnType) -> Self { Self::FcnType(variant) }
+}
+impl From<ProcType> for Type {
+    fn from(variant: ProcType) -> Self { Self::ProcType(variant) }
+}
+impl From<CollectionType> for Type {
+    fn from(variant: CollectionType) -> Self { Self::CollectionType(variant) }
+}
+impl From<ConditionType> for Type {
+    fn from(variant: ConditionType) -> Self { Self::ConditionType(variant) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum Expr {
@@ -4817,6 +5084,60 @@ impl AstNode for Expr {
         }
     }
 }
+impl From<LiteralExpr> for Expr {
+    fn from(variant: LiteralExpr) -> Self { Self::LiteralExpr(variant) }
+}
+impl From<ObjClassExpr> for Expr {
+    fn from(variant: ObjClassExpr) -> Self { Self::ObjClassExpr(variant) }
+}
+impl From<InitExpr> for Expr {
+    fn from(variant: InitExpr) -> Self { Self::InitExpr(variant) }
+}
+impl From<NilExpr> for Expr {
+    fn from(variant: NilExpr) -> Self { Self::NilExpr(variant) }
+}
+impl From<SizeOfExpr> for Expr {
+    fn from(variant: SizeOfExpr) -> Self { Self::SizeOfExpr(variant) }
+}
+impl From<BinaryExpr> for Expr {
+    fn from(variant: BinaryExpr) -> Self { Self::BinaryExpr(variant) }
+}
+impl From<UnaryExpr> for Expr {
+    fn from(variant: UnaryExpr) -> Self { Self::UnaryExpr(variant) }
+}
+impl From<ParenExpr> for Expr {
+    fn from(variant: ParenExpr) -> Self { Self::ParenExpr(variant) }
+}
+impl From<NameExpr> for Expr {
+    fn from(variant: NameExpr) -> Self { Self::NameExpr(variant) }
+}
+impl From<SelfExpr> for Expr {
+    fn from(variant: SelfExpr) -> Self { Self::SelfExpr(variant) }
+}
+impl From<FieldExpr> for Expr {
+    fn from(variant: FieldExpr) -> Self { Self::FieldExpr(variant) }
+}
+impl From<DerefExpr> for Expr {
+    fn from(variant: DerefExpr) -> Self { Self::DerefExpr(variant) }
+}
+impl From<CheatExpr> for Expr {
+    fn from(variant: CheatExpr) -> Self { Self::CheatExpr(variant) }
+}
+impl From<NatCheatExpr> for Expr {
+    fn from(variant: NatCheatExpr) -> Self { Self::NatCheatExpr(variant) }
+}
+impl From<ArrowExpr> for Expr {
+    fn from(variant: ArrowExpr) -> Self { Self::ArrowExpr(variant) }
+}
+impl From<IndirectExpr> for Expr {
+    fn from(variant: IndirectExpr) -> Self { Self::IndirectExpr(variant) }
+}
+impl From<BitsExpr> for Expr {
+    fn from(variant: BitsExpr) -> Self { Self::BitsExpr(variant) }
+}
+impl From<CallExpr> for Expr {
+    fn from(variant: CallExpr) -> Self { Self::CallExpr(variant) }
+}
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum SubprogHeader {
     ProcHeader(ProcHeader),
@@ -4844,6 +5165,12 @@ impl AstNode for SubprogHeader {
             Self::FcnHeader(node) => node.syntax(),
         }
     }
+}
+impl From<ProcHeader> for SubprogHeader {
+    fn from(variant: ProcHeader) -> Self { Self::ProcHeader(variant) }
+}
+impl From<FcnHeader> for SubprogHeader {
+    fn from(variant: FcnHeader) -> Self { Self::FcnHeader(variant) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum BodyKind {
@@ -4877,6 +5204,15 @@ impl AstNode for BodyKind {
         }
     }
 }
+impl From<PlainHeader> for BodyKind {
+    fn from(variant: PlainHeader) -> Self { Self::PlainHeader(variant) }
+}
+impl From<ProcHeader> for BodyKind {
+    fn from(variant: ProcHeader) -> Self { Self::ProcHeader(variant) }
+}
+impl From<FcnHeader> for BodyKind {
+    fn from(variant: FcnHeader) -> Self { Self::FcnHeader(variant) }
+}
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum ExternalKind {
     ExternalFcn(FcnHeader),
@@ -4909,6 +5245,15 @@ impl AstNode for ExternalKind {
         }
     }
 }
+impl From<FcnHeader> for ExternalKind {
+    fn from(variant: FcnHeader) -> Self { Self::ExternalFcn(variant) }
+}
+impl From<ProcHeader> for ExternalKind {
+    fn from(variant: ProcHeader) -> Self { Self::ExternalProc(variant) }
+}
+impl From<ExternalVar> for ExternalKind {
+    fn from(variant: ExternalVar) -> Self { Self::ExternalVar(variant) }
+}
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum OpenKind {
     OldOpen(OldOpen),
@@ -4936,6 +5281,12 @@ impl AstNode for OpenKind {
             Self::NewOpen(node) => node.syntax(),
         }
     }
+}
+impl From<OldOpen> for OpenKind {
+    fn from(variant: OldOpen) -> Self { Self::OldOpen(variant) }
+}
+impl From<NewOpen> for OpenKind {
+    fn from(variant: NewOpen) -> Self { Self::NewOpen(variant) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum CloseKind {
@@ -4965,6 +5316,12 @@ impl AstNode for CloseKind {
         }
     }
 }
+impl From<OldClose> for CloseKind {
+    fn from(variant: OldClose) -> Self { Self::OldClose(variant) }
+}
+impl From<NewClose> for CloseKind {
+    fn from(variant: NewClose) -> Self { Self::NewClose(variant) }
+}
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum FalseBranch {
     ElseifStmt(ElseifStmt),
@@ -4992,6 +5349,12 @@ impl AstNode for FalseBranch {
             Self::ElseStmt(node) => node.syntax(),
         }
     }
+}
+impl From<ElseifStmt> for FalseBranch {
+    fn from(variant: ElseifStmt) -> Self { Self::ElseifStmt(variant) }
+}
+impl From<ElseStmt> for FalseBranch {
+    fn from(variant: ElseStmt) -> Self { Self::ElseStmt(variant) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum ImportAttr {
@@ -5024,6 +5387,15 @@ impl AstNode for ImportAttr {
             Self::ForwardAttr(node) => node.syntax(),
         }
     }
+}
+impl From<VarAttr> for ImportAttr {
+    fn from(variant: VarAttr) -> Self { Self::VarAttr(variant) }
+}
+impl From<ConstAttr> for ImportAttr {
+    fn from(variant: ConstAttr) -> Self { Self::ConstAttr(variant) }
+}
+impl From<ForwardAttr> for ImportAttr {
+    fn from(variant: ForwardAttr) -> Self { Self::ForwardAttr(variant) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum ExportAttr {
@@ -5061,6 +5433,18 @@ impl AstNode for ExportAttr {
         }
     }
 }
+impl From<VarAttr> for ExportAttr {
+    fn from(variant: VarAttr) -> Self { Self::VarAttr(variant) }
+}
+impl From<UnqualifiedAttr> for ExportAttr {
+    fn from(variant: UnqualifiedAttr) -> Self { Self::UnqualifiedAttr(variant) }
+}
+impl From<PervasiveAttr> for ExportAttr {
+    fn from(variant: PervasiveAttr) -> Self { Self::PervasiveAttr(variant) }
+}
+impl From<OpaqueAttr> for ExportAttr {
+    fn from(variant: OpaqueAttr) -> Self { Self::OpaqueAttr(variant) }
+}
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum IndirectTy {
     PrimType(PrimType),
@@ -5088,6 +5472,12 @@ impl AstNode for IndirectTy {
             Self::NameType(node) => node.syntax(),
         }
     }
+}
+impl From<PrimType> for IndirectTy {
+    fn from(variant: PrimType) -> Self { Self::PrimType(variant) }
+}
+impl From<NameType> for IndirectTy {
+    fn from(variant: NameType) -> Self { Self::NameType(variant) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum ParamKind {
@@ -5121,6 +5511,15 @@ impl AstNode for ParamKind {
         }
     }
 }
+impl From<AllItem> for ParamKind {
+    fn from(variant: AllItem) -> Self { Self::AllItem(variant) }
+}
+impl From<RangeItem> for ParamKind {
+    fn from(variant: RangeItem) -> Self { Self::RangeItem(variant) }
+}
+impl From<Expr> for ParamKind {
+    fn from(variant: Expr) -> Self { Self::Expr(variant) }
+}
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum RangeBound {
     RelativeBound(RelativeBound),
@@ -5148,6 +5547,12 @@ impl AstNode for RangeBound {
             Self::Expr(node) => node.syntax(),
         }
     }
+}
+impl From<RelativeBound> for RangeBound {
+    fn from(variant: RelativeBound) -> Self { Self::RelativeBound(variant) }
+}
+impl From<Expr> for RangeBound {
+    fn from(variant: Expr) -> Self { Self::Expr(variant) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum EndBound {
@@ -5177,6 +5582,12 @@ impl AstNode for EndBound {
         }
     }
 }
+impl From<UnsizedBound> for EndBound {
+    fn from(variant: UnsizedBound) -> Self { Self::UnsizedBound(variant) }
+}
+impl From<CompTimeExpr> for EndBound {
+    fn from(variant: CompTimeExpr) -> Self { Self::CompTimeExpr(variant) }
+}
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum SubprogType {
     FcnType(FcnType),
@@ -5204,6 +5615,12 @@ impl AstNode for SubprogType {
             Self::ProcType(node) => node.syntax(),
         }
     }
+}
+impl From<FcnType> for SubprogType {
+    fn from(variant: FcnType) -> Self { Self::FcnType(variant) }
+}
+impl From<ProcType> for SubprogType {
+    fn from(variant: ProcType) -> Self { Self::ProcType(variant) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum ParamDecl {
@@ -5233,6 +5650,12 @@ impl AstNode for ParamDecl {
         }
     }
 }
+impl From<ConstVarParam> for ParamDecl {
+    fn from(variant: ConstVarParam) -> Self { Self::ConstVarParam(variant) }
+}
+impl From<SubprogType> for ParamDecl {
+    fn from(variant: SubprogType) -> Self { Self::SubprogType(variant) }
+}
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum ExternalRef {
     ExternalItem(ExternalItem),
@@ -5260,4 +5683,10 @@ impl AstNode for ExternalRef {
             Self::PPInclude(node) => node.syntax(),
         }
     }
+}
+impl From<ExternalItem> for ExternalRef {
+    fn from(variant: ExternalItem) -> Self { Self::ExternalItem(variant) }
+}
+impl From<PPInclude> for ExternalRef {
+    fn from(variant: PPInclude) -> Self { Self::PPInclude(variant) }
 }

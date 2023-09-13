@@ -31,13 +31,28 @@ pub fn do_codegen() -> Result<()> {
         .run()
         .context("failed to run rustfmt")?;
 
-    let formatted = cmd!(
+    let output = cmd!(
         sh,
         "rustfmt --config fn_single_line=true --config max_width=120"
     )
-    .stdin(contents)
-    .output()?
-    .stdout;
+    .stdin(&contents)
+    .output();
+
+    let formatted = match output {
+        Ok(output) => output.stdout,
+        Err(err) => {
+            // Rerun to show if there are any errors from rustfmt
+            // xshell currently doesn't include stderr in the error result
+            let _ = cmd!(
+                sh,
+                "rustfmt --config fn_single_line=true --config max_width=120"
+            )
+            .stdin(&contents)
+            .run();
+
+            return Err(err.into());
+        }
+    };
 
     let header = unindent::unindent_bytes(
         "
@@ -67,9 +82,10 @@ fn generate_nodes(lowered: &LoweredGrammar) -> String {
         let nodes = group
             .variants
             .iter()
-            .map(|child| format_ident!("{}", child.variant));
+            .map(|child| format_ident!("{}", child.variant))
+            .collect::<Vec<_>>();
 
-        let variants: Vec<_> = group
+        let variants = group
             .variants
             .iter()
             .map(|child| {
@@ -84,7 +100,7 @@ fn generate_nodes(lowered: &LoweredGrammar) -> String {
                     format_ident!("{name}")
                 }
             })
-            .collect();
+            .collect::<Vec<_>>();
 
         let make_match_kinds = |from_node: bool| {
             move |child: &Variant| {
@@ -111,6 +127,7 @@ fn generate_nodes(lowered: &LoweredGrammar) -> String {
             pub enum #name {
                 #(#variants(#nodes)),*
             }
+
             impl AstNode for #name {
                 type Language = crate::Lang;
 
@@ -135,6 +152,14 @@ fn generate_nodes(lowered: &LoweredGrammar) -> String {
                 }
             }
 
+            #(
+                impl From<#nodes> for #name {
+                    fn from(variant: #nodes) -> Self {
+                        Self::#variants(variant)
+                    }
+                }
+
+            )*
         }
     });
 
