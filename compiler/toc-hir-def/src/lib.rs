@@ -136,7 +136,7 @@ pub struct Jar(
     item::RootModule_collect_items,
     item::RootModule_stmt_list,
     item::UnitModule,
-    item::UnitModule_stmt_list,
+    item::UnitModule__stmt_list,
     item::Module,
     item::Module_body,
     item::Module_collect_items,

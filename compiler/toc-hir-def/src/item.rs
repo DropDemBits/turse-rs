@@ -211,7 +211,7 @@ pub struct UnitModule {
 #[salsa::tracked]
 impl UnitModule {
     #[salsa::tracked]
-    pub(crate) fn stmt_list(self, db: &dyn Db) -> SemanticLoc<ast::StmtList> {
+    pub(crate) fn _stmt_list(self, _db: &dyn Db) -> SemanticLoc<ast::StmtList> {
         // not accessible right now, but will probably be implemented by units
         // being a wrapper module around the real unit item
         unimplemented!()

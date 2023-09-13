@@ -186,7 +186,7 @@ impl<'db> BodyLower<'db> {
             .alloc(stmt::Stmt::InitializeConstVar(loc));
         self.spans.stmts.insert(
             place,
-            loc.map_unstable(self.db.up(), |node| ast::Stmt::ConstVarDecl(node)),
+            loc.map_unstable(self.db.up(), ast::Stmt::ConstVarDecl),
         );
 
         vec![LocalStmt(place)]
