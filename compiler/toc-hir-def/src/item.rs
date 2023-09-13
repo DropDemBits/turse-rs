@@ -82,7 +82,7 @@ pub mod item_loc_map {
 }
 
 /// Any item that can be owned by another item
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Item {
     ConstVar(ConstVar),
     Module(Module),
@@ -335,7 +335,7 @@ pub struct ItemCollection {
 }
 
 /// Every possible item
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum AnyItem {
     ConstVar(ConstVar),
     RootModule(RootModule),

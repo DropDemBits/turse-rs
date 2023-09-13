@@ -1,5 +1,7 @@
 //! Items and code bodies
 
+use std::fmt;
+
 use upcast::{Upcast, UpcastFrom};
 
 pub(crate) mod internals {
@@ -147,6 +149,30 @@ pub struct Jar(
     body::Body_lower_contents,
     body::ModuleBlock,
 );
+
+// Not in salsa so we make one ourselves
+pub trait DisplayWithDb<'db, Db: ?Sized + 'db> {
+    fn display<'me>(&'me self, db: &'db Db) -> DisplayWith<'me, 'db, Db>
+    where
+        'db: 'me,
+        Self: Sized + 'me,
+    {
+        DisplayWith { value: self, db }
+    }
+
+    fn fmt(&self, f: &mut fmt::Formatter<'_>, db: &Db) -> fmt::Result;
+}
+
+pub struct DisplayWith<'me, 'db: 'me, Db: ?Sized + 'db> {
+    value: &'me (dyn DisplayWithDb<'db, Db> + 'me),
+    db: &'db Db,
+}
+
+impl<'me, 'db: 'me, Db: ?Sized> fmt::Display for DisplayWith<'me, 'db, Db> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        DisplayWithDb::fmt(self.value, f, self.db)
+    }
+}
 
 #[salsa::interned]
 pub struct Symbol {
