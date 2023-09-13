@@ -75,10 +75,7 @@ pub struct SemanticLoc<T: AstNode> {
 
 impl<T: AstNode> Clone for SemanticLoc<T> {
     fn clone(&self) -> Self {
-        Self {
-            loc: self.loc,
-            _node: PhantomData,
-        }
+        *self
     }
 }
 
