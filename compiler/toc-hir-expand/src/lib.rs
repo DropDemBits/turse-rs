@@ -68,7 +68,9 @@ pub struct ErasedSemanticLoc {
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub struct SemanticLoc<T: AstNode> {
     loc: ErasedSemanticLoc,
-    _node: PhantomData<T>,
+    // `to_node` is what yields the actual AST node, rather than a `SemanticLoc`
+    // owning the AST node. This also allows `SemanticLoc` to be `Send + Sync`.
+    _node: PhantomData<fn() -> T>,
 }
 
 impl<T: AstNode> Clone for SemanticLoc<T> {
@@ -139,7 +141,10 @@ impl<T: AstNode<Language = toc_syntax::Lang>> SemanticLoc<T> {
 pub struct UnstableSemanticLoc<T: AstNode> {
     file: SemanticFile,
     ptr: SyntaxNodePtr,
-    _node: PhantomData<T>,
+    // `to_node` is what yields the actual AST node, rather than an
+    // `UnstableSemanticLoc` owning the AST node. This also allows
+    // `UnstableSemanticLoc` to be `Send + Sync`.
+    _node: PhantomData<fn() -> T>,
 }
 
 impl<T: AstNode> Clone for UnstableSemanticLoc<T> {
