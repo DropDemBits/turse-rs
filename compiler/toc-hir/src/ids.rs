@@ -106,8 +106,6 @@ crate::arena_id_wrapper!(
     ///
     /// [`Body`]: crate::body::Body
     pub struct ExprId(expr::Expr);
-    /// Alias for the expr arena index
-    pub(crate) type ExprIndex = Index;
 );
 
 crate::arena_id_wrapper!(
@@ -115,8 +113,6 @@ crate::arena_id_wrapper!(
     ///
     /// [`Body`]: crate::body::Body
     pub struct StmtId(stmt::Stmt);
-    /// Alias for the stmt arena index
-    pub(crate) type StmtIndex = Index;
 );
 
 /// Uniquely identifies a statement within a package

@@ -2,7 +2,6 @@
 
 use crate::{expr, item, span::SpanId, symbol, ty};
 
-pub(crate) use crate::ids::StmtIndex;
 pub use crate::ids::{BodyStmt, StmtId};
 
 #[derive(Debug, PartialEq, Eq)]
