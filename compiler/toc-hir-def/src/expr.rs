@@ -2,6 +2,8 @@
 
 use crate::{body::Body, Symbol};
 
+pub use toc_syntax::{InfixOp as BinaryOp, PrefixOp as UnaryOp};
+
 crate::arena_id_wrapper!(
     /// A [`Body`] local reference to an expression.
     ///
@@ -119,69 +121,11 @@ pub struct Binary {
     pub rhs: LocalExpr,
 }
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
-pub enum BinaryOp {
-    /// Addition / Set Union / String Concatenation (`+`)
-    Add,
-    /// Subtraction / Set Subtraction (`-`)
-    Sub,
-    /// Multiplication / Set Intersection (`*`)
-    Mul,
-    /// Integer Division (`div`)
-    Div,
-    /// Real Division (`/`)
-    RealDiv,
-    /// Modulo (`mod`)
-    Mod,
-    /// Remainder (`rem`)
-    Rem,
-    /// Exponentiation (`**`)
-    Exp,
-    /// Bitwise/boolean And (`and`)
-    And,
-    /// Bitwise/boolean Or (`or`)
-    Or,
-    /// Bitwise/boolean Exclusive-Or (`xor`)
-    Xor,
-    /// Logical Shift Left (`shl`)
-    Shl,
-    /// Logical Shift Right (`shr`)
-    Shr,
-    /// Less than (`<`)
-    Less,
-    /// Less than or Equal (`<=`)
-    LessEq,
-    /// Greater than (`>`)
-    Greater,
-    /// Greater than or Equal (`>=`)
-    GreaterEq,
-    /// Equality (`=` or `=`)
-    Equal,
-    /// Inequality (`not=` or `~=`)
-    NotEqual,
-    /// Set inclusion (`in`)
-    In,
-    /// Set exclusion (`not in`)
-    NotIn,
-    /// Material Implication (`=>`)
-    Imply,
-}
-
 // Unary operator expression
 #[derive(Debug, PartialEq, Eq)]
 pub struct Unary {
     pub op: UnaryOp,
     pub rhs: LocalExpr,
-}
-
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
-pub enum UnaryOp {
-    /// Binary/boolean negation operator (`not`)
-    Not,
-    /// Integer identity (`+`)
-    Identity,
-    /// Integer negation (`-`)
-    Negate,
 }
 
 /// Name expression

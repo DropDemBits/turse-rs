@@ -3,12 +3,16 @@
 use toc_hir_expand::{
     AstLocations, SemanticFile, SemanticLoc, SemanticNodePtr, UnstableSemanticLoc,
 };
-use toc_syntax::ast::{self, AstNode};
+use toc_syntax::{
+    ast::{self, AstNode},
+    LiteralValue,
+};
 
 use crate::{
     body::ModuleBlock,
+    expr::{self, LocalExpr},
     stmt::{self, LocalStmt},
-    Db,
+    Db, Symbol,
 };
 
 use super::{Body, BodyContents, BodySpans};
@@ -99,11 +103,11 @@ impl<'db> BodyLower<'db> {
         (contents, spans, errors)
     }
 
-    fn lower_statement(&mut self, stmt: ast::Stmt) -> Vec<LocalStmt> {
+    fn lower_statement(&mut self, stmt: ast::Stmt) -> Option<LocalStmt> {
         // only needed for pointing to unhandled statements
         let ptr: SemanticNodePtr = UnstableSemanticLoc::new(self.file, &stmt).into();
 
-        let ids = match stmt {
+        let id = match stmt {
             ast::Stmt::ConstVarDecl(node) => Some(self.lower_constvar_init(node)),
 
             // these decls only introduce new definitions in scope,
@@ -120,13 +124,13 @@ impl<'db> BodyLower<'db> {
             | ast::Stmt::ModuleDecl(_)
             | ast::Stmt::ClassDecl(_)
             | ast::Stmt::MonitorDecl(_) => {
-                return vec![];
+                return None;
             }
 
-            ast::Stmt::AssignStmt(_) => None,
+            ast::Stmt::AssignStmt(node) => Some(self.lower_assign_stmt(node)),
             ast::Stmt::OpenStmt(_) => None,
             ast::Stmt::CloseStmt(_) => None,
-            ast::Stmt::PutStmt(_) => None,
+            ast::Stmt::PutStmt(node) => Some(self.lower_put_stmt(node)),
             ast::Stmt::GetStmt(_) => None,
             ast::Stmt::ReadStmt(_) => None,
             ast::Stmt::WriteStmt(_) => None,
@@ -164,35 +168,99 @@ impl<'db> BodyLower<'db> {
             ast::Stmt::PreprocGlob(_) => None,
         };
 
-        match ids {
-            Some(ids) => ids,
-            None => {
-                self.errors
-                    .push(BodyLowerError::UnhandledStatement { stmt: ptr });
-                vec![]
-            }
+        if id.is_none() {
+            self.errors
+                .push(BodyLowerError::UnhandledStatement { stmt: ptr });
         }
+
+        id
     }
 
-    fn lower_constvar_init(&mut self, node: ast::ConstVarDecl) -> Vec<LocalStmt> {
+    fn lower_constvar_init(&mut self, node: ast::ConstVarDecl) -> LocalStmt {
         // for now: treat all constvars and items the same (get referenced as stmts)
         // and then lower them differently later
 
         // Initializer gets a consistent place for items
         let loc = self.ast_locations.get(&node);
-        let place = self
-            .contents
-            .stmts
-            .alloc(stmt::Stmt::InitializeConstVar(loc));
-        self.spans.stmts.insert(
-            place,
-            loc.map_unstable(self.db.up(), ast::Stmt::ConstVarDecl),
-        );
-
-        vec![LocalStmt(place)]
+        self.alloc_stmt(stmt::Stmt::InitializeConstVar(loc), node)
     }
 
-    fn lower_block_stmt(&mut self, node: ast::BlockStmt) -> Vec<LocalStmt> {
+    fn lower_assign_stmt(&mut self, node: ast::AssignStmt) -> LocalStmt {
+        let op = node
+            .asn_op()
+            .and_then(|op| op.asn_kind())
+            .and_then(|op| op.as_binary_op());
+
+        let lhs = self.lower_expr_opt(node.lhs());
+        let rhs = self.lower_expr_opt(node.rhs());
+
+        self.alloc_stmt(stmt::Stmt::Assign(stmt::Assign { lhs, op, rhs }), node)
+    }
+
+    fn lower_put_stmt(&mut self, node: ast::PutStmt) -> LocalStmt {
+        let stream_num = node
+            .stream_num()
+            .and_then(|stream| Some(self.lower_expr(stream.expr()?)));
+
+        let items = node
+            .items()
+            .filter_map(|item| {
+                if item.skip_token().is_some() {
+                    Some(stmt::Skippable::Skip)
+                } else if let Some(expr) = item.expr() {
+                    let expr = self.lower_expr(expr);
+
+                    let opts = {
+                        let width = item.width().and_then(|o| o.expr());
+                        let precision = item.fraction().and_then(|o| o.expr());
+                        let exponent_width = item.exp_width().and_then(|o| o.expr());
+
+                        if let Some(exponent_width) = exponent_width {
+                            stmt::PutOpts::WithExponentWidth {
+                                width: self.lower_expr_opt(width),
+                                precision: self.lower_expr_opt(precision),
+                                exponent_width: self.lower_expr_opt(Some(exponent_width)),
+                            }
+                        } else if let Some(precision) = precision {
+                            stmt::PutOpts::WithPrecision {
+                                width: self.lower_expr_opt(width),
+                                precision: self.lower_expr_opt(Some(precision)),
+                            }
+                        } else if let Some(width) = width {
+                            stmt::PutOpts::WithWidth {
+                                width: self.lower_expr_opt(Some(width)),
+                            }
+                        } else {
+                            stmt::PutOpts::None
+                        }
+                    };
+
+                    let item = stmt::PutItem { expr, opts };
+
+                    Some(stmt::Skippable::Item(item))
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<_>>();
+
+        // Presence means newline should be omitted
+        let append_newline = node.range_token().is_none();
+
+        // Note: we're being a little more lenient than the original one since
+        // - the parser should make an error if there isn't any items
+        // - is easier to just make it always
+        self.alloc_stmt(
+            stmt::Stmt::Put(stmt::Put {
+                stream_num,
+                items,
+                append_newline,
+            }),
+            node,
+        )
+    }
+
+    fn lower_block_stmt(&mut self, node: ast::BlockStmt) -> LocalStmt {
         let stmts = node.stmt_list().unwrap();
 
         let has_items = stmts.stmts().any(|node| {
@@ -206,25 +274,122 @@ impl<'db> BodyLower<'db> {
         });
 
         // Lower child statements
-        let mut child_stmts = vec![];
-        {
-            for stmt in stmts.stmts() {
-                let new_stmts = self.lower_statement(stmt);
-                child_stmts.extend(new_stmts.into_iter());
+        let child_stmts = stmts
+            .stmts()
+            .flat_map(|stmt| self.lower_statement(stmt))
+            .collect::<Vec<_>>();
+
+        self.alloc_stmt(
+            stmt::Stmt::Block(stmt::Block {
+                module_block,
+                kind: stmt::BlockKind::Normal,
+                stmts: child_stmts.into(),
+            }),
+            node,
+        )
+    }
+
+    fn alloc_stmt(&mut self, stmt: stmt::Stmt, node: impl Into<ast::Stmt>) -> LocalStmt {
+        let place = self.contents.stmts.alloc(stmt);
+        self.spans
+            .stmts
+            .insert(place, UnstableSemanticLoc::new(self.file, &node.into()));
+
+        LocalStmt(place)
+    }
+
+    fn lower_expr_opt(&mut self, node: Option<ast::Expr>) -> LocalExpr {
+        match node {
+            Some(expr) => self.lower_expr(expr),
+            None => self.missing_expr(),
+        }
+    }
+
+    fn missing_expr(&mut self) -> LocalExpr {
+        // Missing exprs don't have a matching node to attach to
+        let place = self.contents.exprs.alloc(expr::Expr::Missing);
+        LocalExpr(place)
+    }
+
+    fn lower_expr(&mut self, expr: ast::Expr) -> LocalExpr {
+        // only needed for pointing to unhandled expressions
+        let ptr: SemanticNodePtr = UnstableSemanticLoc::new(self.file, &expr).into();
+
+        let id = match expr {
+            ast::Expr::LiteralExpr(node) => Some(self.lower_literal_expr(node)),
+            ast::Expr::ObjClassExpr(_) => None,
+            ast::Expr::InitExpr(_) => None,
+            ast::Expr::NilExpr(_) => None,
+            ast::Expr::SizeOfExpr(_) => None,
+            ast::Expr::BinaryExpr(_) => None,
+            ast::Expr::UnaryExpr(_) => None,
+            ast::Expr::ParenExpr(_) => None,
+            ast::Expr::NameExpr(node) => Some(self.lower_name_expr(node)),
+            ast::Expr::SelfExpr(_) => None,
+            ast::Expr::FieldExpr(_) => None,
+            ast::Expr::DerefExpr(_) => None,
+            ast::Expr::CheatExpr(_) => None,
+            ast::Expr::NatCheatExpr(_) => None,
+            ast::Expr::ArrowExpr(_) => None,
+            ast::Expr::IndirectExpr(_) => None,
+            ast::Expr::BitsExpr(_) => None,
+            ast::Expr::CallExpr(_) => None,
+        };
+
+        match id {
+            Some(id) => id,
+            None => {
+                self.errors
+                    .push(BodyLowerError::UnhandledExpression { expr: ptr });
+                self.missing_expr()
             }
         }
+    }
 
-        let place = self.contents.stmts.alloc(stmt::Stmt::Block(stmt::Block {
-            module_block,
-            kind: stmt::BlockKind::Normal,
-            stmts: child_stmts.into(),
-        }));
-        self.spans.stmts.insert(
-            place,
-            UnstableSemanticLoc::new(self.file, &ast::Stmt::BlockStmt(node)),
-        );
+    fn lower_literal_expr(&mut self, node: ast::LiteralExpr) -> LocalExpr {
+        let (value, errs) = node.literal().expect("aaaa");
 
-        vec![LocalStmt(place)]
+        if let Some(errors) = errs {
+            let ptr: SemanticNodePtr = UnstableSemanticLoc::new(self.file, &node).into();
+
+            self.errors
+                .push(BodyLowerError::LiteralParseError { expr: ptr, errors })
+        }
+
+        let value = match value {
+            LiteralValue::Int(v) => expr::Literal::Integer(v),
+            LiteralValue::Real(v) => expr::Literal::Real(v),
+            LiteralValue::Char(v) if v.is_empty() => return self.missing_expr(),
+            LiteralValue::Char(v) if v.len() == 1 => expr::Literal::Char(v.chars().next().unwrap()),
+            LiteralValue::Char(v) => expr::Literal::CharSeq(v),
+            LiteralValue::String(v) => expr::Literal::String(v),
+            LiteralValue::Boolean(v) => expr::Literal::Boolean(v),
+        };
+
+        self.alloc_expr(expr::Expr::Literal(value), node)
+    }
+
+    fn lower_name_expr(&mut self, node: ast::NameExpr) -> LocalExpr {
+        let Some(name) = node
+            .name_ref()
+            .and_then(|name_ref| name_ref.identifier_token())
+        else {
+            return self.missing_expr();
+        };
+
+        self.alloc_expr(
+            expr::Expr::Name(expr::Name::Name(Symbol::new(self.db, name.text().into()))),
+            node,
+        )
+    }
+
+    fn alloc_expr(&mut self, expr: expr::Expr, node: impl Into<ast::Expr>) -> LocalExpr {
+        let place = self.contents.exprs.alloc(expr);
+        self.spans
+            .exprs
+            .insert(place, UnstableSemanticLoc::new(self.file, &node.into()));
+
+        LocalExpr(place)
     }
 }
 
@@ -232,4 +397,11 @@ impl<'db> BodyLower<'db> {
 pub enum BodyLowerError {
     /// This statement isn't lowered yet
     UnhandledStatement { stmt: SemanticNodePtr },
+    /// This expression isn't lowered yet
+    UnhandledExpression { expr: SemanticNodePtr },
+    /// Error while parsing a literal expression
+    LiteralParseError {
+        expr: SemanticNodePtr,
+        errors: toc_syntax::LiteralParseError,
+    },
 }

@@ -123,7 +123,7 @@ pub use toc_hir_expand::{
 };
 
 pub use toc_hir_def::{
-    body::Body,
+    body::{pretty::render_item_body, pretty::render_package_bodies, Body},
     item::{pretty::render_item_tree, root_module, AnyItem, ConstVar, HasItems, Item, Module},
     Jar as DefJar, Mutability,
 };

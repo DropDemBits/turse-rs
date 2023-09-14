@@ -106,6 +106,8 @@ pub enum Stmt {
 pub struct Assign {
     /// Left hand side of an assignment expression
     pub lhs: expr::LocalExpr,
+    /// Operation used for assignment
+    pub op: Option<expr::BinaryOp>,
     /// Right hand side of an assignment expression
     pub rhs: expr::LocalExpr,
 }
