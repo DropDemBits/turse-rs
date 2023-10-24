@@ -275,7 +275,7 @@ impl SemanticFile {
             let kind = node.kind();
 
             if ast::Item::can_cast(kind)
-                || ast::ConstVarDeclName::can_cast(kind)
+                || ast::ConstVarDecl::can_cast(kind)
                 || ast::StmtList::can_cast(kind)
                 || ast::UnionVariant::can_cast(kind)
                 || ast::RecordFieldName::can_cast(kind)

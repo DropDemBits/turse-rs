@@ -554,33 +554,26 @@ impl PPParenExpr {
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
-pub struct ConstVarDecl(SyntaxNode);
-impl AstNode for ConstVarDecl {
+pub struct ConstVarDeclName(SyntaxNode);
+impl AstNode for ConstVarDeclName {
     type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
-            SyntaxKind::ConstVarDecl => Some(Self(syntax)),
+            SyntaxKind::ConstVarDeclName => Some(Self(syntax)),
             _ => None,
         }
     }
     fn can_cast(kind: SyntaxKind) -> bool {
         match kind {
-            SyntaxKind::ConstVarDecl => true,
+            SyntaxKind::ConstVarDeclName => true,
             _ => false,
         }
     }
     fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
-impl ConstVarDecl {
-    pub fn var_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwVar) }
-    pub fn const_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwConst) }
-    pub fn pervasive_attr(&self) -> Option<PervasiveAttr> { helper::node(&self.0) }
-    pub fn register_attr(&self) -> Option<RegisterAttr> { helper::node(&self.0) }
-    pub fn constvar_names(&self) -> Option<ConstVarDeclNameList> { helper::node(&self.0) }
-    pub fn colon_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Colon) }
-    pub fn type_spec(&self) -> Option<Type> { helper::node(&self.0) }
-    pub fn assign_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Assign) }
-    pub fn init(&self) -> Option<Expr> { helper::node(&self.0) }
+impl ConstVarDeclName {
+    pub fn name(&self) -> Option<Name> { helper::node(&self.0) }
+    pub fn comma_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Comma) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -903,6 +896,36 @@ impl MonitorDecl {
     pub fn stmt_list(&self) -> Option<StmtList> { helper::node(&self.0) }
     pub fn post_stmt(&self) -> Option<PostStmt> { helper::node(&self.0) }
     pub fn end_group(&self) -> Option<EndGroup> { helper::node(&self.0) }
+}
+#[derive(Debug, PartialEq, Eq, Hash)]
+#[repr(transparent)]
+pub struct ConstVarDecl(SyntaxNode);
+impl AstNode for ConstVarDecl {
+    type Language = crate::Lang;
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        match syntax.kind() {
+            SyntaxKind::ConstVarDecl => Some(Self(syntax)),
+            _ => None,
+        }
+    }
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
+            SyntaxKind::ConstVarDecl => true,
+            _ => false,
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
+}
+impl ConstVarDecl {
+    pub fn var_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwVar) }
+    pub fn const_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwConst) }
+    pub fn pervasive_attr(&self) -> Option<PervasiveAttr> { helper::node(&self.0) }
+    pub fn register_attr(&self) -> Option<RegisterAttr> { helper::node(&self.0) }
+    pub fn constvar_names(&self) -> Option<ConstVarDeclNameList> { helper::node(&self.0) }
+    pub fn colon_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Colon) }
+    pub fn type_spec(&self) -> Option<Type> { helper::node(&self.0) }
+    pub fn assign_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Assign) }
+    pub fn init(&self) -> Option<Expr> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -1836,29 +1859,6 @@ impl AstNode for ConstVarDeclNameList {
 }
 impl ConstVarDeclNameList {
     pub fn names(&self) -> impl Iterator<Item = ConstVarDeclName> + '_ { helper::nodes(&self.0) }
-}
-#[derive(Debug, PartialEq, Eq, Hash)]
-#[repr(transparent)]
-pub struct ConstVarDeclName(SyntaxNode);
-impl AstNode for ConstVarDeclName {
-    type Language = crate::Lang;
-    fn cast(syntax: SyntaxNode) -> Option<Self> {
-        match syntax.kind() {
-            SyntaxKind::ConstVarDeclName => Some(Self(syntax)),
-            _ => None,
-        }
-    }
-    fn can_cast(kind: SyntaxKind) -> bool {
-        match kind {
-            SyntaxKind::ConstVarDeclName => true,
-            _ => false,
-        }
-    }
-    fn syntax(&self) -> &SyntaxNode { &self.0 }
-}
-impl ConstVarDeclName {
-    pub fn name(&self) -> Option<Name> { helper::node(&self.0) }
-    pub fn comma_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Comma) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -4772,7 +4772,7 @@ impl From<PreprocGlob> for Stmt {
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum Item {
-    ConstVarDecl(ConstVarDecl),
+    ConstVarDeclName(ConstVarDeclName),
     TypeDecl(TypeDecl),
     BindItem(BindItem),
     ProcDecl(ProcDecl),
@@ -4790,7 +4790,7 @@ impl AstNode for Item {
     type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
-            SyntaxKind::ConstVarDecl => Some(Self::ConstVarDecl(AstNode::cast(syntax)?)),
+            SyntaxKind::ConstVarDeclName => Some(Self::ConstVarDeclName(AstNode::cast(syntax)?)),
             SyntaxKind::TypeDecl => Some(Self::TypeDecl(AstNode::cast(syntax)?)),
             SyntaxKind::BindItem => Some(Self::BindItem(AstNode::cast(syntax)?)),
             SyntaxKind::ProcDecl => Some(Self::ProcDecl(AstNode::cast(syntax)?)),
@@ -4808,7 +4808,7 @@ impl AstNode for Item {
     }
     fn can_cast(kind: SyntaxKind) -> bool {
         match kind {
-            SyntaxKind::ConstVarDecl => true,
+            SyntaxKind::ConstVarDeclName => true,
             SyntaxKind::TypeDecl => true,
             SyntaxKind::BindItem => true,
             SyntaxKind::ProcDecl => true,
@@ -4826,7 +4826,7 @@ impl AstNode for Item {
     }
     fn syntax(&self) -> &SyntaxNode {
         match self {
-            Self::ConstVarDecl(node) => node.syntax(),
+            Self::ConstVarDeclName(node) => node.syntax(),
             Self::TypeDecl(node) => node.syntax(),
             Self::BindItem(node) => node.syntax(),
             Self::ProcDecl(node) => node.syntax(),
@@ -4842,8 +4842,8 @@ impl AstNode for Item {
         }
     }
 }
-impl From<ConstVarDecl> for Item {
-    fn from(variant: ConstVarDecl) -> Self { Self::ConstVarDecl(variant) }
+impl From<ConstVarDeclName> for Item {
+    fn from(variant: ConstVarDeclName) -> Self { Self::ConstVarDeclName(variant) }
 }
 impl From<TypeDecl> for Item {
     fn from(variant: TypeDecl) -> Self { Self::TypeDecl(variant) }
