@@ -128,6 +128,26 @@ impl<T: AstNode<Language = toc_syntax::Lang>> SemanticLoc<T> {
         let u = f(t);
         UnstableSemanticLoc::new(self.file(db), &u)
     }
+
+    /// Equivalent to `Into<SemanticLoc<U>> for SemanticLoc<T>`, since
+    /// actually implementing the trait resulting in overlapping implementations.
+    pub fn into<U: AstNode<Language = toc_syntax::Lang> + From<T>>(self) -> SemanticLoc<U> {
+        SemanticLoc::from(self)
+    }
+
+    /// Equivalent to `From<SemanticLoc<T>> for SemanticLoc<U>`, since
+    /// acutally implementing the trait resulting in overlapping implementations.
+    pub fn from<U>(value: SemanticLoc<T>) -> SemanticLoc<U>
+    where
+        U: AstNode<Language = toc_syntax::Lang> + From<T>,
+    {
+        // The underlying location doesn't change, since we're just changing what it's
+        // wrapped by
+        SemanticLoc {
+            loc: value.loc,
+            _node: PhantomData,
+        }
+    }
 }
 
 /// An unstable reference to an AST node in a semantic file
