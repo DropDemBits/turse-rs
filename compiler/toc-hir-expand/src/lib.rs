@@ -17,9 +17,10 @@
 // since semantic item definitions get dedicated salsa entities
 //
 
-use std::marker::PhantomData;
+use std::{collections::BTreeMap, marker::PhantomData};
 
 use toc_ast_db::IntoAst;
+use toc_source_graph::Package;
 use toc_syntax::{
     ast::{self, AstNode},
     SyntaxNode, SyntaxNodePtr,
@@ -55,7 +56,13 @@ impl<'db, DB: Db + 'db> UpcastFrom<DB> for dyn Db + 'db {
 }
 
 #[salsa::jar(db = Db)]
-pub struct Jar(ErasedSemanticLoc, SemanticFile, SemanticFile_ast_locations);
+pub struct Jar(
+    all_files,
+    ErasedSemanticLoc,
+    PackageFile,
+    SemanticFile,
+    SemanticFile_ast_locations,
+);
 
 /// An untyped reference to a location in a [`SemanticFile`]
 #[salsa::tracked]
@@ -242,8 +249,11 @@ pub struct SemanticFile {
 }
 
 impl SemanticFile {
-    pub fn from_source_file(db: &dyn Db, source: SourceFile) -> Self {
-        Self::new(db, SemanticSource::SourceFile(source))
+    pub fn from_package_file(db: &dyn Db, package: Package, file: SourceFile) -> Self {
+        Self::new(
+            db,
+            SemanticSource::PackageFile(PackageFile::new(db, package, file)),
+        )
     }
 }
 
@@ -251,16 +261,41 @@ impl IntoAst for SemanticFile {
     type Db<'db> = dyn Db + 'db;
     fn ast(self, db: &Self::Db<'_>) -> SyntaxNode {
         match self.origin(db) {
-            SemanticSource::SourceFile(source) => {
-                toc_ast_db::parse_file(db.up(), source).result().syntax()
-            }
+            SemanticSource::PackageFile(file) => toc_ast_db::parse_file(db.up(), file.source(db))
+                .result()
+                .syntax(),
         }
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum SemanticSource {
-    SourceFile(SourceFile),
+    PackageFile(PackageFile),
+}
+
+/// A [`SourceFile`] in a specific [`Package`].
+///
+/// Typically, a [`SourceFile`] tends to be part of one package only.
+/// However, including a single source file from multiple packages results in the source file
+/// being shared by multiple packages.
+#[salsa::interned]
+pub struct PackageFile {
+    pub package: Package,
+    pub source: SourceFile,
+}
+
+/// All files that are part of a specific package
+#[salsa::tracked(return_ref)]
+pub fn all_files(db: &dyn Db, package: Package) -> BTreeMap<SourceFile, PackageFile> {
+    let source = toc_vfs_db::source_of(db.up(), package.root(db.up()));
+    let mut files = (*toc_ast_db::reachable_files(db.up(), source)).clone();
+    // `reachable_files` right now excludes the root from the reachable files list
+    files.insert(source);
+
+    files
+        .into_iter()
+        .map(|source| (source, PackageFile::new(db, package, source)))
+        .collect::<BTreeMap<_, _>>()
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

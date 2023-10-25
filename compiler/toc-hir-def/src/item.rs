@@ -182,7 +182,7 @@ impl RootModule {
     #[salsa::tracked]
     pub(crate) fn stmt_list(self, db: &dyn Db) -> SemanticLoc<ast::StmtList> {
         let file = toc_vfs_db::source_of(db.up(), self.origin(db).root(db.up()));
-        let file = SemanticFile::from_source_file(db.up(), file);
+        let file = SemanticFile::from_package_file(db.up(), self.origin(db), file);
         let root = ast::Source::cast(file.ast(db.up())).unwrap();
 
         file.ast_locations(db.up()).get(&root.stmt_list().unwrap())
