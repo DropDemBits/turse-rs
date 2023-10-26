@@ -122,6 +122,19 @@ impl<T: AstNode<Language = toc_syntax::Lang>> SemanticLoc<T> {
         self.file(db).ast_locations(db).get(&u)
     }
 
+    /// Fallibly projects from `T` into `U`.
+    ///
+    /// `U`'s node must have a corresponding semantic location in the file
+    pub fn try_map<U: AstNode<Language = toc_syntax::Lang>>(
+        self,
+        db: &dyn Db,
+        f: impl FnOnce(T) -> Option<U>,
+    ) -> Option<SemanticLoc<U>> {
+        let t = self.to_node(db);
+        let u = f(t)?;
+        Some(self.file(db).ast_locations(db).get(&u))
+    }
+
     /// Projects from `T` into `U`, without worrying about location stability.
     ///
     /// `U`'s node does not need to have a corresponding semantic location in the file,
@@ -214,6 +227,19 @@ impl<T: AstNode<Language = toc_syntax::Lang>> UnstableSemanticLoc<T> {
         let t = self.to_node(db);
         let u = f(t);
         UnstableSemanticLoc::new(self.file, &u)
+    }
+
+    /// Fallibly projects from `T` into `U`.
+    ///
+    /// `U`'s node must have a corresponding semantic location in the file
+    pub fn try_map<U: AstNode<Language = toc_syntax::Lang>>(
+        self,
+        db: &dyn Db,
+        f: impl FnOnce(T) -> Option<U>,
+    ) -> Option<UnstableSemanticLoc<U>> {
+        let t = self.to_node(db);
+        let u = f(t)?;
+        Some(UnstableSemanticLoc::new(self.file, &u))
     }
 }
 
