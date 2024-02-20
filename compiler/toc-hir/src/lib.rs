@@ -124,8 +124,12 @@ pub use toc_hir_expand::{
 
 pub use toc_hir_def::{
     body::{pretty::render_item_body, pretty::render_package_bodies, Body},
-    item::{pretty::render_item_tree, root_module, AnyItem, ConstVar, HasItems, Item, Module},
-    Jar as DefJar, Mutability,
+    expr::*,
+    item::{
+        pretty::render_item_tree, root_module, AnyItem, ConstVar, HasItems, IntoItem, Item, Module,
+    },
+    stmt::*,
+    Db as DefDb, Jar as DefJar, Mutability,
 };
 
 /// Helper trait equivalent to `Option::map_or(predicate)`
