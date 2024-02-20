@@ -67,8 +67,26 @@ pub struct Jar(
 /// An untyped reference to a location in a [`SemanticFile`]
 #[salsa::tracked]
 pub struct ErasedSemanticLoc {
-    pub(crate) file: SemanticFile,
+    // Note: in order to keep consistency with the visibilities while also
+    // allowing external access to the semantic file (as salsa generates the
+    // getter visibility to match with the visibility of the field), this field
+    // is named `in_file` rather than `file` like in `UnstableSemanticLoc` so
+    // that we can expose a pub method named `file`.
+    pub(crate) in_file: SemanticFile,
     pub(crate) ptr: SyntaxNodePtr,
+}
+
+impl ErasedSemanticLoc {
+    /// Yields the underlying syntax node at this location.
+    pub fn to_node(self, db: &dyn Db) -> toc_syntax::SyntaxNode {
+        let ast = self.file(db).ast(db);
+        self.ptr(db).to_node(&ast)
+    }
+
+    /// Gets which [`SemanticFile`] this erased location comes from
+    pub fn file(self, db: &dyn Db) -> SemanticFile {
+        self.in_file(db)
+    }
 }
 
 /// A semi-stable reference to an AST node in a semantic file
@@ -91,8 +109,7 @@ impl<T: AstNode> Copy for SemanticLoc<T> {}
 impl<T: AstNode<Language = toc_syntax::Lang>> SemanticLoc<T> {
     /// Yields the underlying AST node at this location.
     pub fn to_node(self, db: &dyn Db) -> T {
-        let ast = self.loc.file(db).ast(db);
-        let node = self.loc.ptr(db).to_node(&ast);
+        let node = self.loc.to_node(db);
         T::cast(node).unwrap()
     }
 
