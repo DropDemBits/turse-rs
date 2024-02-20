@@ -72,6 +72,8 @@ fn main() {
                         toc_hir::render_item_tree(&db, package).render_as_tree()
                     );
 
+                    println!("{}", toc_hir::render_package_bodies(&db, package));
+
                     println!("Old HIR:");
                     let file = package.root(&db);
                     println!(
