@@ -357,43 +357,16 @@ pub(crate) fn containing_item(db: &dyn Db, loc: ErasedSemanticLoc) -> AnyItem {
     let parent_ast = loc.to_node(db.up()).ancestors().find_map(ast::Item::cast);
 
     if let Some(parent_item) = parent_ast {
-        AnyItem::from(ast_locs.get(&parent_item).into_item(db))
-    } else {
-        // FIXME: figure out if the file is from a UnitModule or RootModule
-        match loc.file(db.up()).origin(db.up()) {
-            toc_hir_expand::SemanticSource::PackageFile(file) => {
-                AnyItem::RootModule(root_module(db, file.package(db.up())))
-            }
-        }
-    }
-}
+        let parent_item = ast_locs.get(&parent_item);
+        let loc_map = match containing_item(db, parent_item.into_erased()) {
+            AnyItem::RootModule(item) => item.loc_map(db),
+            AnyItem::UnitModule(_) => unimplemented!(),
+            AnyItem::Module(item) => item.loc_map(db),
+            AnyItem::ConstVar(_) => unreachable!("got parent item which can't be a parent"),
+        };
 
-/// Converting from a semantic location into an item
-pub trait IntoItem {
-    type Item;
-
-    fn into_item(self, db: &dyn Db) -> Self::Item;
-}
-
-impl<T: toc_syntax::ast::AstNode> IntoItem for &SemanticLoc<T>
-where
-    SemanticLoc<T>: IntoItem,
-{
-    type Item = <SemanticLoc<T> as IntoItem>::Item;
-
-    fn into_item(self, db: &dyn Db) -> Self::Item {
-        (*self).into_item(db)
-    }
-}
-
-impl IntoItem for SemanticLoc<ast::Item> {
-    type Item = Item;
-
-    fn into_item(self, db: &dyn Db) -> Self::Item {
-        let ast_locs = self.file(db.up()).ast_locations(db.up());
-
-        match self.to_node(db.up()) {
-            ast::Item::ConstVarDeclName(item) => Item::from(ast_locs.get(&item).into_item(db)),
+        let item = match parent_item.to_node(db.up()) {
+            ast::Item::ConstVarDeclName(item) => Item::from(loc_map.get(ast_locs.get(&item))),
             ast::Item::TypeDecl(_) => todo!(),
             ast::Item::BindItem(_) => todo!(),
             ast::Item::ProcDecl(_) => todo!(),
@@ -403,39 +376,18 @@ impl IntoItem for SemanticLoc<ast::Item> {
             ast::Item::ForwardDecl(_) => todo!(),
             ast::Item::DeferredDecl(_) => todo!(),
             ast::Item::BodyDecl(_) => todo!(),
-            ast::Item::ModuleDecl(item) => Item::from(ast_locs.get(&item).into_item(db)),
+            ast::Item::ModuleDecl(item) => Item::from(loc_map.get(ast_locs.get(&item))),
             ast::Item::ClassDecl(_) => todo!(),
             ast::Item::MonitorDecl(_) => todo!(),
+        };
+
+        AnyItem::from(item)
+    } else {
+        // FIXME: figure out if the file is from a UnitModule or RootModule
+        match loc.file(db.up()).origin(db.up()) {
+            toc_hir_expand::SemanticSource::PackageFile(file) => {
+                AnyItem::RootModule(root_module(db, file.package(db.up())))
+            }
         }
-    }
-}
-
-impl IntoItem for SemanticLoc<ast::ConstVarDeclName> {
-    type Item = ConstVar;
-
-    fn into_item(self, db: &dyn Db) -> Self::Item {
-        let loc_map = match containing_item(db, self.into_erased()) {
-            AnyItem::RootModule(item) => item.loc_map(db),
-            AnyItem::UnitModule(_) => unimplemented!(),
-            AnyItem::Module(item) => item.loc_map(db),
-            AnyItem::ConstVar(_) => unreachable!("got parent item which can't be a parent"),
-        };
-
-        loc_map.get(self)
-    }
-}
-
-impl IntoItem for SemanticLoc<ast::ModuleDecl> {
-    type Item = Module;
-
-    fn into_item(self, db: &dyn Db) -> Self::Item {
-        let loc_map = match containing_item(db, self.into_erased()) {
-            AnyItem::RootModule(item) => item.loc_map(db),
-            AnyItem::UnitModule(_) => unimplemented!(),
-            AnyItem::Module(item) => item.loc_map(db),
-            AnyItem::ConstVar(_) => unreachable!("got parent item which can't be a parent"),
-        };
-
-        loc_map.get(self)
     }
 }
