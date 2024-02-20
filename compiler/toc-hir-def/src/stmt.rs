@@ -1,5 +1,6 @@
 //! Statement nodes
 
+use la_arena::ArenaMap;
 use toc_hir_expand::SemanticLoc;
 use toc_syntax::ast;
 
@@ -41,12 +42,14 @@ impl StmtId {
     }
 }
 
+pub type StmtMap<V> = ArenaMap<StmtIndex, V>;
+
 #[derive(Debug, PartialEq, Eq)]
 pub enum Stmt {
     /// Initialize the given [`ast::ConstVarDecl`] at this point
-    InitializeConstVar(SemanticLoc<ast::ConstVarDecl>),
+    InitializeConstVar(SemanticLoc<ast::ConstVarDecl>, expr::LocalExpr),
     /// Initialize the given [`ast::BindItem`] at this point
-    InitializeBindItem(SemanticLoc<ast::BindItem>),
+    InitializeBindItem(SemanticLoc<ast::BindItem>, expr::LocalExpr),
     /// Assignment statement
     /// (also includes compound assignments)
     Assign(Assign),
@@ -75,7 +78,7 @@ pub enum Stmt {
     // Invariant { .. }
     // Assert { .. }
     // Calling expression, in statement position
-    Call(Call),
+    Call(StmtCall),
     /// Return statement (`return`, for `procedure`s and `process`es)
     Return(Return),
     /// Result statement (`result (expr)`, only for `function`s)
@@ -324,7 +327,7 @@ pub enum GetWidth {
 
 /// Calling statement
 #[derive(Debug, PartialEq, Eq)]
-pub struct Call {
+pub struct StmtCall {
     /// Reference to the calling expression
     pub lhs: expr::LocalExpr,
     /// Arguments to the call, which may not be present

@@ -182,7 +182,11 @@ impl<'db> BodyLower<'db> {
 
         // Initializer gets a consistent place for items
         let loc = self.ast_locations.get(&node);
-        self.alloc_stmt(stmt::Stmt::InitializeConstVar(loc), node)
+
+        // The initializer expression is always the same however
+        let init = self.lower_expr_opt(node.init());
+
+        self.alloc_stmt(stmt::Stmt::InitializeConstVar(loc, init), node)
     }
 
     fn lower_assign_stmt(&mut self, node: ast::AssignStmt) -> LocalStmt {

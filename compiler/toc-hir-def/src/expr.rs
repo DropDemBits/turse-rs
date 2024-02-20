@@ -2,6 +2,7 @@
 
 use crate::{body::Body, Symbol};
 
+use la_arena::ArenaMap;
 pub use toc_syntax::{InfixOp as BinaryOp, PrefixOp as UnaryOp};
 
 crate::arena_id_wrapper!(
@@ -36,6 +37,8 @@ impl ExprId {
         self.1
     }
 }
+
+pub type ExprMap<V> = ArenaMap<ExprIndex, V>;
 
 /// Expressions
 #[derive(Debug, PartialEq, Eq)]

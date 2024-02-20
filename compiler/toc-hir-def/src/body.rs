@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use la_arena::{Arena, ArenaMap};
+use la_arena::Arena;
 use toc_hir_expand::{SemanticLoc, UnstableSemanticLoc};
 use toc_syntax::ast;
 
@@ -11,6 +11,7 @@ use crate::{
 };
 
 pub(crate) mod lower;
+pub mod pretty;
 
 /// Executable block of code
 #[salsa::tracked]
@@ -36,11 +37,25 @@ pub struct BodyContents {
     root_block: Option<ModuleBlock>,
 }
 
+impl BodyContents {
+    pub fn expr(&self, expr: expr::LocalExpr) -> &expr::Expr {
+        &self.exprs[expr.0]
+    }
+
+    pub fn stmt(&self, stmt: stmt::LocalStmt) -> &stmt::Stmt {
+        &self.stmts[stmt.0]
+    }
+
+    pub fn root_block(&self) -> Option<ModuleBlock> {
+        self.root_block
+    }
+}
+
 /// Spans of
 #[derive(Debug, Default, PartialEq, Eq)]
 pub(crate) struct BodySpans {
-    exprs: ArenaMap<expr::ExprIndex, UnstableSemanticLoc<ast::Expr>>,
-    stmts: ArenaMap<stmt::StmtIndex, UnstableSemanticLoc<ast::Stmt>>,
+    exprs: expr::ExprMap<UnstableSemanticLoc<ast::Expr>>,
+    stmts: stmt::StmtMap<UnstableSemanticLoc<ast::Stmt>>,
 }
 
 #[salsa::tracked]
@@ -51,8 +66,9 @@ impl Body {
         self.contents(db).top_level.clone()
     }
 
+    // FIXME: should be pub(crate), after making StmtId::get and ExprId::get
     #[salsa::tracked(return_ref)]
-    pub(crate) fn contents(self, db: &dyn Db) -> Arc<BodyContents> {
+    pub fn contents(self, db: &dyn Db) -> Arc<BodyContents> {
         self.lower_contents(db).0.clone()
     }
 
