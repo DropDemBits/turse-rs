@@ -67,7 +67,7 @@ pub fn file_link_of(
     crate::file_links(db, source).links_to(link)
 }
 
-/// Gets the set of all the transient file dependencies of `root`
+/// Gets the set of all the transient file dependencies of `root` (excluding itself)
 #[salsa::tracked]
 pub fn reachable_files(db: &dyn Db, root: SourceFile) -> Arc<BTreeSet<SourceFile>> {
     let mut files = BTreeSet::default();
@@ -90,10 +90,12 @@ pub fn reachable_files(db: &dyn Db, root: SourceFile) -> Arc<BTreeSet<SourceFile
         );
     }
 
+    files.remove(&root);
+
     Arc::new(files)
 }
 
-/// Gets the set of all the transient file imports of `root`
+/// Gets the set of all the transient file imports of `root` (excluding itself)
 #[salsa::tracked]
 pub fn reachable_imported_files(db: &dyn Db, root: SourceFile) -> Arc<BTreeSet<SourceFile>> {
     let mut files = BTreeSet::default();
@@ -108,13 +110,15 @@ pub fn reachable_imported_files(db: &dyn Db, root: SourceFile) -> Arc<BTreeSet<S
         }
         files.insert(current_file);
 
-        // add all of this file's linked bits to the queue
+        // add all of the file's import linked bits to the queue
         pending_queue.extend(
             crate::file_links(db, current_file)
-                .all_links()
+                .import_links()
                 .map(|path| toc_vfs_db::source_of(db.up(), path.into_raw())),
         );
     }
+
+    files.remove(&root);
 
     Arc::new(files)
 }
