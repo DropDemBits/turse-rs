@@ -196,10 +196,10 @@ fn preproc_expr_binding_power(p: &mut Parser, min_binding_power: u8) -> Option<C
 fn lhs(p: &mut Parser) -> Option<CompletedMarker> {
     match_token!(|p| match {
         TokenKind::Identifier => {
-            // wrap in name node
+            // wrap in name_ref node
             let m = p.start();
             p.bump();
-            let m = m.complete(p, SyntaxKind::Name).precede(p);
+            let m = m.complete(p, SyntaxKind::NameRef).precede(p);
             Some(m.complete(p, SyntaxKind::PPNameExpr))
         }
         TokenKind::LeftParen => {

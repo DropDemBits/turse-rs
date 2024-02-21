@@ -3,22 +3,13 @@ use std::{iter, ops::Range};
 
 use super::nodes::*;
 use crate::{
-    ast::{helper, AstNode},
+    ast::{helper, AstNode, ExternalItemOwner},
     AssignOp, InfixOp, InvalidChar, InvalidCharsList, InvalidInt, InvalidReal, IoKind,
     LiteralParseError, LiteralValue, PrefixOp, PrimitiveKind, SyntaxElement, SyntaxKind,
     SyntaxToken,
 };
 
 // Extension Traits //
-
-pub trait ExternalItemOwner: AstNode<Language = crate::Lang> {
-    fn external_items(&self) -> Vec<ExternalItem> {
-        self.syntax()
-            .descendants()
-            .filter_map(ExternalItem::cast)
-            .collect()
-    }
-}
 
 impl ExternalItemOwner for ImportItem {}
 
@@ -795,7 +786,7 @@ impl PrimType {
 }
 
 impl RangeType {
-    pub fn start(&self) -> Option<Expr> {
+    pub fn start(&self) -> Option<CompTimeExpr> {
         helper::nodes(self.syntax()).next()
     }
 
@@ -821,49 +812,5 @@ impl ForBounds {
 
     pub fn end(&self) -> Option<Expr> {
         helper::nodes(self.syntax()).nth(1)
-    }
-}
-
-impl NameList {
-    pub fn names_with_missing(&self) -> impl Iterator<Item = Option<Name>> + '_ {
-        // Unlike in HS Turing, we don't treat the trailing comma as starting another name
-        // (i.e. we consider it as part of the overall name item)
-
-        // Cases:
-        // ','? => 1
-        // Name ','? => 1
-        // ( Name ','? ) ( Name ','? ) => 2
-        // ( Name ','? ) ',' => 2
-        // ( Name ','? ) ',' ( Name ','? ) => 3
-
-        let mut found_name = false;
-        let mut children = self.syntax().children_with_tokens();
-
-        iter::from_fn(move || {
-            let item = loop {
-                let child = children.next()?;
-
-                match child {
-                    rowan::NodeOrToken::Node(node) => {
-                        if let Some(name) = Name::cast(node) {
-                            found_name = true;
-                            break Some(name);
-                        }
-                    }
-                    rowan::NodeOrToken::Token(token) => {
-                        if token.kind() == SyntaxKind::Comma {
-                            if found_name {
-                                found_name = false;
-                                continue;
-                            } else {
-                                break None;
-                            }
-                        }
-                    }
-                }
-            };
-
-            Some(item)
-        })
     }
 }

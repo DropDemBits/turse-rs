@@ -86,7 +86,7 @@ impl super::BodyLowering<'_, '_> {
         match node {
             Some(node) if node.star_token().is_some() => ty::SeqLength::Any,
             seq_length => {
-                let expr = seq_length.and_then(|node| node.expr());
+                let expr = seq_length.and_then(|node| node.comp_time_expr());
                 let body = self.lower_required_expr_body(expr);
                 ty::SeqLength::Expr(body)
             }
@@ -95,7 +95,7 @@ impl super::BodyLowering<'_, '_> {
 
     fn lower_name_type(&mut self, ty: ast::NameType) -> Option<ty::TypeKind> {
         let mut segments = vec![];
-        let mut expr = ty.expr()?;
+        let mut expr = ty.comp_time_expr()?.expr().unwrap();
 
         loop {
             match expr {
@@ -104,7 +104,7 @@ impl super::BodyLowering<'_, '_> {
                     segments.reverse();
 
                     // at a simple alias
-                    let name = expr.name()?.identifier_token()?;
+                    let name = expr.name_ref()?.identifier_token()?;
                     let span = self.ctx.intern_range(name.text_range());
 
                     break Some(ty::TypeKind::Alias(ty::Alias {
@@ -113,7 +113,7 @@ impl super::BodyLowering<'_, '_> {
                     }));
                 }
                 ast::Expr::FieldExpr(field) => {
-                    let name = field.name()?.identifier_token()?;
+                    let name = field.name_ref()?.identifier_token()?;
 
                     segments.push(Spanned::new(
                         name.text().into(),
@@ -166,7 +166,9 @@ impl super::BodyLowering<'_, '_> {
 
     fn lower_constrained_end(&mut self, ty: &ast::RangeType) -> ty::ConstrainedEnd {
         match ty.end() {
-            Some(ast::EndBound::Expr(end)) => ty::ConstrainedEnd::Expr(self.lower_expr_body(end)),
+            Some(ast::EndBound::CompTimeExpr(end)) => {
+                ty::ConstrainedEnd::Expr(self.lower_expr_body(end))
+            }
             Some(ast::EndBound::UnsizedBound(bound)) => {
                 let bound_span = self.ctx.intern_range(bound.syntax().text_range());
 
@@ -183,7 +185,7 @@ impl super::BodyLowering<'_, '_> {
                         if let Some(ast::Expr::InitExpr(init)) = decl.init() {
                             // Count elems directly
                             let elem_count = init
-                                .expr_list()
+                                .comp_time_expr_list()
                                 .map(|list| list.exprs().count())
                                 .unwrap_or(0);
 
@@ -274,7 +276,12 @@ impl super::BodyLowering<'_, '_> {
     fn lower_enum_type(&mut self, ty: ast::EnumType) -> Option<ty::TypeKind> {
         let node_span = self.ctx.node_span(ty.syntax().text_range());
         let def_id = self.ctx.node_def(node_span);
-        let variants = self.ctx.collect_optional_name_defs(ty.fields().unwrap());
+        let variants = self.ctx.collect_optional_name_defs(
+            ty.fields()
+                .unwrap()
+                .enum_variant()
+                .filter_map(|it| it.name()),
+        );
 
         Some(ty::TypeKind::Enum(ty::Enum { def_id, variants }))
     }

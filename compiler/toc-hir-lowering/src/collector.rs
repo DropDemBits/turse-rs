@@ -122,12 +122,11 @@ impl<'a> FileCollector<'a> {
 
     fn add_name_list(
         &mut self,
-        name_list: ast::NameList,
+        name_list: impl Iterator<Item = ast::Name>,
         kind: Option<SymbolKind>,
         is_pervasive: IsPervasive,
     ) -> Vec<LocalDefId> {
         name_list
-            .names()
             .map(|name| self.add_name(name, kind, is_pervasive))
             .collect()
     }
@@ -162,7 +161,10 @@ impl FileCollector<'_> {
         let mutability = Mutability::from_is_mutable(is_var);
 
         self.add_name_list(
-            node.decl_list().unwrap(),
+            node.constvar_names()
+                .unwrap()
+                .names()
+                .flat_map(|it| it.name()),
             Some(SymbolKind::ConstVar(mutability, is_register.into())),
             is_pervasive.into(),
         );
@@ -265,7 +267,11 @@ impl FileCollector<'_> {
                     };
 
                     self.add_name_list(
-                        param.param_names().unwrap(),
+                        param
+                            .param_names()
+                            .unwrap()
+                            .names()
+                            .flat_map(|it| it.name()),
                         Some(SymbolKind::Param(pass_by, is_register.into())),
                         IsPervasive::No,
                     );
@@ -331,7 +337,10 @@ impl FileCollector<'_> {
         // Make the variant defs after the name so that adding new variants
         // doesn't affect the primary enum def
         self.add_name_list(
-            node.fields().unwrap(),
+            node.fields()
+                .unwrap()
+                .enum_variant()
+                .flat_map(|it| it.name()),
             Some(SymbolKind::EnumVariant),
             IsPervasive::No,
         );

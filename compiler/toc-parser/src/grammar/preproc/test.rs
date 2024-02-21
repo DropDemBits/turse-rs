@@ -24,7 +24,7 @@ mod cond {
                         PPKwIf@5..8 "#if"
                         Whitespace@8..9 " "
                         PPNameExpr@9..10
-                          Name@9..10
+                          NameRef@9..10
                             Identifier@9..10 "A"
                         Whitespace@10..11 " "
                         KwThen@11..15 "then"
@@ -112,7 +112,7 @@ mod cond {
                         PPKwIf@5..8 "#if"
                         Whitespace@8..9 " "
                         PPNameExpr@9..10
-                          Name@9..10
+                          NameRef@9..10
                             Identifier@9..10 "A"
                         Whitespace@10..15 "\n    "
                         PPTokenBody@15..40
@@ -156,7 +156,7 @@ mod cond {
                         PPKwIf@5..8 "#if"
                         Whitespace@8..9 " "
                         PPNameExpr@9..10
-                          Name@9..10
+                          NameRef@9..10
                             Identifier@9..10 "A"
                         Whitespace@10..11 " "
                         KwThen@11..15 "then"
@@ -200,7 +200,7 @@ mod cond {
                         PPKwIf@5..8 "#if"
                         Whitespace@8..9 " "
                         PPNameExpr@9..10
-                          Name@9..10
+                          NameRef@9..10
                             Identifier@9..10 "A"
                         Whitespace@10..11 " "
                         KwThen@11..15 "then"
@@ -216,7 +216,7 @@ mod cond {
                           PPKwElsif@36..42 "#elsif"
                           Whitespace@42..43 " "
                           PPNameExpr@43..44
-                            Name@43..44
+                            NameRef@43..44
                               Identifier@43..44 "B"
                           Whitespace@44..45 " "
                           KwThen@45..49 "then"
@@ -265,7 +265,7 @@ mod cond {
                         PPKwIf@5..8 "#if"
                         Whitespace@8..9 " "
                         PPNameExpr@9..10
-                          Name@9..10
+                          NameRef@9..10
                             Identifier@9..10 "A"
                         Whitespace@10..11 " "
                         KwThen@11..15 "then"
@@ -281,7 +281,7 @@ mod cond {
                           PPKwElsif@36..42 "#elsif"
                           Whitespace@42..43 " "
                           PPNameExpr@43..44
-                            Name@43..44
+                            NameRef@43..44
                               Identifier@43..44 "B"
                           Whitespace@44..45 " "
                           KwThen@45..49 "then"
@@ -304,7 +304,7 @@ mod cond {
                             PPKwElseif@85..92 "#elseif"
                             Whitespace@92..93 " "
                             PPNameExpr@93..94
-                              Name@93..94
+                              NameRef@93..94
                                 Identifier@93..94 "C"
                             Whitespace@94..95 " "
                             KwThen@95..99 "then"
@@ -351,7 +351,7 @@ mod cond {
                         PPKwIf@5..8 "#if"
                         Whitespace@8..9 " "
                         PPNameExpr@9..10
-                          Name@9..10
+                          NameRef@9..10
                             Identifier@9..10 "A"
                         Whitespace@10..11 " "
                         KwThen@11..15 "then"
@@ -367,7 +367,7 @@ mod cond {
                           PPKwElsif@36..42 "#elsif"
                           Whitespace@42..43 " "
                           PPNameExpr@43..44
-                            Name@43..44
+                            NameRef@43..44
                               Identifier@43..44 "B"
                           Whitespace@44..45 " "
                           KwThen@45..49 "then"
@@ -390,7 +390,7 @@ mod cond {
                             PPKwElseif@85..92 "#elseif"
                             Whitespace@92..93 " "
                             PPNameExpr@93..94
-                              Name@93..94
+                              NameRef@93..94
                                 Identifier@93..94 "C"
                             Whitespace@94..95 " "
                             KwThen@95..99 "then"
@@ -443,7 +443,7 @@ mod cond {
                         PPKwElsif@5..11 "#elsif"
                         Whitespace@11..12 " "
                         PPNameExpr@12..13
-                          Name@12..13
+                          NameRef@12..13
                             Identifier@12..13 "A"
                         Whitespace@13..14 " "
                         KwThen@14..18 "then"
@@ -453,7 +453,7 @@ mod cond {
                             KwPause@23..28 "pause"
                             Whitespace@28..29 " "
                             NameExpr@29..30
-                              Name@29..30
+                              NameRef@29..30
                                 Identifier@29..30 "e"
                         Whitespace@30..35 "\n    "
                         PPEndIf@35..42
@@ -482,7 +482,7 @@ mod cond {
                         PPKwElseif@5..12 "#elseif"
                         Whitespace@12..13 " "
                         PPNameExpr@13..14
-                          Name@13..14
+                          NameRef@13..14
                             Identifier@13..14 "A"
                         Whitespace@14..15 " "
                         KwThen@15..19 "then"
@@ -492,7 +492,7 @@ mod cond {
                             KwPause@24..29 "pause"
                             Whitespace@29..30 " "
                             NameExpr@30..31
-                              Name@30..31
+                              NameRef@30..31
                                 Identifier@30..31 "e"
                         Whitespace@31..36 "\n    "
                         PPEndIf@36..43
@@ -527,7 +527,7 @@ mod cond {
                             KwPause@15..20 "pause"
                             Whitespace@20..21 " "
                             NameExpr@21..22
-                              Name@21..22
+                              NameRef@21..22
                                 Identifier@21..22 "e"
                         Whitespace@22..27 "\n    "
                         PPEndIf@27..34
@@ -686,9 +686,10 @@ mod cond {
                     ConstVarDecl@5..13
                       KwVar@5..8 "var"
                       Whitespace@8..9 " "
-                      NameList@9..10
-                        Name@9..10
-                          Identifier@9..10 "i"
+                      ConstVarDeclNameList@9..10
+                        ConstVarDeclName@9..10
+                          Name@9..10
+                            Identifier@9..10 "i"
                       Whitespace@10..11 " "
                       Assign@11..13 ":="
                     Whitespace@13..18 "\n    "
@@ -697,7 +698,7 @@ mod cond {
                         PPKwIf@18..21 "#if"
                         Whitespace@21..22 " "
                         PPNameExpr@22..23
-                          Name@22..23
+                          NameRef@22..23
                             Identifier@22..23 "A"
                         Whitespace@23..24 " "
                         KwThen@24..28 "then"
@@ -707,7 +708,7 @@ mod cond {
                             KwPause@33..38 "pause"
                             Whitespace@38..39 " "
                             NameExpr@39..40
-                              Name@39..40
+                              NameRef@39..40
                                 Identifier@39..40 "e"
                         Whitespace@40..45 "\n    "
                         PPEndIf@45..52
@@ -737,9 +738,10 @@ mod cond {
                     ConstVarDecl@5..13
                       KwVar@5..8 "var"
                       Whitespace@8..9 " "
-                      NameList@9..10
-                        Name@9..10
-                          Identifier@9..10 "i"
+                      ConstVarDeclNameList@9..10
+                        ConstVarDeclName@9..10
+                          Name@9..10
+                            Identifier@9..10 "i"
                       Whitespace@10..11 " "
                       Assign@11..13 ":="
                     Whitespace@13..18 "\n    "
@@ -748,7 +750,7 @@ mod cond {
                         PPKwElsif@18..24 "#elsif"
                         Whitespace@24..25 " "
                         PPNameExpr@25..26
-                          Name@25..26
+                          NameRef@25..26
                             Identifier@25..26 "A"
                         Whitespace@26..27 " "
                         KwThen@27..31 "then"
@@ -758,7 +760,7 @@ mod cond {
                             KwPause@36..41 "pause"
                             Whitespace@41..42 " "
                             NameExpr@42..43
-                              Name@42..43
+                              NameRef@42..43
                                 Identifier@42..43 "e"
                         Whitespace@43..48 "\n    "
                         PPEndIf@48..55
@@ -788,9 +790,10 @@ mod cond {
                     ConstVarDecl@5..13
                       KwVar@5..8 "var"
                       Whitespace@8..9 " "
-                      NameList@9..10
-                        Name@9..10
-                          Identifier@9..10 "i"
+                      ConstVarDeclNameList@9..10
+                        ConstVarDeclName@9..10
+                          Name@9..10
+                            Identifier@9..10 "i"
                       Whitespace@10..11 " "
                       Assign@11..13 ":="
                     Whitespace@13..18 "\n    "
@@ -799,7 +802,7 @@ mod cond {
                         PPKwElseif@18..25 "#elseif"
                         Whitespace@25..26 " "
                         PPNameExpr@26..27
-                          Name@26..27
+                          NameRef@26..27
                             Identifier@26..27 "A"
                         Whitespace@27..28 " "
                         KwThen@28..32 "then"
@@ -809,7 +812,7 @@ mod cond {
                             KwPause@37..42 "pause"
                             Whitespace@42..43 " "
                             NameExpr@43..44
-                              Name@43..44
+                              NameRef@43..44
                                 Identifier@43..44 "e"
                         Whitespace@44..49 "\n    "
                         PPEndIf@49..56
@@ -841,9 +844,10 @@ mod cond {
                     ConstVarDecl@5..13
                       KwVar@5..8 "var"
                       Whitespace@8..9 " "
-                      NameList@9..10
-                        Name@9..10
-                          Identifier@9..10 "i"
+                      ConstVarDeclNameList@9..10
+                        ConstVarDeclName@9..10
+                          Name@9..10
+                            Identifier@9..10 "i"
                       Whitespace@10..11 " "
                       Assign@11..13 ":="
                     Whitespace@13..18 "\n    "
@@ -856,7 +860,7 @@ mod cond {
                             KwPause@28..33 "pause"
                             Whitespace@33..34 " "
                             NameExpr@34..35
-                              Name@34..35
+                              NameRef@34..35
                                 Identifier@34..35 "e"
                         Whitespace@35..40 "\n    "
                         PPEndIf@40..47
@@ -884,9 +888,10 @@ mod cond {
                     ConstVarDecl@5..13
                       KwVar@5..8 "var"
                       Whitespace@8..9 " "
-                      NameList@9..10
-                        Name@9..10
-                          Identifier@9..10 "i"
+                      ConstVarDeclNameList@9..10
+                        ConstVarDeclName@9..10
+                          Name@9..10
+                            Identifier@9..10 "i"
                       Whitespace@10..11 " "
                       Assign@11..13 ":="
                     Whitespace@13..18 "\n    "
@@ -914,9 +919,10 @@ mod cond {
                     ConstVarDecl@5..13
                       KwVar@5..8 "var"
                       Whitespace@8..9 " "
-                      NameList@9..10
-                        Name@9..10
-                          Identifier@9..10 "i"
+                      ConstVarDeclNameList@9..10
+                        ConstVarDeclName@9..10
+                          Name@9..10
+                            Identifier@9..10 "i"
                       Whitespace@10..11 " "
                       Assign@11..13 ":="
                     Whitespace@13..18 "\n    "
@@ -950,7 +956,7 @@ mod expr {
                           KwNot@4..7 "not"
                           Whitespace@7..8 " "
                           PPNameExpr@8..9
-                            Name@8..9
+                            NameRef@8..9
                               Identifier@8..9 "A"
                         Whitespace@9..10 " "
                         KwThen@10..14 "then"
@@ -978,7 +984,7 @@ mod expr {
                           Tilde@4..5 "~"
                           Whitespace@5..6 " "
                           PPNameExpr@6..7
-                            Name@6..7
+                            NameRef@6..7
                               Identifier@6..7 "A"
                         Whitespace@7..8 " "
                         KwThen@8..12 "then"
@@ -1015,7 +1021,7 @@ mod expr {
                                 KwNot@12..15 "not"
                                 Whitespace@15..16 " "
                                 PPNameExpr@16..17
-                                  Name@16..17
+                                  NameRef@16..17
                                     Identifier@16..17 "A"
                         Whitespace@17..18 " "
                         KwThen@18..22 "then"
@@ -1041,13 +1047,13 @@ mod expr {
                         Whitespace@3..4 " "
                         PPBinaryExpr@4..11
                           PPNameExpr@4..5
-                            Name@4..5
+                            NameRef@4..5
                               Identifier@4..5 "A"
                           Whitespace@5..6 " "
                           KwAnd@6..9 "and"
                           Whitespace@9..10 " "
                           PPNameExpr@10..11
-                            Name@10..11
+                            NameRef@10..11
                               Identifier@10..11 "B"
                         Whitespace@11..12 " "
                         KwThen@12..16 "then"
@@ -1073,13 +1079,13 @@ mod expr {
                         Whitespace@3..4 " "
                         PPBinaryExpr@4..9
                           PPNameExpr@4..5
-                            Name@4..5
+                            NameRef@4..5
                               Identifier@4..5 "A"
                           Whitespace@5..6 " "
                           Ampersand@6..7 "&"
                           Whitespace@7..8 " "
                           PPNameExpr@8..9
-                            Name@8..9
+                            NameRef@8..9
                               Identifier@8..9 "B"
                         Whitespace@9..10 " "
                         KwThen@10..14 "then"
@@ -1105,13 +1111,13 @@ mod expr {
                         Whitespace@3..4 " "
                         PPBinaryExpr@4..10
                           PPNameExpr@4..5
-                            Name@4..5
+                            NameRef@4..5
                               Identifier@4..5 "A"
                           Whitespace@5..6 " "
                           KwOr@6..8 "or"
                           Whitespace@8..9 " "
                           PPNameExpr@9..10
-                            Name@9..10
+                            NameRef@9..10
                               Identifier@9..10 "B"
                         Whitespace@10..11 " "
                         KwThen@11..15 "then"
@@ -1137,13 +1143,13 @@ mod expr {
                         Whitespace@3..4 " "
                         PPBinaryExpr@4..9
                           PPNameExpr@4..5
-                            Name@4..5
+                            NameRef@4..5
                               Identifier@4..5 "A"
                           Whitespace@5..6 " "
                           Pipe@6..7 "|"
                           Whitespace@7..8 " "
                           PPNameExpr@8..9
-                            Name@8..9
+                            NameRef@8..9
                               Identifier@8..9 "B"
                         Whitespace@9..10 " "
                         KwThen@10..14 "then"
@@ -1170,26 +1176,26 @@ mod expr {
                         PPBinaryExpr@4..19
                           PPBinaryExpr@4..15
                             PPNameExpr@4..5
-                              Name@4..5
+                              NameRef@4..5
                                 Identifier@4..5 "A"
                             Whitespace@5..6 " "
                             Pipe@6..7 "|"
                             Whitespace@7..8 " "
                             PPBinaryExpr@8..15
                               PPNameExpr@8..9
-                                Name@8..9
+                                NameRef@8..9
                                   Identifier@8..9 "B"
                               Whitespace@9..10 " "
                               KwAnd@10..13 "and"
                               Whitespace@13..14 " "
                               PPNameExpr@14..15
-                                Name@14..15
+                                NameRef@14..15
                                   Identifier@14..15 "C"
                           Whitespace@15..16 " "
                           Pipe@16..17 "|"
                           Whitespace@17..18 " "
                           PPNameExpr@18..19
-                            Name@18..19
+                            NameRef@18..19
                               Identifier@18..19 "D"
                         Whitespace@19..20 " "
                         KwThen@20..24 "then"
@@ -1241,7 +1247,7 @@ mod expr {
                         Whitespace@3..4 " "
                         PPBinaryExpr@4..9
                           PPNameExpr@4..5
-                            Name@4..5
+                            NameRef@4..5
                               Identifier@4..5 "A"
                           Whitespace@5..6 " "
                           KwAnd@6..9 "and"
@@ -1270,7 +1276,7 @@ mod expr {
                         PPKwIf@0..3 "#if"
                         Whitespace@3..4 " "
                         PPNameExpr@4..5
-                          Name@4..5
+                          NameRef@4..5
                             Identifier@4..5 "A"
                         Whitespace@5..6 " "
                         PPTokenBody@6..16
@@ -1279,7 +1285,7 @@ mod expr {
                           Whitespace@9..10 " "
                           CallStmt@10..11
                             NameExpr@10..11
-                              Name@10..11
+                              NameRef@10..11
                                 Identifier@10..11 "B"
                           Whitespace@11..12 " "
                           Error@12..16
@@ -1313,7 +1319,7 @@ mod expr {
                         PPTokenBody@8..14
                           CallStmt@8..9
                             NameExpr@8..9
-                              Name@8..9
+                              NameRef@8..9
                                 Identifier@8..9 "B"
                           Whitespace@9..10 " "
                           Error@10..14
@@ -1348,20 +1354,20 @@ mod expr {
                             LeftParen@4..5 "("
                             PPBinaryExpr@5..12
                               PPNameExpr@5..6
-                                Name@5..6
+                                NameRef@5..6
                                   Identifier@5..6 "A"
                               Whitespace@6..7 " "
                               KwAnd@7..10 "and"
                               Whitespace@10..11 " "
                               PPNameExpr@11..12
-                                Name@11..12
+                                NameRef@11..12
                                   Identifier@11..12 "B"
                             RightParen@12..13 ")"
                           Whitespace@13..14 " "
                           KwOr@14..16 "or"
                           Whitespace@16..17 " "
                           PPNameExpr@17..18
-                            Name@17..18
+                            NameRef@17..18
                               Identifier@17..18 "C"
                         Whitespace@18..19 " "
                         KwThen@19..23 "then"
@@ -1390,13 +1396,13 @@ mod expr {
                             LeftParen@4..5 "("
                             PPBinaryExpr@5..10
                               PPNameExpr@5..6
-                                Name@5..6
+                                NameRef@5..6
                                   Identifier@5..6 "A"
                               Whitespace@6..7 " "
                               Pipe@7..8 "|"
                               Whitespace@8..9 " "
                               PPNameExpr@9..10
-                                Name@9..10
+                                NameRef@9..10
                                   Identifier@9..10 "B"
                             RightParen@10..11 ")"
                           Whitespace@11..12 " "
@@ -1406,13 +1412,13 @@ mod expr {
                             LeftParen@16..17 "("
                             PPBinaryExpr@17..22
                               PPNameExpr@17..18
-                                Name@17..18
+                                NameRef@17..18
                                   Identifier@17..18 "C"
                               Whitespace@18..19 " "
                               Pipe@19..20 "|"
                               Whitespace@20..21 " "
                               PPNameExpr@21..22
-                                Name@21..22
+                                NameRef@21..22
                                   Identifier@21..22 "D"
                             RightParen@22..23 ")"
                         Whitespace@23..24 " "
@@ -1440,7 +1446,7 @@ mod expr {
                         PPParenExpr@4..6
                           LeftParen@4..5 "("
                           PPNameExpr@5..6
-                            Name@5..6
+                            NameRef@5..6
                               Identifier@5..6 "A"
                         Whitespace@6..7 " "
                         KwThen@7..11 "then"

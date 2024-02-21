@@ -28,6 +28,8 @@ upcast = "0.1.0"
 # Compiler crates
 toc-analysis = { path = "compiler/toc-analysis" }
 toc-ast-db = { path = "compiler/toc-ast-db" }
+toc-hir-expand = { path = "compiler/toc-hir-expand" }
+toc-hir-def = { path = "compiler/toc-hir-def" }
 toc-hir = { path = "compiler/toc-hir" }
 toc-hir-codegen = { path = "compiler/toc-hir-codegen" }
 toc-hir-db = { path = "compiler/toc-hir-db" }

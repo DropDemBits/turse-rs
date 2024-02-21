@@ -104,17 +104,31 @@ pub(crate) mod internals {
 
 pub(crate) mod ids;
 
-pub mod body;
 pub mod builder;
-pub mod expr;
+pub mod span;
+
 pub mod item;
 pub mod package;
 pub mod package_graph;
-pub mod span;
-pub mod stmt;
 pub mod symbol;
+
+pub mod body;
+pub mod expr;
+pub mod stmt;
 pub mod ty;
 pub mod visitor;
+
+pub use toc_hir_expand::{
+    AstLocations, Jar as ExpandJar, SemanticFile, SemanticLoc, SemanticNodePtr, UnstableSemanticLoc,
+};
+
+pub use toc_hir_def::{
+    body::{pretty::render_item_body, pretty::render_package_bodies, Body},
+    expr::*,
+    item::{pretty::render_item_tree, root_module, AnyItem, ConstVar, HasItems, Item, Module},
+    stmt::*,
+    Db as DefDb, Jar as DefJar, Mutability,
+};
 
 /// Helper trait equivalent to `Option::map_or(predicate)`
 pub trait OrMissingExt<T> {

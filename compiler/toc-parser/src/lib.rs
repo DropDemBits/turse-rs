@@ -129,9 +129,10 @@ mod test {
                 ConstVarDecl@0..11
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..5
-                    Name@4..5
-                      Identifier@4..5 "e"
+                  ConstVarDeclNameList@4..5
+                    ConstVarDeclName@4..5
+                      Name@4..5
+                        Identifier@4..5 "e"
                   Whitespace@5..6 " "
                   Assign@6..8 ":="
                   Whitespace@8..9 " "
