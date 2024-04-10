@@ -79,10 +79,10 @@ pub enum Expr {
 /// treats `NaN`s of the same bitwise representation as equal.
 /// This equality relation is primarily used for memoizing HIR trees in the
 /// salsa db.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Literal {
     Integer(u64),
-    Real(f64),
+    Real(FloatBits),
     Char(char),
     /// Guaranteed to be a string of non-zero length
     CharSeq(String),
@@ -90,25 +90,27 @@ pub enum Literal {
     Boolean(bool),
 }
 
-impl PartialEq for Literal {
+/// A wrapper around `f64` that implements `PartialEq` and `Eq` through
+/// bitwise equality.
+#[repr(transparent)]
+#[derive(Debug, Clone)]
+pub struct FloatBits(pub f64);
+
+impl PartialEq for FloatBits {
     fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            // Bitwise compare for real literals
-            (Self::Real(l0), Self::Real(r0)) => l0.to_bits() == r0.to_bits(),
-            // Simple equality for everything else
-            (Self::Integer(l0), Self::Integer(r0)) => l0 == r0,
-            (Self::Char(l0), Self::Char(r0)) => l0 == r0,
-            (Self::CharSeq(l0), Self::CharSeq(r0)) => l0 == r0,
-            (Self::String(l0), Self::String(r0)) => l0 == r0,
-            (Self::Boolean(l0), Self::Boolean(r0)) => l0 == r0,
-            _ => false,
-        }
+        self.0.to_bits() == other.0.to_bits()
     }
 }
 
-// Literal::Real satisfies the requirements for `Eq` by comparing
+// FloatBits satisfies the requirements for `Eq` by comparing
 // the raw bit representations
-impl Eq for Literal {}
+impl Eq for FloatBits {}
+
+impl From<f64> for FloatBits {
+    fn from(value: f64) -> Self {
+        Self(value)
+    }
+}
 
 /// Aggregate initialization
 #[derive(Debug, PartialEq, Eq)]
