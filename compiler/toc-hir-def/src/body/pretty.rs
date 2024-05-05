@@ -176,7 +176,7 @@ fn render_expr(db: &dyn Db, expr: ExprId) -> String {
     let (body, expr) = (expr.body(), expr.expr());
 
     match body.contents(db).expr(expr) {
-        Expr::Missing => format!("<missing>"),
+        Expr::Missing => "<missing>".to_string(),
         Expr::Literal(literal) => format!("{literal:?}"),
         Expr::Init(_) => todo!(),
         Expr::Binary(_) => todo!(),
@@ -184,9 +184,9 @@ fn render_expr(db: &dyn Db, expr: ExprId) -> String {
         Expr::All => todo!(),
         Expr::Range(_) => todo!(),
         Expr::Name(Name::Name(symbol)) => {
-            format!("{}", symbol.text(db))
+            symbol.text(db).to_string()
         }
-        Expr::Name(Name::Self_) => format!("self"),
+        Expr::Name(Name::Self_) => "self".to_string(),
         Expr::Field(_) => todo!(),
         Expr::Deref(_) => todo!(),
         Expr::Call(_) => todo!(),

@@ -101,7 +101,7 @@ pub(super) fn expr_list(p: &mut Parser) -> Option<CompletedMarker> {
     let m = p.start();
 
     p.with_extra_recovery(&[TokenKind::Comma], |p| {
-        if let Some(..) = expr::expect_expr(p) {
+        if expr::expect_expr(p).is_some() {
             while p.eat(TokenKind::Comma) {
                 expr::expect_expr(p);
             }
@@ -130,7 +130,7 @@ pub(super) fn comptime_expr_list(p: &mut Parser) -> Option<CompletedMarker> {
     let m = p.start();
 
     p.with_extra_recovery(&[TokenKind::Comma], |p| {
-        if let Some(..) = expr::expect_comptime_expr(p) {
+        if expr::expect_comptime_expr(p).is_some() {
             while p.eat(TokenKind::Comma) {
                 expr::expect_comptime_expr(p);
             }
@@ -479,7 +479,7 @@ fn init_expr(p: &mut Parser) -> Option<CompletedMarker> {
     p.with_extra_recovery(&[TokenKind::RightParen, TokenKind::Comma], |p| {
         let m = p.start();
 
-        if let Some(..) = expr::expect_comptime_expr(p) {
+        if expr::expect_comptime_expr(p).is_some() {
             while p.eat(TokenKind::Comma) && !p.at(TokenKind::RightParen) {
                 expr::expect_comptime_expr(p);
             }

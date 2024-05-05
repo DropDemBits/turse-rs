@@ -29,7 +29,7 @@ impl<L: Location> MessageBundle<L> {
 
     /// Combines two message bundles together
     pub fn combine(mut self, other: Self) -> Self {
-        self.messages.extend(other.messages.into_iter());
+        self.messages.extend(other.messages);
         self.make_uniform();
         self
     }

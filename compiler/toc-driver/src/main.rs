@@ -32,7 +32,7 @@ fn main() {
     let db = MainDatabase::default();
 
     // Add the root path to the db
-    let root_file = RawPath::new(&db, path.try_into().unwrap());
+    let root_file = RawPath::new(&db, path.into());
 
     // Set the source root
     let package_id = SourcePackage::new(

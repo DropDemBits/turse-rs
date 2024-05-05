@@ -372,11 +372,11 @@ impl<'ctx> FileLowering<'ctx> {
         &mut self,
         name_list: impl Iterator<Item = ast::Name>,
     ) -> Vec<LocalDefId> {
-        let names = name_list
-            .map(|name| self.collect_required_name(name))
-            .collect::<Vec<_>>();
+        
 
-        names
+        name_list
+            .map(|name| self.collect_required_name(name))
+            .collect::<Vec<_>>()
     }
 
     fn collect_name(&mut self, name: Option<ast::Name>, no_name_span: SpanId) -> LocalDefId {
