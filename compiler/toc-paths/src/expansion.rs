@@ -89,8 +89,6 @@ impl fmt::Display for BuiltinPrefix {
 /// Expands any prefixes in the path
 pub fn expand_path(db: &dyn Db, path: Utf8PathBuf) -> Utf8PathBuf {
     fn try_it(db: &dyn Db, path: &Utf8Path) -> Option<Utf8PathBuf> {
-        let path = path;
-
         let prefix_name = {
             // Try parsing out a percent prefix
             let Some(Utf8Component::Normal(comp)) = path.components().next() else {

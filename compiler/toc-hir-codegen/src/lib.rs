@@ -2428,8 +2428,6 @@ impl BodyCodeGenerator<'_> {
 
     // Expects a destination address to be present
     fn generate_assign_uninit(&mut self, uninit_ty: ty::TypeId) {
-        let uninit_ty = uninit_ty;
-
         let opcode = match uninit_ty.kind(self.db.up()) {
             ty::TypeKind::Nat(ty::NatSize::AddressInt) => Opcode::UNINITADDR(),
             ty::TypeKind::Boolean => Opcode::UNINITBOOLEAN(),
@@ -2453,7 +2451,6 @@ impl BodyCodeGenerator<'_> {
     }
 
     fn pick_fetch_op(&mut self, fetch_ty: ty::TypeId) -> Option<Opcode> {
-        let fetch_ty = fetch_ty;
         let opcode = match fetch_ty.kind(self.db.up()) {
             ty::TypeKind::Boolean => Opcode::FETCHBOOL(),
             ty::TypeKind::Int(ty::IntSize::Int1) => Opcode::FETCHINT1(),

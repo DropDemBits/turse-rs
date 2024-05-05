@@ -1,4 +1,4 @@
-///! Core path entities
+//! Core path entities
 use camino::Utf8PathBuf;
 
 /// Interned path to a source, but not anchored to any other path

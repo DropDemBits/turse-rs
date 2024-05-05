@@ -703,8 +703,6 @@ fn call_expr_ty(
             result,
         ) => {
             // Is void result? Error! (proc call in expr position)
-            let result = result;
-
             if matches!(result.kind(db,), TypeKind::Void) {
                 make::error(db)
             } else {
