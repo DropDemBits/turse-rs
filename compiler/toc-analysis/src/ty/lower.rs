@@ -502,8 +502,8 @@ fn for_counter_ty(
                 make::error(db)
             } else {
                 // - maybe alias
-                let Some( binding_def )  = db.binding_def(bounds_expr.into()) else {
-                    return make::error(db, );
+                let Some(binding_def) = db.binding_def(bounds_expr.into()) else {
+                    return make::error(db);
                 };
 
                 // Must be a type alias
@@ -703,8 +703,6 @@ fn call_expr_ty(
             result,
         ) => {
             // Is void result? Error! (proc call in expr position)
-            let result = result;
-
             if matches!(result.kind(db,), TypeKind::Void) {
                 make::error(db)
             } else {

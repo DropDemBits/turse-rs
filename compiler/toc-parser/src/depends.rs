@@ -114,9 +114,12 @@ pub(crate) fn gather_dependencies(
 
     // Gather include stmts
     for node in root.syntax().descendants() {
-        let Some(include) = ast::PPInclude::cast(node) else { continue; };
-        let Some(path) = include.path()
-            .and_then(|path| extract_relative_path(path,  &mut messages))
+        let Some(include) = ast::PPInclude::cast(node) else {
+            continue;
+        };
+        let Some(path) = include
+            .path()
+            .and_then(|path| extract_relative_path(path, &mut messages))
         else {
             continue;
         };
@@ -141,8 +144,7 @@ fn extract_relative_path(
     messages: &mut MessageSink<FileRange>,
 ) -> Option<String> {
     let (value, errors) = path.literal().unwrap();
-    let toc_syntax::LiteralValue::String(relative_path) = value
-    else {
+    let toc_syntax::LiteralValue::String(relative_path) = value else {
         // Always defined as a string literal value
         unreachable!()
     };

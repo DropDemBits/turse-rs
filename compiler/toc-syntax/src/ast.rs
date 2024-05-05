@@ -19,7 +19,6 @@ mod nodes;
 mod nodes_ext;
 
 pub use nodes::*;
-pub use nodes_ext::ExternalItemOwner;
 
 mod helper {
     use crate::{ast::AstNode, SyntaxKind, SyntaxNode, SyntaxToken};
@@ -42,3 +41,12 @@ mod helper {
 }
 
 pub use rowan::ast::AstNode;
+
+pub trait ExternalItemOwner: AstNode<Language = crate::Lang> {
+    fn external_items(&self) -> Vec<ExternalItem> {
+        self.syntax()
+            .descendants()
+            .filter_map(ExternalItem::cast)
+            .collect()
+    }
+}

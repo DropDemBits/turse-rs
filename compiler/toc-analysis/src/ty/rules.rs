@@ -1236,9 +1236,6 @@ pub fn check_binary_op(
     op: expr::BinaryOp,
     right: TypeId,
 ) -> Result<(), InvalidBinaryOp> {
-    let left = left;
-    let right = right;
-
     // Use the peeled versions of the types for reporting
     let mk_type_error = move || Err(InvalidBinaryOp { left, op, right });
 
@@ -1361,8 +1358,6 @@ pub fn check_binary_op(
 pub fn infer_unary_op(db: &dyn db::TypeDatabase, op: expr::UnaryOp, right: TypeId) -> InferTy {
     use crate::ty::{IntSize, NatSize, RealSize};
 
-    let right = right;
-
     // Propagate error type as complete so that we don't duplicate the error
     if right.kind(db).is_error() {
         return InferTy::Complete(make::error(db));
@@ -1407,8 +1402,6 @@ pub fn check_unary_op(
     op: expr::UnaryOp,
     right: TypeId,
 ) -> Result<(), InvalidUnaryOp> {
-    let right = right;
-
     // Infer unary type currently does all of the work
     match infer_unary_op(db, op, right) {
         InferTy::Complete(_) => Ok(()),
@@ -1479,8 +1472,6 @@ pub fn report_invalid_bin_op(
         ..
     } = err;
 
-    let left_ty = left_ty;
-    let right_ty = right_ty;
     // Try logical operation if either is a boolean
     let is_logical = left_ty.kind(db.up()).is_boolean() || right_ty.kind(db.up()).is_boolean();
     // Try string concat operation if either is a charseq
@@ -1696,7 +1687,6 @@ pub fn report_invalid_unary_op(
         right: right_ty,
         ..
     } = err;
-    let right_ty = right_ty;
     let is_bitwise = right_ty.kind(db.up()).is_integer();
 
     let op_name = match op {
@@ -1763,7 +1753,9 @@ fn report_not_value(
 
     let (binding_def, binding_to) = if let Some(def_id) = db.binding_def(binding_src) {
         // not being a symbol implies that it's a value, and all values are accepted
-        let Some(binding_to) = db.symbol_kind(def_id) else { return };
+        let Some(binding_to) = db.symbol_kind(def_id) else {
+            return;
+        };
 
         (def_id, binding_to)
     } else {

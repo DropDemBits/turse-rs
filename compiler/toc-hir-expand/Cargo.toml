@@ -1,5 +1,5 @@
 [package]
-name = "toc-hir-db"
+name = "toc-hir-expand"
 version = "0.1.0"
 
 authors.workspace = true
@@ -9,8 +9,13 @@ edition.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-toc-hir = { workspace = true }
-toc-hir-lowering = { workspace = true }
+toc-source-graph = { workspace = true }
+
+# hir::expand deps #
+toc-syntax = { workspace = true }
+toc-vfs-db = { workspace = true }
+toc-ast-db = { workspace = true }
+rustc-hash = "1.1"
 
 salsa = { workspace = true }
 upcast = { workspace = true }

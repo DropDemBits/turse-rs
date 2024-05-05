@@ -86,6 +86,7 @@ pub fn lower_package(db: &dyn Db, package: SourcePackage) -> CompileResult<Lower
     let reachable_files = toc_ast_db::reachable_imported_files(db.up(), root_source)
         .iter()
         .copied()
+        .chain(std::iter::once(root_source))
         .collect::<Vec<_>>();
 
     // Collect all the defs in the package
@@ -257,7 +258,28 @@ impl<'ctx> FileLowering<'ctx> {
         (body, declared_items)
     }
 
-    fn lower_expr_body(&mut self, expr: ast::Expr) -> body::BodyId {
+    /// ConstVar and StackSize gets a special exception for now
+    fn lower_constvar_expr_body(&mut self, expr: ast::Expr) -> body::BodyId {
+        // Lower expr
+        let mut body = builder::BodyBuilder::default();
+        let root_expr = BodyLowering::new(self, &mut body).lower_expr(expr);
+
+        // Actually make the body
+        let body = body.finish_expr(root_expr);
+        self.package.add_body(body)
+    }
+
+    /// Bind gets a special exception for now
+    fn lower_required_bind_expr_body(&mut self, expr: Option<ast::Expr>) -> body::BodyId {
+        match expr {
+            Some(expr) => self.lower_constvar_expr_body(expr),
+            None => self.lower_empty_expr_body(),
+        }
+    }
+
+    fn lower_expr_body(&mut self, expr: ast::CompTimeExpr) -> body::BodyId {
+        let expr = expr.expr().unwrap();
+
         // Lower expr
         let mut body = builder::BodyBuilder::default();
         let root_expr = BodyLowering::new(self, &mut body).lower_expr(expr);
@@ -307,7 +329,7 @@ impl<'ctx> FileLowering<'ctx> {
     /// `no_name_span` is used if there isn't any names in `name_list`
     fn collect_name_defs(
         &mut self,
-        name_list: ast::NameList,
+        name_list: impl Iterator<Item = ast::Name>,
         no_name_span: SpanId,
     ) -> Vec<LocalDefId> {
         let mut names = self.collect_optional_name_defs(name_list);
@@ -327,11 +349,10 @@ impl<'ctx> FileLowering<'ctx> {
     /// filling empty name places with `fill_with`
     fn collect_name_defs_with_missing(
         &mut self,
-        name_list: ast::NameList,
+        name_list: impl Iterator<Item = Option<ast::Name>>,
         fill_with: LocalDefId,
     ) -> Vec<LocalDefId> {
         let mut names = name_list
-            .names_with_missing()
             .map(|name| match name {
                 Some(name) => self.collect_required_name(name),
                 None => fill_with,
@@ -348,13 +369,13 @@ impl<'ctx> FileLowering<'ctx> {
 
     /// Gathers the defs associated with `name_list`, but allows
     /// no names to be present
-    fn collect_optional_name_defs(&mut self, name_list: ast::NameList) -> Vec<LocalDefId> {
-        let names = name_list
-            .names()
+    fn collect_optional_name_defs(
+        &mut self,
+        name_list: impl Iterator<Item = ast::Name>,
+    ) -> Vec<LocalDefId> {
+        name_list
             .map(|name| self.collect_required_name(name))
-            .collect::<Vec<_>>();
-
-        names
+            .collect::<Vec<_>>()
     }
 
     fn collect_name(&mut self, name: Option<ast::Name>, no_name_span: SpanId) -> LocalDefId {

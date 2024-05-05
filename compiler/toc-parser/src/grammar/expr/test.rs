@@ -11,12 +11,12 @@ fn parse_ident_use() {
               StmtList@0..4
                 AssignStmt@0..4
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
                   NameExpr@3..4
-                    Name@3..4
+                    NameRef@3..4
                       Identifier@3..4 "a""#]],
     );
     check(
@@ -26,12 +26,12 @@ fn parse_ident_use() {
               StmtList@0..12
                 AssignStmt@0..12
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
                   NameExpr@3..12
-                    Name@3..12
+                    NameRef@3..12
                       Identifier@3..12 "abcde0123""#]],
     );
 }
@@ -45,7 +45,7 @@ fn parse_int_literal() {
               StmtList@0..11
                 AssignStmt@0..11
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -63,7 +63,7 @@ fn parse_int_literal() {
               StmtList@0..23
                 AssignStmt@0..23
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -79,7 +79,7 @@ fn parse_int_literal() {
               StmtList@0..10
                 AssignStmt@0..6
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -87,7 +87,7 @@ fn parse_int_literal() {
                     IntLiteral@3..6 "999"
                 CallStmt@6..10
                   NameExpr@6..10
-                    Name@6..10
+                    NameRef@6..10
                       Identifier@6..10 "a999""#]],
     );
 }
@@ -97,31 +97,31 @@ fn parse_radix_literal() {
     // Examples
     check(
         "_:=16#EABC",
-        expect![[r##"
+        expect![[r#"
             Source@0..10
               StmtList@0..10
                 AssignStmt@0..10
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
                   LiteralExpr@3..10
-                    RadixLiteral@3..10 "16#EABC""##]],
+                    RadixLiteral@3..10 "16#EABC""#]],
     );
     check(
         "_:=02#1100",
-        expect![[r##"
+        expect![[r#"
             Source@0..10
               StmtList@0..10
                 AssignStmt@0..10
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
                   LiteralExpr@3..10
-                    RadixLiteral@3..10 "02#1100""##]],
+                    RadixLiteral@3..10 "02#1100""#]],
     );
 
     // Errors
@@ -129,17 +129,17 @@ fn parse_radix_literal() {
     // Overflow
     check(
         "_:=10#99999999999999999999",
-        expect![[r##"
+        expect![[r#"
             Source@0..26
               StmtList@0..26
                 AssignStmt@0..26
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
                   LiteralExpr@3..26
-                    RadixLiteral@3..26 "10#99999999999999999999""##]],
+                    RadixLiteral@3..26 "10#99999999999999999999""#]],
     );
 
     // Invalid literals are reported during HIR lowering
@@ -147,95 +147,95 @@ fn parse_radix_literal() {
     // No digits
     check(
         "_:=30#",
-        expect![[r##"
+        expect![[r#"
             Source@0..6
               StmtList@0..6
                 AssignStmt@0..6
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
                   LiteralExpr@3..6
-                    RadixLiteral@3..6 "30#""##]],
+                    RadixLiteral@3..6 "30#""#]],
     );
 
     // Out of range (> 36)
     check(
         "_:=37#asda",
-        expect![[r##"
+        expect![[r#"
             Source@0..10
               StmtList@0..10
                 AssignStmt@0..10
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
                   LiteralExpr@3..10
-                    RadixLiteral@3..10 "37#asda""##]],
+                    RadixLiteral@3..10 "37#asda""#]],
     );
 
     // Out of range (< 2)
     check(
         "_:=0#0000",
-        expect![[r##"
+        expect![[r#"
             Source@0..9
               StmtList@0..9
                 AssignStmt@0..9
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
                   LiteralExpr@3..9
-                    RadixLiteral@3..9 "0#0000""##]],
+                    RadixLiteral@3..9 "0#0000""#]],
     );
     check(
         "_:=1#0000",
-        expect![[r##"
+        expect![[r#"
             Source@0..9
               StmtList@0..9
                 AssignStmt@0..9
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
                   LiteralExpr@3..9
-                    RadixLiteral@3..9 "1#0000""##]],
+                    RadixLiteral@3..9 "1#0000""#]],
     );
 
     // Out of range (= overflow)
     check(
         "_:=18446744073709551616#0000",
-        expect![[r##"
+        expect![[r#"
             Source@0..28
               StmtList@0..28
                 AssignStmt@0..28
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
                   LiteralExpr@3..28
-                    RadixLiteral@3..28 "18446744073709551616# ...""##]],
+                    RadixLiteral@3..28 "18446744073709551616# ...""#]],
     );
 
     // Invalid digit
     check(
         "_:=10#999a999",
-        expect![[r##"
+        expect![[r#"
             Source@0..13
               StmtList@0..13
                 AssignStmt@0..13
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
                   LiteralExpr@3..13
-                    RadixLiteral@3..13 "10#999a999""##]],
+                    RadixLiteral@3..13 "10#999a999""#]],
     );
 }
 
@@ -249,7 +249,7 @@ fn parse_real_literal() {
               StmtList@0..9
                 AssignStmt@0..9
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -263,7 +263,7 @@ fn parse_real_literal() {
               StmtList@0..14
                 AssignStmt@0..9
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -282,7 +282,7 @@ fn parse_real_literal() {
               StmtList@0..5
                 AssignStmt@0..5
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -296,7 +296,7 @@ fn parse_real_literal() {
               StmtList@0..9
                 AssignStmt@0..9
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -310,7 +310,7 @@ fn parse_real_literal() {
               StmtList@0..12
                 AssignStmt@0..12
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -324,7 +324,7 @@ fn parse_real_literal() {
               StmtList@0..13
                 AssignStmt@0..13
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -340,7 +340,7 @@ fn parse_real_literal() {
               StmtList@0..14
                 AssignStmt@0..14
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -354,7 +354,7 @@ fn parse_real_literal() {
               StmtList@0..14
                 AssignStmt@0..14
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -368,7 +368,7 @@ fn parse_real_literal() {
               StmtList@0..8
                 AssignStmt@0..8
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -386,7 +386,7 @@ fn parse_real_literal() {
               StmtList@0..6
                 AssignStmt@0..6
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -400,7 +400,7 @@ fn parse_real_literal() {
               StmtList@0..6
                 AssignStmt@0..6
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -414,7 +414,7 @@ fn parse_real_literal() {
               StmtList@0..5
                 AssignStmt@0..5
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -430,7 +430,7 @@ fn parse_real_literal() {
               StmtList@0..8
                 AssignStmt@0..8
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -448,7 +448,7 @@ fn parse_string_literal() {
               StmtList@0..10
                 AssignStmt@0..10
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -466,7 +466,7 @@ fn parse_char_literal() {
               StmtList@0..10
                 AssignStmt@0..10
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -484,7 +484,7 @@ fn parse_boolean_literal() {
               StmtList@0..7
                 AssignStmt@0..7
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -498,7 +498,7 @@ fn parse_boolean_literal() {
               StmtList@0..8
                 AssignStmt@0..8
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -516,7 +516,7 @@ fn parse_bin_expr_simple() {
               StmtList@0..6
                 AssignStmt@0..6
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -538,7 +538,7 @@ fn parse_bin_expr_with_left_assoc() {
               StmtList@0..10
                 AssignStmt@0..10
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -568,7 +568,7 @@ fn parse_bin_expr_with_mixed_binding_power() {
               StmtList@0..12
                 AssignStmt@0..12
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -597,18 +597,18 @@ fn parse_bin_expr_with_mixed_binding_power() {
 fn parse_expr_with_leading_ws() {
     check(
         "_:=     16#480",
-        expect![[r##"
+        expect![[r#"
             Source@0..14
               StmtList@0..14
                 AssignStmt@0..14
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
                   Whitespace@3..8 "     "
                   LiteralExpr@8..14
-                    RadixLiteral@8..14 "16#480""##]],
+                    RadixLiteral@8..14 "16#480""#]],
     );
 }
 
@@ -621,7 +621,7 @@ fn parse_expr_with_trailing_ws() {
               StmtList@0..8
                 AssignStmt@0..8
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -640,7 +640,7 @@ fn parse_expr_with_surrounding_ws() {
               StmtList@0..10
                 AssignStmt@0..10
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -660,7 +660,7 @@ fn parse_bin_expr_with_ws() {
               StmtList@0..17
                 AssignStmt@0..17
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -703,7 +703,7 @@ fn parse_exprs_with_comments() {
               StmtList@0..144
                 AssignStmt@0..98
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -729,7 +729,7 @@ fn parse_exprs_with_comments() {
                 Whitespace@98..108 "\n\n        "
                 AssignStmt@108..144
                   NameExpr@108..109
-                    Name@108..109
+                    NameRef@108..109
                       Identifier@108..109 "_"
                   AsnOp@109..111
                     Assign@109..111 ":="
@@ -763,7 +763,7 @@ fn parse_simple_infix() {
               StmtList@0..9
                 AssignStmt@0..9
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -783,7 +783,7 @@ fn parse_simple_infix() {
               StmtList@0..9
                 AssignStmt@0..9
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -803,7 +803,7 @@ fn parse_simple_infix() {
               StmtList@0..8
                 AssignStmt@0..8
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -823,7 +823,7 @@ fn parse_simple_infix() {
               StmtList@0..10
                 AssignStmt@0..10
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -843,7 +843,7 @@ fn parse_simple_infix() {
               StmtList@0..8
                 AssignStmt@0..8
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -863,7 +863,7 @@ fn parse_simple_infix() {
               StmtList@0..8
                 AssignStmt@0..8
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -883,7 +883,7 @@ fn parse_simple_infix() {
               StmtList@0..8
                 AssignStmt@0..8
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -903,7 +903,7 @@ fn parse_simple_infix() {
               StmtList@0..9
                 AssignStmt@0..9
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -923,7 +923,7 @@ fn parse_simple_infix() {
               StmtList@0..9
                 AssignStmt@0..9
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -943,7 +943,7 @@ fn parse_simple_infix() {
               StmtList@0..8
                 AssignStmt@0..8
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -963,7 +963,7 @@ fn parse_simple_infix() {
               StmtList@0..8
                 AssignStmt@0..8
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -983,7 +983,7 @@ fn parse_simple_infix() {
               StmtList@0..8
                 AssignStmt@0..8
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -1003,7 +1003,7 @@ fn parse_simple_infix() {
               StmtList@0..8
                 AssignStmt@0..8
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -1023,7 +1023,7 @@ fn parse_simple_infix() {
               StmtList@0..10
                 AssignStmt@0..10
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -1043,7 +1043,7 @@ fn parse_simple_infix() {
               StmtList@0..10
                 AssignStmt@0..10
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -1063,7 +1063,7 @@ fn parse_simple_infix() {
               StmtList@0..10
                 AssignStmt@0..10
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -1083,7 +1083,7 @@ fn parse_simple_infix() {
               StmtList@0..10
                 AssignStmt@0..10
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -1103,7 +1103,7 @@ fn parse_simple_infix() {
               StmtList@0..10
                 AssignStmt@0..10
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -1123,7 +1123,7 @@ fn parse_simple_infix() {
               StmtList@0..9
                 AssignStmt@0..9
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -1149,7 +1149,7 @@ fn exp_right_associativity() {
               StmtList@0..14
                 AssignStmt@0..14
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -1179,7 +1179,7 @@ fn parse_ne_form1() {
               StmtList@0..9
                 AssignStmt@0..9
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -1205,7 +1205,7 @@ fn parse_ne_form2() {
               StmtList@0..10
                 AssignStmt@0..10
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -1232,7 +1232,7 @@ fn parse_ne_form3() {
               StmtList@0..12
                 AssignStmt@0..12
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -1259,7 +1259,7 @@ fn parse_ne_form4() {
               StmtList@0..11
                 AssignStmt@0..11
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -1285,7 +1285,7 @@ fn parse_in() {
               StmtList@0..9
                 AssignStmt@0..9
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -1296,7 +1296,7 @@ fn parse_in() {
                     KwIn@5..7 "in"
                     Whitespace@7..8 " "
                     NameExpr@8..9
-                      Name@8..9
+                      NameRef@8..9
                         Identifier@8..9 "a""#]],
     );
 }
@@ -1310,7 +1310,7 @@ fn parse_not_in_form1() {
               StmtList@0..13
                 AssignStmt@0..13
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -1324,7 +1324,7 @@ fn parse_not_in_form1() {
                       KwIn@9..11 "in"
                     Whitespace@11..12 " "
                     NameExpr@12..13
-                      Name@12..13
+                      NameRef@12..13
                         Identifier@12..13 "a""#]],
     );
 }
@@ -1338,7 +1338,7 @@ fn parse_not_in_form2() {
               StmtList@0..10
                 AssignStmt@0..10
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -1351,7 +1351,7 @@ fn parse_not_in_form2() {
                       KwIn@6..8 "in"
                     Whitespace@8..9 " "
                     NameExpr@9..10
-                      Name@9..10
+                      NameRef@9..10
                         Identifier@9..10 "a""#]],
     );
 }
@@ -1365,7 +1365,7 @@ fn parse_not_in_form3() {
               StmtList@0..11
                 AssignStmt@0..11
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -1379,7 +1379,7 @@ fn parse_not_in_form3() {
                       KwIn@7..9 "in"
                     Whitespace@9..10 " "
                     NameExpr@10..11
-                      Name@10..11
+                      NameRef@10..11
                         Identifier@10..11 "a""#]],
     );
 }
@@ -1393,7 +1393,7 @@ fn recover_tilde_as_infix() {
               StmtList@0..8
                 AssignStmt@0..8
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -1420,7 +1420,7 @@ fn recover_not_as_infix() {
               StmtList@0..10
                 AssignStmt@0..10
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -1447,7 +1447,7 @@ fn parse_simple_prefix() {
               StmtList@0..6
                 AssignStmt@0..6
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -1463,14 +1463,14 @@ fn parse_simple_prefix() {
               StmtList@0..5
                 AssignStmt@0..5
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
                   UnaryExpr@3..5
                     Plus@3..4 "+"
                     NameExpr@4..5
-                      Name@4..5
+                      NameRef@4..5
                         Identifier@4..5 "a""#]],
     );
     check(
@@ -1480,14 +1480,14 @@ fn parse_simple_prefix() {
               StmtList@0..5
                 AssignStmt@0..5
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
                   DerefExpr@3..5
                     Caret@3..4 "^"
                     NameExpr@4..5
-                      Name@4..5
+                      NameRef@4..5
                         Identifier@4..5 "a""#]],
     );
     check(
@@ -1497,14 +1497,14 @@ fn parse_simple_prefix() {
               StmtList@0..5
                 AssignStmt@0..5
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
                   NatCheatExpr@3..5
                     Pound@3..4 "#"
                     NameExpr@4..5
-                      Name@4..5
+                      NameRef@4..5
                         Identifier@4..5 "a""##]],
     );
     check(
@@ -1514,14 +1514,14 @@ fn parse_simple_prefix() {
               StmtList@0..5
                 AssignStmt@0..5
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
                   UnaryExpr@3..5
                     Tilde@3..4 "~"
                     NameExpr@4..5
-                      Name@4..5
+                      NameRef@4..5
                         Identifier@4..5 "a""#]],
     );
     check(
@@ -1531,7 +1531,7 @@ fn parse_simple_prefix() {
               StmtList@0..8
                 AssignStmt@0..8
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -1539,7 +1539,7 @@ fn parse_simple_prefix() {
                     KwNot@3..6 "not"
                     Whitespace@6..7 " "
                     NameExpr@7..8
-                      Name@7..8
+                      NameRef@7..8
                         Identifier@7..8 "a""#]],
     );
 }
@@ -1553,7 +1553,7 @@ fn negation_over_arithmetic() {
               StmtList@0..9
                 AssignStmt@0..9
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -1577,7 +1577,7 @@ fn recover_infix_missing_rhs() {
               StmtList@0..6
                 AssignStmt@0..6
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -1597,7 +1597,7 @@ fn parse_nested_parens() {
               StmtList@0..11
                 AssignStmt@0..11
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -1624,7 +1624,7 @@ fn parens_alter_precedence() {
               StmtList@0..10
                 AssignStmt@0..10
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -1670,7 +1670,7 @@ fn recover_just_right_paren() {
               StmtList@0..4
                 AssignStmt@0..4
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -1690,7 +1690,7 @@ fn recover_too_many_right_parens() {
               StmtList@0..7
                 AssignStmt@0..6
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -1715,7 +1715,7 @@ fn recover_missing_closing_paren() {
               StmtList@0..5
                 AssignStmt@0..5
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -1737,7 +1737,7 @@ fn recover_missing_closing_paren_and_rhs() {
               StmtList@0..6
                 AssignStmt@0..6
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -1761,7 +1761,7 @@ fn recover_missing_rhs() {
               StmtList@0..5
                 AssignStmt@0..5
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -1785,16 +1785,16 @@ fn parse_field_expr() {
               StmtList@0..6
                 AssignStmt@0..6
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
                   FieldExpr@3..6
                     NameExpr@3..4
-                      Name@3..4
+                      NameRef@3..4
                         Identifier@3..4 "a"
                     Dot@4..5 "."
-                    Name@5..6
+                    NameRef@5..6
                       Identifier@5..6 "b""#]],
     );
 }
@@ -1808,7 +1808,7 @@ fn chained_field_expr() {
               StmtList@0..10
                 AssignStmt@0..10
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -1816,16 +1816,16 @@ fn chained_field_expr() {
                     FieldExpr@3..8
                       FieldExpr@3..6
                         NameExpr@3..4
-                          Name@3..4
+                          NameRef@3..4
                             Identifier@3..4 "a"
                         Dot@4..5 "."
-                        Name@5..6
+                        NameRef@5..6
                           Identifier@5..6 "b"
                       Dot@6..7 "."
-                      Name@7..8
+                      NameRef@7..8
                         Identifier@7..8 "c"
                     Dot@8..9 "."
-                    Name@9..10
+                    NameRef@9..10
                       Identifier@9..10 "d""#]],
     );
 }
@@ -1839,13 +1839,13 @@ fn recover_field_expr_missing_field() {
               StmtList@0..5
                 AssignStmt@0..5
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
                   FieldExpr@3..5
                     NameExpr@3..4
-                      Name@3..4
+                      NameRef@3..4
                         Identifier@3..4 "a"
                     Dot@4..5 "."
             error at 4..5: unexpected end of file
@@ -1862,7 +1862,7 @@ fn recover_field_missing_closing_paren_and_field() {
               StmtList@0..6
                 AssignStmt@0..6
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -1870,7 +1870,7 @@ fn recover_field_missing_closing_paren_and_field() {
                     LeftParen@3..4 "("
                     FieldExpr@4..6
                       NameExpr@4..5
-                        Name@4..5
+                        NameRef@4..5
                           Identifier@4..5 "a"
                       Dot@5..6 "."
             error at 5..6: unexpected end of file
@@ -1889,16 +1889,16 @@ fn parse_arrow_expr() {
               StmtList@0..7
                 AssignStmt@0..7
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
                   ArrowExpr@3..7
                     NameExpr@3..4
-                      Name@3..4
+                      NameRef@3..4
                         Identifier@3..4 "a"
                     Arrow@4..6 "->"
-                    Name@6..7
+                    NameRef@6..7
                       Identifier@6..7 "b""#]],
     );
 }
@@ -1912,7 +1912,7 @@ fn chained_arrow_expr() {
               StmtList@0..13
                 AssignStmt@0..13
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -1920,16 +1920,16 @@ fn chained_arrow_expr() {
                     ArrowExpr@3..10
                       ArrowExpr@3..7
                         NameExpr@3..4
-                          Name@3..4
+                          NameRef@3..4
                             Identifier@3..4 "a"
                         Arrow@4..6 "->"
-                        Name@6..7
+                        NameRef@6..7
                           Identifier@6..7 "b"
                       Arrow@7..9 "->"
-                      Name@9..10
+                      NameRef@9..10
                         Identifier@9..10 "c"
                     Arrow@10..12 "->"
-                    Name@12..13
+                    NameRef@12..13
                       Identifier@12..13 "d""#]],
     );
 }
@@ -1943,13 +1943,13 @@ fn recover_arrow_expr_missing_field() {
               StmtList@0..6
                 AssignStmt@0..6
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
                   ArrowExpr@3..6
                     NameExpr@3..4
-                      Name@3..4
+                      NameRef@3..4
                         Identifier@3..4 "a"
                     Arrow@4..6 "->"
             error at 4..6: unexpected end of file
@@ -1966,7 +1966,7 @@ fn recover_arrow_missing_closing_paren_and_field() {
               StmtList@0..7
                 AssignStmt@0..7
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -1974,7 +1974,7 @@ fn recover_arrow_missing_closing_paren_and_field() {
                     LeftParen@3..4 "("
                     ArrowExpr@4..7
                       NameExpr@4..5
-                        Name@4..5
+                        NameRef@4..5
                           Identifier@4..5 "a"
                       Arrow@5..7 "->"
             error at 5..7: unexpected end of file
@@ -1991,7 +1991,7 @@ fn chained_field_and_arrow_expr() {
               StmtList@0..22
                 AssignStmt@0..22
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -2003,28 +2003,28 @@ fn chained_field_and_arrow_expr() {
                             ArrowExpr@3..9
                               FieldExpr@3..6
                                 NameExpr@3..4
-                                  Name@3..4
+                                  NameRef@3..4
                                     Identifier@3..4 "a"
                                 Dot@4..5 "."
-                                Name@5..6
+                                NameRef@5..6
                                   Identifier@5..6 "b"
                               Arrow@6..8 "->"
-                              Name@8..9
+                              NameRef@8..9
                                 Identifier@8..9 "c"
                             Arrow@9..11 "->"
-                            Name@11..12
+                            NameRef@11..12
                               Identifier@11..12 "d"
                           Dot@12..13 "."
-                          Name@13..14
+                          NameRef@13..14
                             Identifier@13..14 "e"
                         Arrow@14..16 "->"
-                        Name@16..17
+                        NameRef@16..17
                           Identifier@16..17 "f"
                       Dot@17..18 "."
-                      Name@18..19
+                      NameRef@18..19
                         Identifier@18..19 "g"
                     Arrow@19..21 "->"
-                    Name@21..22
+                    NameRef@21..22
                       Identifier@21..22 "h""#]],
     );
 }
@@ -2039,19 +2039,19 @@ fn parse_call_expr() {
               StmtList@0..7
                 AssignStmt@0..7
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
                   CallExpr@3..7
                     NameExpr@3..4
-                      Name@3..4
+                      NameRef@3..4
                         Identifier@3..4 "a"
                     ParamList@4..7
                       LeftParen@4..5 "("
                       Param@5..6
                         NameExpr@5..6
-                          Name@5..6
+                          NameRef@5..6
                             Identifier@5..6 "b"
                       RightParen@6..7 ")""#]],
     );
@@ -2066,27 +2066,27 @@ fn parse_nested_call_expr() {
               StmtList@0..24
                 AssignStmt@0..24
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
                   CallExpr@3..24
                     NameExpr@3..4
-                      Name@3..4
+                      NameRef@3..4
                         Identifier@3..4 "a"
                     ParamList@4..24
                       LeftParen@4..5 "("
                       Param@5..18
                         CallExpr@5..17
                           NameExpr@5..6
-                            Name@5..6
+                            NameRef@5..6
                               Identifier@5..6 "b"
                           ParamList@6..17
                             LeftParen@6..7 "("
                             Param@7..11
                               CallExpr@7..10
                                 NameExpr@7..8
-                                  Name@7..8
+                                  NameRef@7..8
                                     Identifier@7..8 "c"
                                 ParamList@8..10
                                   LeftParen@8..9 "("
@@ -2095,26 +2095,26 @@ fn parse_nested_call_expr() {
                             Whitespace@11..12 " "
                             Param@12..14
                               NameExpr@12..13
-                                Name@12..13
+                                NameRef@12..13
                                   Identifier@12..13 "d"
                               Comma@13..14 ","
                             Whitespace@14..15 " "
                             Param@15..16
                               NameExpr@15..16
-                                Name@15..16
+                                NameRef@15..16
                                   Identifier@15..16 "e"
                             RightParen@16..17 ")"
                         Comma@17..18 ","
                       Whitespace@18..19 " "
                       Param@19..21
                         NameExpr@19..20
-                          Name@19..20
+                          NameRef@19..20
                             Identifier@19..20 "f"
                         Comma@20..21 ","
                       Whitespace@21..22 " "
                       Param@22..23
                         NameExpr@22..23
-                          Name@22..23
+                          NameRef@22..23
                             Identifier@22..23 "g"
                       RightParen@23..24 ")""#]],
     );
@@ -2129,13 +2129,13 @@ fn parse_empty_call_expr() {
               StmtList@0..6
                 AssignStmt@0..6
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
                   CallExpr@3..6
                     NameExpr@3..4
-                      Name@3..4
+                      NameRef@3..4
                         Identifier@3..4 "a"
                     ParamList@4..6
                       LeftParen@4..5 "("
@@ -2152,13 +2152,13 @@ fn parse_call_expr_with_many_args() {
               StmtList@0..17
                 AssignStmt@0..17
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
                   CallExpr@3..17
                     NameExpr@3..4
-                      Name@3..4
+                      NameRef@3..4
                         Identifier@3..4 "a"
                     ParamList@4..17
                       LeftParen@4..5 "("
@@ -2180,7 +2180,7 @@ fn parse_call_expr_with_many_args() {
                       Whitespace@14..15 " "
                       Param@15..16
                         NameExpr@15..16
-                          Name@15..16
+                          NameRef@15..16
                             Identifier@15..16 "c"
                       RightParen@16..17 ")""#]],
     );
@@ -2195,13 +2195,13 @@ fn recover_call_expr_missing_closing_paren() {
               StmtList@0..6
                 AssignStmt@0..6
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
                   CallExpr@3..6
                     NameExpr@3..4
-                      Name@3..4
+                      NameRef@3..4
                         Identifier@3..4 "a"
                     ParamList@4..6
                       LeftParen@4..5 "("
@@ -2223,13 +2223,13 @@ fn recover_call_expr_missing_last_arg() {
               StmtList@0..8
                 AssignStmt@0..8
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
                   CallExpr@3..8
                     NameExpr@3..4
-                      Name@3..4
+                      NameRef@3..4
                         Identifier@3..4 "a"
                     ParamList@4..8
                       LeftParen@4..5 "("
@@ -2253,13 +2253,13 @@ fn recover_call_expr_missing_last_arg_and_closing_paren() {
               StmtList@0..7
                 AssignStmt@0..7
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
                   CallExpr@3..7
                     NameExpr@3..4
-                      Name@3..4
+                      NameRef@3..4
                         Identifier@3..4 "a"
                     ParamList@4..7
                       LeftParen@4..5 "("
@@ -2282,13 +2282,13 @@ fn recover_call_expr_missing_delim() {
               StmtList@0..9
                 AssignStmt@0..6
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
                   CallExpr@3..6
                     NameExpr@3..4
-                      Name@3..4
+                      NameRef@3..4
                         Identifier@3..4 "a"
                     ParamList@4..6
                       LeftParen@4..5 "("
@@ -2317,13 +2317,13 @@ fn recover_call_expr_missing_param() {
               StmtList@0..10
                 AssignStmt@0..10
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
                   CallExpr@3..10
                     NameExpr@3..4
-                      Name@3..4
+                      NameRef@3..4
                         Identifier@3..4 "a"
                     ParamList@4..10
                       LeftParen@4..5 "("
@@ -2351,13 +2351,13 @@ fn recover_call_expr_missing_params() {
               StmtList@0..11
                 AssignStmt@0..11
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
                   CallExpr@3..11
                     NameExpr@3..4
-                      Name@3..4
+                      NameRef@3..4
                         Identifier@3..4 "a"
                     ParamList@4..11
                       LeftParen@4..5 "("
@@ -2391,14 +2391,14 @@ fn parse_deref_expr() {
               StmtList@0..5
                 AssignStmt@0..5
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
                   DerefExpr@3..5
                     Caret@3..4 "^"
                     NameExpr@4..5
-                      Name@4..5
+                      NameRef@4..5
                         Identifier@4..5 "a""#]],
     );
 }
@@ -2412,7 +2412,7 @@ fn nested_deref() {
               StmtList@0..14
                 AssignStmt@0..14
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -2432,7 +2432,7 @@ fn nested_deref() {
                             Caret@11..12 "^"
                             Whitespace@12..13 " "
                             NameExpr@13..14
-                              Name@13..14
+                              NameRef@13..14
                                 Identifier@13..14 "a""#]],
     );
 }
@@ -2446,7 +2446,7 @@ fn deref_binds_higher_than_dot() {
               StmtList@0..7
                 AssignStmt@0..7
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -2454,10 +2454,10 @@ fn deref_binds_higher_than_dot() {
                     DerefExpr@3..5
                       Caret@3..4 "^"
                       NameExpr@4..5
-                        Name@4..5
+                        NameRef@4..5
                           Identifier@4..5 "a"
                     Dot@5..6 "."
-                    Name@6..7
+                    NameRef@6..7
                       Identifier@6..7 "b""#]],
     );
 }
@@ -2471,7 +2471,7 @@ fn deref_binds_higher_than_arrow() {
               StmtList@0..7
                 AssignStmt@0..7
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -2479,10 +2479,10 @@ fn deref_binds_higher_than_arrow() {
                     DerefExpr@3..5
                       Caret@3..4 "^"
                       NameExpr@4..5
-                        Name@4..5
+                        NameRef@4..5
                           Identifier@4..5 "a"
                     Dot@5..6 "."
-                    Name@6..7
+                    NameRef@6..7
                       Identifier@6..7 "b""#]],
     );
 }
@@ -2496,7 +2496,7 @@ fn deref_binds_higher_than_call() {
               StmtList@0..7
                 AssignStmt@0..7
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -2504,7 +2504,7 @@ fn deref_binds_higher_than_call() {
                     DerefExpr@3..5
                       Caret@3..4 "^"
                       NameExpr@4..5
-                        Name@4..5
+                        NameRef@4..5
                           Identifier@4..5 "a"
                     ParamList@5..7
                       LeftParen@5..6 "("
@@ -2526,10 +2526,10 @@ fn parens_override_deref_binding() {
                       LeftParen@1..2 "("
                       FieldExpr@2..5
                         NameExpr@2..3
-                          Name@2..3
+                          NameRef@2..3
                             Identifier@2..3 "a"
                         Dot@3..4 "."
-                        Name@4..5
+                        NameRef@4..5
                           Identifier@4..5 "b"
                       RightParen@5..6 ")""#]],
     );
@@ -2562,7 +2562,7 @@ fn recover_deref_missing_rhs() {
               StmtList@0..5
                 AssignStmt@0..5
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -2584,16 +2584,17 @@ fn parse_init_expr() {
               StmtList@0..10
                 AssignStmt@0..10
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
                   InitExpr@3..10
                     KwInit@3..7 "init"
                     LeftParen@7..8 "("
-                    ExprList@8..9
-                      LiteralExpr@8..9
-                        IntLiteral@8..9 "1"
+                    CompTimeExprList@8..9
+                      CompTimeExpr@8..9
+                        LiteralExpr@8..9
+                          IntLiteral@8..9 "1"
                     RightParen@9..10 ")""#]],
     );
 }
@@ -2607,24 +2608,27 @@ fn init_expr_multiple_exprs() {
               StmtList@0..16
                 AssignStmt@0..16
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
                   InitExpr@3..16
                     KwInit@3..7 "init"
                     LeftParen@7..8 "("
-                    ExprList@8..15
-                      LiteralExpr@8..9
-                        IntLiteral@8..9 "1"
+                    CompTimeExprList@8..15
+                      CompTimeExpr@8..9
+                        LiteralExpr@8..9
+                          IntLiteral@8..9 "1"
                       Comma@9..10 ","
                       Whitespace@10..11 " "
-                      LiteralExpr@11..12
-                        IntLiteral@11..12 "2"
+                      CompTimeExpr@11..12
+                        LiteralExpr@11..12
+                          IntLiteral@11..12 "2"
                       Comma@12..13 ","
                       Whitespace@13..14 " "
-                      LiteralExpr@14..15
-                        IntLiteral@14..15 "3"
+                      CompTimeExpr@14..15
+                        LiteralExpr@14..15
+                          IntLiteral@14..15 "3"
                     RightParen@15..16 ")""#]],
     );
 }
@@ -2638,22 +2642,25 @@ fn init_expr_opt_trailing_comma() {
               StmtList@0..15
                 AssignStmt@0..15
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
                   InitExpr@3..15
                     KwInit@3..7 "init"
                     LeftParen@7..8 "("
-                    ExprList@8..14
-                      LiteralExpr@8..9
-                        IntLiteral@8..9 "1"
+                    CompTimeExprList@8..14
+                      CompTimeExpr@8..9
+                        LiteralExpr@8..9
+                          IntLiteral@8..9 "1"
                       Comma@9..10 ","
-                      LiteralExpr@10..11
-                        IntLiteral@10..11 "2"
+                      CompTimeExpr@10..11
+                        LiteralExpr@10..11
+                          IntLiteral@10..11 "2"
                       Comma@11..12 ","
-                      LiteralExpr@12..13
-                        IntLiteral@12..13 "3"
+                      CompTimeExpr@12..13
+                        LiteralExpr@12..13
+                          IntLiteral@12..13 "3"
                       Comma@13..14 ","
                     RightParen@14..15 ")""#]],
     );
@@ -2668,20 +2675,22 @@ fn recover_init_expr_missing_expr_in_list() {
               StmtList@0..13
                 AssignStmt@0..13
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
                   InitExpr@3..13
                     KwInit@3..7 "init"
                     LeftParen@7..8 "("
-                    ExprList@8..12
-                      LiteralExpr@8..9
-                        IntLiteral@8..9 "1"
+                    CompTimeExprList@8..12
+                      CompTimeExpr@8..9
+                        LiteralExpr@8..9
+                          IntLiteral@8..9 "1"
                       Comma@9..10 ","
                       Comma@10..11 ","
-                      LiteralExpr@11..12
-                        IntLiteral@11..12 "3"
+                      CompTimeExpr@11..12
+                        LiteralExpr@11..12
+                          IntLiteral@11..12 "3"
                     RightParen@12..13 ")"
             error at 10..11: unexpected token
             | error for 10..11: expected expression, but found `,`"#]],
@@ -2696,20 +2705,22 @@ fn recover_init_expr_missing_delimiter() {
               StmtList@0..15
                 AssignStmt@0..12
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
                   InitExpr@3..12
                     KwInit@3..7 "init"
                     LeftParen@7..8 "("
-                    ExprList@8..12
-                      LiteralExpr@8..9
-                        IntLiteral@8..9 "1"
+                    CompTimeExprList@8..12
+                      CompTimeExpr@8..9
+                        LiteralExpr@8..9
+                          IntLiteral@8..9 "1"
                       Comma@9..10 ","
                       Whitespace@10..11 " "
-                      LiteralExpr@11..12
-                        IntLiteral@11..12 "2"
+                      CompTimeExpr@11..12
+                        LiteralExpr@11..12
+                          IntLiteral@11..12 "2"
                 Whitespace@12..13 " "
                 CallStmt@13..14
                   LiteralExpr@13..14
@@ -2732,20 +2743,22 @@ fn recover_init_expr_missing_right_paren() {
               StmtList@0..12
                 AssignStmt@0..12
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
                   InitExpr@3..12
                     KwInit@3..7 "init"
                     LeftParen@7..8 "("
-                    ExprList@8..12
-                      LiteralExpr@8..9
-                        IntLiteral@8..9 "1"
+                    CompTimeExprList@8..12
+                      CompTimeExpr@8..9
+                        LiteralExpr@8..9
+                          IntLiteral@8..9 "1"
                       Comma@9..10 ","
                       Whitespace@10..11 " "
-                      LiteralExpr@11..12
-                        IntLiteral@11..12 "2"
+                      CompTimeExpr@11..12
+                        LiteralExpr@11..12
+                          IntLiteral@11..12 "2"
             error at 11..12: unexpected end of file
             | error for 11..12: expected `)` after here"#]],
     );
@@ -2760,20 +2773,22 @@ fn recover_init_expr_missing_left_paren() {
               StmtList@0..12
                 AssignStmt@0..12
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
                   InitExpr@3..12
                     KwInit@3..7 "init"
                     Whitespace@7..8 " "
-                    ExprList@8..12
-                      LiteralExpr@8..9
-                        IntLiteral@8..9 "1"
+                    CompTimeExprList@8..12
+                      CompTimeExpr@8..9
+                        LiteralExpr@8..9
+                          IntLiteral@8..9 "1"
                       Comma@9..10 ","
                       Whitespace@10..11 " "
-                      LiteralExpr@11..12
-                        IntLiteral@11..12 "2"
+                      CompTimeExpr@11..12
+                        LiteralExpr@11..12
+                          IntLiteral@11..12 "2"
             error at 8..9: unexpected token
             | error for 8..9: expected `(`, but found int literal
             error at 11..12: unexpected end of file
@@ -2790,14 +2805,14 @@ fn recover_init_expr_empty() {
               StmtList@0..9
                 AssignStmt@0..9
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
                   InitExpr@3..9
                     KwInit@3..7 "init"
                     LeftParen@7..8 "("
-                    ExprList@8..8
+                    CompTimeExprList@8..8
                     RightParen@8..9 ")"
             error at 8..9: unexpected token
             | error for 8..9: expected expression, but found `)`"#]],
@@ -2813,14 +2828,14 @@ fn recover_init_expr_just_comma() {
               StmtList@0..10
                 AssignStmt@0..10
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
                   InitExpr@3..10
                     KwInit@3..7 "init"
                     LeftParen@7..8 "("
-                    ExprList@8..9
+                    CompTimeExprList@8..9
                       Comma@8..9 ","
                     RightParen@9..10 ")"
             error at 8..9: unexpected token
@@ -2837,7 +2852,7 @@ fn parse_indirect_expr_ty() {
               StmtList@0..16
                 AssignStmt@0..16
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -2859,7 +2874,7 @@ fn parse_indirect_expr_ty() {
               StmtList@0..19
                 AssignStmt@0..19
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -2881,7 +2896,7 @@ fn parse_indirect_expr_ty() {
               StmtList@0..12
                 AssignStmt@0..12
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -2903,7 +2918,7 @@ fn parse_indirect_expr_ty() {
               StmtList@0..13
                 AssignStmt@0..13
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -2925,7 +2940,7 @@ fn parse_indirect_expr_ty() {
               StmtList@0..13
                 AssignStmt@0..13
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -2947,7 +2962,7 @@ fn parse_indirect_expr_ty() {
               StmtList@0..13
                 AssignStmt@0..13
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -2969,7 +2984,7 @@ fn parse_indirect_expr_ty() {
               StmtList@0..12
                 AssignStmt@0..12
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -2991,7 +3006,7 @@ fn parse_indirect_expr_ty() {
               StmtList@0..13
                 AssignStmt@0..13
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -3013,7 +3028,7 @@ fn parse_indirect_expr_ty() {
               StmtList@0..13
                 AssignStmt@0..13
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -3035,7 +3050,7 @@ fn parse_indirect_expr_ty() {
               StmtList@0..13
                 AssignStmt@0..13
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -3057,7 +3072,7 @@ fn parse_indirect_expr_ty() {
               StmtList@0..13
                 AssignStmt@0..13
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -3079,7 +3094,7 @@ fn parse_indirect_expr_ty() {
               StmtList@0..14
                 AssignStmt@0..14
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -3101,7 +3116,7 @@ fn parse_indirect_expr_ty() {
               StmtList@0..14
                 AssignStmt@0..14
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -3123,7 +3138,7 @@ fn parse_indirect_expr_ty() {
               StmtList@0..15
                 AssignStmt@0..15
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -3145,7 +3160,7 @@ fn parse_indirect_expr_ty() {
               StmtList@0..13
                 AssignStmt@0..13
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -3167,7 +3182,7 @@ fn parse_indirect_expr_ty() {
               StmtList@0..22
                 AssignStmt@0..22
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -3177,16 +3192,17 @@ fn parse_indirect_expr_ty() {
                         KwString@3..9 "string"
                         LeftParen@9..10 "("
                         SeqLength@10..15
-                          BinaryExpr@10..15
-                            BinaryExpr@10..13
-                              LiteralExpr@10..11
-                                IntLiteral@10..11 "1"
-                              Plus@11..12 "+"
-                              LiteralExpr@12..13
-                                IntLiteral@12..13 "2"
-                            Plus@13..14 "+"
-                            LiteralExpr@14..15
-                              IntLiteral@14..15 "3"
+                          CompTimeExpr@10..15
+                            BinaryExpr@10..15
+                              BinaryExpr@10..13
+                                LiteralExpr@10..11
+                                  IntLiteral@10..11 "1"
+                                Plus@11..12 "+"
+                                LiteralExpr@12..13
+                                  IntLiteral@12..13 "2"
+                              Plus@13..14 "+"
+                              LiteralExpr@14..15
+                                IntLiteral@14..15 "3"
                         RightParen@15..16 ")"
                     Whitespace@16..17 " "
                     At@17..18 "@"
@@ -3203,7 +3219,7 @@ fn parse_indirect_expr_ty() {
               StmtList@0..20
                 AssignStmt@0..20
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -3213,16 +3229,17 @@ fn parse_indirect_expr_ty() {
                         KwChar@3..7 "char"
                         LeftParen@7..8 "("
                         SeqLength@8..13
-                          BinaryExpr@8..13
-                            BinaryExpr@8..11
-                              LiteralExpr@8..9
-                                IntLiteral@8..9 "3"
-                              Plus@9..10 "+"
-                              LiteralExpr@10..11
-                                IntLiteral@10..11 "4"
-                            Plus@11..12 "+"
-                            LiteralExpr@12..13
-                              IntLiteral@12..13 "5"
+                          CompTimeExpr@8..13
+                            BinaryExpr@8..13
+                              BinaryExpr@8..11
+                                LiteralExpr@8..9
+                                  IntLiteral@8..9 "3"
+                                Plus@9..10 "+"
+                                LiteralExpr@10..11
+                                  IntLiteral@10..11 "4"
+                              Plus@11..12 "+"
+                              LiteralExpr@12..13
+                                IntLiteral@12..13 "5"
                         RightParen@13..14 ")"
                     Whitespace@14..15 " "
                     At@15..16 "@"
@@ -3239,7 +3256,7 @@ fn parse_indirect_expr_ty() {
               StmtList@0..18
                 AssignStmt@0..18
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -3266,7 +3283,7 @@ fn parse_indirect_expr_ty() {
               StmtList@0..16
                 AssignStmt@0..16
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -3297,13 +3314,13 @@ fn parse_indirect_expr_ty_ref() {
               StmtList@0..10
                 AssignStmt@0..10
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
                   IndirectExpr@3..10
                     NameExpr@3..4
-                      Name@3..4
+                      NameRef@3..4
                         Identifier@3..4 "a"
                     Whitespace@4..5 " "
                     At@5..6 "@"
@@ -3320,7 +3337,7 @@ fn parse_indirect_expr_ty_ref() {
               StmtList@0..14
                 AssignStmt@0..14
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -3328,13 +3345,13 @@ fn parse_indirect_expr_ty_ref() {
                     FieldExpr@3..8
                       FieldExpr@3..6
                         NameExpr@3..4
-                          Name@3..4
+                          NameRef@3..4
                             Identifier@3..4 "a"
                         Dot@4..5 "."
-                        Name@5..6
+                        NameRef@5..6
                           Identifier@5..6 "b"
                       Dot@6..7 "."
-                      Name@7..8
+                      NameRef@7..8
                         Identifier@7..8 "c"
                     Whitespace@8..9 " "
                     At@9..10 "@"
@@ -3355,7 +3372,7 @@ fn parse_indirect_expr_not_ty_ref_deref() {
               StmtList@0..11
                 AssignStmt@0..11
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -3363,7 +3380,7 @@ fn parse_indirect_expr_not_ty_ref_deref() {
                     Caret@3..4 "^"
                     IndirectExpr@4..11
                       NameExpr@4..5
-                        Name@4..5
+                        NameRef@4..5
                           Identifier@4..5 "a"
                       Whitespace@5..6 " "
                       At@6..7 "@"
@@ -3384,7 +3401,7 @@ fn parse_indirect_expr_not_ty_ref_literal() {
               StmtList@0..10
                 AssignStmt@0..10
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -3410,7 +3427,7 @@ fn parse_indirect_expr_not_ty_ref_parens() {
               StmtList@0..16
                 AssignStmt@0..16
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -3420,13 +3437,13 @@ fn parse_indirect_expr_not_ty_ref_parens() {
                       FieldExpr@4..9
                         FieldExpr@4..7
                           NameExpr@4..5
-                            Name@4..5
+                            NameRef@4..5
                               Identifier@4..5 "a"
                           Dot@5..6 "."
-                          Name@6..7
+                          NameRef@6..7
                             Identifier@6..7 "b"
                         Dot@7..8 "."
-                        Name@8..9
+                        NameRef@8..9
                           Identifier@8..9 "c"
                       RightParen@9..10 ")"
                     Whitespace@10..11 " "
@@ -3449,13 +3466,13 @@ fn recover_chained_indirect_tails() {
               StmtList@0..16
                 AssignStmt@0..12
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
                   IndirectExpr@3..10
                     NameExpr@3..4
-                      Name@3..4
+                      NameRef@3..4
                         Identifier@3..4 "a"
                     Whitespace@4..5 " "
                     At@5..6 "@"
@@ -3530,7 +3547,7 @@ fn parse_bits_expr() {
               StmtList@0..14
                 AssignStmt@0..14
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -3541,7 +3558,7 @@ fn parse_bits_expr() {
                       LeftParen@8..9 "("
                       Param@9..11
                         NameExpr@9..10
-                          Name@9..10
+                          NameRef@9..10
                             Identifier@9..10 "a"
                         Comma@10..11 ","
                       Whitespace@11..12 " "
@@ -3566,7 +3583,7 @@ fn parse_bits_ref() {
                       LeftParen@4..5 "("
                       Param@5..7
                         NameExpr@5..6
-                          Name@5..6
+                          NameRef@5..6
                             Identifier@5..6 "a"
                         Comma@6..7 ","
                       Whitespace@7..8 " "
@@ -3591,7 +3608,7 @@ fn parse_bits_ref_range() {
                       LeftParen@4..5 "("
                       Param@5..7
                         NameExpr@5..6
-                          Name@5..6
+                          NameRef@5..6
                             Identifier@5..6 "a"
                         Comma@6..7 ","
                       Whitespace@7..8 " "
@@ -3629,7 +3646,7 @@ fn parse_bits_ref_relative_range() {
                       LeftParen@4..5 "("
                       Param@5..7
                         NameExpr@5..6
-                          Name@5..6
+                          NameRef@5..6
                             Identifier@5..6 "a"
                         Comma@6..7 ","
                       Whitespace@7..8 " "
@@ -3661,7 +3678,7 @@ fn parse_bits_single_arg() {
                       LeftParen@4..5 "("
                       Param@5..6
                         NameExpr@5..6
-                          Name@5..6
+                          NameRef@5..6
                             Identifier@5..6 "a"
                       RightParen@6..7 ")""#]],
     );
@@ -3708,7 +3725,7 @@ fn parse_objclass_expr() {
               StmtList@0..18
                 AssignStmt@0..18
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -3719,7 +3736,7 @@ fn parse_objclass_expr() {
                       LeftParen@15..16 "("
                       Param@16..17
                         NameExpr@16..17
-                          Name@16..17
+                          NameRef@16..17
                             Identifier@16..17 "a"
                       RightParen@17..18 ")""#]],
     );
@@ -3740,7 +3757,7 @@ fn parse_objclass_ref() {
                       LeftParen@11..12 "("
                       Param@12..13
                         NameExpr@12..13
-                          Name@12..13
+                          NameRef@12..13
                             Identifier@12..13 "a"
                       RightParen@13..14 ")""#]],
     );
@@ -3761,13 +3778,13 @@ fn parse_objclass_many_args() {
                       LeftParen@11..12 "("
                       Param@12..14
                         NameExpr@12..13
-                          Name@12..13
+                          NameRef@12..13
                             Identifier@12..13 "a"
                         Comma@13..14 ","
                       Whitespace@14..15 " "
                       Param@15..16
                         NameExpr@15..16
-                          Name@15..16
+                          NameRef@15..16
                             Identifier@15..16 "b"
                       RightParen@16..17 ")""#]],
     );
@@ -3814,7 +3831,7 @@ fn parse_cheat_expr() {
               StmtList@0..23
                 AssignStmt@0..23
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   Whitespace@1..2 " "
                   AsnOp@2..4
@@ -3828,8 +3845,9 @@ fn parse_cheat_expr() {
                         KwChar@11..15 "char"
                         LeftParen@15..16 "("
                         SeqLength@16..18
-                          LiteralExpr@16..18
-                            IntLiteral@16..18 "80"
+                          CompTimeExpr@16..18
+                            LiteralExpr@16..18
+                              IntLiteral@16..18 "80"
                         RightParen@18..19 ")"
                     Comma@19..20 ","
                     Whitespace@20..21 " "
@@ -3848,7 +3866,7 @@ fn parse_cheat_expr_with_opt_size_spec() {
               StmtList@0..22
                 AssignStmt@0..22
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   Whitespace@1..2 " "
                   AsnOp@2..4
@@ -3867,8 +3885,9 @@ fn parse_cheat_expr_with_opt_size_spec() {
                     SizeSpec@18..21
                       Colon@18..19 ":"
                       Whitespace@19..20 " "
-                      LiteralExpr@20..21
-                        IntLiteral@20..21 "4"
+                      CompTimeExpr@20..21
+                        LiteralExpr@20..21
+                          IntLiteral@20..21 "4"
                     RightParen@21..22 ")""#]],
     );
 }
@@ -3889,7 +3908,7 @@ fn parse_cheat_ref() {
                     Comma@9..10 ","
                     Whitespace@10..11 " "
                     NameExpr@11..12
-                      Name@11..12
+                      NameRef@11..12
                         Identifier@11..12 "a"
                     RightParen@12..13 ")""#]],
     );
@@ -3904,7 +3923,7 @@ fn recover_cheat_expr_missing_size_spec_expr() {
               StmtList@0..19
                 AssignStmt@0..19
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -3916,7 +3935,7 @@ fn recover_cheat_expr_missing_size_spec_expr() {
                     Comma@12..13 ","
                     Whitespace@13..14 " "
                     NameExpr@14..15
-                      Name@14..15
+                      NameRef@14..15
                         Identifier@14..15 "a"
                     Whitespace@15..16 " "
                     SizeSpec@16..17
@@ -3937,7 +3956,7 @@ fn recover_cheat_expr_missing_expr() {
               StmtList@0..15
                 AssignStmt@0..15
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -3963,7 +3982,7 @@ fn recover_cheat_expr_missing_comma() {
               StmtList@0..13
                 AssignStmt@0..13
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -3987,7 +4006,7 @@ fn recover_cheat_expr_empty() {
               StmtList@0..10
                 AssignStmt@0..10
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -4009,7 +4028,7 @@ fn recover_just_cheat() {
               StmtList@0..8
                 AssignStmt@0..8
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -4029,13 +4048,13 @@ fn parse_call_expr_end_bound() {
               StmtList@0..7
                 AssignStmt@0..7
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
                   CallExpr@3..7
                     NameExpr@3..4
-                      Name@3..4
+                      NameRef@3..4
                         Identifier@3..4 "a"
                     ParamList@4..7
                       LeftParen@4..5 "("
@@ -4056,13 +4075,13 @@ fn parse_call_expr_relative_bound() {
               StmtList@0..11
                 AssignStmt@0..11
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
                   CallExpr@3..11
                     NameExpr@3..4
-                      Name@3..4
+                      NameRef@3..4
                         Identifier@3..4 "a"
                     ParamList@4..11
                       LeftParen@4..5 "("
@@ -4088,13 +4107,13 @@ fn parse_call_expr_range_item_left_bounded() {
               StmtList@0..16
                 AssignStmt@0..16
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
                   CallExpr@3..16
                     NameExpr@3..4
-                      Name@3..4
+                      NameRef@3..4
                         Identifier@3..4 "a"
                     ParamList@4..16
                       LeftParen@4..5 "("
@@ -4111,7 +4130,7 @@ fn parse_call_expr_range_item_left_bounded() {
                           Range@11..13 ".."
                           Whitespace@13..14 " "
                           NameExpr@14..15
-                            Name@14..15
+                            NameRef@14..15
                               Identifier@14..15 "a"
                       RightParen@15..16 ")""#]],
     );
@@ -4126,20 +4145,20 @@ fn parse_call_expr_range_item_right_bounded() {
               StmtList@0..16
                 AssignStmt@0..16
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
                   CallExpr@3..16
                     NameExpr@3..4
-                      Name@3..4
+                      NameRef@3..4
                         Identifier@3..4 "a"
                     ParamList@4..16
                       LeftParen@4..5 "("
                       Param@5..15
                         RangeItem@5..15
                           NameExpr@5..6
-                            Name@5..6
+                            NameRef@5..6
                               Identifier@5..6 "a"
                           Whitespace@6..7 " "
                           Range@7..9 ".."
@@ -4164,13 +4183,13 @@ fn parse_call_expr_range_item_both_relatively_bounded() {
               StmtList@0..20
                 AssignStmt@0..20
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
                   CallExpr@3..20
                     NameExpr@3..4
-                      Name@3..4
+                      NameRef@3..4
                         Identifier@3..4 "a"
                     ParamList@4..20
                       LeftParen@4..5 "("
@@ -4206,13 +4225,13 @@ fn parse_call_expr_range_item_both_end_bounded() {
               StmtList@0..12
                 AssignStmt@0..12
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
                   CallExpr@3..12
                     NameExpr@3..4
-                      Name@3..4
+                      NameRef@3..4
                         Identifier@3..4 "a"
                     ParamList@4..12
                       LeftParen@4..5 "("
@@ -4238,20 +4257,20 @@ fn recover_call_expr_range_item_missing_expr() {
               StmtList@0..11
                 AssignStmt@0..11
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
                   CallExpr@3..11
                     NameExpr@3..4
-                      Name@3..4
+                      NameRef@3..4
                         Identifier@3..4 "a"
                     ParamList@4..11
                       LeftParen@4..5 "("
                       Param@5..9
                         RangeItem@5..9
                           NameExpr@5..6
-                            Name@5..6
+                            NameRef@5..6
                               Identifier@5..6 "a"
                           Whitespace@6..7 " "
                           Range@7..9 ".."
@@ -4271,13 +4290,13 @@ fn recover_call_expr_relative_bound_missing_expr() {
               StmtList@0..10
                 AssignStmt@0..10
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
                   CallExpr@3..10
                     NameExpr@3..4
-                      Name@3..4
+                      NameRef@3..4
                         Identifier@3..4 "a"
                     ParamList@4..10
                       LeftParen@4..5 "("
@@ -4303,13 +4322,13 @@ fn recover_call_expr_relative_bound_missing_minus() {
               StmtList@0..9
                 AssignStmt@0..6
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
                   CallExpr@3..6
                     NameExpr@3..4
-                      Name@3..4
+                      NameRef@3..4
                         Identifier@3..4 "a"
                     ParamList@4..6
                       LeftParen@4..5 "("
@@ -4339,13 +4358,13 @@ fn parse_call_expr_all_item() {
               StmtList@0..16
                 AssignStmt@0..16
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
                   CallExpr@3..16
                     NameExpr@3..11
-                      Name@3..11
+                      NameRef@3..11
                         Identifier@3..11 "set_cons"
                     ParamList@11..16
                       LeftParen@11..12 "("
@@ -4366,13 +4385,13 @@ fn parse_call_expr_many_all_items() {
               StmtList@0..31
                 AssignStmt@0..31
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
                   CallExpr@3..31
                     NameExpr@3..11
-                      Name@3..11
+                      NameRef@3..11
                         Identifier@3..11 "set_cons"
                     ParamList@11..31
                       LeftParen@11..12 "("
@@ -4407,14 +4426,14 @@ fn recover_all_not_primary() {
               StmtList@0..20
                 AssignStmt@0..19
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
                   BinaryExpr@3..19
                     CallExpr@3..15
                       NameExpr@3..11
-                        Name@3..11
+                        NameRef@3..11
                           Identifier@3..11 "set_cons"
                       ParamList@11..15
                         LeftParen@11..12 "("
@@ -4444,7 +4463,7 @@ fn parse_self_expr() {
               StmtList@0..12
                 AssignStmt@0..12
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -4454,7 +4473,7 @@ fn parse_self_expr() {
                     Whitespace@7..8 " "
                     Arrow@8..10 "->"
                     Whitespace@10..11 " "
-                    Name@11..12
+                    NameRef@11..12
                       Identifier@11..12 "a""#]],
     );
 }
@@ -4473,7 +4492,7 @@ fn parse_self_ref() {
                     Whitespace@4..5 " "
                     Arrow@5..7 "->"
                     Whitespace@7..8 " "
-                    Name@8..9
+                    NameRef@8..9
                       Identifier@8..9 "a""#]],
     );
 }
@@ -4500,7 +4519,7 @@ fn parse_nil_expr() {
               StmtList@0..6
                 AssignStmt@0..6
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -4518,7 +4537,7 @@ fn parse_nil_expr_opt_spec() {
               StmtList@0..16
                 AssignStmt@0..16
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -4530,16 +4549,16 @@ fn parse_nil_expr_opt_spec() {
                       FieldExpr@8..13
                         FieldExpr@8..11
                           NameExpr@8..9
-                            Name@8..9
+                            NameRef@8..9
                               Identifier@8..9 "a"
                           Dot@9..10 "."
-                          Name@10..11
+                          NameRef@10..11
                             Identifier@10..11 "b"
                         Dot@11..12 "."
-                        Name@12..13
+                        NameRef@12..13
                           Identifier@12..13 "c"
                       Dot@13..14 "."
-                      Name@14..15
+                      NameRef@14..15
                         Identifier@14..15 "d"
                     RightParen@15..16 ")""#]],
     );
@@ -4555,7 +4574,7 @@ fn parse_nil_expr_opt_spec_not_ref() {
               StmtList@0..14
                 AssignStmt@0..14
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -4584,7 +4603,7 @@ fn recover_nil_expr_missing_spec() {
               StmtList@0..9
                 AssignStmt@0..9
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -4607,7 +4626,7 @@ fn recover_nil_expr_missing_right_paren() {
               StmtList@0..9
                 AssignStmt@0..9
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -4616,7 +4635,7 @@ fn recover_nil_expr_missing_right_paren() {
                     Whitespace@6..7 " "
                     LeftParen@7..8 "("
                     NameExpr@8..9
-                      Name@8..9
+                      NameRef@8..9
                         Identifier@8..9 "a"
             error at 8..9: unexpected end of file
             | error for 8..9: expected `)` after here"#]],
@@ -4633,7 +4652,7 @@ fn recover_include_glob_expr() {
               StmtList@0..21
                 AssignStmt@0..3
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -4677,7 +4696,7 @@ fn recover_include_glob_ref() {
                 Whitespace@17..18 " "
                 CallStmt@18..27
                   NameExpr@18..27
-                    Name@18..27
+                    NameRef@18..27
                       Identifier@18..27 "and_there"
             error at 15..17: unexpected token
             | error for 15..17: expected statement, but found `->`"#]],
@@ -4693,7 +4712,7 @@ fn parse_infix_after_indirect() {
               StmtList@0..17
                 AssignStmt@0..17
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -4727,7 +4746,7 @@ fn parse_nat_cheat_as_ref() {
                   NatCheatExpr@0..4
                     Pound@0..1 "#"
                     NameExpr@1..4
-                      Name@1..4
+                      NameRef@1..4
                         Identifier@1..4 "woo"
                   Whitespace@4..5 " "
                   AsnOp@5..7
@@ -4747,7 +4766,7 @@ fn parse_sizeof_expr_constexpr() {
               StmtList@0..16
                 AssignStmt@0..16
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -4777,7 +4796,7 @@ fn parse_sizeof_expr_varref() {
               StmtList@0..18
                 AssignStmt@0..18
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -4788,16 +4807,16 @@ fn parse_sizeof_expr_varref() {
                       FieldExpr@10..15
                         FieldExpr@10..13
                           NameExpr@10..11
-                            Name@10..11
+                            NameRef@10..11
                               Identifier@10..11 "a"
                           Dot@11..12 "."
-                          Name@12..13
+                          NameRef@12..13
                             Identifier@12..13 "b"
                         Dot@13..14 "."
-                        Name@14..15
+                        NameRef@14..15
                           Identifier@14..15 "c"
                       Dot@15..16 "."
-                      Name@16..17
+                      NameRef@16..17
                         Identifier@16..17 "d"
                     RightParen@17..18 ")""#]],
     );
@@ -4812,7 +4831,7 @@ fn parse_sizeof_expr_ty_prim() {
               StmtList@0..14
                 AssignStmt@0..14
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -4834,7 +4853,7 @@ fn parse_sizeof_expr_ty_prim_sized() {
               StmtList@0..18
                 AssignStmt@0..18
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -4846,8 +4865,9 @@ fn parse_sizeof_expr_ty_prim_sized() {
                         KwChar@10..14 "char"
                         LeftParen@14..15 "("
                         SeqLength@15..16
-                          LiteralExpr@15..16
-                            IntLiteral@15..16 "8"
+                          CompTimeExpr@15..16
+                            LiteralExpr@15..16
+                              IntLiteral@15..16 "8"
                         RightParen@16..17 ")"
                     RightParen@17..18 ")""#]],
     );
@@ -4863,7 +4883,7 @@ fn parse_sizeof_expr_ty_prim_any_sized() {
               StmtList@0..18
                 AssignStmt@0..18
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -4891,7 +4911,7 @@ fn parse_sizeof_expr_not_ty_prim() {
               StmtList@0..28
                 AssignStmt@0..28
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -4918,7 +4938,7 @@ fn recover_sizeof_expr_missing_right_paren() {
               StmtList@0..11
                 AssignStmt@0..11
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -4926,7 +4946,7 @@ fn recover_sizeof_expr_missing_right_paren() {
                     KwSizeOf@3..9 "sizeof"
                     LeftParen@9..10 "("
                     NameExpr@10..11
-                      Name@10..11
+                      NameRef@10..11
                         Identifier@10..11 "a"
             error at 10..11: unexpected end of file
             | error for 10..11: expected `)` after here"#]],
@@ -4942,7 +4962,7 @@ fn recover_sizeof_expr_missing_left_paren() {
               StmtList@0..12
                 AssignStmt@0..12
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -4950,7 +4970,7 @@ fn recover_sizeof_expr_missing_left_paren() {
                     KwSizeOf@3..9 "sizeof"
                     Whitespace@9..10 " "
                     NameExpr@10..11
-                      Name@10..11
+                      NameRef@10..11
                         Identifier@10..11 "a"
                     RightParen@11..12 ")"
             error at 10..11: unexpected token
@@ -4967,7 +4987,7 @@ fn recover_sizeof_expr_missing_parens() {
               StmtList@0..11
                 AssignStmt@0..11
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -4975,7 +4995,7 @@ fn recover_sizeof_expr_missing_parens() {
                     KwSizeOf@3..9 "sizeof"
                     Whitespace@9..10 " "
                     NameExpr@10..11
-                      Name@10..11
+                      NameRef@10..11
                         Identifier@10..11 "a"
             error at 10..11: unexpected token
             | error for 10..11: expected `(`, but found identifier"#]],
@@ -4991,7 +5011,7 @@ fn recover_sizeof_expr_missing_arg() {
               StmtList@0..11
                 AssignStmt@0..11
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
@@ -5013,20 +5033,20 @@ fn parse_not_eq_after_higher_precedence_op() {
               StmtList@0..17
                 AssignStmt@0..17
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
                   BinaryExpr@3..17
                     BinaryExpr@3..10
                       NameExpr@3..4
-                        Name@3..4
+                        NameRef@3..4
                           Identifier@3..4 "A"
                       Whitespace@4..5 " "
                       KwMod@5..8 "mod"
                       Whitespace@8..9 " "
                       NameExpr@9..10
-                        Name@9..10
+                        NameRef@9..10
                           Identifier@9..10 "B"
                     Whitespace@10..11 " "
                     NotEq@11..15
@@ -5047,19 +5067,19 @@ fn parse_invalid_tilde_before_indirect() {
               StmtList@0..9
                 AssignStmt@0..9
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
                   BinaryExpr@3..9
                     NameExpr@3..4
-                      Name@3..4
+                      NameRef@3..4
                         Identifier@3..4 "A"
                     Error@4..5
                       Tilde@4..5 "~"
                     IndirectExpr@5..9
                       NameExpr@5..6
-                        Name@5..6
+                        NameRef@5..6
                           Identifier@5..6 "B"
                       At@6..7 "@"
                       LeftParen@7..8 "("
@@ -5078,13 +5098,13 @@ fn parse_invalid_not_before_indirect() {
               StmtList@0..13
                 AssignStmt@0..13
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
                   BinaryExpr@3..13
                     NameExpr@3..4
-                      Name@3..4
+                      NameRef@3..4
                         Identifier@3..4 "A"
                     Whitespace@4..5 " "
                     Error@5..8
@@ -5092,7 +5112,7 @@ fn parse_invalid_not_before_indirect() {
                     Whitespace@8..9 " "
                     IndirectExpr@9..13
                       NameExpr@9..10
-                        Name@9..10
+                        NameRef@9..10
                           Identifier@9..10 "B"
                       At@10..11 "@"
                       LeftParen@11..12 "("
@@ -5112,7 +5132,7 @@ fn recover_empty_parens() {
               StmtList@0..9
                 AssignStmt@0..7
                   NameExpr@0..1
-                    Name@0..1
+                    NameRef@0..1
                       Identifier@0..1 "_"
                   Whitespace@1..2 " "
                   AsnOp@2..4
@@ -5124,7 +5144,7 @@ fn recover_empty_parens() {
                 Whitespace@7..8 " "
                 CallStmt@8..9
                   NameExpr@8..9
-                    Name@8..9
+                    NameRef@8..9
                       Identifier@8..9 "q"
             error at 6..7: unexpected token
             | error for 6..7: expected expression, but found `)`"#]],

@@ -326,7 +326,7 @@ pub(crate) fn source(p: &mut Parser) -> CompletedMarker {
     source.complete(p, SyntaxKind::Source)
 }
 
-pub(self) fn name(p: &mut Parser) -> Option<CompletedMarker> {
+fn name(p: &mut Parser) -> Option<CompletedMarker> {
     if p.at(TokenKind::Identifier) {
         let m = p.start();
         p.bump();
@@ -338,28 +338,63 @@ pub(self) fn name(p: &mut Parser) -> Option<CompletedMarker> {
     }
 }
 
-pub(self) fn name_list(p: &mut Parser) -> Option<CompletedMarker> {
-    let mut parsed_any = false;
+/// eager eating can only be done if it doesn't leak out to other statements,
+/// even when there's missing chars
+fn name_list_of(
+    p: &mut Parser,
+    list_kind: SyntaxKind,
+    item_kind: SyntaxKind,
+    eagerly_eat: bool,
+) -> Option<CompletedMarker> {
+    let mut eaten_anything = false;
     let m = p.start();
 
     p.with_extra_recovery(&[TokenKind::Comma], |p| {
-        parsed_any |= self::name(p).is_some();
+        let mut ate_comma = false;
 
-        while p.at(TokenKind::Comma) {
-            // did parse something
-            parsed_any = true;
+        while p.at_hidden(TokenKind::Identifier) || p.at_hidden(TokenKind::Comma) {
+            let m = p.start();
+            let ate_name = name(p).is_some();
+            ate_comma = p.eat(TokenKind::Comma);
+            m.complete(p, item_kind);
 
-            p.bump();
+            eaten_anything |= ate_name || ate_comma;
 
-            self::name(p);
+            if !eagerly_eat && !ate_comma {
+                break;
+            } else if !ate_comma && p.at_hidden(TokenKind::Identifier) {
+                // missing separating comma
+                p.error_unexpected().dont_eat().report();
+            }
+        }
+
+        if !eaten_anything {
+            // need to add identifer to the expeceted tokens list,
+            // as we only passed through hidden eats
+            p.at(TokenKind::Identifier);
+            p.error_unexpected().report();
+        } else if ate_comma && !p.at(TokenKind::Identifier) {
+            p.error_unexpected().report();
         }
     });
 
-    Some(m.complete(p, SyntaxKind::NameList)).filter(|_| parsed_any)
+    Some(m.complete(p, list_kind)).filter(|_| eaten_anything)
+}
+
+fn name_ref(p: &mut Parser) -> Option<CompletedMarker> {
+    if p.at(TokenKind::Identifier) {
+        let m = p.start();
+        p.bump();
+        Some(m.complete(p, SyntaxKind::NameRef))
+    } else {
+        // not found
+        p.error_unexpected().report();
+        None
+    }
 }
 
 /// ParamList ( `'(' Param ( ',' Param )* ')'` )
-pub(self) fn param_list(p: &mut Parser) -> Option<CompletedMarker> {
+fn param_list(p: &mut Parser) -> Option<CompletedMarker> {
     debug_assert!(p.at(TokenKind::LeftParen));
 
     let m = p.start();
@@ -385,7 +420,7 @@ pub(self) fn param_list(p: &mut Parser) -> Option<CompletedMarker> {
     Some(m.complete(p, SyntaxKind::ParamList))
 }
 
-pub(self) fn param(p: &mut Parser) -> Option<(CompletedMarker, bool)> {
+fn param(p: &mut Parser) -> Option<(CompletedMarker, bool)> {
     let m = p.start();
 
     p.with_extra_recovery(&[TokenKind::Comma, TokenKind::RightParen], |p| {
@@ -398,17 +433,15 @@ pub(self) fn param(p: &mut Parser) -> Option<(CompletedMarker, bool)> {
     Some((m.complete(p, SyntaxKind::Param), found_comma))
 }
 
-pub(self) fn param_spec(p: &mut Parser) -> Option<CompletedMarker> {
+fn param_spec(p: &mut Parser) -> Option<CompletedMarker> {
     // ParamSpec: '(' ParamDecl ( ',' ParamDecl )* ')'
     let m = p.start();
 
     p.expect_punct(TokenKind::LeftParen);
     p.with_extra_recovery(&[TokenKind::RightParen, TokenKind::Comma], |p| {
-        if !p.at(TokenKind::RightParen) {
-            if let Some(..) = self::param_decl(p) {
-                while p.eat(TokenKind::Comma) {
-                    self::param_decl(p);
-                }
+        if !p.at(TokenKind::RightParen) && self::param_decl(p).is_some() {
+            while p.eat(TokenKind::Comma) {
+                self::param_decl(p);
             }
         }
     });
@@ -417,7 +450,7 @@ pub(self) fn param_spec(p: &mut Parser) -> Option<CompletedMarker> {
     Some(m.complete(p, SyntaxKind::ParamSpec))
 }
 
-pub(self) fn param_decl(p: &mut Parser) -> Option<CompletedMarker> {
+fn param_decl(p: &mut Parser) -> Option<CompletedMarker> {
     match_token!(|p| match {
         TokenKind::Function,
         TokenKind::Procedure => ty::subprog_type(p),
@@ -515,9 +548,10 @@ mod test {
                     ConstVarDecl@0..14
                       KwVar@0..3 "var"
                       Whitespace@3..4 " "
-                      NameList@4..5
-                        Name@4..5
-                          Identifier@4..5 "i"
+                      ConstVarDeclNameList@4..5
+                        ConstVarDeclName@4..5
+                          Name@4..5
+                            Identifier@4..5 "i"
                       Whitespace@5..6 " "
                       Assign@6..8 ":="
                       Whitespace@8..9 " "
@@ -550,9 +584,10 @@ mod test {
                     ConstVarDecl@0..8
                       KwVar@0..3 "var"
                       Whitespace@3..4 " "
-                      NameList@4..5
-                        Name@4..5
-                          Identifier@4..5 "i"
+                      ConstVarDeclNameList@4..5
+                        ConstVarDeclName@4..5
+                          Name@4..5
+                            Identifier@4..5 "i"
                       Whitespace@5..6 " "
                       Assign@6..8 ":="
                   Whitespace@8..9 " "

@@ -27,25 +27,25 @@ impl Name {
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
-pub struct NameList(SyntaxNode);
-impl AstNode for NameList {
+pub struct NameRef(SyntaxNode);
+impl AstNode for NameRef {
     type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
-            SyntaxKind::NameList => Some(Self(syntax)),
+            SyntaxKind::NameRef => Some(Self(syntax)),
             _ => None,
         }
     }
     fn can_cast(kind: SyntaxKind) -> bool {
         match kind {
-            SyntaxKind::NameList => true,
+            SyntaxKind::NameRef => true,
             _ => false,
         }
     }
     fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
-impl NameList {
-    pub fn names(&self) -> impl Iterator<Item = Name> + '_ { helper::nodes(&self.0) }
+impl NameRef {
+    pub fn identifier_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Identifier) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -526,7 +526,7 @@ impl AstNode for PPNameExpr {
     fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl PPNameExpr {
-    pub fn name(&self) -> Option<Name> { helper::node(&self.0) }
+    pub fn name_ref(&self) -> Option<NameRef> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -554,33 +554,26 @@ impl PPParenExpr {
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
-pub struct ConstVarDecl(SyntaxNode);
-impl AstNode for ConstVarDecl {
+pub struct ConstVarDeclName(SyntaxNode);
+impl AstNode for ConstVarDeclName {
     type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
-            SyntaxKind::ConstVarDecl => Some(Self(syntax)),
+            SyntaxKind::ConstVarDeclName => Some(Self(syntax)),
             _ => None,
         }
     }
     fn can_cast(kind: SyntaxKind) -> bool {
         match kind {
-            SyntaxKind::ConstVarDecl => true,
+            SyntaxKind::ConstVarDeclName => true,
             _ => false,
         }
     }
     fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
-impl ConstVarDecl {
-    pub fn var_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwVar) }
-    pub fn const_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwConst) }
-    pub fn pervasive_attr(&self) -> Option<PervasiveAttr> { helper::node(&self.0) }
-    pub fn register_attr(&self) -> Option<RegisterAttr> { helper::node(&self.0) }
-    pub fn decl_list(&self) -> Option<NameList> { helper::node(&self.0) }
-    pub fn colon_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Colon) }
-    pub fn type_spec(&self) -> Option<Type> { helper::node(&self.0) }
-    pub fn assign_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Assign) }
-    pub fn init(&self) -> Option<Expr> { helper::node(&self.0) }
+impl ConstVarDeclName {
+    pub fn name(&self) -> Option<Name> { helper::node(&self.0) }
+    pub fn comma_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Comma) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -611,26 +604,29 @@ impl TypeDecl {
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
-pub struct BindDecl(SyntaxNode);
-impl AstNode for BindDecl {
+pub struct BindItem(SyntaxNode);
+impl AstNode for BindItem {
     type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
-            SyntaxKind::BindDecl => Some(Self(syntax)),
+            SyntaxKind::BindItem => Some(Self(syntax)),
             _ => None,
         }
     }
     fn can_cast(kind: SyntaxKind) -> bool {
         match kind {
-            SyntaxKind::BindDecl => true,
+            SyntaxKind::BindItem => true,
             _ => false,
         }
     }
     fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
-impl BindDecl {
-    pub fn bind_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwBind) }
-    pub fn bindings(&self) -> impl Iterator<Item = BindItem> + '_ { helper::nodes(&self.0) }
+impl BindItem {
+    pub fn as_var(&self) -> Option<VarAttr> { helper::node(&self.0) }
+    pub fn to_register(&self) -> Option<RegisterAttr> { helper::node(&self.0) }
+    pub fn bind_as(&self) -> Option<Name> { helper::node(&self.0) }
+    pub fn to_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwTo) }
+    pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -725,7 +721,7 @@ impl AstNode for ExternalDecl {
 }
 impl ExternalDecl {
     pub fn external_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwExternal) }
-    pub fn external_spec(&self) -> Option<Expr> { helper::node(&self.0) }
+    pub fn external_spec(&self) -> Option<CompTimeExpr> { helper::node(&self.0) }
     pub fn external_kind(&self) -> Option<ExternalKind> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -900,6 +896,59 @@ impl MonitorDecl {
     pub fn stmt_list(&self) -> Option<StmtList> { helper::node(&self.0) }
     pub fn post_stmt(&self) -> Option<PostStmt> { helper::node(&self.0) }
     pub fn end_group(&self) -> Option<EndGroup> { helper::node(&self.0) }
+}
+#[derive(Debug, PartialEq, Eq, Hash)]
+#[repr(transparent)]
+pub struct ConstVarDecl(SyntaxNode);
+impl AstNode for ConstVarDecl {
+    type Language = crate::Lang;
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        match syntax.kind() {
+            SyntaxKind::ConstVarDecl => Some(Self(syntax)),
+            _ => None,
+        }
+    }
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
+            SyntaxKind::ConstVarDecl => true,
+            _ => false,
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
+}
+impl ConstVarDecl {
+    pub fn var_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwVar) }
+    pub fn const_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwConst) }
+    pub fn pervasive_attr(&self) -> Option<PervasiveAttr> { helper::node(&self.0) }
+    pub fn register_attr(&self) -> Option<RegisterAttr> { helper::node(&self.0) }
+    pub fn constvar_names(&self) -> Option<ConstVarDeclNameList> { helper::node(&self.0) }
+    pub fn colon_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Colon) }
+    pub fn type_spec(&self) -> Option<Type> { helper::node(&self.0) }
+    pub fn assign_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Assign) }
+    pub fn init(&self) -> Option<Expr> { helper::node(&self.0) }
+}
+#[derive(Debug, PartialEq, Eq, Hash)]
+#[repr(transparent)]
+pub struct BindDecl(SyntaxNode);
+impl AstNode for BindDecl {
+    type Language = crate::Lang;
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        match syntax.kind() {
+            SyntaxKind::BindDecl => Some(Self(syntax)),
+            _ => None,
+        }
+    }
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
+            SyntaxKind::BindDecl => true,
+            _ => false,
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
+}
+impl BindDecl {
+    pub fn bind_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwBind) }
+    pub fn bindings(&self) -> impl Iterator<Item = BindItem> + '_ { helper::nodes(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -1791,29 +1840,25 @@ impl ExportStmt {
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
-pub struct BindItem(SyntaxNode);
-impl AstNode for BindItem {
+pub struct ConstVarDeclNameList(SyntaxNode);
+impl AstNode for ConstVarDeclNameList {
     type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
-            SyntaxKind::BindItem => Some(Self(syntax)),
+            SyntaxKind::ConstVarDeclNameList => Some(Self(syntax)),
             _ => None,
         }
     }
     fn can_cast(kind: SyntaxKind) -> bool {
         match kind {
-            SyntaxKind::BindItem => true,
+            SyntaxKind::ConstVarDeclNameList => true,
             _ => false,
         }
     }
     fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
-impl BindItem {
-    pub fn as_var(&self) -> Option<VarAttr> { helper::node(&self.0) }
-    pub fn to_register(&self) -> Option<RegisterAttr> { helper::node(&self.0) }
-    pub fn bind_as(&self) -> Option<Name> { helper::node(&self.0) }
-    pub fn to_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwTo) }
-    pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
+impl ConstVarDeclNameList {
+    pub fn names(&self) -> impl Iterator<Item = ConstVarDeclName> + '_ { helper::nodes(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -1945,6 +1990,28 @@ impl AstNode for DeviceSpec {
 }
 impl DeviceSpec {
     pub fn colon_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Colon) }
+    pub fn comp_time_expr(&self) -> Option<CompTimeExpr> { helper::node(&self.0) }
+}
+#[derive(Debug, PartialEq, Eq, Hash)]
+#[repr(transparent)]
+pub struct CompTimeExpr(SyntaxNode);
+impl AstNode for CompTimeExpr {
+    type Language = crate::Lang;
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        match syntax.kind() {
+            SyntaxKind::CompTimeExpr => Some(Self(syntax)),
+            _ => None,
+        }
+    }
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
+            SyntaxKind::CompTimeExpr => true,
+            _ => false,
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
+}
+impl CompTimeExpr {
     pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -2634,9 +2701,31 @@ impl AstNode for CaseArm {
 }
 impl CaseArm {
     pub fn label_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwLabel) }
-    pub fn select(&self) -> Option<ExprList> { helper::node(&self.0) }
+    pub fn select(&self) -> Option<CompTimeExprList> { helper::node(&self.0) }
     pub fn colon_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Colon) }
     pub fn stmt_list(&self) -> Option<StmtList> { helper::node(&self.0) }
+}
+#[derive(Debug, PartialEq, Eq, Hash)]
+#[repr(transparent)]
+pub struct CompTimeExprList(SyntaxNode);
+impl AstNode for CompTimeExprList {
+    type Language = crate::Lang;
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        match syntax.kind() {
+            SyntaxKind::CompTimeExprList => Some(Self(syntax)),
+            _ => None,
+        }
+    }
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
+            SyntaxKind::CompTimeExprList => true,
+            _ => false,
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
+}
+impl CompTimeExprList {
+    pub fn exprs(&self) -> impl Iterator<Item = CompTimeExpr> + '_ { helper::nodes(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -2964,7 +3053,7 @@ impl AstNode for InitExpr {
 impl InitExpr {
     pub fn init_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwInit) }
     pub fn l_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::LeftParen) }
-    pub fn expr_list(&self) -> Option<ExprList> { helper::node(&self.0) }
+    pub fn comp_time_expr_list(&self) -> Option<CompTimeExprList> { helper::node(&self.0) }
     pub fn r_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::RightParen) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -3102,7 +3191,7 @@ impl AstNode for NameExpr {
     fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl NameExpr {
-    pub fn name(&self) -> Option<Name> { helper::node(&self.0) }
+    pub fn name_ref(&self) -> Option<NameRef> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -3148,7 +3237,7 @@ impl AstNode for FieldExpr {
 impl FieldExpr {
     pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
     pub fn dot_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Dot) }
-    pub fn name(&self) -> Option<Name> { helper::node(&self.0) }
+    pub fn name_ref(&self) -> Option<NameRef> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -3246,7 +3335,7 @@ impl AstNode for ArrowExpr {
 impl ArrowExpr {
     pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
     pub fn arrow_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Arrow) }
-    pub fn name(&self) -> Option<Name> { helper::node(&self.0) }
+    pub fn name_ref(&self) -> Option<NameRef> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -3389,7 +3478,7 @@ impl AstNode for SizeSpec {
 }
 impl SizeSpec {
     pub fn colon_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Colon) }
-    pub fn size(&self) -> Option<Expr> { helper::node(&self.0) }
+    pub fn size(&self) -> Option<CompTimeExpr> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -3431,7 +3520,7 @@ impl AstNode for NameType {
     fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl NameType {
-    pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
+    pub fn comp_time_expr(&self) -> Option<CompTimeExpr> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -3571,7 +3660,7 @@ impl EnumType {
     pub fn packed_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwPacked) }
     pub fn enum_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwEnum) }
     pub fn l_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::LeftParen) }
-    pub fn fields(&self) -> Option<NameList> { helper::node(&self.0) }
+    pub fn fields(&self) -> Option<EnumVariantList> { helper::node(&self.0) }
     pub fn r_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::RightParen) }
     pub fn size_spec(&self) -> Option<SizeSpec> { helper::node(&self.0) }
 }
@@ -3877,7 +3966,7 @@ impl AstNode for SeqLength {
     fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl SeqLength {
-    pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
+    pub fn comp_time_expr(&self) -> Option<CompTimeExpr> { helper::node(&self.0) }
     pub fn star_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Star) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -3901,6 +3990,51 @@ impl AstNode for UnsizedBound {
 }
 impl UnsizedBound {
     pub fn star_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Star) }
+}
+#[derive(Debug, PartialEq, Eq, Hash)]
+#[repr(transparent)]
+pub struct EnumVariantList(SyntaxNode);
+impl AstNode for EnumVariantList {
+    type Language = crate::Lang;
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        match syntax.kind() {
+            SyntaxKind::EnumVariantList => Some(Self(syntax)),
+            _ => None,
+        }
+    }
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
+            SyntaxKind::EnumVariantList => true,
+            _ => false,
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
+}
+impl EnumVariantList {
+    pub fn enum_variant(&self) -> impl Iterator<Item = EnumVariant> + '_ { helper::nodes(&self.0) }
+}
+#[derive(Debug, PartialEq, Eq, Hash)]
+#[repr(transparent)]
+pub struct EnumVariant(SyntaxNode);
+impl AstNode for EnumVariant {
+    type Language = crate::Lang;
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        match syntax.kind() {
+            SyntaxKind::EnumVariant => Some(Self(syntax)),
+            _ => None,
+        }
+    }
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
+            SyntaxKind::EnumVariant => true,
+            _ => false,
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
+}
+impl EnumVariant {
+    pub fn name(&self) -> Option<Name> { helper::node(&self.0) }
+    pub fn comma_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Comma) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -3944,7 +4078,7 @@ impl AstNode for RecordField {
     fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl RecordField {
-    pub fn field_names(&self) -> Option<NameList> { helper::node(&self.0) }
+    pub fn field_names(&self) -> Option<RecordFieldNameList> { helper::node(&self.0) }
     pub fn colon_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Colon) }
     pub fn field_ty(&self) -> Option<Type> { helper::node(&self.0) }
     pub fn semicolon_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Semicolon) }
@@ -3970,9 +4104,54 @@ impl AstNode for UnionVariant {
 }
 impl UnionVariant {
     pub fn label_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwLabel) }
-    pub fn selectors(&self) -> Option<ExprList> { helper::node(&self.0) }
+    pub fn selectors(&self) -> Option<CompTimeExprList> { helper::node(&self.0) }
     pub fn colon_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Colon) }
     pub fn record_field(&self) -> impl Iterator<Item = RecordField> + '_ { helper::nodes(&self.0) }
+}
+#[derive(Debug, PartialEq, Eq, Hash)]
+#[repr(transparent)]
+pub struct RecordFieldNameList(SyntaxNode);
+impl AstNode for RecordFieldNameList {
+    type Language = crate::Lang;
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        match syntax.kind() {
+            SyntaxKind::RecordFieldNameList => Some(Self(syntax)),
+            _ => None,
+        }
+    }
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
+            SyntaxKind::RecordFieldNameList => true,
+            _ => false,
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
+}
+impl RecordFieldNameList {
+    pub fn names(&self) -> impl Iterator<Item = RecordFieldName> + '_ { helper::nodes(&self.0) }
+}
+#[derive(Debug, PartialEq, Eq, Hash)]
+#[repr(transparent)]
+pub struct RecordFieldName(SyntaxNode);
+impl AstNode for RecordFieldName {
+    type Language = crate::Lang;
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        match syntax.kind() {
+            SyntaxKind::RecordFieldName => Some(Self(syntax)),
+            _ => None,
+        }
+    }
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
+            SyntaxKind::RecordFieldName => true,
+            _ => false,
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
+}
+impl RecordFieldName {
+    pub fn name(&self) -> Option<Name> { helper::node(&self.0) }
+    pub fn comma_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Comma) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -3996,10 +4175,55 @@ impl AstNode for ConstVarParam {
 impl ConstVarParam {
     pub fn pass_as_ref(&self) -> Option<VarAttr> { helper::node(&self.0) }
     pub fn bind_to_register(&self) -> Option<RegisterAttr> { helper::node(&self.0) }
-    pub fn param_names(&self) -> Option<NameList> { helper::node(&self.0) }
+    pub fn param_names(&self) -> Option<ParamNameList> { helper::node(&self.0) }
     pub fn colon_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Colon) }
     pub fn coerce_type(&self) -> Option<CheatAttr> { helper::node(&self.0) }
     pub fn param_ty(&self) -> Option<Type> { helper::node(&self.0) }
+}
+#[derive(Debug, PartialEq, Eq, Hash)]
+#[repr(transparent)]
+pub struct ParamNameList(SyntaxNode);
+impl AstNode for ParamNameList {
+    type Language = crate::Lang;
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        match syntax.kind() {
+            SyntaxKind::ParamNameList => Some(Self(syntax)),
+            _ => None,
+        }
+    }
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
+            SyntaxKind::ParamNameList => true,
+            _ => false,
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
+}
+impl ParamNameList {
+    pub fn names(&self) -> impl Iterator<Item = ParamName> + '_ { helper::nodes(&self.0) }
+}
+#[derive(Debug, PartialEq, Eq, Hash)]
+#[repr(transparent)]
+pub struct ParamName(SyntaxNode);
+impl AstNode for ParamName {
+    type Language = crate::Lang;
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        match syntax.kind() {
+            SyntaxKind::ParamName => Some(Self(syntax)),
+            _ => None,
+        }
+    }
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
+            SyntaxKind::ParamName => true,
+            _ => false,
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
+}
+impl ParamName {
+    pub fn name(&self) -> Option<Name> { helper::node(&self.0) }
+    pub fn comma_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Comma) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -4065,6 +4289,21 @@ impl AstNode for PreprocKind {
         }
     }
 }
+impl From<PPInclude> for PreprocKind {
+    fn from(variant: PPInclude) -> Self { Self::PPInclude(variant) }
+}
+impl From<PPIf> for PreprocKind {
+    fn from(variant: PPIf) -> Self { Self::PPIf(variant) }
+}
+impl From<PPElseif> for PreprocKind {
+    fn from(variant: PPElseif) -> Self { Self::PPElseif(variant) }
+}
+impl From<PPElse> for PreprocKind {
+    fn from(variant: PPElse) -> Self { Self::PPElse(variant) }
+}
+impl From<PPEndIf> for PreprocKind {
+    fn from(variant: PPEndIf) -> Self { Self::PPEndIf(variant) }
+}
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum PPExpr {
     PPBinaryExpr(PPBinaryExpr),
@@ -4101,6 +4340,18 @@ impl AstNode for PPExpr {
         }
     }
 }
+impl From<PPBinaryExpr> for PPExpr {
+    fn from(variant: PPBinaryExpr) -> Self { Self::PPBinaryExpr(variant) }
+}
+impl From<PPUnaryExpr> for PPExpr {
+    fn from(variant: PPUnaryExpr) -> Self { Self::PPUnaryExpr(variant) }
+}
+impl From<PPNameExpr> for PPExpr {
+    fn from(variant: PPNameExpr) -> Self { Self::PPNameExpr(variant) }
+}
+impl From<PPParenExpr> for PPExpr {
+    fn from(variant: PPParenExpr) -> Self { Self::PPParenExpr(variant) }
+}
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum PPFalseBranch {
     PPElseif(PPElseif),
@@ -4128,6 +4379,12 @@ impl AstNode for PPFalseBranch {
             Self::PPElse(node) => node.syntax(),
         }
     }
+}
+impl From<PPElseif> for PPFalseBranch {
+    fn from(variant: PPElseif) -> Self { Self::PPElseif(variant) }
+}
+impl From<PPElse> for PPFalseBranch {
+    fn from(variant: PPElse) -> Self { Self::PPElse(variant) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum Stmt {
@@ -4357,6 +4614,273 @@ impl AstNode for Stmt {
         }
     }
 }
+impl From<ConstVarDecl> for Stmt {
+    fn from(variant: ConstVarDecl) -> Self { Self::ConstVarDecl(variant) }
+}
+impl From<TypeDecl> for Stmt {
+    fn from(variant: TypeDecl) -> Self { Self::TypeDecl(variant) }
+}
+impl From<BindDecl> for Stmt {
+    fn from(variant: BindDecl) -> Self { Self::BindDecl(variant) }
+}
+impl From<ProcDecl> for Stmt {
+    fn from(variant: ProcDecl) -> Self { Self::ProcDecl(variant) }
+}
+impl From<FcnDecl> for Stmt {
+    fn from(variant: FcnDecl) -> Self { Self::FcnDecl(variant) }
+}
+impl From<ProcessDecl> for Stmt {
+    fn from(variant: ProcessDecl) -> Self { Self::ProcessDecl(variant) }
+}
+impl From<ExternalDecl> for Stmt {
+    fn from(variant: ExternalDecl) -> Self { Self::ExternalDecl(variant) }
+}
+impl From<ForwardDecl> for Stmt {
+    fn from(variant: ForwardDecl) -> Self { Self::ForwardDecl(variant) }
+}
+impl From<DeferredDecl> for Stmt {
+    fn from(variant: DeferredDecl) -> Self { Self::DeferredDecl(variant) }
+}
+impl From<BodyDecl> for Stmt {
+    fn from(variant: BodyDecl) -> Self { Self::BodyDecl(variant) }
+}
+impl From<ModuleDecl> for Stmt {
+    fn from(variant: ModuleDecl) -> Self { Self::ModuleDecl(variant) }
+}
+impl From<ClassDecl> for Stmt {
+    fn from(variant: ClassDecl) -> Self { Self::ClassDecl(variant) }
+}
+impl From<MonitorDecl> for Stmt {
+    fn from(variant: MonitorDecl) -> Self { Self::MonitorDecl(variant) }
+}
+impl From<AssignStmt> for Stmt {
+    fn from(variant: AssignStmt) -> Self { Self::AssignStmt(variant) }
+}
+impl From<OpenStmt> for Stmt {
+    fn from(variant: OpenStmt) -> Self { Self::OpenStmt(variant) }
+}
+impl From<CloseStmt> for Stmt {
+    fn from(variant: CloseStmt) -> Self { Self::CloseStmt(variant) }
+}
+impl From<PutStmt> for Stmt {
+    fn from(variant: PutStmt) -> Self { Self::PutStmt(variant) }
+}
+impl From<GetStmt> for Stmt {
+    fn from(variant: GetStmt) -> Self { Self::GetStmt(variant) }
+}
+impl From<ReadStmt> for Stmt {
+    fn from(variant: ReadStmt) -> Self { Self::ReadStmt(variant) }
+}
+impl From<WriteStmt> for Stmt {
+    fn from(variant: WriteStmt) -> Self { Self::WriteStmt(variant) }
+}
+impl From<SeekStmt> for Stmt {
+    fn from(variant: SeekStmt) -> Self { Self::SeekStmt(variant) }
+}
+impl From<TellStmt> for Stmt {
+    fn from(variant: TellStmt) -> Self { Self::TellStmt(variant) }
+}
+impl From<ForStmt> for Stmt {
+    fn from(variant: ForStmt) -> Self { Self::ForStmt(variant) }
+}
+impl From<LoopStmt> for Stmt {
+    fn from(variant: LoopStmt) -> Self { Self::LoopStmt(variant) }
+}
+impl From<ExitStmt> for Stmt {
+    fn from(variant: ExitStmt) -> Self { Self::ExitStmt(variant) }
+}
+impl From<IfStmt> for Stmt {
+    fn from(variant: IfStmt) -> Self { Self::IfStmt(variant) }
+}
+impl From<CaseStmt> for Stmt {
+    fn from(variant: CaseStmt) -> Self { Self::CaseStmt(variant) }
+}
+impl From<BlockStmt> for Stmt {
+    fn from(variant: BlockStmt) -> Self { Self::BlockStmt(variant) }
+}
+impl From<InvariantStmt> for Stmt {
+    fn from(variant: InvariantStmt) -> Self { Self::InvariantStmt(variant) }
+}
+impl From<AssertStmt> for Stmt {
+    fn from(variant: AssertStmt) -> Self { Self::AssertStmt(variant) }
+}
+impl From<CallStmt> for Stmt {
+    fn from(variant: CallStmt) -> Self { Self::CallStmt(variant) }
+}
+impl From<ReturnStmt> for Stmt {
+    fn from(variant: ReturnStmt) -> Self { Self::ReturnStmt(variant) }
+}
+impl From<ResultStmt> for Stmt {
+    fn from(variant: ResultStmt) -> Self { Self::ResultStmt(variant) }
+}
+impl From<NewStmt> for Stmt {
+    fn from(variant: NewStmt) -> Self { Self::NewStmt(variant) }
+}
+impl From<FreeStmt> for Stmt {
+    fn from(variant: FreeStmt) -> Self { Self::FreeStmt(variant) }
+}
+impl From<TagStmt> for Stmt {
+    fn from(variant: TagStmt) -> Self { Self::TagStmt(variant) }
+}
+impl From<ForkStmt> for Stmt {
+    fn from(variant: ForkStmt) -> Self { Self::ForkStmt(variant) }
+}
+impl From<SignalStmt> for Stmt {
+    fn from(variant: SignalStmt) -> Self { Self::SignalStmt(variant) }
+}
+impl From<PauseStmt> for Stmt {
+    fn from(variant: PauseStmt) -> Self { Self::PauseStmt(variant) }
+}
+impl From<QuitStmt> for Stmt {
+    fn from(variant: QuitStmt) -> Self { Self::QuitStmt(variant) }
+}
+impl From<BreakStmt> for Stmt {
+    fn from(variant: BreakStmt) -> Self { Self::BreakStmt(variant) }
+}
+impl From<CheckednessStmt> for Stmt {
+    fn from(variant: CheckednessStmt) -> Self { Self::CheckednessStmt(variant) }
+}
+impl From<PreStmt> for Stmt {
+    fn from(variant: PreStmt) -> Self { Self::PreStmt(variant) }
+}
+impl From<InitStmt> for Stmt {
+    fn from(variant: InitStmt) -> Self { Self::InitStmt(variant) }
+}
+impl From<PostStmt> for Stmt {
+    fn from(variant: PostStmt) -> Self { Self::PostStmt(variant) }
+}
+impl From<HandlerStmt> for Stmt {
+    fn from(variant: HandlerStmt) -> Self { Self::HandlerStmt(variant) }
+}
+impl From<InheritStmt> for Stmt {
+    fn from(variant: InheritStmt) -> Self { Self::InheritStmt(variant) }
+}
+impl From<ImplementStmt> for Stmt {
+    fn from(variant: ImplementStmt) -> Self { Self::ImplementStmt(variant) }
+}
+impl From<ImplementByStmt> for Stmt {
+    fn from(variant: ImplementByStmt) -> Self { Self::ImplementByStmt(variant) }
+}
+impl From<ImportStmt> for Stmt {
+    fn from(variant: ImportStmt) -> Self { Self::ImportStmt(variant) }
+}
+impl From<ExportStmt> for Stmt {
+    fn from(variant: ExportStmt) -> Self { Self::ExportStmt(variant) }
+}
+impl From<PreprocGlob> for Stmt {
+    fn from(variant: PreprocGlob) -> Self { Self::PreprocGlob(variant) }
+}
+#[derive(Debug, PartialEq, Eq, Hash)]
+pub enum Item {
+    ConstVarDeclName(ConstVarDeclName),
+    TypeDecl(TypeDecl),
+    BindItem(BindItem),
+    ProcDecl(ProcDecl),
+    FcnDecl(FcnDecl),
+    ProcessDecl(ProcessDecl),
+    ExternalDecl(ExternalDecl),
+    ForwardDecl(ForwardDecl),
+    DeferredDecl(DeferredDecl),
+    BodyDecl(BodyDecl),
+    ModuleDecl(ModuleDecl),
+    ClassDecl(ClassDecl),
+    MonitorDecl(MonitorDecl),
+}
+impl AstNode for Item {
+    type Language = crate::Lang;
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        match syntax.kind() {
+            SyntaxKind::ConstVarDeclName => Some(Self::ConstVarDeclName(AstNode::cast(syntax)?)),
+            SyntaxKind::TypeDecl => Some(Self::TypeDecl(AstNode::cast(syntax)?)),
+            SyntaxKind::BindItem => Some(Self::BindItem(AstNode::cast(syntax)?)),
+            SyntaxKind::ProcDecl => Some(Self::ProcDecl(AstNode::cast(syntax)?)),
+            SyntaxKind::FcnDecl => Some(Self::FcnDecl(AstNode::cast(syntax)?)),
+            SyntaxKind::ProcessDecl => Some(Self::ProcessDecl(AstNode::cast(syntax)?)),
+            SyntaxKind::ExternalDecl => Some(Self::ExternalDecl(AstNode::cast(syntax)?)),
+            SyntaxKind::ForwardDecl => Some(Self::ForwardDecl(AstNode::cast(syntax)?)),
+            SyntaxKind::DeferredDecl => Some(Self::DeferredDecl(AstNode::cast(syntax)?)),
+            SyntaxKind::BodyDecl => Some(Self::BodyDecl(AstNode::cast(syntax)?)),
+            SyntaxKind::ModuleDecl => Some(Self::ModuleDecl(AstNode::cast(syntax)?)),
+            SyntaxKind::ClassDecl => Some(Self::ClassDecl(AstNode::cast(syntax)?)),
+            SyntaxKind::MonitorDecl => Some(Self::MonitorDecl(AstNode::cast(syntax)?)),
+            _ => None,
+        }
+    }
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
+            SyntaxKind::ConstVarDeclName => true,
+            SyntaxKind::TypeDecl => true,
+            SyntaxKind::BindItem => true,
+            SyntaxKind::ProcDecl => true,
+            SyntaxKind::FcnDecl => true,
+            SyntaxKind::ProcessDecl => true,
+            SyntaxKind::ExternalDecl => true,
+            SyntaxKind::ForwardDecl => true,
+            SyntaxKind::DeferredDecl => true,
+            SyntaxKind::BodyDecl => true,
+            SyntaxKind::ModuleDecl => true,
+            SyntaxKind::ClassDecl => true,
+            SyntaxKind::MonitorDecl => true,
+            _ => false,
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        match self {
+            Self::ConstVarDeclName(node) => node.syntax(),
+            Self::TypeDecl(node) => node.syntax(),
+            Self::BindItem(node) => node.syntax(),
+            Self::ProcDecl(node) => node.syntax(),
+            Self::FcnDecl(node) => node.syntax(),
+            Self::ProcessDecl(node) => node.syntax(),
+            Self::ExternalDecl(node) => node.syntax(),
+            Self::ForwardDecl(node) => node.syntax(),
+            Self::DeferredDecl(node) => node.syntax(),
+            Self::BodyDecl(node) => node.syntax(),
+            Self::ModuleDecl(node) => node.syntax(),
+            Self::ClassDecl(node) => node.syntax(),
+            Self::MonitorDecl(node) => node.syntax(),
+        }
+    }
+}
+impl From<ConstVarDeclName> for Item {
+    fn from(variant: ConstVarDeclName) -> Self { Self::ConstVarDeclName(variant) }
+}
+impl From<TypeDecl> for Item {
+    fn from(variant: TypeDecl) -> Self { Self::TypeDecl(variant) }
+}
+impl From<BindItem> for Item {
+    fn from(variant: BindItem) -> Self { Self::BindItem(variant) }
+}
+impl From<ProcDecl> for Item {
+    fn from(variant: ProcDecl) -> Self { Self::ProcDecl(variant) }
+}
+impl From<FcnDecl> for Item {
+    fn from(variant: FcnDecl) -> Self { Self::FcnDecl(variant) }
+}
+impl From<ProcessDecl> for Item {
+    fn from(variant: ProcessDecl) -> Self { Self::ProcessDecl(variant) }
+}
+impl From<ExternalDecl> for Item {
+    fn from(variant: ExternalDecl) -> Self { Self::ExternalDecl(variant) }
+}
+impl From<ForwardDecl> for Item {
+    fn from(variant: ForwardDecl) -> Self { Self::ForwardDecl(variant) }
+}
+impl From<DeferredDecl> for Item {
+    fn from(variant: DeferredDecl) -> Self { Self::DeferredDecl(variant) }
+}
+impl From<BodyDecl> for Item {
+    fn from(variant: BodyDecl) -> Self { Self::BodyDecl(variant) }
+}
+impl From<ModuleDecl> for Item {
+    fn from(variant: ModuleDecl) -> Self { Self::ModuleDecl(variant) }
+}
+impl From<ClassDecl> for Item {
+    fn from(variant: ClassDecl) -> Self { Self::ClassDecl(variant) }
+}
+impl From<MonitorDecl> for Item {
+    fn from(variant: MonitorDecl) -> Self { Self::MonitorDecl(variant) }
+}
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum Type {
     PrimType(PrimType),
@@ -4428,6 +4952,45 @@ impl AstNode for Type {
             Self::ConditionType(node) => node.syntax(),
         }
     }
+}
+impl From<PrimType> for Type {
+    fn from(variant: PrimType) -> Self { Self::PrimType(variant) }
+}
+impl From<NameType> for Type {
+    fn from(variant: NameType) -> Self { Self::NameType(variant) }
+}
+impl From<RangeType> for Type {
+    fn from(variant: RangeType) -> Self { Self::RangeType(variant) }
+}
+impl From<EnumType> for Type {
+    fn from(variant: EnumType) -> Self { Self::EnumType(variant) }
+}
+impl From<ArrayType> for Type {
+    fn from(variant: ArrayType) -> Self { Self::ArrayType(variant) }
+}
+impl From<SetType> for Type {
+    fn from(variant: SetType) -> Self { Self::SetType(variant) }
+}
+impl From<RecordType> for Type {
+    fn from(variant: RecordType) -> Self { Self::RecordType(variant) }
+}
+impl From<UnionType> for Type {
+    fn from(variant: UnionType) -> Self { Self::UnionType(variant) }
+}
+impl From<PointerType> for Type {
+    fn from(variant: PointerType) -> Self { Self::PointerType(variant) }
+}
+impl From<FcnType> for Type {
+    fn from(variant: FcnType) -> Self { Self::FcnType(variant) }
+}
+impl From<ProcType> for Type {
+    fn from(variant: ProcType) -> Self { Self::ProcType(variant) }
+}
+impl From<CollectionType> for Type {
+    fn from(variant: CollectionType) -> Self { Self::CollectionType(variant) }
+}
+impl From<ConditionType> for Type {
+    fn from(variant: ConditionType) -> Self { Self::ConditionType(variant) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum Expr {
@@ -4521,6 +5084,60 @@ impl AstNode for Expr {
         }
     }
 }
+impl From<LiteralExpr> for Expr {
+    fn from(variant: LiteralExpr) -> Self { Self::LiteralExpr(variant) }
+}
+impl From<ObjClassExpr> for Expr {
+    fn from(variant: ObjClassExpr) -> Self { Self::ObjClassExpr(variant) }
+}
+impl From<InitExpr> for Expr {
+    fn from(variant: InitExpr) -> Self { Self::InitExpr(variant) }
+}
+impl From<NilExpr> for Expr {
+    fn from(variant: NilExpr) -> Self { Self::NilExpr(variant) }
+}
+impl From<SizeOfExpr> for Expr {
+    fn from(variant: SizeOfExpr) -> Self { Self::SizeOfExpr(variant) }
+}
+impl From<BinaryExpr> for Expr {
+    fn from(variant: BinaryExpr) -> Self { Self::BinaryExpr(variant) }
+}
+impl From<UnaryExpr> for Expr {
+    fn from(variant: UnaryExpr) -> Self { Self::UnaryExpr(variant) }
+}
+impl From<ParenExpr> for Expr {
+    fn from(variant: ParenExpr) -> Self { Self::ParenExpr(variant) }
+}
+impl From<NameExpr> for Expr {
+    fn from(variant: NameExpr) -> Self { Self::NameExpr(variant) }
+}
+impl From<SelfExpr> for Expr {
+    fn from(variant: SelfExpr) -> Self { Self::SelfExpr(variant) }
+}
+impl From<FieldExpr> for Expr {
+    fn from(variant: FieldExpr) -> Self { Self::FieldExpr(variant) }
+}
+impl From<DerefExpr> for Expr {
+    fn from(variant: DerefExpr) -> Self { Self::DerefExpr(variant) }
+}
+impl From<CheatExpr> for Expr {
+    fn from(variant: CheatExpr) -> Self { Self::CheatExpr(variant) }
+}
+impl From<NatCheatExpr> for Expr {
+    fn from(variant: NatCheatExpr) -> Self { Self::NatCheatExpr(variant) }
+}
+impl From<ArrowExpr> for Expr {
+    fn from(variant: ArrowExpr) -> Self { Self::ArrowExpr(variant) }
+}
+impl From<IndirectExpr> for Expr {
+    fn from(variant: IndirectExpr) -> Self { Self::IndirectExpr(variant) }
+}
+impl From<BitsExpr> for Expr {
+    fn from(variant: BitsExpr) -> Self { Self::BitsExpr(variant) }
+}
+impl From<CallExpr> for Expr {
+    fn from(variant: CallExpr) -> Self { Self::CallExpr(variant) }
+}
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum SubprogHeader {
     ProcHeader(ProcHeader),
@@ -4548,6 +5165,12 @@ impl AstNode for SubprogHeader {
             Self::FcnHeader(node) => node.syntax(),
         }
     }
+}
+impl From<ProcHeader> for SubprogHeader {
+    fn from(variant: ProcHeader) -> Self { Self::ProcHeader(variant) }
+}
+impl From<FcnHeader> for SubprogHeader {
+    fn from(variant: FcnHeader) -> Self { Self::FcnHeader(variant) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum BodyKind {
@@ -4581,6 +5204,15 @@ impl AstNode for BodyKind {
         }
     }
 }
+impl From<PlainHeader> for BodyKind {
+    fn from(variant: PlainHeader) -> Self { Self::PlainHeader(variant) }
+}
+impl From<ProcHeader> for BodyKind {
+    fn from(variant: ProcHeader) -> Self { Self::ProcHeader(variant) }
+}
+impl From<FcnHeader> for BodyKind {
+    fn from(variant: FcnHeader) -> Self { Self::FcnHeader(variant) }
+}
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum ExternalKind {
     ExternalFcn(FcnHeader),
@@ -4613,6 +5245,15 @@ impl AstNode for ExternalKind {
         }
     }
 }
+impl From<FcnHeader> for ExternalKind {
+    fn from(variant: FcnHeader) -> Self { Self::ExternalFcn(variant) }
+}
+impl From<ProcHeader> for ExternalKind {
+    fn from(variant: ProcHeader) -> Self { Self::ExternalProc(variant) }
+}
+impl From<ExternalVar> for ExternalKind {
+    fn from(variant: ExternalVar) -> Self { Self::ExternalVar(variant) }
+}
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum OpenKind {
     OldOpen(OldOpen),
@@ -4640,6 +5281,12 @@ impl AstNode for OpenKind {
             Self::NewOpen(node) => node.syntax(),
         }
     }
+}
+impl From<OldOpen> for OpenKind {
+    fn from(variant: OldOpen) -> Self { Self::OldOpen(variant) }
+}
+impl From<NewOpen> for OpenKind {
+    fn from(variant: NewOpen) -> Self { Self::NewOpen(variant) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum CloseKind {
@@ -4669,6 +5316,12 @@ impl AstNode for CloseKind {
         }
     }
 }
+impl From<OldClose> for CloseKind {
+    fn from(variant: OldClose) -> Self { Self::OldClose(variant) }
+}
+impl From<NewClose> for CloseKind {
+    fn from(variant: NewClose) -> Self { Self::NewClose(variant) }
+}
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum FalseBranch {
     ElseifStmt(ElseifStmt),
@@ -4696,6 +5349,12 @@ impl AstNode for FalseBranch {
             Self::ElseStmt(node) => node.syntax(),
         }
     }
+}
+impl From<ElseifStmt> for FalseBranch {
+    fn from(variant: ElseifStmt) -> Self { Self::ElseifStmt(variant) }
+}
+impl From<ElseStmt> for FalseBranch {
+    fn from(variant: ElseStmt) -> Self { Self::ElseStmt(variant) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum ImportAttr {
@@ -4728,6 +5387,15 @@ impl AstNode for ImportAttr {
             Self::ForwardAttr(node) => node.syntax(),
         }
     }
+}
+impl From<VarAttr> for ImportAttr {
+    fn from(variant: VarAttr) -> Self { Self::VarAttr(variant) }
+}
+impl From<ConstAttr> for ImportAttr {
+    fn from(variant: ConstAttr) -> Self { Self::ConstAttr(variant) }
+}
+impl From<ForwardAttr> for ImportAttr {
+    fn from(variant: ForwardAttr) -> Self { Self::ForwardAttr(variant) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum ExportAttr {
@@ -4765,6 +5433,18 @@ impl AstNode for ExportAttr {
         }
     }
 }
+impl From<VarAttr> for ExportAttr {
+    fn from(variant: VarAttr) -> Self { Self::VarAttr(variant) }
+}
+impl From<UnqualifiedAttr> for ExportAttr {
+    fn from(variant: UnqualifiedAttr) -> Self { Self::UnqualifiedAttr(variant) }
+}
+impl From<PervasiveAttr> for ExportAttr {
+    fn from(variant: PervasiveAttr) -> Self { Self::PervasiveAttr(variant) }
+}
+impl From<OpaqueAttr> for ExportAttr {
+    fn from(variant: OpaqueAttr) -> Self { Self::OpaqueAttr(variant) }
+}
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum IndirectTy {
     PrimType(PrimType),
@@ -4792,6 +5472,12 @@ impl AstNode for IndirectTy {
             Self::NameType(node) => node.syntax(),
         }
     }
+}
+impl From<PrimType> for IndirectTy {
+    fn from(variant: PrimType) -> Self { Self::PrimType(variant) }
+}
+impl From<NameType> for IndirectTy {
+    fn from(variant: NameType) -> Self { Self::NameType(variant) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum ParamKind {
@@ -4825,6 +5511,15 @@ impl AstNode for ParamKind {
         }
     }
 }
+impl From<AllItem> for ParamKind {
+    fn from(variant: AllItem) -> Self { Self::AllItem(variant) }
+}
+impl From<RangeItem> for ParamKind {
+    fn from(variant: RangeItem) -> Self { Self::RangeItem(variant) }
+}
+impl From<Expr> for ParamKind {
+    fn from(variant: Expr) -> Self { Self::Expr(variant) }
+}
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum RangeBound {
     RelativeBound(RelativeBound),
@@ -4853,33 +5548,45 @@ impl AstNode for RangeBound {
         }
     }
 }
+impl From<RelativeBound> for RangeBound {
+    fn from(variant: RelativeBound) -> Self { Self::RelativeBound(variant) }
+}
+impl From<Expr> for RangeBound {
+    fn from(variant: Expr) -> Self { Self::Expr(variant) }
+}
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum EndBound {
     UnsizedBound(UnsizedBound),
-    Expr(Expr),
+    CompTimeExpr(CompTimeExpr),
 }
 impl AstNode for EndBound {
     type Language = crate::Lang;
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         match syntax.kind() {
             SyntaxKind::UnsizedBound => Some(Self::UnsizedBound(AstNode::cast(syntax)?)),
-            _ if Expr::can_cast(syntax.kind()) => Some(Self::Expr(AstNode::cast(syntax)?)),
+            SyntaxKind::CompTimeExpr => Some(Self::CompTimeExpr(AstNode::cast(syntax)?)),
             _ => None,
         }
     }
     fn can_cast(kind: SyntaxKind) -> bool {
         match kind {
             SyntaxKind::UnsizedBound => true,
-            _ if Expr::can_cast(kind) => true,
+            SyntaxKind::CompTimeExpr => true,
             _ => false,
         }
     }
     fn syntax(&self) -> &SyntaxNode {
         match self {
             Self::UnsizedBound(node) => node.syntax(),
-            Self::Expr(node) => node.syntax(),
+            Self::CompTimeExpr(node) => node.syntax(),
         }
     }
+}
+impl From<UnsizedBound> for EndBound {
+    fn from(variant: UnsizedBound) -> Self { Self::UnsizedBound(variant) }
+}
+impl From<CompTimeExpr> for EndBound {
+    fn from(variant: CompTimeExpr) -> Self { Self::CompTimeExpr(variant) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum SubprogType {
@@ -4909,6 +5616,12 @@ impl AstNode for SubprogType {
         }
     }
 }
+impl From<FcnType> for SubprogType {
+    fn from(variant: FcnType) -> Self { Self::FcnType(variant) }
+}
+impl From<ProcType> for SubprogType {
+    fn from(variant: ProcType) -> Self { Self::ProcType(variant) }
+}
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum ParamDecl {
     ConstVarParam(ConstVarParam),
@@ -4937,6 +5650,12 @@ impl AstNode for ParamDecl {
         }
     }
 }
+impl From<ConstVarParam> for ParamDecl {
+    fn from(variant: ConstVarParam) -> Self { Self::ConstVarParam(variant) }
+}
+impl From<SubprogType> for ParamDecl {
+    fn from(variant: SubprogType) -> Self { Self::SubprogType(variant) }
+}
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum ExternalRef {
     ExternalItem(ExternalItem),
@@ -4964,4 +5683,10 @@ impl AstNode for ExternalRef {
             Self::PPInclude(node) => node.syntax(),
         }
     }
+}
+impl From<ExternalItem> for ExternalRef {
+    fn from(variant: ExternalItem) -> Self { Self::ExternalItem(variant) }
+}
+impl From<PPInclude> for ExternalRef {
+    fn from(variant: PPInclude) -> Self { Self::PPInclude(variant) }
 }

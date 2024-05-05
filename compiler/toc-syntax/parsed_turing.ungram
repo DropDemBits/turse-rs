@@ -1,10 +1,12 @@
 // Turing Ungrammar, matching parse tree
 
+// Defines a new name
 Name =
   'identifier'
 
-NameList =
-  names:( Name ( ',' Name )* )
+// References an existing name
+NameRef =
+  'identifier'
 
 //*************//
 // Attributes  //
@@ -100,7 +102,7 @@ PPUnaryExpr =
   rhs:PPExpr
 
 PPNameExpr =
-  Name
+  NameRef
 
 PPParenExpr =
   '(' PPExpr ')'
@@ -111,6 +113,21 @@ PPTokenBody =
 //***************************//
 // Statements & Declarations //
 //***************************//
+
+Item = 
+  ConstVarDeclName // ConstVarDecl isn't specific enough
+| TypeDecl
+| BindItem // BindDecl is just a simple group of BindItems
+| ProcDecl
+| FcnDecl
+| ProcessDecl
+| ExternalDecl
+| ForwardDecl
+| DeferredDecl
+| BodyDecl
+| ModuleDecl
+| ClassDecl
+| MonitorDecl
 
 Stmt =
   ConstVarDecl
@@ -172,9 +189,15 @@ StmtList =
 ConstVarDecl =
   ( 'var' | 'const' )
   PervasiveAttr? RegisterAttr?
-  decl_list:NameList
+  constvar_names:ConstVarDeclNameList
   ( ':' type_spec:Type )?
   ( ':=' init:Expr )?
+
+ConstVarDeclNameList =
+  names:ConstVarDeclName*
+
+ConstVarDeclName =
+  Name ','?
 
 TypeDecl =
   'type' PervasiveAttr? decl_name:Name ':' ( 'forward' | named_ty:Type )
@@ -197,7 +220,7 @@ ProcHeader =
   'procedure' PervasiveAttr? Name params:ParamSpec? DeviceSpec?
 
 DeviceSpec =
-  ':' Expr
+  ':' CompTimeExpr
 
 FcnDecl =
   FcnHeader
@@ -250,7 +273,7 @@ ProcessHeader =
   'process' PervasiveAttr? Name params:ParamSpec? ( ':' stack_size:Expr )?
 
 ExternalDecl =
-  'external' external_spec:Expr? ExternalKind
+  'external' external_spec:CompTimeExpr? ExternalKind
 
 ExternalKind =
   ExternalFcn:FcnHeader
@@ -452,7 +475,7 @@ CaseStmt =
   EndGroup
 
 CaseArm =
-  'label' select:ExprList? ':'
+  'label' select:CompTimeExprList? ':'
       StmtList
 
 BlockStmt =
@@ -583,6 +606,13 @@ ExternalItem =
 ExprList =
   exprs:( Expr ( ',' Expr )* )
 
+// Expression in a required comp-time evaluation position
+CompTimeExpr =
+  Expr
+
+CompTimeExprList =
+  exprs:( CompTimeExpr ( ',' CompTimeExpr )* )
+
 Expr =
   LiteralExpr // primary expr
 | ObjClassExpr // primary expr
@@ -619,7 +649,7 @@ ObjClassExpr =
 
 InitExpr =
   'init' '('
-    ExprList
+    CompTimeExprList
   ')'
 
 NilExpr =
@@ -666,16 +696,16 @@ ParenExpr =
 //*************//
 
 NameExpr =
-  Name
+  NameRef
 
 SelfExpr =
   'self'
 
 FieldExpr =
-  Expr '.' Name
+  Expr '.' NameRef
 
 ArrowExpr =
-  Expr '->' Name
+  Expr '->' NameRef
 
 DerefExpr =
   '^' Expr
@@ -766,29 +796,35 @@ SizedStringType =
 
 // Wrap star in DynLength?
 SeqLength =
-  Expr
+  CompTimeExpr
 | '*'
 
 NameType =
-  Expr
+  CompTimeExpr
 
 RangeType =
-  'packed'? start:Expr '..' end:EndBound SizeSpec?
+  'packed'? start:CompTimeExpr '..' end:EndBound SizeSpec?
 
 EndBound =
   UnsizedBound
-| Expr
+| CompTimeExpr
 
 UnsizedBound =
   '*'
 
 // Storage size overrides being in a 'packed' context
 SizeSpec =
-  ':' size:Expr
+  ':' size:CompTimeExpr
   
 
 EnumType =
-  'packed'? 'enum' '(' fields:NameList ')' SizeSpec?
+  'packed'? 'enum' '(' fields:EnumVariantList ')' SizeSpec?
+
+EnumVariantList =
+  EnumVariant*
+
+EnumVariant =
+  Name ','?
 
 ArrayType =
   'packed'? 'flexible'? 'array' RangeList 'of' elem_ty:Type
@@ -810,11 +846,17 @@ UnionType =
   EndGroup
 
 UnionVariant =
-  'label' selectors:ExprList? ':'
+  'label' selectors:CompTimeExprList? ':'
     RecordField*
 
 RecordField =
-  field_names:NameList ':' field_ty:Type ';'?
+  field_names:RecordFieldNameList ':' field_ty:Type ';'?
+
+RecordFieldNameList =
+  names:RecordFieldName*
+
+RecordFieldName =
+  Name ','?
 
 PointerType =
   is_checked:Checkedness?
@@ -846,8 +888,14 @@ ParamDecl =
 ConstVarParam =
   pass_as_ref:VarAttr?
   bind_to_register:RegisterAttr?
-  param_names:NameList
+  param_names:ParamNameList
   ':' coerce_type:CheatAttr? param_ty:Type
+
+ParamNameList =
+  names:ParamName*
+
+ParamName =
+  Name ','?
 
 CollectionType =
   'collection' 'of' ( elem_ty:Type | ( 'forward' Name ) )

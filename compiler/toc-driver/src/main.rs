@@ -32,7 +32,7 @@ fn main() {
     let db = MainDatabase::default();
 
     // Add the root path to the db
-    let root_file = RawPath::new(&db, path.try_into().unwrap());
+    let root_file = RawPath::new(&db, path.into());
 
     // Set the source root
     let package_id = SourcePackage::new(
@@ -65,6 +65,16 @@ fn main() {
                 let source_graph = toc_source_graph::source_graph(&db).as_ref().ok().unwrap();
 
                 for &package in source_graph.all_packages(&db) {
+                    // use new hir entities
+                    println!("New HIR:");
+                    println!(
+                        "{}",
+                        toc_hir::render_item_tree(&db, package).render_as_tree()
+                    );
+
+                    println!("{}", toc_hir::render_package_bodies(&db, package));
+
+                    println!("Old HIR:");
                     let file = package.root(&db);
                     println!(
                         "{file:?}: {tree}",
@@ -217,8 +227,12 @@ impl ariadne::Cache<FileId> for VfsCache<'_> {
     toc_vfs_db::Jar,
     toc_source_graph::Jar,
     toc_ast_db::Jar,
+    // old hir
     toc_hir_lowering::Jar,
     toc_hir_db::Jar,
+    // new hir
+    toc_hir::DefJar,
+    toc_hir::ExpandJar,
     toc_analysis::TypeJar,
     toc_analysis::ConstEvalJar,
     toc_analysis::AnalysisJar
