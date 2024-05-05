@@ -10,39 +10,25 @@ pub(crate) mod internals {
     /// Only to be used inside of this crate.
     #[macro_export]
     macro_rules! arena_id_wrapper {
-        // Just a newtype for the index
-        (
-            $(#[$attrs:meta])*
-            $vis:vis struct $id:ident($wrap:path);
-        ) => {
-            #[derive(Clone, Copy, PartialEq, Eq, Hash)]
-            #[repr(transparent)]
-            $(#[$attrs])*
-            $vis struct $id(pub(crate) ::la_arena::Idx<$wrap>);
-
-            $crate::arena_id_wrapper!(@impl_rest, $id, $wrap);
-        };
-        // Newtype + type alias for the index
         (
             $(#[$attrs_wrap:meta])*
             $vis_wrap:vis struct $id:ident($wrap:path);
+
+            $(
             $(#[$attrs_alias:meta])*
             $vis_alias:vis type $index_alias:ident = Index;
+            )?
         ) => {
             #[derive(Clone, Copy, PartialEq, Eq, Hash)]
             #[repr(transparent)]
             $(#[$attrs_wrap])*
-            $vis_wrap struct $id(pub(crate) $index_alias);
+            $vis_wrap struct $id(pub(crate) ::la_arena::Idx<$wrap>);
 
+            $(
             $(#[$attrs_alias])*
             $vis_alias type $index_alias = ::la_arena::Idx<$wrap>;
+            )?
 
-            $crate::arena_id_wrapper!(@impl_rest, $id, $wrap);
-        };
-        // Other impls
-        (
-            @impl_rest, $id:ident, $wrap:path
-        ) => {
             impl From<$id> for ::la_arena::Idx<$wrap> {
                 fn from(id: $id) -> Self {
                     id.0
