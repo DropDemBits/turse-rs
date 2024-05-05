@@ -86,6 +86,7 @@ pub fn lower_package(db: &dyn Db, package: SourcePackage) -> CompileResult<Lower
     let reachable_files = toc_ast_db::reachable_imported_files(db.up(), root_source)
         .iter()
         .copied()
+        .chain(std::iter::once(root_source))
         .collect::<Vec<_>>();
 
     // Collect all the defs in the package
