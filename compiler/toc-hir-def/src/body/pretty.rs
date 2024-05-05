@@ -183,9 +183,7 @@ fn render_expr(db: &dyn Db, expr: ExprId) -> String {
         Expr::Unary(_) => todo!(),
         Expr::All => todo!(),
         Expr::Range(_) => todo!(),
-        Expr::Name(Name::Name(symbol)) => {
-            symbol.text(db).to_string()
-        }
+        Expr::Name(Name::Name(symbol)) => symbol.text(db).to_string(),
         Expr::Name(Name::Self_) => "self".to_string(),
         Expr::Field(_) => todo!(),
         Expr::Deref(_) => todo!(),

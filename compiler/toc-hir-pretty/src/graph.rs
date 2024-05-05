@@ -29,7 +29,7 @@ pub fn pretty_print_graph(
     get_package: impl Fn(PackageId) -> LoweredPackage,
 ) -> String {
     let Ok(package_graph) = toc_source_graph::source_graph(db) else {
-        return String::new()
+        return String::new();
     };
 
     let mut output = String::new();

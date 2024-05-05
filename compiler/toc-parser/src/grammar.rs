@@ -326,7 +326,7 @@ pub(crate) fn source(p: &mut Parser) -> CompletedMarker {
     source.complete(p, SyntaxKind::Source)
 }
 
- fn name(p: &mut Parser) -> Option<CompletedMarker> {
+fn name(p: &mut Parser) -> Option<CompletedMarker> {
     if p.at(TokenKind::Identifier) {
         let m = p.start();
         p.bump();
@@ -340,7 +340,7 @@ pub(crate) fn source(p: &mut Parser) -> CompletedMarker {
 
 /// eager eating can only be done if it doesn't leak out to other statements,
 /// even when there's missing chars
- fn name_list_of(
+fn name_list_of(
     p: &mut Parser,
     list_kind: SyntaxKind,
     item_kind: SyntaxKind,
@@ -381,7 +381,7 @@ pub(crate) fn source(p: &mut Parser) -> CompletedMarker {
     Some(m.complete(p, list_kind)).filter(|_| eaten_anything)
 }
 
- fn name_ref(p: &mut Parser) -> Option<CompletedMarker> {
+fn name_ref(p: &mut Parser) -> Option<CompletedMarker> {
     if p.at(TokenKind::Identifier) {
         let m = p.start();
         p.bump();
@@ -394,7 +394,7 @@ pub(crate) fn source(p: &mut Parser) -> CompletedMarker {
 }
 
 /// ParamList ( `'(' Param ( ',' Param )* ')'` )
- fn param_list(p: &mut Parser) -> Option<CompletedMarker> {
+fn param_list(p: &mut Parser) -> Option<CompletedMarker> {
     debug_assert!(p.at(TokenKind::LeftParen));
 
     let m = p.start();
@@ -420,7 +420,7 @@ pub(crate) fn source(p: &mut Parser) -> CompletedMarker {
     Some(m.complete(p, SyntaxKind::ParamList))
 }
 
- fn param(p: &mut Parser) -> Option<(CompletedMarker, bool)> {
+fn param(p: &mut Parser) -> Option<(CompletedMarker, bool)> {
     let m = p.start();
 
     p.with_extra_recovery(&[TokenKind::Comma, TokenKind::RightParen], |p| {
@@ -433,7 +433,7 @@ pub(crate) fn source(p: &mut Parser) -> CompletedMarker {
     Some((m.complete(p, SyntaxKind::Param), found_comma))
 }
 
- fn param_spec(p: &mut Parser) -> Option<CompletedMarker> {
+fn param_spec(p: &mut Parser) -> Option<CompletedMarker> {
     // ParamSpec: '(' ParamDecl ( ',' ParamDecl )* ')'
     let m = p.start();
 
@@ -450,7 +450,7 @@ pub(crate) fn source(p: &mut Parser) -> CompletedMarker {
     Some(m.complete(p, SyntaxKind::ParamSpec))
 }
 
- fn param_decl(p: &mut Parser) -> Option<CompletedMarker> {
+fn param_decl(p: &mut Parser) -> Option<CompletedMarker> {
     match_token!(|p| match {
         TokenKind::Function,
         TokenKind::Procedure => ty::subprog_type(p),

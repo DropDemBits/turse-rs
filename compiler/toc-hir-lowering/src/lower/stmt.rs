@@ -586,7 +586,9 @@ impl super::BodyLowering<'_, '_> {
                 continue;
             }
             // Skip items without names
-            let Some(name) = ext_item.name() else { continue; };
+            let Some(name) = ext_item.name() else {
+                continue;
+            };
 
             // Report duplicate imports
             // ???: dealing with path imports and name in path imports
@@ -642,7 +644,9 @@ impl super::BodyLowering<'_, '_> {
         exports: Option<ast::ExportStmt>,
         declares: &[item::ItemId],
     ) -> Vec<item::ExportItem> {
-        let Some(exports) = exports else { return vec![]; };
+        let Some(exports) = exports else {
+            return vec![];
+        };
         let exports_all = exports.exports().find(|item| item.all_token().is_some());
 
         // Deduplicate the exportable idents

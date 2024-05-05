@@ -372,8 +372,6 @@ impl<'ctx> FileLowering<'ctx> {
         &mut self,
         name_list: impl Iterator<Item = ast::Name>,
     ) -> Vec<LocalDefId> {
-        
-
         name_list
             .map(|name| self.collect_required_name(name))
             .collect::<Vec<_>>()

@@ -463,7 +463,7 @@ pub(crate) fn fields_of(
             let ty_ref = ty_id.peel_opaque(db, in_module).peel_aliases(db);
 
             // Only applicable for enums
-            let TypeKind::Enum(with_def, variants) = ty_ref.kind(db, ) else {
+            let TypeKind::Enum(with_def, variants) = ty_ref.kind(db) else {
                 return None;
             };
             let package = db.package(with_def.def_id().package());

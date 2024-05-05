@@ -1504,11 +1504,19 @@ impl TypeCheck<'_> {
                 let mut builder = state
                     .reporter
                     .error_detailed(format!("cannot call or subscript {thing}"), lhs_span)
-                    .with_note(format!("this is of type `{full_lhs}`", full_lhs = full_lhs_tyref.display(db.up())), lhs_span);
+                    .with_note(
+                        format!(
+                            "this is of type `{full_lhs}`",
+                            full_lhs = full_lhs_tyref.display(db.up())
+                        ),
+                        lhs_span,
+                    );
 
                 if !is_callable {
-                    builder =
-                        builder.with_error(format!("`{lhs}` is not callable", lhs = lhs_tyref.display(db.up())), lhs_span);
+                    builder = builder.with_error(
+                        format!("`{lhs}` is not callable", lhs = lhs_tyref.display(db.up())),
+                        lhs_span,
+                    );
                 }
 
                 if let Some(extra_info) = extra_info {

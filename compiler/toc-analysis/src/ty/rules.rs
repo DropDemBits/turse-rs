@@ -1763,7 +1763,9 @@ fn report_not_value(
 
     let (binding_def, binding_to) = if let Some(def_id) = db.binding_def(binding_src) {
         // not being a symbol implies that it's a value, and all values are accepted
-        let Some(binding_to) = db.symbol_kind(def_id) else { return };
+        let Some(binding_to) = db.symbol_kind(def_id) else {
+            return;
+        };
 
         (def_id, binding_to)
     } else {

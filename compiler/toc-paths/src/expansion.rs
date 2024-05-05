@@ -93,7 +93,9 @@ pub fn expand_path(db: &dyn Db, path: Utf8PathBuf) -> Utf8PathBuf {
 
         let prefix_name = {
             // Try parsing out a percent prefix
-            let Some(Utf8Component::Normal(comp)) = path.components().next() else { return None;};
+            let Some(Utf8Component::Normal(comp)) = path.components().next() else {
+                return None;
+            };
             comp.strip_prefix('%')?
         };
         let prefix_path = BuiltinPrefix::try_from(prefix_name).ok()?;
