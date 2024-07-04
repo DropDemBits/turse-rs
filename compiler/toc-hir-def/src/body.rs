@@ -4,11 +4,7 @@ use la_arena::Arena;
 use toc_hir_expand::{SemanticLoc, UnstableSemanticLoc};
 use toc_syntax::ast;
 
-use crate::{
-    expr,
-    stmt::{self, StmtId},
-    Db,
-};
+use crate::{expr, stmt, Db};
 
 pub(crate) mod lower;
 pub mod pretty;
@@ -33,7 +29,7 @@ pub enum BodyOrigin {
 pub struct BodyContents {
     exprs: Arena<expr::Expr>,
     stmts: Arena<stmt::Stmt>,
-    top_level: Box<[StmtId]>,
+    top_level: Box<[stmt::LocalStmt]>,
     root_block: Option<ModuleBlock>,
 }
 
@@ -62,7 +58,7 @@ pub(crate) struct BodySpans {
 impl Body {
     // Top-level stmts
     #[salsa::tracked(return_ref)]
-    pub fn top_level_stmts(self, db: &dyn Db) -> Box<[StmtId]> {
+    pub fn top_level_stmts(self, db: &dyn Db) -> Box<[stmt::LocalStmt]> {
         self.contents(db).top_level.clone()
     }
 

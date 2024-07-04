@@ -115,7 +115,7 @@ impl From<f64> for FloatBits {
 /// Aggregate initialization
 #[derive(Debug, PartialEq, Eq)]
 pub struct Init {
-    pub exprs: Vec<Body>,
+    pub exprs: Box<[Body]>,
 }
 
 /// Binary operator expression
@@ -168,7 +168,7 @@ pub struct Call {
 }
 
 /// Argument list
-pub type ArgList = Vec<LocalExpr>;
+pub type ArgList = Box<[LocalExpr]>;
 
 /// Range expression
 #[derive(Debug, PartialEq, Eq)]
@@ -185,4 +185,13 @@ pub enum RangeBound {
     FromEnd(LocalExpr),
     /// Bound is at the end point (`*`)
     AtEnd,
+}
+
+impl RangeBound {
+    pub fn expr(self) -> Option<LocalExpr> {
+        match self {
+            RangeBound::FromStart(expr) | RangeBound::FromEnd(expr) => Some(expr),
+            RangeBound::AtEnd => None,
+        }
+    }
 }

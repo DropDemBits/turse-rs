@@ -121,7 +121,7 @@ pub struct Put {
     /// If absent, should be put on the `stdout` stream.
     pub stream_num: Option<expr::LocalExpr>,
     /// The items to put out on the stream.
-    pub items: Vec<Skippable<PutItem>>,
+    pub items: Box<[Skippable<PutItem>]>,
     /// If a newline is appended after the all of the put items
     pub append_newline: bool,
 }
@@ -132,7 +132,7 @@ pub struct Get {
     /// If absent, should be fetched from the `stdin` stream.
     pub stream_num: Option<expr::LocalExpr>,
     /// The items to get from the stream.
-    pub items: Vec<Skippable<GetItem>>,
+    pub items: Box<[Skippable<GetItem>]>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -146,7 +146,7 @@ pub struct For {
     /// Optional `by ...` expression, to change the counter delta
     pub step_by: Option<expr::LocalExpr>,
     /// Body of the for-loop
-    pub stmts: Vec<LocalStmt>,
+    pub stmts: Box<[LocalStmt]>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -159,7 +159,7 @@ pub enum ForBounds {
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Loop {
-    pub stmts: Vec<LocalStmt>,
+    pub stmts: Box<[LocalStmt]>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -197,13 +197,13 @@ impl FalseBranch {
 #[derive(Debug, PartialEq, Eq)]
 pub struct Case {
     pub discriminant: expr::LocalExpr,
-    pub arms: Vec<CaseArm>,
+    pub arms: Box<[CaseArm]>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct CaseArm {
     pub selectors: CaseSelector,
-    pub stmts: Vec<LocalStmt>,
+    pub stmts: Box<[LocalStmt]>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -211,7 +211,7 @@ pub enum CaseSelector {
     /// Default selection arm
     Default,
     /// Arm is selected if the discriminant is equal to any of these expressions
-    Exprs(Vec<expr::LocalExpr>),
+    Exprs(Box<[expr::LocalExpr]>),
 }
 
 #[derive(Debug, PartialEq, Eq)]

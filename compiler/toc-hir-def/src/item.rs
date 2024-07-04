@@ -6,7 +6,7 @@ use toc_vfs_db::SourceFile;
 
 use crate::{
     body::{Body, BodyOrigin},
-    item::item_loc_map::ItemLocMap,
+    item::item_loc_map::{BlockItemsMap, ItemLocMap},
     Db, IsMonitor, IsPervasive, IsRegister, ItemAttrs, Mutability, Symbol,
 };
 
@@ -32,7 +32,7 @@ pub mod item_loc_map {
     use toc_hir_expand::{ErasedSemanticLoc, SemanticLoc};
     use toc_syntax::ast::{self, AstNode};
 
-    use crate::item::{ConstVar, Module};
+    use crate::item::{BlockItems, ConstVar, Module};
 
     #[derive(Debug, Default, Clone, PartialEq, Eq)]
     pub struct ItemLocMap {
@@ -77,6 +77,38 @@ pub mod item_loc_map {
     impl ToHirItem for ast::ModuleDecl {
         type Item = Module;
     }
+
+    #[derive(Debug, Default, Clone, PartialEq, Eq)]
+    pub struct BlockItemsMap {
+        to_block_items: rustc_hash::FxHashMap<ErasedSemanticLoc, BlockItems>,
+    }
+
+    impl BlockItemsMap {
+        pub(crate) fn new() -> Self {
+            Default::default()
+        }
+
+        pub(crate) fn insert(&mut self, loc: SemanticLoc<ast::StmtList>, block_items: BlockItems) {
+            let old = self.to_block_items.insert(loc.into_erased(), block_items);
+            assert!(
+                old.is_none(),
+                "duplicate BlockItemsLocMap entry (replacing {old:?} with {:?})",
+                block_items.as_id()
+            )
+        }
+
+        pub(crate) fn shrink_to_fit(&mut self) {
+            self.to_block_items.shrink_to_fit();
+        }
+
+        /// Looks up the stable location's block items
+        pub fn get(&self, loc: SemanticLoc<ast::StmtList>) -> BlockItems {
+            self.to_block_items
+                .get(&loc.into_erased())
+                .copied()
+                .expect("should have a block item for the given SemanticLoc")
+        }
+    }
 }
 
 /// Any item that can be owned by another item
@@ -87,6 +119,48 @@ pub enum Item {
 }
 
 impl_into_conversions!(ConstVar, Module for Item);
+
+/// Items contained within a block scope
+#[salsa::tracked]
+pub struct BlockItems {
+    /// Original list node
+    origin: SemanticLoc<ast::StmtList>,
+}
+
+#[salsa::tracked]
+impl BlockItems {
+    pub(crate) fn stmt_list(self, db: &dyn Db) -> SemanticLoc<ast::StmtList> {
+        self.origin(db)
+    }
+
+    /// Collect the immediately accessible items
+    #[salsa::tracked]
+    pub(crate) fn collect_items(self, db: &dyn Db) -> ItemCollection {
+        lower::to_immediate_items(db, self.collect_nested_items(db))
+    }
+
+    /// Collect the immediately nested items
+    #[salsa::tracked]
+    pub(crate) fn collect_nested_items(self, db: &dyn Db) -> NestedItemCollection {
+        lower::collect_nested_items(db, self.stmt_list(db))
+    }
+}
+
+impl HasItems for BlockItems {
+    type Item = Item;
+
+    fn items(self, db: &dyn Db) -> &Box<[Self::Item]> {
+        Self::collect_items(self, db).items(db)
+    }
+
+    fn nested_items(self, db: &dyn Db) -> &Box<[NestedItem<Self::Item>]> {
+        Self::collect_nested_items(self, db).items(db)
+    }
+
+    fn loc_map(self, db: &dyn Db) -> &ItemLocMap {
+        Self::collect_items(self, db).loc_map(db)
+    }
+}
 
 #[salsa::tracked]
 pub struct ConstVar {
@@ -174,7 +248,13 @@ impl RootModule {
     /// Collect the immediately accessible items
     #[salsa::tracked]
     pub(crate) fn collect_items(self, db: &dyn Db) -> ItemCollection {
-        lower::collect_items(db, self.stmt_list(db))
+        lower::to_immediate_items(db, self.collect_nested_items(db))
+    }
+
+    /// Collect the immediately nested items
+    #[salsa::tracked]
+    pub(crate) fn collect_nested_items(self, db: &dyn Db) -> NestedItemCollection {
+        lower::collect_nested_items(db, self.stmt_list(db))
     }
 
     #[salsa::tracked]
@@ -191,11 +271,15 @@ impl HasItems for RootModule {
     type Item = Item;
 
     fn items(self, db: &dyn Db) -> &Box<[Self::Item]> {
-        RootModule::collect_items(self, db).items(db)
+        Self::collect_items(self, db).items(db)
+    }
+
+    fn nested_items(self, db: &dyn Db) -> &Box<[NestedItem<Self::Item>]> {
+        Self::collect_nested_items(self, db).items(db)
     }
 
     fn loc_map(self, db: &dyn Db) -> &ItemLocMap {
-        RootModule::collect_items(self, db).loc_map(db)
+        Self::collect_items(self, db).loc_map(db)
     }
 }
 
@@ -245,7 +329,13 @@ impl Module {
     /// Collect the immediately accessible items
     #[salsa::tracked]
     pub(crate) fn collect_items(self, db: &dyn Db) -> ItemCollection {
-        lower::collect_items(db, self.stmt_list(db))
+        lower::to_immediate_items(db, self.collect_nested_items(db))
+    }
+
+    /// Collect the immediately nested items
+    #[salsa::tracked]
+    pub(crate) fn collect_nested_items(self, db: &dyn Db) -> NestedItemCollection {
+        lower::collect_nested_items(db, self.stmt_list(db))
     }
 
     #[salsa::tracked]
@@ -279,20 +369,34 @@ impl HasItems for Module {
     type Item = Item;
 
     fn items(self, db: &dyn Db) -> &Box<[Self::Item]> {
-        Module::collect_items(self, db).items(db)
+        Self::collect_items(self, db).items(db)
+    }
+
+    fn nested_items(self, db: &dyn Db) -> &Box<[NestedItem<Self::Item>]> {
+        Self::collect_nested_items(self, db).items(db)
     }
 
     fn loc_map(self, db: &dyn Db) -> &ItemLocMap {
-        Module::collect_items(self, db).loc_map(db)
+        Self::collect_items(self, db).loc_map(db)
     }
 }
 
+/// Collect the immediately accessible items
 #[salsa::tracked]
 pub(crate) fn module_block_collect_items(
     db: &dyn Db,
     block: crate::body::ModuleBlock,
 ) -> ItemCollection {
-    lower::collect_items(db, block.stmt_list(db))
+    lower::to_immediate_items(db, module_block_collect_nested_items(db, block))
+}
+
+/// Collect the immediately nested items
+#[salsa::tracked]
+pub(crate) fn module_block_collect_nested_items(
+    db: &dyn Db,
+    block: crate::body::ModuleBlock,
+) -> NestedItemCollection {
+    lower::collect_nested_items(db, block.stmt_list(db))
 }
 
 impl HasItems for crate::body::ModuleBlock {
@@ -304,6 +408,10 @@ impl HasItems for crate::body::ModuleBlock {
 
     fn loc_map(self, db: &dyn Db) -> &ItemLocMap {
         module_block_collect_items(db, self).loc_map(db)
+    }
+
+    fn nested_items(self, db: &dyn Db) -> &Box<[NestedItem<Self::Item>]> {
+        module_block_collect_nested_items(db, self).items(db)
     }
 }
 
@@ -318,18 +426,44 @@ pub trait HasItems {
     /// behind macro expansions.
     fn items(self, db: &dyn Db) -> &Box<[Self::Item]>;
 
+    /// All immediate child items of an item, plus the nested block item entities.
+    ///
+    /// Each nested [`BlockItems`] contains items hidden inside of scopes, but
+    /// not any items hidden behind macro expansions.
+    fn nested_items(self, db: &dyn Db) -> &Box<[NestedItem<Self::Item>]>;
+
     /// Map to go from semantic locations back to the immediate item
     fn loc_map(self, db: &dyn Db) -> &ItemLocMap;
 }
 
-/// Immediately accessible child items of an item, pair with a semantic location map
-/// to go from `SemanticLoc` to the original item.
+/// Immediately accessible child items of an item (i.e. items not within any
+/// block scopes), paired with a semantic location map to go from `SemanticLoc`
+/// to the original item.
 #[salsa::tracked]
 pub struct ItemCollection {
     #[return_ref]
     pub items: Box<[Item]>,
     #[return_ref]
     pub loc_map: ItemLocMap,
+}
+
+/// Immediately nested child items of an item (i.e. items within any block
+/// scopes but not within any child items), paired with a semantic location map
+/// to go from `SemanticLoc` to the original item.
+#[salsa::tracked]
+pub struct NestedItemCollection {
+    #[return_ref]
+    pub items: Box<[NestedItem<Item>]>,
+    #[return_ref]
+    pub loc_map: ItemLocMap,
+    #[return_ref]
+    pub block_items_map: BlockItemsMap,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum NestedItem<Item> {
+    Item(Item),
+    Nested(BlockItems),
 }
 
 /// Every possible item
@@ -352,6 +486,7 @@ impl From<Item> for AnyItem {
     }
 }
 
+#[salsa::tracked]
 pub(crate) fn containing_item(db: &dyn Db, loc: ErasedSemanticLoc) -> AnyItem {
     let ast_locs = loc.file(db.up()).ast_locations(db.up());
     let parent_ast = loc.to_node(db.up()).ancestors().find_map(ast::Item::cast);

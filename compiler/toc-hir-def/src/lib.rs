@@ -12,41 +12,62 @@ pub(crate) mod internals {
     macro_rules! arena_id_wrapper {
         (
             $(#[$attrs_wrap:meta])*
-            $vis_wrap:vis struct $id:ident($wrap:path);
+            $vis_wrap:vis struct $id:ident$(<$($param:ident),+>)?($wrap:path);
 
             $(
             $(#[$attrs_alias:meta])*
-            $vis_alias:vis type $index_alias:ident = Index;
+            $vis_alias:vis type $index_alias:ident$(<$($alias_param:ident)+>)? = Index;
             )?
         ) => {
-            #[derive(Clone, Copy, PartialEq, Eq, Hash)]
             #[repr(transparent)]
             $(#[$attrs_wrap])*
-            $vis_wrap struct $id(pub(crate) ::la_arena::Idx<$wrap>);
+            $vis_wrap struct $id$(<$($param)+>)?(pub(crate) ::la_arena::Idx<$wrap>);
 
             $(
             $(#[$attrs_alias])*
-            $vis_alias type $index_alias = ::la_arena::Idx<$wrap>;
+            $vis_alias type $index_alias$(<$($alias_param)+>)? = ::la_arena::Idx<$wrap>;
             )?
 
-            impl From<$id> for ::la_arena::Idx<$wrap> {
-                fn from(id: $id) -> Self {
+            impl$(<$($param)+>)? From<$id$(<$($param)+>)?> for ::la_arena::Idx<$wrap> {
+                fn from(id: $id$(<$($param)+>)?) -> Self {
                     id.0
                 }
             }
 
-            impl From<&$id> for ::la_arena::Idx<$wrap> {
-                fn from(id: &$id) -> Self {
+            impl$(<$($param)+>)? From<&$id$(<$($param)+>)?> for ::la_arena::Idx<$wrap> {
+                fn from(id: &$id$(<$($param)+>)?) -> Self {
                     id.0
                 }
             }
 
-            impl ::std::fmt::Debug for $id {
+            impl$(<$($param)+>)? ::std::fmt::Debug for $id$(<$($param)+>)? {
                 fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
                     let raw: u32 = self.0.into_raw().into();
                     f.debug_tuple(stringify!($id))
                         .field(&raw)
                         .finish()
+                }
+            }
+
+            impl$(<$($param)+>)? ::std::clone::Clone for $id$(<$($param)+>)? {
+                fn clone(&self) -> Self {
+                    *self
+                }
+            }
+
+            impl$(<$($param)+>)? ::std::marker::Copy for $id$(<$($param)+>)? {}
+
+            impl$(<$($param)+>)? ::std::cmp::PartialEq for $id$(<$($param)+>)? {
+                fn eq(&self, other: &Self) -> bool {
+                    self.0 == other.0
+                }
+            }
+
+            impl$(<$($param)+>)? ::std::cmp::Eq for $id$(<$($param)+>)? {}
+
+            impl$(<$($param)+>)? ::std::hash::Hash for $id$(<$($param)+>)? {
+                fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+                    self.0.hash(state);
                 }
             }
         };
@@ -93,6 +114,8 @@ pub mod stmt;
 
 pub mod item;
 
+pub mod resolver;
+
 pub trait Db: salsa::DbWithJar<Jar> + toc_hir_expand::Db + Upcast<dyn toc_hir_expand::Db> {}
 
 impl<DB> Db for DB where
@@ -112,7 +135,12 @@ impl<'db, DB: Db + 'db> UpcastFrom<DB> for dyn Db + 'db {
 #[salsa::jar(db = Db)]
 pub struct Jar(
     Symbol,
+    item::containing_item,
     item::ItemCollection,
+    item::NestedItemCollection,
+    item::BlockItems,
+    item::BlockItems_collect_items,
+    item::BlockItems_collect_nested_items,
     item::ConstVar,
     item::ConstVar_item_attrs,
     item::ConstVar_parent_constvar,
@@ -120,15 +148,18 @@ pub struct Jar(
     item::RootModule,
     item::RootModule_body,
     item::RootModule_collect_items,
+    item::RootModule_collect_nested_items,
     item::RootModule_stmt_list,
     item::UnitModule,
     item::UnitModule__stmt_list,
     item::Module,
     item::Module_body,
     item::Module_collect_items,
+    item::Module_collect_nested_items,
     item::Module_stmt_list,
     item::Module_item_attrs,
     item::module_block_collect_items,
+    item::module_block_collect_nested_items,
     body::Body,
     body::Body_top_level_stmts,
     body::Body_contents,

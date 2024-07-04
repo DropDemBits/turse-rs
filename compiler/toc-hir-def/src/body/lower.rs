@@ -83,7 +83,7 @@ impl<'db> BodyLower<'db> {
         let mut top_level = vec![];
         for stmt in root.stmts() {
             let new_stmts = self.lower_statement(stmt);
-            top_level.extend(new_stmts.into_iter().map(|id| id.in_body(self.body)));
+            top_level.extend(new_stmts.into_iter());
         }
 
         let BodyLower {
@@ -246,7 +246,8 @@ impl<'db> BodyLower<'db> {
                     None
                 }
             })
-            .collect::<Vec<_>>();
+            .collect::<Vec<_>>()
+            .into_boxed_slice();
 
         // Presence means newline should be omitted
         let append_newline = node.range_token().is_none();
