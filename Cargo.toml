@@ -19,10 +19,13 @@ insta = "1.28"
 # FIXME: tied to tower-lsp version, use separate structs so that changes are confined to lsp-server
 lsp-types = "0.93.2"
 paste = "1.0.5"
-salsa = { git = "https://github.com/salsa-rs/salsa/", branch = "master", package = "salsa-2022" }
+# FIXME: migrate to salsa "3"/0.18.x, removes jars!
+salsa = { git = "https://github.com/salsa-rs/salsa/", rev = "a327acc126d5d760aea83a266b2c5d8c58736003", package = "salsa-2022" }
+thiserror = "2.0"
 tracing = "0.1.37"
 tracing-subscriber = "0.3.16"
 unindent = "0.2"
+# FIXME(rust-1.85?): stable upcasting!
 upcast = "0.1.0"
 
 # Compiler crates
