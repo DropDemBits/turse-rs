@@ -1,0 +1,339 @@
+// scope: describing what instructions can do
+// - essentially ungrammar for instructions
+// interpretation left up to consumer
+// e.g.
+// - we don't handle modelling stack or transforming to ssa vars
+// - we don't handle modelling dynamic stack behaviour (cough SUBSCRIPT)
+// - we don't handle modelling stack effects from outside the abstract machine (e.g. CALLEXTERNAL)
+//   - though, it does at least do arg cleanup?
+// size describes encoding size in units (may be bytes!)
+// we assume locals and temporary operands share the same stack
+// it's up to consumer to decide whether to pick them apart
+// q: conceptually they should be different
+// alloca if we ever need to take an address of a temporary
+
+// interestingly, once we recover structured control flow,
+// it's not too much work to translate that portion into regular code
+// or treat as primitive ops
+//
+// type information recovery is... well it's something
+// thankfully can use address descriptors + definition equality
+// to distinguish between definitions, and build reverse mapping to
+// build layout
+// - enums get type erased unfortunately! gets equated into integer ranges
+
+// exceptions can be described later on, since it seems like we've documented most things?
+// quit codes could be reinterpreted as abort codes?
+// execution error is stringy
+// q: what gets raised as a handler-capturable exception vs a straight-up abort?
+
+// scalar: basic primitive types
+// struct: compound types, with field accesses
+// enum: variants and constants
+// q: stack vs immediate size?
+// - addrs zbg a mzm zf 4 s a consumer concern
+// - a: so then size should describe memory size
+// - align? well packed exists so no
+
+// existing call external versions we need to detect:
+// - HS 4.0.3
+// - HS 4.0.5
+// - HS 4.0.4c
+// - HS 4.1.0
+// - HS 4.1.1a
+// - HS 4.1.1
+// - HS 4.1.2
+// - OT 1.0.x
+// bad call external counts mean something we don't handle yet
+
+types {
+  (i8)scalar "int1" {
+    description """
+    long form description
+    """
+    // rust_type and size implied from type annotation?
+  }
+  scalar "nat4" size=4 {
+    description """
+    long form description
+    """
+    rust_type "u32"
+  }
+  scalar "set16" size=2 {
+    description """
+    long form description
+    """
+    rust_type "u16"
+  }
+  scalar "set32" size=4 {
+    description """
+    long form description
+    """
+    rust_type "u32"
+  }
+  scalar "addrint" size=4 {
+    description """
+    Address within the interpreter memory space. Always a 32-bit integer
+    regardless of platform.
+    """
+    rust_type "u32"
+  }
+  // it's up to consumer to interpret this!
+  struct "relocatable_offset" size=8 {
+    link "int4" { description "blah" }
+    offset "int4" { description "blah" }
+  }
+  struct "location" size=4 {
+    file "nat2" { description "blah" }
+    line "nat2" { description "blah" }
+  }
+  enum "abort_message" size=4 {
+    description """
+    enum description
+    """
+    // - all properties are required on everything!
+    // - optional ordinal, otherwise iota from previous
+    assert 1 {
+      message "Assert condition is false"
+      error_code 21
+    }
+    pre_invariant 2 {
+      message "Pre condition is false"
+      error_code 16
+    }
+    post_invariant 3 {
+      message "Post condition is false"
+      error_code 17
+    }
+    for_invariant 4 {
+      message "For-loop invariant is false"
+      error_code 18
+    }
+    loop_invariant 5 {
+      message "Loop invariant is false"
+      error_code 19
+    }
+    module_invariant 6 {
+      message "Module invariant is false"
+      error_code 20
+    }
+    class_downcast 7 {
+      message "Cannot convert pointer to more specific class"
+      error_code 10_000
+    }
+    case_out_of_range 8 {
+      message "Case selector is out of range"
+      error_code 25
+    }
+    no_result 9 {
+      message "Function failed to give a result"
+      error_code 26
+    }
+  }
+}
+
+instructions {
+  christmas_tree 0xAB "heading" {
+    description "optional"
+    operands {
+      // please no predicates!
+      // overall size should be less than 4, but make sure!
+      op0 "type" { descrition "description" }
+      op1 "type" { descrition "description" }
+      op2 "type" unused=#true { descrition "description" }
+      op3 "type" unused=#false { descrition  "description" }
+    }
+
+    // Valid predicate conditions
+    // <= >= < > = != otherwise (catch-all)
+    //
+    // Valid predicate operands
+    // operands.[operand name]
+    // integer constant
+    // enum variant name
+    //
+    // we can only affect instruction decode using operands
+    // stack operand cannot affect, is considered dynamic
+    // - uplift from immedate operand into stack operands saves
+    //   encoding space, at the cost of requiring a stack manipulation
+    @conditional {
+      @predicate "!=" 4 5 {
+        // q: unique stack_before & stack_after names in a predicate scope?
+        // makes it easier, no need to deal with shadowing
+        // or could also only disallow overlap within a stack_{before,after}
+
+        // annoying: SUBSCRIPT has dynamic subscript description
+        // thankfully, array descriptor can be recovered via pointer indirection
+        // not something we can describe in this dsl unfortunately!
+        // make it a variadic value and call it a day
+        stack_before {
+          empty // not taking in any operands!
+          // OR
+          some_input "some_type" {
+            description "yep!"
+          }
+          // only allowed in stack_before
+          variadic_input "some_type" variadic=#true {
+            description "describes!"
+          }
+        }
+        stack_after {
+          // like stack_before
+          empty // not producing out any operands!
+          some_output "some_type" {
+            description "yop!"
+            // which operands are left unchanged
+            // - a hint!
+            preserves (stack_before).some_input
+          }
+          // OR
+          // only allowed in stack_after
+          locals "@computed" {
+            description "yep!"
+            computed {
+              // ops: *, +, -, /
+              // only integer scalars accepted?
+              // well no, we're just describing the AST
+              // consumer deals with interpreting it!
+              "*" { lhs; rhs }
+              if {
+                @predicate "!=" { lhs; rhs };
+                lhs;
+                rhs;
+              }
+            }
+          }
+        }
+      }
+      // catch-all, since don't wanna do exhaustiveness checking
+      @predicate "otherwise" {
+        // missing stack_before and stack_after implies empty
+        // - both need to be missing, if either is there requires explicit definition
+      }
+    }
+    // any nodes not in a predicate chain are considered shared
+    // if we have any other nodes
+
+    effects {
+      // branching for unconditional things?
+      // consumer deals with
+      // - control flow
+      // - location update
+      // we only care about stack effects and operands
+
+      // other effects? including
+      start_frame // for proc
+      end_frame // for return
+
+      // in a frame:
+      // ( argN ... arg1 arg0 -- link location lastFp)
+      // Callee pops off link, location, lastFp (as part of PROC/RETURN)
+      // Caller pops off argN with INCSP (yaaaay analysis to figure out if it affects locals or temporaries)
+      // CALL + INCSP = arg cleanup
+      // DECSP + FOR + ENDFOR + INCSP = temporary cleanup (for for-descriptor)
+      // ENDFOR saved sp
+
+      // would be nice to separate locals from immediate operands
+      // though, handling arbitrary code implies abstract interpretation
+      // - simpler anyways? could represent with operand blob on stack
+
+      // CALL = JLA
+      // RTS for tail return?
+      locals {
+        // computed stack effects!
+        // separated since they're not quite operands
+        computed
+      }
+    }
+  }
+
+  // bytecode validation pass: replace addr to local with address?
+  // do we ever do addr of stack locals?
+
+  group "Abort Program" {
+    description """
+    Longer form description
+    """
+
+    ABORT 0x00 "Abort" {
+      operands {
+        abort_kind "abort_message"
+      }
+      // no stack_operands or stack_effect
+    }
+
+    ABORTCOND "Abort If True" {
+      operands {
+        abort_kind "abort_message"
+      }
+      stack_before {
+        // need notion of:
+        // - pushing
+        // - computed (positive or negative)
+        // - explicit empty?
+        // - pushing & popping?
+        //   - from preserving & pushing
+        // conditional!!!! gate by if
+        will_abort "int4" {
+          // optional child!
+          description """
+          """
+        }
+      }
+      stack_after {
+        // need notion of:
+        // - preserving (from stack operands)
+        // - computed (positive or negative)
+        // - explicit empty?
+        // - pushing & popping?
+        //   - from preserving & pushing
+        empty
+      }
+      // no stack_operands or stack_effect
+      // stack operands implies stack effect
+    }
+  }
+
+  ADDSET 0x09 {
+    operands {
+      set_size "nat4"
+    }
+    // how variance? guess we gotta store operands
+    // oh! maybe predicate on instruction level?
+    // changes how we decode, so would make more sense
+    // also means that lookup for stack operand preservation
+    // makes sense!
+    // - preservation, do we really need it?
+    //   - for *left, it's useful to establish identity
+    // - preservation as top-level?
+    //   - as property means unified definition
+    @predicate "<=" (operands).set_size 4 {
+      stack_before {
+        lhs "set32" { description "" }
+        rhs "set32" { description "" }
+      }
+      stack_after {
+        result "set32" { description "" }
+      }
+    }
+    @predicate "otherwise" {
+      stack_before {
+        lhs "addrint" { description "" }
+        rhs "addrint" { description "" }
+        result_set "addrint" { description "" }
+      }
+      stack_after {
+        // oh no.... conditional type lookup :/
+        // top-level vs preserve attr?
+        result_set "addrint" {
+          description ""
+          preserve (stack_before).result_set
+        }
+      }
+    }
+  }
+
+  ALLOCLOC 0x0d {
+    heading "Allocate Local Data"
+  }
+}

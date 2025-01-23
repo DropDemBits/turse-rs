@@ -1,0 +1,194 @@
+// Bytecode specification for the original Turing 4.x VM
+//
+// Some invariants to keep in mind:
+// - No address to the operand stack can ever be used for instructions,
+//   they must always be uplifted into addresses in the locals area.
+
+types {
+  scalar "int4" size=4 {
+    description """
+    32-bit signed integer.
+    """
+    repr_type "i32"
+  }
+  scalar "nat4" size=4 {
+    description """
+    32-bit unsigned integer.
+    """
+    repr_type "u32"
+  }
+  scalar "real4" size=4 {
+    description """
+    binary32 floating-point number.
+    """
+    repr_type "f32"
+  }
+  scalar "real8" size=8 {
+    description """
+    binary64 floating-point number.
+    """
+    repr_type "f64"
+  }
+  enum "abort_reason" size=4 {
+    description """
+    The reason for aborting program execution
+    """
+    assert 1 {
+      description "For conditional `assert` statements"
+      message "Assert condition is false"
+      error_code 21
+    }
+    pre_invariant 2 {
+      description "For conditional `pre` statements"
+      message "Pre condition is false"
+      error_code 16
+    }
+    post_invariant 3 {
+      description "For conditional `post` statements"
+      message "Post condition is false"
+      error_code 17
+    }
+    for_invariant 4 {
+      description "For conditional `invariant` statements in for-loops"
+      message "For-loop invariant is false"
+      error_code 18
+    }
+    loop_invariant 5 {
+      description "For conditional `invariant` statements in loops"
+      message "Loop invariant is false"
+      error_code 19
+    }
+    module_invariant 6 {
+      description "For conditional `invariant` statements in module initialization"
+      message "Module invariant is false"
+      error_code 20
+    }
+    class_downcast 7 {
+      description "For conditional class downcast expressions"
+      message "Cannot convert pointer to more specific class"
+      error_code 10_000
+    }
+    case_out_of_range 8 {
+      description "For unhandled case arms in case statements without a default label"
+      message "Case selector is out of range"
+      error_code 25
+    }
+    no_result 9 {
+      descrption "For functions that return without producing a result"
+      message "Function failed to give a result"
+      error_code 26
+    }
+  }
+}
+
+instructions {
+  group "Abort Program" {
+    description """
+    Aborts program execution for a specific reason.
+
+    The specific abort reason depends on the `abort_kind`, which is always provided
+    as an operand. The instruction is invalid if `abort_kind` is not one of the
+    expected abort types.
+    """
+
+    ABORT 0x00 "Abort" {
+      description """
+      Always aborts program execution.
+      """
+      operands {
+        abort_kind "abort_reason" {
+          description """
+          What is the reason for aborting
+          """
+        }
+      }
+    }
+
+    ABORTCOND 0x01 "Abort If Condition is False" {
+      description """
+      Conditionally aborts program execution based on `will_abort`.
+      """
+      operands {
+        abort_kind "abort_reason" {
+          description """
+          What is the reason for aborting
+          """
+        }
+      }
+      stack_before {
+        condition_holds "int4" {
+          description """
+          If the condition to assert holds, otherwise aborts program execution (i.e. `condition_holds` is 0).
+          """
+        }
+      }
+      stack_after {
+        empty
+      }
+    }
+  }
+
+  group "Add Numbers" {
+    description "Performs addition on two numbers."
+
+    ADDINT 0x04 "Add Integers" {
+      description "Adds `lhs` and `rhs`, producing `out`"
+      operands {}
+      stack_before {
+        lhs "int4" { description "Left-hand side of operation" }
+        rhs "int4" { description "Right-hand side of operation" }
+      }
+      stack_after {
+        out "int4" { description "Result of operation" }
+      }
+    }
+    
+    ADDINTNAT 0x05 "Add Integer with Natural" {
+      description "Adds `lhs` and `rhs`, producing `out`"
+      operands {}
+      stack_before {
+        lhs "int4" { description "Left-hand side of operation" }
+        rhs "nat4" { description "Right-hand side of operation" }
+      }
+      stack_after {
+        out "int4" { description "Result of operation" }
+      }
+    }
+    
+    ADDNAT 0x06 "Add Naturals" {
+      description "Adds `lhs` and `rhs`, producing `out`"
+      operands {}
+      stack_before {
+        lhs "nat4" { description "Left-hand side of operation" }
+        rhs "nat4" { description "Right-hand side of operation" }
+      }
+      stack_after {
+        out "nat4" { description "Result of operation" }
+      }
+    }
+    
+    ADDNATINT 0x07 "Add Natural with Integer" {
+      description "Adds `lhs` and `rhs`, producing `out`"
+      operands {}
+      stack_before {
+        lhs "nat4" { description "Left-hand side of operation" }
+        rhs "int4" { description "Right-hand side of operation" }
+      }
+      stack_after {
+        out "nat4" { description "Result of operation" }
+      }
+    }
+    
+    ADDNATINT 0x08 "Add Reals" {
+      description "Adds `lhs` and `rhs`, producing `out`"
+      operands {}
+      stack_before {
+        lhs "real8" { description "Left-hand side of operation" }
+        rhs "real8" { description "Right-hand side of operation" }
+      }
+      stack_after {
+        out "real8" { description "Result of operation" }
+      }
+    }
+  }
+}
