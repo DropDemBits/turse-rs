@@ -32,7 +32,8 @@ types {
   offset "offset" size=4 {
     description """
     Address-sized signed integer to offset an `addrint` address with.
-    Always a 32-bit integer.
+    Always a 32-bit integer, and is always less than or equal to 2^31 - 1 and greater than or equal to -2^31.
+    Allocations can never exceed the size of an offset, and are thus limited to a maximum of 2^31 - 1 bytes.
     """
     repr_type "u32"
   }
@@ -40,7 +41,6 @@ types {
     descripton """
     Pointer-sized unsigned integer referring to a specific location in the execution address space.
     This is always a 32-bit integer as 64-bit execution address spaces are unsupported.
-    This is always less than 2^31-1, as 
     """
     repr_type "u32"
   }
