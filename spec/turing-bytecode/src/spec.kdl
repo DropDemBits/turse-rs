@@ -29,10 +29,27 @@ types {
     """
     repr_type "f64"
   }
+  offset "offset" size=4 {
+    description """
+    Address-sized signed integer to offset an `addrint` address with.
+    Always a 32-bit integer.
+    """
+    repr_type "u32"
+  }
+  scalar "addrint" size=4 {
+    descripton """
+    Pointer-sized unsigned integer referring to a specific location in the execution address space.
+    This is always a 32-bit integer as 64-bit execution address spaces are unsupported.
+    This is always less than 2^31-1, as 
+    """
+    repr_type "u32"
+  }
   enum "abort_reason" size=4 {
     description """
     The reason for aborting program execution
     """
+    repr_type "u32"
+
     assert 1 {
       description "For conditional `assert` statements"
       message "Assert condition is false"
@@ -132,7 +149,7 @@ instructions {
     description "Performs addition on two numbers."
 
     ADDINT 0x04 "Add Integers" {
-      description "Adds `lhs` and `rhs`, producing `out`"
+      description "Adds `lhs` and `rhs`, producing `out`."
       operands {}
       stack_before {
         lhs "int4" { description "Left-hand side of operation" }
@@ -144,7 +161,7 @@ instructions {
     }
     
     ADDINTNAT 0x05 "Add Integer with Natural" {
-      description "Adds `lhs` and `rhs`, producing `out`"
+      description "Adds `lhs` and `rhs`, producing `out`."
       operands {}
       stack_before {
         lhs "int4" { description "Left-hand side of operation" }
@@ -156,7 +173,7 @@ instructions {
     }
     
     ADDNAT 0x06 "Add Naturals" {
-      description "Adds `lhs` and `rhs`, producing `out`"
+      description "Adds `lhs` and `rhs`, producing `out`."
       operands {}
       stack_before {
         lhs "nat4" { description "Left-hand side of operation" }
@@ -168,7 +185,7 @@ instructions {
     }
     
     ADDNATINT 0x07 "Add Natural with Integer" {
-      description "Adds `lhs` and `rhs`, producing `out`"
+      description "Adds `lhs` and `rhs`, producing `out`."
       operands {}
       stack_before {
         lhs "nat4" { description "Left-hand side of operation" }
@@ -180,7 +197,7 @@ instructions {
     }
     
     ADDNATINT 0x08 "Add Reals" {
-      description "Adds `lhs` and `rhs`, producing `out`"
+      description "Adds `lhs` and `rhs`, producing `out`."
       operands {}
       stack_before {
         lhs "real8" { description "Left-hand side of operation" }
@@ -188,6 +205,49 @@ instructions {
       }
       stack_after {
         out "real8" { description "Result of operation" }
+      }
+    }
+  }
+
+  group "Locate Address" {
+    LOCATELOCAL 0x96 "Locate Local Slot" {
+      description """
+      Locates the address of a local in the current call frame.
+      Offset is computed relative to the start of the local area.
+      """
+
+      operands {
+        offset "offset" { description "Offset in the locals area" }
+      }
+      stack_before {}
+      stack_after {
+        address "addrint" { description "Address of the computed local slot" }
+      }
+    }
+
+    LOCATETEMP 0x98 "Locate Temporary Slot" {
+      description """
+      Locates the address of a temporary in the current call frame.
+      Offset is computed relative to the start of the temporaries area.
+
+      As the temporaries area is located after the locals area in the call frame, the size of the call frame must also be known.
+      """
+
+      operands {
+        frame_size "nat4" { description "Size of the call frame." }
+        offset "offset" { description "Offset in the temporary area" }
+      }
+      stack_before {}
+      stack_after {
+        address "addrint" { description "Address of the computed temporary slot" }
+      }
+    }
+  }
+
+  PROC 0xBA "Begin Procedure" {
+    operands {
+      frame_size "nat4" {
+        description "Size of the call frame to allocate for locals and temporaries."
       }
     }
   }
