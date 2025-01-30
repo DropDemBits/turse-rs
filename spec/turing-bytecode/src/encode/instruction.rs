@@ -8,10 +8,19 @@ use std::{
 pub enum Opcode {
     ABORT = 0x00,
     ADDINTNAT = 0x05,
+    JUMP = 0x89,
+    JUMPB = 0x8A,
     LOCATELOCAL = 0x96,
     LOCATETEMP = 0x98,
     PROC = 0xBA,
     RETURN = 0xCD,
+}
+
+impl Opcode {
+    /// Size of the opcode, in bytes.
+    pub fn size(&self) -> usize {
+        4
+    }
 }
 
 // Will be generated
@@ -27,6 +36,17 @@ pub enum Operand {
     AbortReason(AbortReason),
     Nat4(u32),
     Offset(u32),
+}
+
+impl Operand {
+    /// Size of the operand, in bytes.
+    pub fn size(&self) -> usize {
+        match self {
+            Operand::AbortReason(_) => 4,
+            Operand::Nat4(_) => 4,
+            Operand::Offset(_) => 4,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -75,6 +95,11 @@ impl Instruction {
             .take_while(|slot| slot.is_some())
             .enumerate()
             .flat_map(|(index, _)| Some(OperandRef(NonZeroU8::new((index as u8) + 1).unwrap())))
+    }
+
+    /// Size of the instruction, in bytes.
+    pub fn size(&self) -> usize {
+        self.opcode().size() + self.operands().map(|operand| operand.size()).sum::<usize>()
     }
 }
 

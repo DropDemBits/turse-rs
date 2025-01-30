@@ -168,17 +168,23 @@ pub struct ProcedureBuilder {
     locals: LocalAllocator,
     // - temporary (for longer lived or larger sized temporary storage)
     temps: TemporaryAllocator,
+    // - sig? function abi? for handling call abi & arguments
     // - relocs
     // - jump labels
     // - operand patches
-    //   - for proc size
+    //   - for proc frame sizes
     //     - for proc
     //     - for locate temp
+    //   - for local slots
     //   - for temporary slots
-    //   - for jump labels
+    //   - for code offsets
+    //     - for jump labels
+    //     - for case tables (the only in-code data blob)
     local_patches: Vec<(InstructionRef, OperandRef, PatchWith)>,
     //   - for relocs (deferred)
     reloc_patches: Vec<(InstructionRef, OperandRef, RelocHandle)>,
+    // - code offset targets
+    code_offset_targets: Vec<CodeOffsetTarget>,
     // - instrs
     instrs: InstructionEncoder,
     //
@@ -201,18 +207,42 @@ impl ProcedureBuilder {
             temps: TemporaryAllocator::new(),
             local_patches,
             reloc_patches: vec![],
+            code_offset_targets: vec![],
             instrs,
         }
     }
 
+    /// An opaque [`ProcedureRef`] handle to refer to the built procedure, for
+    /// use in associating relocation handles to relocation targets.
     pub fn id(&self) -> ProcedureRef {
         self.id
     }
 
+    /// Places a jump label targeting the next instruction.
+    pub fn make_label(&mut self) -> CodeOffset {
+        let offset = CodeOffset(self.code_offset_targets.len() as u32);
+        self.code_offset_targets
+            .push(CodeOffsetTarget::Instruction(self.instrs.next_ref()));
+        offset
+    }
+
+    pub fn patch_code_offset(&mut self, instr: InstructionRef, code_offset: CodeOffset) {
+        assert!(matches!(
+            self.instrs[instr].operands().nth(0),
+            Some(Operand::Offset(_))
+        ));
+
+        let offset = self.instrs[instr].operand_refs().nth(0).unwrap();
+        self.local_patches
+            .push((instr, offset, PatchWith::CodeOffset(code_offset)));
+    }
+
+    /// Allocates a temporary slot of the procedure call frame.
     pub fn alloc_temporary(&mut self, size: u32, align: u32) -> TemporarySlot {
         self.temps.alloc(size, align)
     }
 
+    /// Allocates a local slot of the procedure call frame.
     pub fn alloc_local(&mut self, name: Option<&str>, size: u32, align: u32) -> LocalSlot {
         self.locals.alloc(name, size, align)
     }
@@ -256,8 +286,27 @@ impl ProcedureBuilder {
             temps,
             local_patches,
             reloc_patches,
+            code_offset_targets,
             mut instrs,
         } = self;
+
+        // All procedures should end with an abort with no result
+        instrs.abort(AbortReason::NoResult);
+
+        // Compute instruction offsets
+        let instr_offsets: Vec<_> = {
+            let mut current_offset = 0;
+
+            instrs
+                .instrs
+                .iter()
+                .map(|instr| {
+                    let at_offset = current_offset;
+                    current_offset += instr.size();
+                    at_offset
+                })
+                .collect()
+        };
 
         // Call Frame:
         //
@@ -282,11 +331,37 @@ impl ProcedureBuilder {
                 PatchWith::FrameSize => Operand::Nat4(frame_size),
                 PatchWith::LocalSlot(slot) => Operand::Offset(locals_area[slot]),
                 PatchWith::TemporarySlot(slot) => Operand::Offset(temp_area[slot]),
+                PatchWith::CodeOffset(offset) => {
+                    match &code_offset_targets[offset.as_usize()] {
+                        CodeOffsetTarget::Instruction(target_instr) => {
+                            let start_offset = instr_offsets[instr.as_usize()];
+                            let end_offset = instr_offsets[target_instr.as_usize()];
+
+                            // Offsets are relative to the operand, so we'll need to either add
+                            // (for backwards offsets) or subtract (for forwards offsets)
+                            // the offset leading up to the operand.
+                            let operand = if end_offset < start_offset {
+                                // Backwards offset
+                                Operand::Offset(
+                                    (start_offset.wrapping_sub(end_offset)
+                                        + instrs[instr].opcode().size())
+                                        as u32,
+                                )
+                            } else {
+                                // Forward offset
+                                Operand::Offset(
+                                    (end_offset.wrapping_sub(start_offset)
+                                        - instrs[instr].opcode().size())
+                                        as u32,
+                                )
+                            };
+
+                            operand
+                        }
+                    }
+                }
             }
         }
-
-        // All procedures should end with an abort with no result
-        instrs.abort(AbortReason::NoResult);
 
         let instrs = instrs.finish();
         Procedure {
@@ -319,8 +394,23 @@ impl Procedure {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub struct CodeOffset(u32);
+
+impl CodeOffset {
+    pub fn as_usize(self) -> usize {
+        self.0.saturating_sub(1) as usize
+    }
+}
+
 #[derive(Debug)]
-struct TemporaryAllocator {
+pub enum CodeOffsetTarget {
+    Instruction(InstructionRef),
+    // CaseTable
+}
+
+#[derive(Debug)]
+pub struct TemporaryAllocator {
     // active scope information
     depth: u32,
     scope: u32,
@@ -626,14 +716,23 @@ impl InstructionEncoder {
         Self { instrs: vec![] }
     }
 
+    /// Finishes encoding instructions, returning all of the encoded
+    /// instructions.
     pub fn finish(self) -> Box<[Instruction]> {
         self.instrs.into_boxed_slice()
     }
 
-    fn add(&mut self, instr: Instruction) -> InstructionRef {
-        let slot = NonZeroU32::new(self.instrs.len().saturating_add(1) as u32)
+    /// Gets an [`InstructionRef`] to the potential next instruction.
+    /// Intended for prospectively placing a branch target at an instruction
+    /// that's yet to be encoded.
+    pub fn next_ref(&self) -> InstructionRef {
+        NonZeroU32::new(self.instrs.len().saturating_add(1) as u32)
             .map(InstructionRef)
-            .unwrap();
+            .unwrap()
+    }
+
+    fn add(&mut self, instr: Instruction) -> InstructionRef {
+        let slot = self.next_ref();
         self.instrs.push(instr);
         slot
     }
@@ -643,13 +742,13 @@ impl Index<InstructionRef> for InstructionEncoder {
     type Output = Instruction;
 
     fn index(&self, index: InstructionRef) -> &Self::Output {
-        &self.instrs[index.0.get().saturating_sub(1) as usize]
+        &self.instrs[index.as_usize()]
     }
 }
 
 impl IndexMut<InstructionRef> for InstructionEncoder {
     fn index_mut(&mut self, index: InstructionRef) -> &mut Self::Output {
-        &mut self.instrs[index.0.get().saturating_sub(1) as usize]
+        &mut self.instrs[index.as_usize()]
     }
 }
 
@@ -661,6 +760,14 @@ impl InstructionEncoder {
 
     pub fn addintnat(&mut self) -> InstructionRef {
         self.add(Instruction::new(Opcode::ADDINTNAT))
+    }
+
+    pub fn jump(&mut self, offset: u32) -> InstructionRef {
+        self.add(Instruction::new(Opcode::JUMP).with_operand(Operand::Offset(offset)))
+    }
+
+    pub fn jumpb(&mut self, offset: u32) -> InstructionRef {
+        self.add(Instruction::new(Opcode::JUMPB).with_operand(Operand::Offset(offset)))
     }
 
     pub fn locatelocal(&mut self, local_offset: u32) -> InstructionRef {
@@ -689,11 +796,45 @@ enum PatchWith {
     FrameSize,
     LocalSlot(LocalSlot),
     TemporarySlot(TemporarySlot),
+    CodeOffset(CodeOffset),
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[track_caller]
+    fn assert_match_instrs(instrs: &[Instruction], expected: &[(Opcode, &[Operand])]) {
+        for (instr_index, (instr, (expected_opcode, expected_operands))) in
+            instrs.iter().zip(expected.iter()).enumerate()
+        {
+            assert_eq!(
+                *expected_opcode,
+                instr.opcode(),
+                "opcode on instruction {instr_index} does not match"
+            );
+            for (operand_index, (operand, expected_operand)) in
+                instr.operands().zip(expected_operands.iter()).enumerate()
+            {
+                assert_eq!(
+                    expected_operand, operand,
+                    "operand {operand_index} on instruction {instr_index} does not match"
+                );
+            }
+
+            assert_eq!(
+                expected_operands.len(),
+                instr.operands().count(),
+                "instruction {instr_index} does not have expected operand count"
+            );
+        }
+
+        assert_eq!(
+            expected.len(),
+            instrs.len(),
+            "instruction count does not match"
+        );
+    }
 
     #[test]
     fn temp_alloc_align_up() {
@@ -812,7 +953,7 @@ mod tests {
 
     #[test]
     fn build_procedure_with_locals() {
-        // adds some instructions
+        // adds some instructions with local locates
         let mut bytecode = BytecodeBuilder::new();
         let mut unit = bytecode.build_code_unit("<No File>");
         let mut procedure = unit.build_procedure();
@@ -828,35 +969,29 @@ mod tests {
         let procedure = procedure.finish();
 
         assert_eq!(procedure.id().as_usize(), 0);
-        // Procedures should always start with a PROC xxx
-        assert_eq!(procedure.instrs()[0].opcode(), Opcode::PROC);
-        // Frame size should be 8
-        assert_eq!(
-            procedure.instrs()[0].operands().nth(0),
-            Some(&Operand::Nat4(8))
+        assert_match_instrs(
+            procedure.instrs(),
+            &[
+                // Procedures should always start with a PROC xxx
+                // Frame size should be 8
+                (Opcode::PROC, &[Operand::Nat4(8)]),
+                // Local offsets should be patched
+                (Opcode::LOCATELOCAL, &[Operand::Offset(0)]),
+                (Opcode::LOCATELOCAL, &[Operand::Offset(4)]),
+                (Opcode::ADDINTNAT, &[]),
+                (Opcode::RETURN, &[]),
+                // Procedures should always end with a ABORT NoResult
+                (
+                    Opcode::ABORT,
+                    &[Operand::AbortReason(AbortReason::NoResult)],
+                ),
+            ],
         );
-        assert_eq!(procedure.instrs()[1].opcode(), Opcode::LOCATELOCAL);
-        // Local offsets should be patched
-        assert_eq!(
-            procedure.instrs()[1].operands().nth(0),
-            Some(&Operand::Offset(0))
-        );
-        assert_eq!(procedure.instrs()[2].opcode(), Opcode::LOCATELOCAL);
-        assert_eq!(
-            procedure.instrs()[2].operands().nth(0),
-            Some(&Operand::Offset(4))
-        );
-
-        assert_eq!(procedure.instrs()[3].opcode(), Opcode::ADDINTNAT);
-        assert_eq!(procedure.instrs()[4].opcode(), Opcode::RETURN);
-
-        // Procedures should always end with a ABORT NoResult
-        assert_eq!(procedure.instrs()[5].opcode(), Opcode::ABORT);
     }
 
     #[test]
     fn build_procedure_with_locals_and_temps() {
-        // adds some instructions
+        // adds some instructions with temp and local locates
         let mut bytecode = BytecodeBuilder::new();
         let mut unit = bytecode.build_code_unit("<No File>");
         let mut procedure = unit.build_procedure();
@@ -878,54 +1013,77 @@ mod tests {
         let procedure = procedure.finish();
 
         assert_eq!(procedure.id().as_usize(), 0);
-        // Procedures should always start with a PROC xxx
-        assert_eq!(procedure.instrs()[0].opcode(), Opcode::PROC);
-        // Frame size should be 16
-        assert_eq!(
-            procedure.instrs()[0].operands().nth(0),
-            Some(&Operand::Nat4(16))
+        assert_match_instrs(
+            procedure.instrs(),
+            &[
+                // Procedures should always start with a PROC xxx
+                // Frame size should be 16
+                (Opcode::PROC, &[Operand::Nat4(16)]),
+                // Local offsets should be patched
+                (Opcode::LOCATELOCAL, &[Operand::Offset(0)]),
+                (Opcode::LOCATELOCAL, &[Operand::Offset(4)]),
+                (Opcode::ADDINTNAT, &[]),
+                // Temporaries offsets should be patched
+                // with the frame size and offset
+                (Opcode::LOCATETEMP, &[Operand::Nat4(16), Operand::Offset(0)]),
+                (Opcode::ADDINTNAT, &[]),
+                (Opcode::LOCATETEMP, &[Operand::Nat4(16), Operand::Offset(4)]),
+                (Opcode::ADDINTNAT, &[]),
+                (Opcode::RETURN, &[]),
+                // Procedures should always end with a ABORT NoResult
+                (
+                    Opcode::ABORT,
+                    &[Operand::AbortReason(AbortReason::NoResult)],
+                ),
+            ],
         );
-        assert_eq!(procedure.instrs()[1].opcode(), Opcode::LOCATELOCAL);
-        // Local offsets should be patched
-        assert_eq!(
-            procedure.instrs()[1].operands().nth(0),
-            Some(&Operand::Offset(0))
-        );
-        assert_eq!(procedure.instrs()[2].opcode(), Opcode::LOCATELOCAL);
-        assert_eq!(
-            procedure.instrs()[2].operands().nth(0),
-            Some(&Operand::Offset(4))
-        );
-        assert_eq!(procedure.instrs()[3].opcode(), Opcode::ADDINTNAT);
+    }
 
-        assert_eq!(procedure.instrs()[4].opcode(), Opcode::LOCATETEMP);
-        // Temporaries offsets should be patched
-        assert_eq!(
-            procedure.instrs()[4].operands().nth(0),
-            Some(&Operand::Nat4(16)) // with the frame size
+    #[test]
+    fn build_procedure_with_branches() {
+        let mut bytecode = BytecodeBuilder::new();
+        let mut unit = bytecode.build_code_unit("<No File>");
+        let mut procedure = unit.build_procedure();
+
+        let forward_branch = procedure.ins().jump(0);
+        let backward_target = procedure.make_label();
+        {
+            let a = procedure.alloc_temporary(4, 4);
+            let b = procedure.alloc_temporary(4, 4);
+
+            procedure.locate_temporary(a);
+            procedure.locate_temporary(b);
+            procedure.ins().addintnat();
+
+            procedure.ins().return_();
+        }
+
+        let forward_target = procedure.make_label();
+        let backward_branch = procedure.ins().jumpb(0);
+        procedure.patch_code_offset(backward_branch, backward_target);
+
+        procedure.patch_code_offset(forward_branch, forward_target);
+
+        let procedure = procedure.finish();
+
+        assert_eq!(procedure.id().as_usize(), 0);
+        assert_match_instrs(
+            procedure.instrs(),
+            &[
+                // Procedures should always start with a PROC xxx
+                (Opcode::PROC, &[Operand::Nat4(8)]),
+                (Opcode::JUMP, &[Operand::Offset(9 * 4)]),
+                (Opcode::LOCATETEMP, &[Operand::Nat4(8), Operand::Offset(0)]),
+                (Opcode::LOCATETEMP, &[Operand::Nat4(8), Operand::Offset(4)]),
+                (Opcode::ADDINTNAT, &[]),
+                (Opcode::RETURN, &[]),
+                (Opcode::JUMPB, &[Operand::Offset(9 * 4)]),
+                // Procedures should always end with a ABORT NoResult
+                (
+                    Opcode::ABORT,
+                    &[Operand::AbortReason(AbortReason::NoResult)],
+                ),
+            ],
         );
-        assert_eq!(
-            procedure.instrs()[4].operands().nth(1),
-            Some(&Operand::Offset(0)) // with the offset
-        );
-
-        assert_eq!(procedure.instrs()[5].opcode(), Opcode::ADDINTNAT);
-
-        assert_eq!(procedure.instrs()[6].opcode(), Opcode::LOCATETEMP);
-        assert_eq!(
-            procedure.instrs()[6].operands().nth(0),
-            Some(&Operand::Nat4(16)) // with the frame size
-        );
-        assert_eq!(
-            procedure.instrs()[6].operands().nth(1),
-            Some(&Operand::Offset(4)) // with the offset
-        );
-
-        assert_eq!(procedure.instrs()[7].opcode(), Opcode::ADDINTNAT);
-
-        assert_eq!(procedure.instrs()[8].opcode(), Opcode::RETURN);
-
-        // Procedures should always end with a ABORT NoResult
-        assert_eq!(procedure.instrs()[9].opcode(), Opcode::ABORT);
     }
 }
