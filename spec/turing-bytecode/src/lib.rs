@@ -96,6 +96,6 @@ mod tests {
             eprintln!("{instr:#?}");
         }
 
-        unimplemented!();
+        // unimplemented!();
     }
 }

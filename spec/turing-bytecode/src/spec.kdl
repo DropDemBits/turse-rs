@@ -244,6 +244,44 @@ instructions {
     }
   }
 
+  group "Jump" {
+    description """
+    Changes program execution forwards or backwards. 
+    """
+    
+    JUMP 0x89 "Jump Forward" {
+      description """
+      Advances program counter forwards by `offset` bytes.
+      """
+
+      operands {
+        offset "offset" {
+          description
+          """
+          Offset to jump forward by, in bytes.
+          Offset is relative to the address of the offset operand.
+          """
+        }
+      }
+    }
+
+    JUMPB 0x8A "Jump Backward" {
+      description """
+      Retreats program counter backwards by `offset` bytes.
+      """
+      
+      operands {
+        offset "offset" {
+          description
+          """
+          Offset to jump backwards by, in bytes.
+          Offset is relative to the address of the offset operand.
+          """
+        }
+      }
+    }
+  }
+
   PROC 0xBA "Begin Procedure" {
     operands {
       frame_size "nat4" {
