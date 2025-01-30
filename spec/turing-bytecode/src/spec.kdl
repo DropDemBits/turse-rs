@@ -209,6 +209,40 @@ instructions {
     }
   }
 
+  CASE 0x35 "Case Of" {
+    description """
+    Jumps to a specific branch depending on `selector`.
+    `descriptor` points to a case descriptor describing the case bounds, default branch offset, and per-entry branch.
+    Succinctly, it is of the following layout:
+
+    | Type     | Name           |
+    |----------|----------------|
+    | `int4`   | lower_bound    |
+    | `int4`   | upper_bound    | 
+    | `offset` | default_branch |
+    | `offset` | arm_0          |
+    | `offset` | arm_1          |
+    | ...      | ...            |
+    | `offset` | arm_n          |
+
+    Note that the case descriptor cannot have more than 1000 arm offsets when targeting Turing/OpenTuring interpreters.
+
+    All offsets are relative to the address of the `descriptor` operand.
+    """
+
+    operands {
+      descriptor "offset" {
+        description """
+        Offset to the case descriptor table describing the jump targets
+        """
+      }
+    }
+    stack_before {
+      selector "int4" { description "Selects which case target entry to use" }
+    }
+    stack_after {}
+  }
+
   group "Locate Address" {
     LOCATELOCAL 0x96 "Locate Local Slot" {
       description """
@@ -252,32 +286,22 @@ instructions {
     JUMP 0x89 "Jump Forward" {
       description """
       Advances program counter forwards by `offset` bytes.
+      Offset is relative to the address of the offset operand.
       """
 
       operands {
-        offset "offset" {
-          description
-          """
-          Offset to jump forward by, in bytes.
-          Offset is relative to the address of the offset operand.
-          """
-        }
+        offset "offset" { description "Offset to jump forward by, in bytes" }
       }
     }
 
     JUMPB 0x8A "Jump Backward" {
       description """
       Retreats program counter backwards by `offset` bytes.
+      Offset is relative to the address of the offset operand.
       """
       
       operands {
-        offset "offset" {
-          description
-          """
-          Offset to jump backwards by, in bytes.
-          Offset is relative to the address of the offset operand.
-          """
-        }
+        offset "offset" { description "Offset to jump backwards by, in bytes" }
       }
     }
   }
@@ -286,6 +310,31 @@ instructions {
     operands {
       frame_size "nat4" {
         description "Size of the call frame to allocate for locals and temporaries."
+      }
+    }
+    // TODO: Stack effect (needs computed for frame size)
+  }
+
+  group "Push Value Onto Stack" {
+    PUSHVAL0 0xC2 "Push Literal 0" {
+      description """
+      Pushes a literal 0 value onto the operand stack.
+      """
+      operands {}
+      stack_before {}
+      stack_after {
+        zero "int4" { description "Literal 0 value" }
+      }
+    }
+
+    PUSHVAL1 0xC3 "Push Literal 1" {
+      description """
+      Pushes a literal 1 value onto the operand stack.
+      """
+      operands {}
+      stack_before {}
+      stack_after {
+        one "int4" { description "Literal 1 value" }
       }
     }
   }

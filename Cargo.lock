@@ -2151,6 +2151,7 @@ dependencies = [
 name = "turing-bytecode"
 version = "0.1.0"
 dependencies = [
+ "either",
  "stackful-spec",
 ]
 

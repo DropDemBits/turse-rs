@@ -4,6 +4,7 @@ use std::{
     ops::{Index, IndexMut},
 };
 
+use either::Either;
 use instruction::{AbortReason, Instruction, Opcode, Operand, OperandRef};
 
 mod instruction;
@@ -185,6 +186,8 @@ pub struct ProcedureBuilder {
     reloc_patches: Vec<(InstructionRef, OperandRef, RelocHandle)>,
     // - code offset targets
     code_offset_targets: Vec<CodeOffsetTarget>,
+    // - case tables
+    case_tables: Vec<CaseTable>,
     // - instrs
     instrs: InstructionEncoder,
     //
@@ -208,6 +211,7 @@ impl ProcedureBuilder {
             local_patches,
             reloc_patches: vec![],
             code_offset_targets: vec![],
+            case_tables: vec![],
             instrs,
         }
     }
@@ -220,12 +224,61 @@ impl ProcedureBuilder {
 
     /// Places a jump label targeting the next instruction.
     pub fn make_label(&mut self) -> CodeOffset {
-        let offset = CodeOffset(self.code_offset_targets.len() as u32);
+        let offset = CodeOffset::from_usize(self.code_offset_targets.len());
         self.code_offset_targets
             .push(CodeOffsetTarget::Instruction(self.instrs.next_ref()));
         offset
     }
 
+    /// Creates a jump label without anchoring it to a specific instruction.
+    pub fn make_unanchored_label(&mut self) -> CodeOffset {
+        let offset = CodeOffset::from_usize(self.code_offset_targets.len());
+        self.code_offset_targets.push(CodeOffsetTarget::Unanchored);
+        offset
+    }
+
+    /// Anchors an unanchored label at the specified instruction, or to the next instruction.
+    pub fn anchor_label(&mut self, offset: CodeOffset, at_instr: Option<InstructionRef>) {
+        assert_eq!(
+            self.code_offset_targets[offset.as_usize()],
+            CodeOffsetTarget::Unanchored
+        );
+
+        let target = at_instr.unwrap_or(self.instrs.next_ref());
+        self.code_offset_targets[offset.as_usize()] = CodeOffsetTarget::Instruction(target);
+    }
+
+    /// Adds a case table related to a specific CASE instruction.
+    pub fn add_case_table(&mut self, table: CaseTable) {
+        assert_eq!(
+            self.instrs[table.case_instruction()].opcode(),
+            Opcode::CASE,
+            "case instruction must target a CASE opcode"
+        );
+
+        let slot = CaseTableRef::from_usize(self.case_tables.len());
+
+        // Patch case instruction
+        let offset = CodeOffset::from_usize(self.code_offset_targets.len());
+        self.code_offset_targets
+            .push(CodeOffsetTarget::CaseTable(slot));
+        self.patch_code_offset(table.case_instruction(), offset);
+
+        self.case_tables.push(table);
+    }
+
+    /// Helper function to easily create patch the code offset of branching instructions,
+    /// and the [`InstructionRef`] is not required.
+    pub fn branch(
+        &mut self,
+        ins: impl FnOnce(&mut InstructionEncoder) -> InstructionRef,
+        code_offset: CodeOffset,
+    ) {
+        let instr = ins(&mut self.instrs);
+        self.patch_code_offset(instr, code_offset);
+    }
+
+    /// Patches an instruction's first operand to refer to a specifc code offset.
     pub fn patch_code_offset(&mut self, instr: InstructionRef, code_offset: CodeOffset) {
         assert!(matches!(
             self.instrs[instr].operands().nth(0),
@@ -287,6 +340,7 @@ impl ProcedureBuilder {
             local_patches,
             reloc_patches,
             code_offset_targets,
+            case_tables,
             mut instrs,
         } = self;
 
@@ -294,10 +348,10 @@ impl ProcedureBuilder {
         instrs.abort(AbortReason::NoResult);
 
         // Compute instruction offsets
-        let instr_offsets: Vec<_> = {
+        let (instr_offsets, instrs_size) = {
             let mut current_offset = 0;
 
-            instrs
+            let offsets: Vec<_> = instrs
                 .instrs
                 .iter()
                 .map(|instr| {
@@ -305,7 +359,26 @@ impl ProcedureBuilder {
                     current_offset += instr.size();
                     at_offset
                 })
-                .collect()
+                .collect();
+
+            (offsets, current_offset)
+        };
+
+        // Compute case table offsets
+        // These are located afte the last instruction of the procedure (the ABORT).
+        let (case_offsets, procedure_size) = {
+            let mut current_offset = instrs_size;
+
+            let offsets: Vec<_> = case_tables
+                .iter()
+                .map(|table| {
+                    let at_offset = current_offset;
+                    current_offset += table.size();
+                    at_offset
+                })
+                .collect();
+
+            (offsets, current_offset)
         };
 
         // Call Frame:
@@ -325,6 +398,31 @@ impl ProcedureBuilder {
         let temp_area = temps.finish();
         let frame_size = (locals_area.size() + temp_area.size()).next_multiple_of(4);
 
+        let compute_code_offset = |instrs: &InstructionEncoder,
+                                   instr: InstructionRef,
+                                   offset: CodeOffset|
+         -> usize {
+            let start_offset = instr_offsets[instr.as_usize()];
+            let end_offset = match &code_offset_targets[offset.as_usize()] {
+                CodeOffsetTarget::Instruction(target_instr) => {
+                    instr_offsets[target_instr.as_usize()]
+                }
+                CodeOffsetTarget::CaseTable(target_table) => case_offsets[target_table.as_usize()],
+                CodeOffsetTarget::Unanchored => panic!("unresolved code offset {offset:?}"),
+            };
+
+            // Offsets are relative to the operand, so we'll need to either add
+            // (for backwards offsets) or subtract (for forwards offsets)
+            // the offset leading up to the operand.
+            if end_offset < start_offset {
+                // Backwards offset
+                start_offset.wrapping_sub(end_offset) + instrs[instr].opcode().size()
+            } else {
+                // Forward offset
+                end_offset.wrapping_sub(start_offset) - instrs[instr].opcode().size()
+            }
+        };
+
         // Apply local patches
         for (instr, operand, patch) in local_patches {
             instrs[instr][operand] = match patch {
@@ -332,41 +430,27 @@ impl ProcedureBuilder {
                 PatchWith::LocalSlot(slot) => Operand::Offset(locals_area[slot]),
                 PatchWith::TemporarySlot(slot) => Operand::Offset(temp_area[slot]),
                 PatchWith::CodeOffset(offset) => {
-                    match &code_offset_targets[offset.as_usize()] {
-                        CodeOffsetTarget::Instruction(target_instr) => {
-                            let start_offset = instr_offsets[instr.as_usize()];
-                            let end_offset = instr_offsets[target_instr.as_usize()];
-
-                            // Offsets are relative to the operand, so we'll need to either add
-                            // (for backwards offsets) or subtract (for forwards offsets)
-                            // the offset leading up to the operand.
-                            let operand = if end_offset < start_offset {
-                                // Backwards offset
-                                Operand::Offset(
-                                    (start_offset.wrapping_sub(end_offset)
-                                        + instrs[instr].opcode().size())
-                                        as u32,
-                                )
-                            } else {
-                                // Forward offset
-                                Operand::Offset(
-                                    (end_offset.wrapping_sub(start_offset)
-                                        - instrs[instr].opcode().size())
-                                        as u32,
-                                )
-                            };
-
-                            operand
-                        }
-                    }
+                    Operand::Offset(compute_code_offset(&instrs, instr, offset) as u32)
                 }
-            }
+            };
         }
+
+        // Resolve the case tables
+        let resolved_case_tables: Vec<_> = case_tables
+            .into_iter()
+            .map(|table| {
+                table.resolve_offsets(|case_instr, offset| {
+                    compute_code_offset(&instrs, case_instr, offset)
+                })
+            })
+            .collect();
 
         let instrs = instrs.finish();
         Procedure {
             id,
+            size: procedure_size,
             instrs,
+            case_tables: resolved_case_tables.into_boxed_slice(),
             reloc_patches,
         }
     }
@@ -377,8 +461,12 @@ pub struct Procedure {
     // store:
     // - procedure ref (for resolving reloc target side-table)
     id: ProcedureRef,
+    // - size (in bytes)
+    size: usize,
     // - instruction list
     instrs: Box<[Instruction]>,
+    // - case tables (with resolved offsets)
+    case_tables: Box<[CaseTable<u32>]>,
     // - operand patches
     //   - for relocs
     reloc_patches: Vec<(InstructionRef, OperandRef, RelocHandle)>,
@@ -392,21 +480,255 @@ impl Procedure {
     pub fn instrs(&self) -> &[Instruction] {
         &self.instrs
     }
+
+    pub fn case_tables(&self) -> &[CaseTable<u32>] {
+        &self.case_tables
+    }
+
+    /// Size of the entire procedure (including encoded case tables), in bytes.
+    pub fn size(&self) -> usize {
+        self.size
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct CodeOffset(u32);
 
 impl CodeOffset {
+    fn from_usize(idx: usize) -> CodeOffset {
+        Self(idx as u32)
+    }
+
     pub fn as_usize(self) -> usize {
-        self.0.saturating_sub(1) as usize
+        self.0 as usize
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CodeOffsetTarget {
+    Instruction(InstructionRef),
+    CaseTable(CaseTableRef),
+    Unanchored,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub struct CaseTableRef(u32);
+
+impl CaseTableRef {
+    fn from_usize(idx: usize) -> Self {
+        Self(idx as u32)
+    }
+
+    pub fn as_usize(self) -> usize {
+        self.0 as usize
     }
 }
 
 #[derive(Debug)]
-pub enum CodeOffsetTarget {
-    Instruction(InstructionRef),
-    // CaseTable
+pub struct CaseTableBuilder {
+    signedness: Option<bool>,
+    branches: BTreeMap<CaseBound, CodeOffset>,
+}
+
+impl CaseTableBuilder {
+    pub fn new() -> Self {
+        Self {
+            signedness: None,
+            branches: BTreeMap::new(),
+        }
+    }
+
+    pub fn add_arm(&mut self, bound: CaseRange, target: CodeOffset) {
+        if self.signedness.is_none() {
+            self.signedness = Some(bound.is_signed());
+        }
+        assert_eq!(
+            self.signedness,
+            Some(bound.is_signed()),
+            "case bound signedness must all match"
+        );
+
+        let target_bounds = match bound {
+            CaseRange::SingleU32(it) => {
+                vec![CaseBound::U32(it)]
+            }
+            CaseRange::SingleI32(it) => {
+                vec![CaseBound::I32(it)]
+            }
+            CaseRange::RangeU32(lo, hi) => (lo..=hi).into_iter().map(CaseBound::U32).collect(),
+            CaseRange::RangeI32(lo, hi) => (lo..=hi).into_iter().map(CaseBound::I32).collect(),
+        };
+
+        for bound in target_bounds {
+            let None = self.branches.insert(bound, target) else {
+                panic!(
+                    "case bound {bound:?} overlaps with an already handled bound {:?}",
+                    self.branches.get(&bound)
+                )
+            };
+        }
+    }
+
+    pub fn finish(self, case_instruction: InstructionRef, default_branch: CodeOffset) -> CaseTable {
+        let Self {
+            branches,
+            signedness: _,
+        } = self;
+
+        let (lower_bound, upper_bound) = if let Some(((lower_bound, _), (upper_bound, _))) =
+            branches.first_key_value().zip(branches.last_key_value())
+        {
+            (lower_bound.as_unsigned(), upper_bound.as_unsigned())
+        } else {
+            panic!("case table is missing arms")
+        };
+
+        let bounds_len = lower_bound.abs_diff(upper_bound) + 1;
+        assert!(
+            bounds_len < 1000,
+            "case table cannot handle more than 1000 entries"
+        );
+
+        let mut targets = vec![];
+        let mut last_handled_bound: Option<CaseBound> = None;
+
+        for (bound, target) in branches {
+            if let Some(last_handled_bound) = last_handled_bound {
+                let gap_len = bound
+                    .as_unsigned()
+                    .abs_diff(last_handled_bound.as_unsigned());
+
+                if gap_len > 1 {
+                    // Fill in the gap with the default branch
+                    for _ in 1..gap_len {
+                        targets.push(default_branch);
+                    }
+                }
+            }
+            last_handled_bound = Some(bound);
+            targets.push(target);
+        }
+
+        debug_assert_eq!(bounds_len as usize, targets.len());
+
+        CaseTable {
+            lower_bound,
+            upper_bound,
+            case_instruction,
+            default_branch,
+            arm_branches: targets.into_boxed_slice(),
+        }
+    }
+}
+
+/// A bound or case label value as part of a case table.
+/// Since bounds may either be positive or negative integers, this allows
+/// specifying bounds in terms of both.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum CaseRange {
+    /// Specifies a single unsigned value to handle.
+    SingleU32(u32),
+    /// Specifies a single signed value to handle.
+    SingleI32(i32),
+    /// Specifies an unsigned inclusive range of values to handle.
+    RangeU32(u32, u32),
+    /// Specifies a signed inclusive range of values to handle.
+    RangeI32(i32, i32),
+}
+
+impl CaseRange {
+    pub fn len(self) -> u32 {
+        match self {
+            CaseRange::SingleU32(_) | CaseRange::SingleI32(_) => 1,
+            CaseRange::RangeU32(low, high) => high.abs_diff(low) + 1,
+            CaseRange::RangeI32(low, high) => high.abs_diff(low) + 1,
+        }
+    }
+
+    pub fn is_signed(self) -> bool {
+        matches!(self, CaseRange::SingleI32(_) | CaseRange::RangeI32(_, _))
+    }
+
+    pub fn as_unsigned(self) -> Either<u32, (u32, u32)> {
+        match self {
+            CaseRange::SingleU32(it) => Either::Left(it),
+            CaseRange::SingleI32(it) => Either::Left(u32::from_ne_bytes(it.to_ne_bytes())),
+            CaseRange::RangeU32(lo, hi) => Either::Right((lo, hi)),
+            CaseRange::RangeI32(lo, hi) => Either::Right((
+                u32::from_ne_bytes(lo.to_ne_bytes()),
+                u32::from_ne_bytes(hi.to_ne_bytes()),
+            )),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+enum CaseBound {
+    U32(u32),
+    I32(i32),
+}
+
+impl CaseBound {
+    fn as_unsigned(self) -> u32 {
+        match self {
+            CaseBound::U32(it) => it,
+            CaseBound::I32(it) => u32::from_ne_bytes(it.to_ne_bytes()),
+        }
+    }
+}
+
+/// Describes a jump table for a CASE instruction.
+#[derive(Debug)]
+pub struct CaseTable<Offset = CodeOffset> {
+    // Even though these are treated in the OT interpreter as signed values,
+    // we effectively treat them as unsigned ones in a wrapping integer space.
+    // This is a valid interpretation as the inclusive absolute difference
+    // between the bounds cannot exceed 1000.
+    //
+    // Curious how OT handles compiling bounds crossing i32::MAX?
+    // It doesn't! Causes an access violation, probably from too large of an
+    // allocation.
+    case_instruction: InstructionRef,
+    pub lower_bound: u32,
+    pub upper_bound: u32,
+    pub default_branch: Offset,
+    pub arm_branches: Box<[Offset]>,
+}
+
+impl<Offset> CaseTable<Offset> {
+    /// Size of the case table to encode, in bytes.
+    pub fn size(&self) -> usize {
+        // lower_bound + upper_bound + default_branch
+        let descriptor_header = 4 + 4 + 4;
+
+        // each code offset is 4 bytes
+        descriptor_header + self.arm_branches.len() * 4
+    }
+}
+
+impl CaseTable<CodeOffset> {
+    /// Which CASE instruction is this table for.
+    pub fn case_instruction(&self) -> InstructionRef {
+        self.case_instruction
+    }
+
+    pub fn resolve_offsets(
+        self,
+        resolve_offset: impl Fn(InstructionRef, CodeOffset) -> usize,
+    ) -> CaseTable<u32> {
+        CaseTable::<u32> {
+            case_instruction: self.case_instruction,
+            lower_bound: self.lower_bound,
+            upper_bound: self.upper_bound,
+            default_branch: resolve_offset(self.case_instruction, self.default_branch) as u32,
+            arm_branches: self
+                .arm_branches
+                .iter()
+                .map(|offset| resolve_offset(self.case_instruction, *offset) as u32)
+                .collect::<Vec<_>>()
+                .into_boxed_slice(),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -762,6 +1084,10 @@ impl InstructionEncoder {
         self.add(Instruction::new(Opcode::ADDINTNAT))
     }
 
+    pub fn case(&mut self, descriptor: u32) -> InstructionRef {
+        self.add(Instruction::new(Opcode::CASE).with_operand(Operand::Offset(descriptor)))
+    }
+
     pub fn jump(&mut self, offset: u32) -> InstructionRef {
         self.add(Instruction::new(Opcode::JUMP).with_operand(Operand::Offset(offset)))
     }
@@ -780,6 +1106,14 @@ impl InstructionEncoder {
                 .with_operand(Operand::Nat4(locals_size))
                 .with_operand(Operand::Offset(temp_offset)),
         )
+    }
+
+    pub fn pushval0(&mut self) -> InstructionRef {
+        self.add(Instruction::new(Opcode::PUSHVAL0))
+    }
+
+    pub fn pushval1(&mut self) -> InstructionRef {
+        self.add(Instruction::new(Opcode::PUSHVAL1))
     }
 
     pub fn proc(&mut self, locals_size: u32) -> InstructionRef {
@@ -809,29 +1143,29 @@ mod tests {
             instrs.iter().zip(expected.iter()).enumerate()
         {
             assert_eq!(
-                *expected_opcode,
                 instr.opcode(),
+                *expected_opcode,
                 "opcode on instruction {instr_index} does not match"
             );
             for (operand_index, (operand, expected_operand)) in
                 instr.operands().zip(expected_operands.iter()).enumerate()
             {
                 assert_eq!(
-                    expected_operand, operand,
+                    operand, expected_operand,
                     "operand {operand_index} on instruction {instr_index} does not match"
                 );
             }
 
             assert_eq!(
-                expected_operands.len(),
                 instr.operands().count(),
+                expected_operands.len(),
                 "instruction {instr_index} does not have expected operand count"
             );
         }
 
         assert_eq!(
-            expected.len(),
             instrs.len(),
+            expected.len(),
             "instruction count does not match"
         );
     }
@@ -1084,6 +1418,231 @@ mod tests {
                     &[Operand::AbortReason(AbortReason::NoResult)],
                 ),
             ],
+        );
+    }
+
+    #[test]
+    fn build_procedure_with_case_table() {
+        let mut bytecode = BytecodeBuilder::new();
+        let mut unit = bytecode.build_code_unit("<No File>");
+        let mut procedure = unit.build_procedure();
+
+        procedure.ins().pushval1();
+
+        let case_instr = procedure.ins().case(0);
+        let common_branch = procedure.make_unanchored_label();
+        let mut table_builder = CaseTableBuilder::new();
+
+        // Arm 0
+        {
+            table_builder.add_arm(CaseRange::SingleU32(1), procedure.make_label());
+            procedure.ins().pushval0();
+            procedure.ins().pushval1();
+            procedure.ins().addintnat();
+
+            let jump = procedure.ins().jump(0);
+            procedure.patch_code_offset(jump, common_branch);
+        }
+
+        // Arm 1
+        {
+            table_builder.add_arm(CaseRange::SingleU32(2), procedure.make_label());
+            procedure.ins().pushval1();
+            procedure.ins().pushval1();
+            procedure.ins().addintnat();
+
+            let jump = procedure.ins().jump(0);
+            procedure.patch_code_offset(jump, common_branch);
+        }
+
+        // Arm 2
+        {
+            table_builder.add_arm(CaseRange::SingleU32(3), procedure.make_label());
+            procedure.ins().pushval1();
+            procedure.ins().pushval0();
+            procedure.ins().addintnat();
+
+            let jump = procedure.ins().jump(0);
+            procedure.patch_code_offset(jump, common_branch);
+        }
+
+        let default_branch = procedure.make_label();
+        {
+            let jump = procedure.ins().jump(0);
+            procedure.patch_code_offset(jump, common_branch);
+        }
+
+        procedure.add_case_table(table_builder.finish(case_instr, default_branch));
+
+        procedure.anchor_label(common_branch, None);
+        procedure.ins().return_();
+
+        let procedure = procedure.finish();
+
+        assert_eq!(procedure.id().as_usize(), 0);
+        assert_match_instrs(
+            procedure.instrs(),
+            &[
+                // Procedures should always start with a PROC xxx
+                (Opcode::PROC, &[Operand::Nat4(0)]),
+                (Opcode::PUSHVAL1, &[]),
+                // Case offset should be patched
+                (Opcode::CASE, &[Operand::Offset(21 * 4)]), // to after all instructions
+                // - Arm 0
+                (Opcode::PUSHVAL0, &[]),
+                (Opcode::PUSHVAL1, &[]),
+                (Opcode::ADDINTNAT, &[]),
+                (Opcode::JUMP, &[Operand::Offset(13 * 4)]),
+                // - Arm 1
+                (Opcode::PUSHVAL1, &[]),
+                (Opcode::PUSHVAL1, &[]),
+                (Opcode::ADDINTNAT, &[]),
+                (Opcode::JUMP, &[Operand::Offset(8 * 4)]),
+                // - Arm 2
+                (Opcode::PUSHVAL1, &[]),
+                (Opcode::PUSHVAL0, &[]),
+                (Opcode::ADDINTNAT, &[]),
+                (Opcode::JUMP, &[Operand::Offset(3 * 4)]),
+                // - Default Branch
+                (Opcode::JUMP, &[Operand::Offset(1 * 4)]),
+                (Opcode::RETURN, &[]),
+                // Procedures should always end with a ABORT NoResult
+                (
+                    Opcode::ABORT,
+                    &[Operand::AbortReason(AbortReason::NoResult)],
+                ),
+            ],
+        );
+
+        // Ensure case tables were resolved
+        assert_eq!(procedure.case_tables.len(), 1);
+
+        let case_table = &procedure.case_tables[0];
+        assert_eq!(case_table.lower_bound, 1);
+        assert_eq!(case_table.upper_bound, 3);
+        assert_eq!(case_table.default_branch, 16 * 4);
+        assert_eq!(&*case_table.arm_branches, &[1 * 4, 6 * 4, 11 * 4]);
+    }
+
+    #[test]
+    fn build_procedure_with_multiple_case_tables() {
+        let mut bytecode = BytecodeBuilder::new();
+        let mut unit = bytecode.build_code_unit("<No File>");
+        let mut procedure = unit.build_procedure();
+
+        // Case Table 0
+        procedure.ins().pushval0();
+        {
+            let case_instr = procedure.ins().case(0);
+            let common_branch = procedure.make_unanchored_label();
+            let mut table_builder = CaseTableBuilder::new();
+
+            // Arms 0-2
+            for i in 0..3 {
+                {
+                    table_builder.add_arm(CaseRange::SingleU32(i), procedure.make_label());
+                    procedure.branch(|ins| ins.jump(0), common_branch);
+                }
+            }
+
+            let default_branch = procedure.make_label();
+            {
+                procedure.branch(|ins| ins.jump(0), common_branch);
+            }
+
+            procedure.add_case_table(table_builder.finish(case_instr, default_branch));
+
+            procedure.anchor_label(common_branch, None);
+        }
+
+        // Case Table 1
+        procedure.ins().pushval1();
+        {
+            let case_instr = procedure.ins().case(0);
+            let common_branch = procedure.make_unanchored_label();
+            let mut table_builder = CaseTableBuilder::new();
+
+            // Arms 0-4
+            for i in 0..5 {
+                {
+                    table_builder.add_arm(CaseRange::SingleU32(i), procedure.make_label());
+                    procedure.branch(|ins| ins.jump(0), common_branch);
+                }
+            }
+
+            let default_branch = procedure.make_label();
+            {
+                procedure.branch(|ins| ins.jump(0), common_branch);
+            }
+
+            procedure.add_case_table(table_builder.finish(case_instr, default_branch));
+
+            procedure.anchor_label(common_branch, None);
+        }
+        procedure.ins().return_();
+
+        let procedure = procedure.finish();
+
+        assert_eq!(procedure.id().as_usize(), 0);
+        assert_match_instrs(
+            procedure.instrs(),
+            &[
+                // Procedures should always start with a PROC xxx
+                (Opcode::PROC, &[Operand::Nat4(0)]),
+                (Opcode::PUSHVAL0, &[]),
+                // Case Table 0:
+                // Case offset should be patched to after all instructions
+                (Opcode::CASE, &[Operand::Offset(27 * 4)]),
+                // - Arm 0
+                (Opcode::JUMP, &[Operand::Offset(7 * 4)]),
+                // - Arm 1
+                (Opcode::JUMP, &[Operand::Offset(5 * 4)]),
+                // - Arm 2
+                (Opcode::JUMP, &[Operand::Offset(3 * 4)]),
+                // - Default Branch
+                (Opcode::JUMP, &[Operand::Offset(1 * 4)]),
+                (Opcode::PUSHVAL1, &[]),
+                // Case Table 1:
+                // Case offset should be patchedt o after all instructions plus after case table 0
+                // (which is 3 * 4 (header) + 3 arms * 4)
+                (Opcode::CASE, &[Operand::Offset(16 * 4 + (3 * 4 + 3 * 4))]),
+                // - Arm 0
+                (Opcode::JUMP, &[Operand::Offset(11 * 4)]),
+                // - Arm 1
+                (Opcode::JUMP, &[Operand::Offset(9 * 4)]),
+                // - Arm 2
+                (Opcode::JUMP, &[Operand::Offset(7 * 4)]),
+                // - Arm 3
+                (Opcode::JUMP, &[Operand::Offset(5 * 4)]),
+                // - Arm 4
+                (Opcode::JUMP, &[Operand::Offset(3 * 4)]),
+                // - Default Branch
+                (Opcode::JUMP, &[Operand::Offset(1 * 4)]),
+                (Opcode::RETURN, &[]),
+                // Procedures should always end with a ABORT NoResult
+                (
+                    Opcode::ABORT,
+                    &[Operand::AbortReason(AbortReason::NoResult)],
+                ),
+            ],
+        );
+
+        // Ensure case tables were resolved
+        assert_eq!(procedure.case_tables.len(), 2);
+
+        let case_table = &procedure.case_tables[0];
+        assert_eq!(case_table.lower_bound, 0);
+        assert_eq!(case_table.upper_bound, 2);
+        assert_eq!(case_table.default_branch, 7 * 4);
+        assert_eq!(&*case_table.arm_branches, &[1 * 4, 3 * 4, 5 * 4]);
+
+        let case_table = &procedure.case_tables[1];
+        assert_eq!(case_table.lower_bound, 0);
+        assert_eq!(case_table.upper_bound, 4);
+        assert_eq!(case_table.default_branch, 11 * 4);
+        assert_eq!(
+            &*case_table.arm_branches,
+            &[1 * 4, 3 * 4, 5 * 4, 7 * 4, 9 * 4]
         );
     }
 }

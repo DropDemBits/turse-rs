@@ -12,6 +12,7 @@ edition = "2021"
 
 [workspace.dependencies]
 camino = "1.1.1"
+either = "1.13.0"
 if_chain = "1.0"
 itertools = "0.10.3"
 indexmap = "1.7.0"

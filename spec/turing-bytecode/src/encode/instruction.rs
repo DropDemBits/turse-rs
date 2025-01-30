@@ -3,16 +3,19 @@ use std::{
     ops::{Index, IndexMut},
 };
 
-// To generate
+// Will be generated
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Opcode {
     ABORT = 0x00,
     ADDINTNAT = 0x05,
+    CASE = 0x35,
     JUMP = 0x89,
     JUMPB = 0x8A,
     LOCATELOCAL = 0x96,
     LOCATETEMP = 0x98,
     PROC = 0xBA,
+    PUSHVAL0 = 0xC2,
+    PUSHVAL1 = 0xC3,
     RETURN = 0xCD,
 }
 
