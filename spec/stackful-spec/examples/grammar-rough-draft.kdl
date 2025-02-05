@@ -36,14 +36,10 @@
 // - align? well packed exists so no
 
 // existing call external versions we need to detect:
-// - HS 4.0.3
-// - HS 4.0.5
-// - HS 4.0.4c
-// - HS 4.1.0
-// - HS 4.1.1a
-// - HS 4.1.1
-// - HS 4.1.2
-// - OT 1.0.x
+// - Prologue 1.0.0 (Turing 4.0.3, 4.0.4c)
+// - Prologue 4.0.4d (Turing 4.0.4d, 4.0.5)
+// - Prologue 4.1.2 (Turing 4.1.1, 4.1.1a, 4.1.2)
+// - OpenTuring 1.0.x
 // bad call external counts mean something we don't handle yet
 
 types {
@@ -188,8 +184,9 @@ instructions {
           }
           // OR
           // only allowed in stack_after
-          locals "@computed" {
+          locals "u8" {
             description "yep!"
+            // computed defines element count
             computed {
               // ops: *, +, -, /
               // only integer scalars accepted?
