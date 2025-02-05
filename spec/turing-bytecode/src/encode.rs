@@ -244,7 +244,9 @@ impl CodeUnitBuilder {
 
         // Compute procedure offsets, for code relocations
         let procedure_offsets = {
-            let mut current_offset = 0;
+            // At the beginning of every code section, there's 4 bytes which get patched
+            // by the interpreter, so we need to shift the procedures to account for this.
+            let mut current_offset = 4;
 
             let offsets: BTreeMap<_, _> = procedures
                 .iter()
@@ -2108,11 +2110,13 @@ mod tests {
         let bytecode = bytecode.finish();
 
         let unit = &bytecode[unit_1];
+
+        // Procedure 1, at offset 1 * 4
         {
             let procedure = &unit[proc_1];
 
             assert_eq!(procedure.id().as_usize(), 0);
-            assert_eq!(unit.procedure_offset(proc_1), SectionOffset::Code(0x0));
+            assert_eq!(unit.procedure_offset(proc_1), SectionOffset::Code(0x4));
             assert_match_instrs(
                 procedure.instrs(),
                 &[
@@ -2128,15 +2132,15 @@ mod tests {
                         Opcode::PUSHADDR1,
                         &[Operand::RelocatableOffset(RelocatableOffset::new(
                             0,
-                            15 * 4,
+                            16 * 4,
                         ))],
                     ),
                     (Opcode::CALL, &[Operand::Offset(0)]),
                     (
                         Opcode::PUSHADDR1,
                         &[Operand::RelocatableOffset(RelocatableOffset::new(
-                            3 * 4,
-                            30 * 4,
+                            4 * 4,
+                            31 * 4,
                         ))],
                     ),
                     (Opcode::CALL, &[Operand::Offset(0)]),
@@ -2150,12 +2154,12 @@ mod tests {
             );
         }
 
-        // Procedure 2, at offset 15 * 4
+        // Procedure 2, at offset 16 * 4
         {
             let procedure = &unit[proc_2];
 
             assert_eq!(procedure.id().as_usize(), 1);
-            assert_eq!(unit.procedure_offset(proc_2), SectionOffset::Code(15 * 4));
+            assert_eq!(unit.procedure_offset(proc_2), SectionOffset::Code(16 * 4));
             assert_match_instrs(
                 procedure.instrs(),
                 &[
@@ -2165,8 +2169,8 @@ mod tests {
                     (
                         Opcode::PUSHADDR1,
                         &[Operand::RelocatableOffset(RelocatableOffset::new(
-                            8 * 4,
-                            30 * 4,
+                            9 * 4,
+                            31 * 4,
                         ))],
                     ),
                     (Opcode::CALL, &[Operand::Offset(0)]),
@@ -2174,8 +2178,8 @@ mod tests {
                     (
                         Opcode::PUSHADDR1,
                         &[Operand::RelocatableOffset(RelocatableOffset::new(
-                            18 * 4,
-                            30 * 4,
+                            19 * 4,
+                            31 * 4,
                         ))],
                     ),
                     (Opcode::CALL, &[Operand::Offset(0)]),
@@ -2189,12 +2193,12 @@ mod tests {
             );
         }
 
-        // Procedure 3, at offset 30 * 4
+        // Procedure 3, at offset 31 * 4
         {
             let procedure = &unit[proc_3];
 
             assert_eq!(procedure.id().as_usize(), 2);
-            assert_eq!(unit.procedure_offset(proc_3), SectionOffset::Code(30 * 4));
+            assert_eq!(unit.procedure_offset(proc_3), SectionOffset::Code(31 * 4));
             assert_match_instrs(
                 procedure.instrs(),
                 &[
@@ -2214,7 +2218,7 @@ mod tests {
         // (which tends to be closer to the end of the code section)
         assert_eq!(
             unit.local_reloc_heads.get(&UnitSection::Code).copied(),
-            Some(23 * 4)
+            Some(24 * 4)
         );
     }
 }
