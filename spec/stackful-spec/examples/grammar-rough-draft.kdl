@@ -47,32 +47,32 @@ types {
     description """
     long form description
     """
-    // rust_type and size implied from type annotation?
+    // repr_type and size implied from type annotation?
   }
   scalar "nat4" size=4 {
     description """
     long form description
     """
-    rust_type "u32"
+    repr_type "u32"
   }
   scalar "set16" size=2 {
     description """
     long form description
     """
-    rust_type "u16"
+    repr_type "u16"
   }
   scalar "set32" size=4 {
     description """
     long form description
     """
-    rust_type "u32"
+    repr_type "u32"
   }
   scalar "addrint" size=4 {
     description """
     Address within the interpreter memory space. Always a 32-bit integer
     regardless of platform.
     """
-    rust_type "u32"
+    repr_type "u32"
   }
   // it's up to consumer to interpret this!
   struct "relocatable_offset" size=8 {

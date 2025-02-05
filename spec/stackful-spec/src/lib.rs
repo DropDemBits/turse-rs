@@ -138,7 +138,10 @@ pub enum ParseError {
 
     #[error("node does not have any children")]
     #[diagnostic(code(bytecode_spec::children_required))]
-    ChildrenRequired(#[label] miette::SourceSpan),
+    ChildrenRequired(
+        #[label("`{1}` nodes must have curly braces")] miette::SourceSpan,
+        CommonNodes,
+    ),
 
     #[error("invalid type kind")]
     #[diagnostic(code(bytecode_spec::invalid_type_kind))]
@@ -187,6 +190,7 @@ pub enum CommonNodes {
     InstructionList,
     TypeList,
     GroupNode,
+    OperandsList,
     OpcodeNode,
     StructNode,
     EnumNode,
@@ -198,6 +202,7 @@ impl CommonNodes {
             CommonNodes::InstructionList => "instructions",
             CommonNodes::TypeList => "types",
             CommonNodes::GroupNode => "group",
+            CommonNodes::OperandsList => "operands",
             CommonNodes::OpcodeNode => "opcode",
             CommonNodes::StructNode => "struct",
             CommonNodes::EnumNode => "enum",
@@ -218,6 +223,7 @@ pub enum NameKind {
     Variant,
     Property,
     Field,
+    Operand,
     Mnemonic,
 }
 
@@ -229,6 +235,7 @@ impl Display for NameKind {
             NameKind::Variant => "variant name",
             NameKind::Property => "property name",
             NameKind::Field => "field name",
+            NameKind::Operand => "operand",
             NameKind::Mnemonic => "mnemonic",
         })
     }
@@ -370,6 +377,11 @@ impl Instruction {
     /// Detailed description of the instruction.
     pub fn description(&self) -> Option<&str> {
         self.description.as_deref()
+    }
+
+    /// Immediately decoded operands.
+    pub fn immediate_operands(&self) -> &[Operand] {
+        &self.immediate_operands
     }
 }
 
