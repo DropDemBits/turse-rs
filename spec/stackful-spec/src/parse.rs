@@ -5,7 +5,8 @@ use std::{
 
 use crate::{
     entities::TypeRef, BytecodeSpec, CommonNodes, Enum, EnumVariant, Group, Instruction, NameKind,
-    ParseError, Property, PropertyValue, Scalar, StringList, Struct, StructField, Type, Types,
+    Operand, ParseError, Property, PropertyValue, Scalar, StringList, Struct, StructField, Type,
+    Types,
 };
 
 pub(crate) fn parse_spec(text: &str) -> Result<BytecodeSpec, ParseError> {
@@ -44,7 +45,7 @@ pub(crate) fn parse_spec(text: &str) -> Result<BytecodeSpec, ParseError> {
                     }
                     _ => {
                         // within!
-                        instr_defs.push(parse_instruction(entry)?);
+                        instr_defs.push(parse_instruction(entry, &types)?);
                     }
                 }
             }
@@ -58,7 +59,7 @@ pub(crate) fn parse_spec(text: &str) -> Result<BytecodeSpec, ParseError> {
             ));
         } else {
             // as single instruction
-            instr_defs.push(parse_instruction(entry)?);
+            instr_defs.push(parse_instruction(entry, &types)?);
         }
     }
 
@@ -386,7 +387,6 @@ fn parse_enum(node: &kdl::KdlNode) -> Result<Enum, ParseError> {
 
     for variant in &variant_defs {
         let has_properties: HashSet<_> = variant.properties().map(|(name, _)| name).collect();
-        dbg!(&(&all_properties, &has_properties));
 
         let mut missing: Vec<_> = all_properties
             .difference(&has_properties)
@@ -413,22 +413,75 @@ fn parse_enum(node: &kdl::KdlNode) -> Result<Enum, ParseError> {
     })
 }
 
-fn parse_instruction(node: &kdl::KdlNode) -> Result<Instruction, ParseError> {
+fn parse_instruction(node: &kdl::KdlNode, types: &Types) -> Result<Instruction, ParseError> {
     let opcode = parse_required_u32_entry(node, 0)?;
     let heading = parse_heading(node, 1)?;
     let description = parse_description(node)?;
 
-    // TODO: parse operands and conditional decodes
+    let immediate_operands = if let Some(operands) = find_child(node, "operands") {
+        let operands = get_required_children(operands, CommonNodes::OperandsList)?;
+        let mut operand_defs = vec![];
+        let mut operand_names = HashMap::new();
+
+        for entry in operands.nodes() {
+            let def = parse_operand(entry, types)?;
+
+            let def_span = entry.name().span();
+
+            if let Some(existing_name) = operand_names.insert(def.name.to_owned(), def_span) {
+                return Err(ParseError::DuplicateName(
+                    NameKind::Operand,
+                    def.name.to_owned(),
+                    existing_name,
+                    def_span,
+                ));
+            }
+
+            operand_defs.push(def);
+        }
+
+        operand_defs
+    } else {
+        // No explicit immediate operands
+        vec![]
+    };
+
+    // TODO: parse stack operands and conditional decodes
 
     Ok(Instruction {
         mnemonic: node.name().value().to_owned(),
         opcode,
         heading: heading.map(String::from),
         description: description.map(String::from),
-        immediate_operands: Box::new([]),
+        immediate_operands: immediate_operands.into_boxed_slice(),
         stack_before_operands: Box::new([]),
         stack_after_operands: Box::new([]),
         conditional_decodes: None,
+    })
+}
+
+fn parse_operand(node: &kdl::KdlNode, types: &Types) -> Result<Operand, ParseError> {
+    let name = node.name().value();
+    let ty = parse_required_string_entry(node, 0)?;
+    let Some(ty) = types.get(ty) else {
+        let ty_span = node.entry(0).expect("must have type entry");
+        return Err(ParseError::UnknownTypeName(ty.to_owned(), ty_span.span()));
+    };
+    let description = parse_description(node)?;
+    let unused = node
+        .entry("unused")
+        .and_then(|it| it.value().as_bool()) // expect bool
+        .unwrap_or(false);
+
+    // other things!
+    Ok(Operand {
+        name: name.to_owned(),
+        ty,
+        description: description.map(String::from),
+        unused,
+        variadic: false,
+        preserves: None,
+        computed: None,
     })
 }
 
@@ -450,7 +503,7 @@ fn get_required_children(
     node_type: CommonNodes,
 ) -> Result<&kdl::KdlDocument, ParseError> {
     let Some(children) = node.children() else {
-        panic!("node must have children {node_type:?} {:?}", node.span());
+        return Err(ParseError::ChildrenRequired(node.span(), node_type));
     };
 
     Ok(children)
@@ -531,19 +584,22 @@ fn parse_u32_entry(
     Ok(Some(value))
 }
 
+fn find_child<'node>(
+    node: &'node kdl::KdlNode,
+    child_name: &'static str,
+) -> Option<&'node kdl::KdlNode> {
+    node.children()?
+        .nodes()
+        .iter()
+        .find(|it| it.name().value() == child_name)
+}
+
 /// Parses a child description node with a string value
 fn parse_string_child<'node>(
     node: &'node kdl::KdlNode,
     child_name: &'static str,
 ) -> Result<Option<&'node str>, ParseError> {
-    let Some(children) = node.children() else {
-        return Ok(None);
-    };
-    let Some(child_node) = children
-        .nodes()
-        .iter()
-        .find(|it| it.name().value() == child_name)
-    else {
+    let Some(child_node) = find_child(node, child_name) else {
         return Ok(None);
     };
 
@@ -670,6 +726,75 @@ mod tests {
         assert_eq!(out.instructions.len(), 4);
         assert_eq!(out.groups.len(), 1);
         assert_eq!(out.by_groups().count(), 3);
+    }
+
+    #[test]
+    fn parse_instruction_operands() {
+        let out = parse_pass(
+            r#"
+            types {
+                scalar int4 size=4
+            }
+            instructions {
+                INSTR_A 0x0 {
+                    operands {
+                        op1 "int4"
+                        op2 "int4" unused=#true { description "op2" }
+                        op3 "int4" { description "op3" }
+                    }
+                }
+            }
+            "#,
+        );
+
+        assert_eq!(out.instructions.len(), 1);
+        let instr = &out.instructions[0];
+        let int4 = out.types.get("int4").expect("should have int4 type");
+
+        assert_eq!(instr.immediate_operands().len(), 3);
+
+        {
+            let operand = &instr.immediate_operands()[0];
+            assert_eq!(operand.name, "op1");
+            assert_eq!(operand.ty, int4);
+            assert_eq!(operand.description, None);
+        }
+
+        {
+            let operand = &instr.immediate_operands()[1];
+            assert_eq!(operand.name, "op2");
+            assert_eq!(operand.ty, int4);
+            assert_eq!(operand.unused, true);
+            assert_eq!(operand.description.as_deref(), Some("op2"));
+        }
+
+        {
+            let operand = &instr.immediate_operands()[2];
+            assert_eq!(operand.name, "op3");
+            assert_eq!(operand.ty, int4);
+            assert_eq!(operand.description.as_deref(), Some("op3"));
+        }
+    }
+
+    #[test]
+    fn parse_fail_instruction_operand_unknown_type() {
+        let err = parse_fail(
+            r#"
+            types {}
+            instructions {
+                INSTR_A 0x0 {
+                    operands {
+                        op1 "unknown"
+                    }
+                }
+            }
+            "#,
+        );
+
+        assert!(
+            matches!(&err, ParseError::UnknownTypeName(name, ..) if name == "unknown"),
+            "{err:#?}"
+        );
     }
 
     #[test]
