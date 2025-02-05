@@ -24,6 +24,13 @@ use std::{
     str::FromStr,
 };
 
+use entities::{
+    EnumRef, ImmediateOperand, ScalarRef, StackAfterOperand, StackBeforeOperand, StructRef,
+    TypeRef, VariantRef,
+};
+
+pub mod entities;
+
 mod parse;
 
 type Str = String;
@@ -32,15 +39,18 @@ type Str = String;
 #[derive(Debug)]
 #[non_exhaustive]
 pub struct BytecodeSpec {
-    /// The types available for operands.
+    /// The types used by operands.
     pub types: Types,
-    /// The defined instructions.
+    /// The instructions defined for the bytecode.
+    ///
+    /// Instructions are stored in definition order.
     pub instructions: Box<[Instruction]>,
     /// Groups of related instructions.
     pub groups: Box<[(Group, Range<usize>)]>,
 }
 
 impl BytecodeSpec {
+    /// Gets all instructions with respect to groupings of instructions.
     pub fn by_groups(&self) -> impl Iterator<Item = InstructionEntry<'_>> {
         let mut groups = self.groups.iter().peekable();
         let mut next_instr = self.instructions.iter().enumerate();
@@ -51,22 +61,22 @@ impl BytecodeSpec {
             if let Some((group_info, group_range)) = groups.peek() {
                 if group_range.contains(&index) {
                     // Skip over group and instructions that are part of a group.
-                    dbg!(groups.next());
+                    _ = groups.next();
                     // We've already consumed one instruction of the group, so we don't need to consume it again.
                     for _ in 0..(group_range.len().saturating_sub(1)) {
-                        dbg!(next_instr.next());
+                        _ = next_instr.next();
                     }
 
-                    return dbg!(Some(InstructionEntry::Group(
+                    return Some(InstructionEntry::Group(
                         group_info,
                         self.instructions
                             .get(group_range.clone())
                             .expect("group range should be within instruction slice"),
-                    )));
+                    ));
                 }
             }
 
-            return dbg!(Some(InstructionEntry::Instruction(instr)));
+            return Some(InstructionEntry::Instruction(instr));
         })
     }
 }
@@ -79,19 +89,48 @@ impl FromStr for BytecodeSpec {
     }
 }
 
+/// Error encountered while parsing the bytecode spec.
 #[derive(Debug, miette::Diagnostic, thiserror::Error)]
 pub enum ParseError {
     #[error(transparent)]
     #[diagnostic(transparent)]
     KdlError(#[from] kdl::KdlError),
 
-    #[error("expected a string argument")]
+    #[error("expected a value")]
+    #[diagnostic(code(bytecode_spec::expected_value))]
+    ExpectedValue(#[label] miette::SourceSpan),
+
+    #[error("value type cannot be used")]
+    #[diagnostic(code(bytecode_spec::expected_value))]
+    InvalidValue(#[label] miette::SourceSpan),
+
+    #[error("expected a string value")]
     #[diagnostic(code(bytecode_spec::expected_string))]
     ExpectedString(#[label] miette::SourceSpan),
+
+    #[error("expected an integer value")]
+    #[diagnostic(code(bytecode_spec::expected_integer))]
+    ExpectedInteger(#[label] miette::SourceSpan),
+
+    #[error("expected a positive integer value")]
+    #[diagnostic(code(bytecode_spec::expected_positive_integer))]
+    ExpectedPositiveInteger(#[label] miette::SourceSpan),
+
+    #[error("integer is too big")]
+    #[diagnostic(code(bytecode_spec::integer_too_big))]
+    IntegerTooBig(#[label("expected a value less than u32::MAX")] miette::SourceSpan),
 
     #[error("missing a string argument")]
     #[diagnostic(code(bytecode_spec::missing_string))]
     MissingString(#[label] miette::SourceSpan),
+
+    #[error("missing an integer argument")]
+    #[diagnostic(code(bytecode_spec::missing_integer))]
+    MissingInteger(#[label] miette::SourceSpan),
+
+    #[error("missing `{0}` property")]
+    #[diagnostic(code(bytecode_spec::missing_property))]
+    MissingProperty(String, #[label] miette::SourceSpan),
 
     #[error("missing required node `{0}`")]
     #[diagnostic(code(bytecode_spec::node_required))]
@@ -100,14 +139,57 @@ pub enum ParseError {
     #[error("node does not have any children")]
     #[diagnostic(code(bytecode_spec::children_required))]
     ChildrenRequired(#[label] miette::SourceSpan),
+
+    #[error("invalid type kind")]
+    #[diagnostic(code(bytecode_spec::invalid_type_kind))]
+    InvalidTypeKind(#[label("expected `scalar`, `struct` or `enum`")] miette::SourceSpan),
+
+    #[error("unknown type name `{0}`")]
+    #[diagnostic(code(bytecode_spec::unknown_type_name))]
+    UnknownTypeName(
+        String,
+        #[label("not found in `types` list")] miette::SourceSpan,
+    ),
+
+    #[error("duplicate {0} `{1}`")]
+    #[diagnostic(code(bytecode_spec::duplicate_name))]
+    DuplicateName(
+        NameKind,
+        String,
+        #[label(primary, "first defined here")] miette::SourceSpan,
+        #[label("then defined here")] miette::SourceSpan,
+    ),
+
+    #[error("type `{0}` is infinitely sized")]
+    #[diagnostic(code(bytecode_spec::cyclic_type))]
+    CyclicType(
+        String,
+        #[label(primary, "type defined here")] miette::SourceSpan,
+        #[label(collection, "which refers to this type")] Vec<miette::SourceSpan>,
+    ),
+
+    #[error("variant is missing properties")]
+    #[diagnostic(code(bytecode_spec::missing_properties))]
+    MissingVariantProperties(#[label("missing {1}")] miette::SourceSpan, StringList),
+
+    #[error("mismatched property types")]
+    #[diagnostic(code(bytecode_spec::mismatched_property_value))]
+    MismatchedPropertyTypes(
+        #[label("expected {1}, found {2}")] miette::SourceSpan,
+        PropertyKind,
+        PropertyKind,
+    ),
 }
 
+/// Common node names used for error reporting.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum CommonNodes {
     InstructionList,
     TypeList,
     GroupNode,
     OpcodeNode,
+    StructNode,
+    EnumNode,
 }
 
 impl CommonNodes {
@@ -116,7 +198,9 @@ impl CommonNodes {
             CommonNodes::InstructionList => "instructions",
             CommonNodes::TypeList => "types",
             CommonNodes::GroupNode => "group",
-            CommonNodes::OpcodeNode => "group",
+            CommonNodes::OpcodeNode => "opcode",
+            CommonNodes::StructNode => "struct",
+            CommonNodes::EnumNode => "enum",
         }
     }
 }
@@ -127,6 +211,50 @@ impl Display for CommonNodes {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum NameKind {
+    Generic,
+    Type,
+    Variant,
+    Property,
+    Field,
+    Mnemonic,
+}
+
+impl Display for NameKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            NameKind::Generic => "name",
+            NameKind::Type => "type name",
+            NameKind::Variant => "variant name",
+            NameKind::Property => "property name",
+            NameKind::Field => "field name",
+            NameKind::Mnemonic => "mnemonic",
+        })
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct StringList(pub Vec<String>);
+
+impl Display for StringList {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut entries = self.0.iter();
+
+        let Some(first) = entries.next() else {
+            return Ok(());
+        };
+        f.write_fmt(format_args!("`{first}`"))?;
+
+        for entry in entries {
+            f.write_fmt(format_args!(", `{entry}`"))?;
+        }
+
+        Ok(())
+    }
+}
+
+/// Contains the definitions for types used by all operands.
 #[derive(Debug)]
 pub struct Types {
     pub types: Box<[Type]>,
@@ -144,7 +272,7 @@ impl Index<TypeRef> for Types {
     type Output = Type;
 
     fn index(&self, index: TypeRef) -> &Self::Output {
-        &self.types[index.0]
+        &self.types[index.index()]
     }
 }
 
@@ -152,7 +280,9 @@ impl Index<ScalarRef> for Types {
     type Output = Scalar;
 
     fn index(&self, index: ScalarRef) -> &Self::Output {
-        self[index.0].as_scalar().expect("type should be a scalar")
+        self[index.type_ref()]
+            .as_scalar()
+            .expect("type should be a scalar")
     }
 }
 
@@ -160,7 +290,9 @@ impl Index<StructRef> for Types {
     type Output = Struct;
 
     fn index(&self, index: StructRef) -> &Self::Output {
-        self[index.0].as_struct().expect("type should be a struct")
+        self[index.type_ref()]
+            .as_struct()
+            .expect("type should be a struct")
     }
 }
 
@@ -168,7 +300,9 @@ impl Index<EnumRef> for Types {
     type Output = Enum;
 
     fn index(&self, index: EnumRef) -> &Self::Output {
-        self[index.0].as_enum().expect("type should be an enum")
+        self[index.type_ref()]
+            .as_enum()
+            .expect("type should be an enum")
     }
 }
 
@@ -259,6 +393,7 @@ pub struct Operand {
     /// different stack slot.
     /// Only applicable for stack_after operands.
     pub preserves: Option<StackBeforeOperand>,
+    /// Expression to compute the element count at decode time, if applicable.
     pub computed: Option<ComputedExpr>,
 }
 
@@ -350,6 +485,33 @@ pub enum Type {
 }
 
 impl Type {
+    /// Name of the type.
+    pub fn name(&self) -> &str {
+        match self {
+            Type::Scalar(it) => &it.name,
+            Type::Struct(it) => &it.name,
+            Type::Enum(it) => &it.name,
+        }
+    }
+
+    /// Detailed description of the type.
+    pub fn description(&self) -> Option<&str> {
+        match self {
+            Type::Scalar(it) => it.description.as_deref(),
+            Type::Struct(it) => it.description.as_deref(),
+            Type::Enum(it) => it.description.as_deref(),
+        }
+    }
+
+    /// Size of the type, typically in bytes.
+    pub fn size(&self) -> u32 {
+        match self {
+            Type::Scalar(it) => it.size,
+            Type::Struct(it) => it.size,
+            Type::Enum(it) => it.size,
+        }
+    }
+
     pub fn as_scalar(&self) -> Option<&Scalar> {
         match self {
             Type::Scalar(it) => Some(it),
@@ -372,104 +534,231 @@ impl Type {
     }
 }
 
+/// A simple primitive type, used as the building block for other types.
 #[derive(Debug)]
-#[non_exhaustive]
 pub struct Scalar {
-    pub name: Str,
-    pub description: Option<Str>,
-    pub size: Option<u32>,
-    pub repr_type: Option<Str>,
+    name: Str,
+    description: Option<Str>,
+    size: u32,
+    repr_type: Option<Str>,
 }
 
+impl Scalar {
+    /// Name of the type.
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// Detailed description of the type.
+    pub fn description(&self) -> Option<&str> {
+        self.description.as_deref()
+    }
+
+    /// Size of the type, typically in bytes.
+    pub fn size(&self) -> u32 {
+        self.size
+    }
+
+    /// What this type may be represented as when generating code.
+    pub fn repr_type(&self) -> Option<&str> {
+        self.repr_type.as_deref()
+    }
+}
+
+/// A compound grouping of types.
 #[derive(Debug)]
-#[non_exhaustive]
 pub struct Struct {
-    pub name: Str,
-    pub description: Option<Str>,
-    pub size: Option<u32>,
-    pub fields: Box<[StructField]>,
+    name: Str,
+    description: Option<Str>,
+    size: u32,
+    fields: Box<[StructField]>,
 }
 
+impl Struct {
+    /// Name of the type.
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// Detailed description of the type.
+    pub fn description(&self) -> Option<&str> {
+        self.description.as_deref()
+    }
+
+    /// Size of the type, typically in bytes.
+    pub fn size(&self) -> u32 {
+        self.size
+    }
+
+    /// Fields of the struct.
+    pub fn fields(&self) -> &[StructField] {
+        &self.fields
+    }
+}
+
+/// A field within a [`Struct`].
 #[derive(Debug)]
-#[non_exhaustive]
 pub struct StructField {
-    pub name: Str,
-    pub ty: Str,
-    pub description: Option<Str>,
-    pub size: Option<u32>,
+    name: Str,
+    ty: Str,
+    description: Option<Str>,
 }
 
+impl StructField {
+    /// Name of the field.
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// Detailed description of the field.
+    pub fn description(&self) -> Option<&str> {
+        self.description.as_deref()
+    }
+
+    /// Type of the field.
+    pub fn ty(&self) -> &str {
+        &self.ty
+    }
+}
+
+/// A value with possible variants.
 #[derive(Debug)]
 #[non_exhaustive]
 pub struct Enum {
-    pub name: Str,
-    pub description: Option<Str>,
-    pub size: Option<u32>,
-    pub repr_type: Option<Str>,
-    pub variants: Box<[EnumVariant]>,
+    name: Str,
+    description: Option<Str>,
+    size: u32,
+    repr_type: Option<Str>,
+    variants: Box<[EnumVariant]>,
+}
+
+impl Enum {
+    /// Name of the type.
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// Detailed description of the type
+    pub fn description(&self) -> Option<&str> {
+        self.description.as_deref()
+    }
+
+    /// Size of the type, typically in bytes
+    pub fn size(&self) -> u32 {
+        self.size
+    }
+
+    /// What this type may be represented as when generating code
+    pub fn repr_type(&self) -> Option<&str> {
+        self.repr_type.as_deref()
+    }
+
+    /// Variants of this enum
+    pub fn variants(&self) -> &[EnumVariant] {
+        &self.variants
+    }
 }
 
 #[derive(Debug)]
 #[non_exhaustive]
 pub struct EnumVariant {
-    pub name: Str,
-    pub ordinal: u32,
-    pub properties: BTreeMap<Str, PropertyValue>,
+    name: Str,
+    description: Option<Str>,
+    ordinal: u32,
+    properties: BTreeMap<Str, Property>,
+}
+
+impl EnumVariant {
+    /// Name of the variant
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// Detailed description of the variant
+    pub fn description(&self) -> Option<&str> {
+        self.description.as_deref()
+    }
+
+    /// Ordinal index of the variant
+    pub fn ordinal(&self) -> u32 {
+        self.ordinal
+    }
+
+    /// Specific property of this variant
+    pub fn property(&self, name: &str) -> Option<&Property> {
+        self.properties.get(name)
+    }
+
+    /// Properties of this variant
+    pub fn properties(&self) -> impl Iterator<Item = (&str, &Property)> {
+        self.properties
+            .iter()
+            .map(|(name, value)| (name.as_str(), value))
+    }
+}
+
+/// A property of an enum variant.
+///
+/// All variants of an enum must have the same set of property names.
+#[derive(Debug)]
+pub struct Property {
+    name: Str,
+    value: PropertyValue,
+}
+
+impl Property {
+    /// Name of this property.
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// Value of this property.
+    pub fn value(&self) -> &PropertyValue {
+        &self.value
+    }
+
+    /// What kind of value this property has.
+    pub fn kind(&self) -> PropertyKind {
+        self.value.kind()
+    }
 }
 
 /// Value of a potential property.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum PropertyValue {
     String(Str),
-    Number(u128),
+    Number(i128),
+    Bool(bool),
 }
 
-/// Refers to a specific immediate operand in an [`Instruction`].
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct ImmediateOperand(usize);
+impl PropertyValue {
+    /// What kind of value this value is.
+    pub fn kind(&self) -> PropertyKind {
+        match self {
+            PropertyValue::String(_) => PropertyKind::String,
+            PropertyValue::Number(_) => PropertyKind::Number,
+            PropertyValue::Bool(_) => PropertyKind::Bool,
+        }
+    }
+}
 
-/// Refers to a specific stack_before operand in an [`Instruction`].
-/// This may be a part of a specific conditional decode group.
+/// Possible values that a property can store.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct StackBeforeOperand(usize);
+#[non_exhaustive]
+pub enum PropertyKind {
+    String,
+    Number,
+    Bool,
+}
 
-/// Refers to a specific stack_after operand in an [`Instruction`].
-/// This may be a part of a specific conditional decode group.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct StackAfterOperand(usize);
-
-/// Refers to a specific decode group in an [`Instruction`].
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct ConditionalDecodeRef(usize);
-
-/// Refers to a specific type in a [`BytecodeSpec`].
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct TypeRef(usize);
-
-/// Refers to a specific scalar type in a [`BytecodeSpec`].
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct ScalarRef(TypeRef);
-
-/// Refers to the artificial computed type to indicate an operand whose size is computed at decode time.
-pub const COMPUTED_TYPE: ScalarRef = ScalarRef(TypeRef(usize::MAX));
-
-/// Refers to a specific struct type in a [`BytecodeSpec`].
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct StructRef(TypeRef);
-///
-/// Refers to a specific enum type in a [`BytecodeSpec`].
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct EnumRef(TypeRef);
-
-/// Refers to a specific enum type variant in a [`BytecodeSpec`].
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct VariantRef(EnumRef, usize);
-
-impl VariantRef {
-    /// Which enum type this variant is a part of.
-    pub fn ty(self) -> EnumRef {
-        self.0
+impl Display for PropertyKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            PropertyKind::String => "string",
+            PropertyKind::Number => "integer",
+            PropertyKind::Bool => "bool",
+        })
     }
 }
 
