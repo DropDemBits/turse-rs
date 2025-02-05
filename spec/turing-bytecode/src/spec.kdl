@@ -29,13 +29,22 @@ types {
     """
     repr_type "f64"
   }
-  offset "offset" size=4 {
+  scalar "offset" size=4 {
     description """
     Address-sized signed integer to offset an `addrint` address with.
     Always a 32-bit integer, and is always less than or equal to 2^31 - 1 and greater than or equal to -2^31.
     Allocations can never exceed the size of an offset, and are thus limited to a maximum of 2^31 - 1 bytes.
     """
     repr_type "u32"
+  }
+  struct "relocatable_offset" size=8 {
+    description """
+    Relocatable address that is resolved at runtime.
+    This is an entry within a relocatable patch list, with `link` pointing to the next entry in the list.
+    Each distinct relocatable patch list refers to the local code unit sections (code, manifest, and global), as well as to other code units's sections.
+    """
+    link "int4" { description "Offset to the next relocatable patch entry to fixup." }
+    offset "int4" { description "Offset within the section, relative to the base address." }
   }
   scalar "addrint" size=4 {
     descripton """
@@ -209,6 +218,21 @@ instructions {
     }
   }
 
+  CALL 0x32 "Call Procedure" {
+    description """
+    Changes execution to follow the procedure at the provided call address.
+    Standard call ABI (that is, the call ABI of Turing/OpenTuring) requires that the call address be pushed before all of the operands.
+    """
+
+    operands {
+      address_offset "offset" { description "Offset to the call address in the stack" }
+    }
+    stack_before {}
+    stack_after {
+      return_addr "addrint" { description "Return address" }
+    }
+  }
+
   CASE 0x35 "Case Of" {
     description """
     Jumps to a specific branch depending on `selector`.
@@ -316,6 +340,21 @@ instructions {
   }
 
   group "Push Value Onto Stack" {
+    PUSHADDR1 0xBC "Push Relocatable Address" {
+      description """
+      Pushes a relocatable address with a runtime-determined base address.
+
+      This may be relative to the base address of the local or external code unit section (code, manifest, or global).
+      """
+      operands {
+        offset "relocatable_offset" { description "Runtime-resolved offset within a section." }
+      }
+      stack_before {}
+      stack_after {
+        addr "addrint" { description "Computed offset and base address." }
+      }
+    }
+
     PUSHVAL0 0xC2 "Push Literal 0" {
       description """
       Pushes a literal 0 value onto the operand stack.
