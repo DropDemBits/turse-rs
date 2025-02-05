@@ -11,6 +11,7 @@ use section::{
 };
 
 mod instruction;
+mod writer;
 
 pub mod section;
 
@@ -81,6 +82,7 @@ pub struct BytecodeBuilder {
     // - unit ref gen
     next_unit: u32,
     units: BTreeMap<CodeUnitRef, CodeUnit>,
+    main_unit: Option<CodeUnitRef>,
 }
 
 impl BytecodeBuilder {
@@ -88,6 +90,7 @@ impl BytecodeBuilder {
         Self {
             next_unit: 1,
             units: BTreeMap::new(),
+            main_unit: None,
         }
     }
 
@@ -105,10 +108,15 @@ impl BytecodeBuilder {
         };
     }
 
+    pub fn main_unit(&mut self, code_unit: CodeUnitRef) {
+        self.main_unit = Some(code_unit);
+    }
+
     pub fn finish(self) -> BytecodeBlob {
         let Self {
             next_unit: _,
             units,
+            main_unit,
         } = self;
 
         // Apply relocs
@@ -117,7 +125,7 @@ impl BytecodeBuilder {
             .map(|(id, unit)| (id, unit.apply_relocs()))
             .collect();
 
-        BytecodeBlob { units }
+        BytecodeBlob { units, main_unit }
     }
 }
 
@@ -139,11 +147,20 @@ impl IndexMut<CodeUnitRef> for BytecodeBuilder {
 pub struct BytecodeBlob {
     // also have config and whatnot
     units: BTreeMap<CodeUnitRef, CodeUnit>,
+    main_unit: Option<CodeUnitRef>,
 }
 
 impl BytecodeBlob {
     pub fn code_units(&self) -> impl Iterator<Item = &'_ CodeUnit> {
         self.units.values()
+    }
+
+    pub fn main_unit(&self) -> Option<CodeUnitRef> {
+        self.main_unit
+    }
+
+    pub fn encode(&self, out: &mut impl std::io::Write) -> std::io::Result<()> {
+        writer::encode_bytecode(out, self)
     }
 }
 
@@ -266,6 +283,8 @@ impl CodeUnitBuilder {
         CodeUnit {
             id,
             file_name,
+            body_unit: None,
+            stub_unit: None,
             procedures,
             procedure_offsets,
             manifest,
@@ -284,6 +303,8 @@ pub struct CodeUnit {
     id: CodeUnitRef,
     // - file name
     file_name: Box<str>,
+    body_unit: Option<CodeUnitRef>,
+    stub_unit: Option<CodeUnitRef>,
     // - procedures
     procedures: BTreeMap<ProcedureRef, Procedure>,
     // - procedure offsets
