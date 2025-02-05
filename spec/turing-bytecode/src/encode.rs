@@ -291,8 +291,10 @@ pub struct CodeUnit {
     // - global
     globals: GlobalsSection,
     // - offsets, partitioned by target and section
-    code_relocs:
-        BTreeMap<(Option<CodeUnitRef>, UnitSection), Vec<(ProcedureRef, RelocHandle, u32)>>,
+    code_relocs: BTreeMap<
+        (Option<CodeUnitRef>, UnitSection),
+        BTreeMap<ProcedureRef, Vec<(RelocHandle, u32)>>,
+    >,
 
     // final relocation heads
     // todo: manifest patch chain list, which is a simple list of entries
@@ -353,11 +355,14 @@ impl CodeUnit {
             };
             let (reloc_section, reloc_offset) = offset.as_offset();
 
-            let relocs = self
+            let proc_relocs = self
                 .code_relocs
                 .entry((reloc_unit, reloc_section))
-                .or_insert(vec![]);
-            relocs.push((proc, reloc_handle, reloc_offset));
+                .or_insert(BTreeMap::new());
+            proc_relocs
+                .entry(proc)
+                .or_insert(vec![])
+                .push((reloc_handle, reloc_offset));
         }
     }
 
@@ -371,36 +376,58 @@ impl CodeUnit {
             #[derive(Debug, Clone, Copy)]
             struct RelocPatch {
                 operand_offset: u32,
-                proc: ProcedureRef,
+                next_link_offset: u32,
                 instr: InstructionRef,
                 operand: OperandRef,
                 section_offset: u32,
             }
 
-            let reloc_patches: Vec<_> = reloc_targets
+            let mut next_link_offset = 0;
+            let reloc_patches: BTreeMap<_, _> = reloc_targets
                 .into_iter()
-                .map(|(proc, reloc, section_offset)| {
+                .map(|(proc, relocs)| {
                     let SectionOffset::Code(proc_base) = self.procedure_offset(proc) else {
                         unreachable!()
                     };
-                    let InstrReloc {
-                        operand_offset,
-                        instr,
-                        operand,
-                    } = self[proc].reloc_patches[&reloc];
 
-                    RelocPatch {
-                        operand_offset: proc_base + operand_offset,
-                        proc,
-                        instr,
-                        operand,
-                        section_offset,
-                    }
+                    // Get patch locations associated with each reloc handle
+                    let patches: Vec<_> = relocs
+                        .into_iter()
+                        .map(|(reloc, section_offset)| {
+                            let InstrReloc {
+                                operand_offset,
+                                instr,
+                                operand,
+                            } = self[proc].reloc_patches[reloc.as_usize()];
+
+                            let patch = RelocPatch {
+                                operand_offset: proc_base + operand_offset,
+                                next_link_offset,
+                                instr,
+                                operand,
+                                section_offset,
+                            };
+
+                            // Link together with the previous patch
+                            // Patches are absolute offsets to the next operand from the base of the code table
+                            next_link_offset = patch.operand_offset;
+
+                            patch
+                        })
+                        .collect();
+
+                    dbg!(&patches);
+
+                    (proc, patches)
                 })
                 .collect();
 
-            // Store patch head offset & info
-            let Some(patch_head) = reloc_patches.first() else {
+            // Store patch head offset & info to the first patch of the list
+            // This will be the end of the list since offsets point to lower entries
+            let Some(patch_head) = reloc_patches
+                .last_key_value()
+                .and_then(|(_, relocs)| relocs.last())
+            else {
                 // No patches to apply for this list, somehow
                 continue;
             };
@@ -417,27 +444,20 @@ impl CodeUnit {
                 }
             }
 
-            let link_offsets = reloc_patches
-                .iter()
-                .skip(1)
-                .map(|next_patch| {
-                    // Patches are absolute offsets to the next operand from the base of the code table
-                    next_patch.operand_offset
-                })
-                .chain(std::iter::once(0u32));
-
-            // Patch instructions with links
-            for (patch, link_offset) in reloc_patches.iter().zip(link_offsets) {
+            for (proc, patches) in reloc_patches {
                 let procedure = self
                     .procedures
-                    .get_mut(&patch.proc)
+                    .get_mut(&proc)
                     .expect("invalid procedure ref");
 
-                procedure.instrs[patch.instr.as_usize()][patch.operand] =
-                    Operand::RelocatableOffset(RelocatableOffset::new(
-                        link_offset,
-                        patch.section_offset,
-                    ));
+                // Patch instructions with links
+                for patch in patches {
+                    procedure.instrs[patch.instr.as_usize()][patch.operand] =
+                        Operand::RelocatableOffset(RelocatableOffset::new(
+                            patch.next_link_offset,
+                            patch.section_offset,
+                        ));
+                }
             }
         }
 
@@ -768,21 +788,13 @@ impl ProcedureBuilder {
             .collect();
 
         // Associate relocation patches with the instruction offsets so we don't have to compute it later
-        let reloc_patches: BTreeMap<_, _> = reloc_patches
+        let reloc_patches: Vec<_> = reloc_patches
             .into_iter()
-            .enumerate()
-            .map(|(index, (instr, operand))| {
-                let handle = RelocHandle::from_usize(index);
-                (
-                    handle,
-                    InstrReloc {
-                        operand_offset: (instr_offsets[instr.as_usize()]
-                            + instrs[instr].opcode().size())
-                            as u32,
-                        instr,
-                        operand,
-                    },
-                )
+            .map(|(instr, operand)| InstrReloc {
+                operand_offset: (instr_offsets[instr.as_usize()] + instrs[instr].opcode().size())
+                    as u32,
+                instr,
+                operand,
             })
             .collect();
 
@@ -810,7 +822,7 @@ pub struct Procedure {
     case_tables: Box<[CaseTable<u32>]>,
     // - operand patches
     //   - for relocs
-    reloc_patches: BTreeMap<RelocHandle, InstrReloc>,
+    reloc_patches: Vec<InstrReloc>,
 }
 
 impl Procedure {
@@ -2007,7 +2019,7 @@ mod tests {
     #[test]
     fn test_code_unit_with_same_unit_relocs() {
         let (proc_1, reloc_1_2, reloc_1_3);
-        let (proc_2, reloc_2_3);
+        let (proc_2, reloc_2_3, reloc_2_3_again);
         let proc_3;
         let unit_1;
 
@@ -2042,6 +2054,11 @@ mod tests {
 
             // call procedure 3
             reloc_2_3 = procedure.reloc(|ins| ins.pushaddr1(RelocatableOffset::empty()));
+            // We let signature handling compute the size of the argument stack for us.
+            procedure.ins().call(0);
+            //
+            // call procedure 3 again to test out offset intraprocedure reloc links
+            reloc_2_3_again = procedure.reloc(|ins| ins.pushaddr1(RelocatableOffset::empty()));
             // We let signature handling compute the size of the argument stack for us.
             procedure.ins().call(0);
 
@@ -2079,6 +2096,11 @@ mod tests {
                 reloc_2_3,
                 RelocTarget::Local(bytecode[unit_1].procedure_offset(proc_3)),
             ),
+            (
+                proc_2,
+                reloc_2_3_again,
+                RelocTarget::Local(bytecode[unit_1].procedure_offset(proc_3)),
+            ),
         ];
         bytecode[unit_1].add_code_relocs(relocs);
 
@@ -2098,20 +2120,23 @@ mod tests {
                     (Opcode::PROC, &[Operand::Nat4(0)]),
                     // Relocatable offsets to procedure should be patched with offset and link
                     // `link` is relative to the base of the code table, not to other operands
+                    //
+                    // List goes from higher addresses to lower addresses, but this is not a
+                    // strict requirement.
+                    // Last relocatable offset in a list should have link offset 0
                     (
                         Opcode::PUSHADDR1,
                         &[Operand::RelocatableOffset(RelocatableOffset::new(
-                            8 * 4,
+                            0,
                             15 * 4,
                         ))],
                     ),
                     (Opcode::CALL, &[Operand::Offset(0)]),
-                    // Next patch link should point into the next procedure
                     (
                         Opcode::PUSHADDR1,
                         &[Operand::RelocatableOffset(RelocatableOffset::new(
-                            18 * 4,
-                            25 * 4,
+                            3 * 4,
+                            30 * 4,
                         ))],
                     ),
                     (Opcode::CALL, &[Operand::Offset(0)]),
@@ -2136,12 +2161,21 @@ mod tests {
                 &[
                     // Procedures should always start with a PROC xxx
                     (Opcode::PROC, &[Operand::Nat4(0)]),
-                    // Last relocatable offset in a list should have link offset 0
+                    // Next patch link should point into the previous procedure
                     (
                         Opcode::PUSHADDR1,
                         &[Operand::RelocatableOffset(RelocatableOffset::new(
-                            0,
-                            25 * 4,
+                            8 * 4,
+                            30 * 4,
+                        ))],
+                    ),
+                    (Opcode::CALL, &[Operand::Offset(0)]),
+                    // First patch of the list, should point to within the same procedure
+                    (
+                        Opcode::PUSHADDR1,
+                        &[Operand::RelocatableOffset(RelocatableOffset::new(
+                            18 * 4,
+                            30 * 4,
                         ))],
                     ),
                     (Opcode::CALL, &[Operand::Offset(0)]),
@@ -2155,12 +2189,12 @@ mod tests {
             );
         }
 
-        // Procedure 3, at offset 25 * 4
+        // Procedure 3, at offset 30 * 4
         {
             let procedure = &unit[proc_3];
 
             assert_eq!(procedure.id().as_usize(), 2);
-            assert_eq!(unit.procedure_offset(proc_3), SectionOffset::Code(25 * 4));
+            assert_eq!(unit.procedure_offset(proc_3), SectionOffset::Code(30 * 4));
             assert_match_instrs(
                 procedure.instrs(),
                 &[
@@ -2177,9 +2211,10 @@ mod tests {
         }
 
         // head should be at first entry in the list
+        // (which tends to be closer to the end of the code section)
         assert_eq!(
             unit.local_reloc_heads.get(&UnitSection::Code).copied(),
-            Some(3 * 4)
+            Some(23 * 4)
         );
     }
 }
