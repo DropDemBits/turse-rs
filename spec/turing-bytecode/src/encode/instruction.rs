@@ -1,4 +1,5 @@
 use std::{
+    io,
     num::NonZeroU8,
     ops::{Index, IndexMut},
 };
@@ -125,6 +126,28 @@ impl Instruction {
     /// Size of the instruction, in bytes.
     pub fn size(&self) -> usize {
         self.opcode().size() + self.operands().map(|operand| operand.size()).sum::<usize>()
+    }
+
+    /// Encodes the instruction into the equivalent byte representation.
+    pub fn encode(&self, out: &mut impl io::Write) -> io::Result<()> {
+        use byteorder::{WriteBytesExt, LE};
+
+        // this can be generated?
+        out.write_u32::<LE>(self.opcode() as u32)?;
+
+        for operand in self.operands() {
+            match operand {
+                Operand::AbortReason(value) => out.write_u32::<LE>(*value as u32)?,
+                Operand::Nat4(value) => out.write_u32::<LE>(*value)?,
+                Operand::Offset(value) => out.write_u32::<LE>(*value)?,
+                Operand::RelocatableOffset(value) => {
+                    out.write_u32::<LE>(value.link)?;
+                    out.write_u32::<LE>(value.offset)?;
+                }
+            }
+        }
+
+        Ok(())
     }
 }
 

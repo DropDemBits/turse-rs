@@ -83,6 +83,9 @@
 
 pub mod encode;
 
+/// Magic constant that is at the start of every bytecode blob.
+pub const OBJECT_HEADER_MAGIC: &[u8] = b"TWEST\0";
+
 #[cfg(test)]
 mod tests {
     use stackful_spec::BytecodeSpec;

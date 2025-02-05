@@ -7,4 +7,6 @@ edition.workspace = true
 
 [dependencies]
 stackful-spec.workspace = true
+
+byteorder.workspace = true
 either.workspace = true
