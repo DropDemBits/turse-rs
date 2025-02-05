@@ -8,12 +8,14 @@ use std::{
 pub enum Opcode {
     ABORT = 0x00,
     ADDINTNAT = 0x05,
+    CALL = 0x32,
     CASE = 0x35,
     JUMP = 0x89,
     JUMPB = 0x8A,
     LOCATELOCAL = 0x96,
     LOCATETEMP = 0x98,
     PROC = 0xBA,
+    PUSHADDR1 = 0xBC,
     PUSHVAL0 = 0xC2,
     PUSHVAL1 = 0xC3,
     RETURN = 0xCD,
@@ -32,6 +34,24 @@ impl Opcode {
 pub enum AbortReason {
     NoResult = 9,
 }
+//
+// Can be generated
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct RelocatableOffset {
+    pub link: u32,
+    pub offset: u32,
+}
+
+impl RelocatableOffset {
+    pub fn new(link: u32, offset: u32) -> Self {
+        Self { link, offset }
+    }
+
+    /// Creates an unlinked relocatable offset
+    pub fn empty() -> Self {
+        Self { link: 0, offset: 0 }
+    }
+}
 
 // Can be generated
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -39,6 +59,7 @@ pub enum Operand {
     AbortReason(AbortReason),
     Nat4(u32),
     Offset(u32),
+    RelocatableOffset(RelocatableOffset),
 }
 
 impl Operand {
@@ -48,6 +69,7 @@ impl Operand {
             Operand::AbortReason(_) => 4,
             Operand::Nat4(_) => 4,
             Operand::Offset(_) => 4,
+            Operand::RelocatableOffset(_) => 8,
         }
     }
 }

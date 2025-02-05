@@ -5,12 +5,27 @@ use std::{
 };
 
 use either::Either;
-use instruction::{AbortReason, Instruction, Opcode, Operand, OperandRef};
+use instruction::{AbortReason, Instruction, Opcode, Operand, OperandRef, RelocatableOffset};
+use section::{
+    GlobalsAllocator, GlobalsSection, GlobalsSlot, ManifestAllocator, ManifestSection, ManifestSlot,
+};
 
 mod instruction;
 
+pub mod section;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct RelocHandle(usize);
+
+impl RelocHandle {
+    fn from_usize(id: usize) -> Self {
+        Self(id)
+    }
+
+    pub fn as_usize(self) -> usize {
+        self.0
+    }
+}
 
 // What (potential) section is the relocation meant to referring to.
 #[derive(Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -24,6 +39,36 @@ pub enum RelocDisposition {
     /// Relocation may or may not refer to the same translation unit, and will
     /// be resolved at a later point.
     Unknown,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum SectionOffset {
+    Code(u32),
+    Manifest(u32),
+    Global(u32),
+}
+
+impl SectionOffset {
+    pub fn as_offset(self) -> (UnitSection, u32) {
+        match self {
+            SectionOffset::Code(offset) => (UnitSection::Code, offset),
+            SectionOffset::Manifest(offset) => (UnitSection::Manifest, offset),
+            SectionOffset::Global(offset) => (UnitSection::Global, offset),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum UnitSection {
+    Code,
+    Manifest,
+    Global,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum RelocTarget {
+    Local(SectionOffset),
+    External(CodeUnitRef, SectionOffset),
 }
 
 // Process
@@ -59,6 +104,55 @@ impl BytecodeBuilder {
             panic!("inserting duplicate code unit {id:?}");
         };
     }
+
+    pub fn finish(self) -> BytecodeBlob {
+        let Self {
+            next_unit: _,
+            units,
+        } = self;
+
+        // Apply relocs
+        let units = units
+            .into_iter()
+            .map(|(id, unit)| (id, unit.apply_relocs()))
+            .collect();
+
+        BytecodeBlob { units }
+    }
+}
+
+impl Index<CodeUnitRef> for BytecodeBuilder {
+    type Output = CodeUnit;
+
+    fn index(&self, index: CodeUnitRef) -> &Self::Output {
+        self.units.get(&index).expect("invalid code unit ref")
+    }
+}
+
+impl IndexMut<CodeUnitRef> for BytecodeBuilder {
+    fn index_mut(&mut self, index: CodeUnitRef) -> &mut Self::Output {
+        self.units.get_mut(&index).expect("invalid code unit ref")
+    }
+}
+
+#[derive(Debug)]
+pub struct BytecodeBlob {
+    // also have config and whatnot
+    units: BTreeMap<CodeUnitRef, CodeUnit>,
+}
+
+impl BytecodeBlob {
+    pub fn code_units(&self) -> impl Iterator<Item = &'_ CodeUnit> {
+        self.units.values()
+    }
+}
+
+impl Index<CodeUnitRef> for BytecodeBlob {
+    type Output = CodeUnit;
+
+    fn index(&self, index: CodeUnitRef) -> &Self::Output {
+        self.units.get(&index).expect("invalid code unit ref")
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -80,7 +174,11 @@ pub struct CodeUnitBuilder {
     file_name: Box<str>,
     // - procedure ref gen
     next_procedure: u32,
+    // - procedures
     procedures: BTreeMap<ProcedureRef, Procedure>,
+    // - other sections
+    manifest: Option<ManifestSection>,
+    globals: Option<GlobalsSection>,
 }
 
 impl CodeUnitBuilder {
@@ -90,7 +188,13 @@ impl CodeUnitBuilder {
             file_name: file_name.to_owned().into_boxed_str(),
             next_procedure: 1,
             procedures: BTreeMap::new(),
+            manifest: None,
+            globals: None,
         }
+    }
+
+    pub fn id(&self) -> CodeUnitRef {
+        self.id
     }
 
     /// Creates a builder to construct a new procedure.
@@ -112,19 +216,61 @@ impl CodeUnitBuilder {
         };
     }
 
-    /// Finishes the builder to produce a sealed [`CodeUnit`].
+    /// Submits a manifest section to be part of this code unit.
+    pub fn submit_manifest_section(&mut self, manifest: ManifestSection) {
+        let None = self.manifest.replace(manifest) else {
+            panic!("inserting duplicate manifest section")
+        };
+    }
+
+    /// Submits a globals section to be part of this code unit.
+    pub fn submit_globals_section(&mut self, globals: GlobalsSection) {
+        let None = self.globals.replace(globals) else {
+            panic!("inserting duplicate globals section")
+        };
+    }
+
+    /// Finishes the builder to produce a sealed [`CodeUnit`] with potentially
+    /// unresolved relocations.
     pub fn finish(self) -> CodeUnit {
         let Self {
             id,
             file_name,
             next_procedure: _,
             procedures,
+            manifest,
+            globals,
         } = self;
+
+        // Compute procedure offsets, for code relocations
+        let procedure_offsets = {
+            let mut current_offset = 0;
+
+            let offsets: BTreeMap<_, _> = procedures
+                .iter()
+                .map(|(proc_id, proc)| {
+                    let at_offset = current_offset;
+                    current_offset += proc.size();
+                    (*proc_id, at_offset as u32)
+                })
+                .collect();
+
+            offsets
+        };
+
+        let manifest = manifest.unwrap_or_else(|| ManifestAllocator::new().finish());
+        let globals = globals.unwrap_or_else(|| GlobalsAllocator::new().finish());
 
         CodeUnit {
             id,
             file_name,
             procedures,
+            procedure_offsets,
+            manifest,
+            globals,
+            code_relocs: BTreeMap::new(),
+            local_reloc_heads: BTreeMap::new(),
+            external_reloc_heads: BTreeMap::new(),
         }
     }
 }
@@ -138,6 +284,20 @@ pub struct CodeUnit {
     file_name: Box<str>,
     // - procedures
     procedures: BTreeMap<ProcedureRef, Procedure>,
+    // - procedure offsets
+    procedure_offsets: BTreeMap<ProcedureRef, u32>,
+    // - manifest
+    manifest: ManifestSection,
+    // - global
+    globals: GlobalsSection,
+    // - offsets, partitioned by target and section
+    code_relocs:
+        BTreeMap<(Option<CodeUnitRef>, UnitSection), Vec<(ProcedureRef, RelocHandle, u32)>>,
+
+    // final relocation heads
+    // todo: manifest patch chain list, which is a simple list of entries
+    local_reloc_heads: BTreeMap<UnitSection, u32>,
+    external_reloc_heads: BTreeMap<UnitSection, Vec<(CodeUnitRef, u32)>>,
 }
 
 impl CodeUnit {
@@ -147,6 +307,153 @@ impl CodeUnit {
 
     pub fn file_name(&self) -> &str {
         &self.file_name
+    }
+
+    pub fn procedures(&self) -> impl Iterator<Item = &'_ Procedure> {
+        self.procedures.values()
+    }
+
+    pub fn manifest(&self) -> &ManifestSection {
+        &self.manifest
+    }
+
+    pub fn globals(&self) -> &GlobalsSection {
+        &self.globals
+    }
+
+    pub fn procedure_offset(&self, procedure: ProcedureRef) -> SectionOffset {
+        SectionOffset::Code(
+            *self
+                .procedure_offsets
+                .get(&procedure)
+                .expect("invalid procedure ref"),
+        )
+    }
+
+    pub fn manifest_offset(&self, slot: ManifestSlot) -> SectionOffset {
+        SectionOffset::Manifest(self.manifest().offset(slot))
+    }
+
+    pub fn globals_offset(&self, slot: GlobalsSlot) -> SectionOffset {
+        SectionOffset::Global(self.globals().offset(slot))
+    }
+
+    pub fn add_code_relocs(
+        &mut self,
+        relocs: impl IntoIterator<Item = (ProcedureRef, RelocHandle, RelocTarget)>,
+    ) {
+        for (proc, reloc_handle, reloc_target) in relocs {
+            // Partition each reloc by (ExternalCodeUnitRef, CodeSection)
+            // These will all be part of the same chain
+            let (reloc_unit, offset) = match reloc_target {
+                RelocTarget::Local(section_offset) => (None, section_offset),
+                RelocTarget::External(code_unit_ref, section_offset) => {
+                    (Some(code_unit_ref), section_offset)
+                }
+            };
+            let (reloc_section, reloc_offset) = offset.as_offset();
+
+            let relocs = self
+                .code_relocs
+                .entry((reloc_unit, reloc_section))
+                .or_insert(vec![]);
+            relocs.push((proc, reloc_handle, reloc_offset));
+        }
+    }
+
+    pub(crate) fn apply_relocs(mut self) -> CodeUnit {
+        let code_relocs = std::mem::take(&mut self.code_relocs);
+        let mut local_reloc_heads = BTreeMap::new();
+        let mut external_reloc_heads = BTreeMap::new();
+
+        // Build patch lists by groups
+        for ((target_unit, target_section), reloc_targets) in code_relocs {
+            #[derive(Debug, Clone, Copy)]
+            struct RelocPatch {
+                operand_offset: u32,
+                proc: ProcedureRef,
+                instr: InstructionRef,
+                operand: OperandRef,
+                section_offset: u32,
+            }
+
+            let reloc_patches: Vec<_> = reloc_targets
+                .into_iter()
+                .map(|(proc, reloc, section_offset)| {
+                    let SectionOffset::Code(proc_base) = self.procedure_offset(proc) else {
+                        unreachable!()
+                    };
+                    let InstrReloc {
+                        operand_offset,
+                        instr,
+                        operand,
+                    } = self[proc].reloc_patches[&reloc];
+
+                    RelocPatch {
+                        operand_offset: proc_base + operand_offset,
+                        proc,
+                        instr,
+                        operand,
+                        section_offset,
+                    }
+                })
+                .collect();
+
+            // Store patch head offset & info
+            let Some(patch_head) = reloc_patches.first() else {
+                // No patches to apply for this list, somehow
+                continue;
+            };
+            match target_unit {
+                Some(external_unit) => external_reloc_heads
+                    .entry(target_section)
+                    .or_insert(vec![])
+                    .push((external_unit, patch_head.operand_offset)),
+                None => {
+                    let None = local_reloc_heads.insert(target_section, patch_head.operand_offset)
+                    else {
+                        unreachable!()
+                    };
+                }
+            }
+
+            let link_offsets = reloc_patches
+                .iter()
+                .skip(1)
+                .map(|next_patch| {
+                    // Patches are absolute offsets to the next operand from the base of the code table
+                    next_patch.operand_offset
+                })
+                .chain(std::iter::once(0u32));
+
+            // Patch instructions with links
+            for (patch, link_offset) in reloc_patches.iter().zip(link_offsets) {
+                let procedure = self
+                    .procedures
+                    .get_mut(&patch.proc)
+                    .expect("invalid procedure ref");
+
+                procedure.instrs[patch.instr.as_usize()][patch.operand] =
+                    Operand::RelocatableOffset(RelocatableOffset::new(
+                        link_offset,
+                        patch.section_offset,
+                    ));
+            }
+        }
+
+        CodeUnit {
+            local_reloc_heads,
+            external_reloc_heads,
+            ..self
+        }
+    }
+}
+
+impl Index<ProcedureRef> for CodeUnit {
+    type Output = Procedure;
+
+    fn index(&self, index: ProcedureRef) -> &Self::Output {
+        self.procedures.get(&index).expect("invalid procedure ref")
     }
 }
 
@@ -183,7 +490,7 @@ pub struct ProcedureBuilder {
     //     - for case tables (the only in-code data blob)
     local_patches: Vec<(InstructionRef, OperandRef, PatchWith)>,
     //   - for relocs (deferred)
-    reloc_patches: Vec<(InstructionRef, OperandRef, RelocHandle)>,
+    reloc_patches: Vec<(InstructionRef, OperandRef)>,
     // - code offset targets
     code_offset_targets: Vec<CodeOffsetTarget>,
     // - case tables
@@ -216,8 +523,6 @@ impl ProcedureBuilder {
         }
     }
 
-    /// An opaque [`ProcedureRef`] handle to refer to the built procedure, for
-    /// use in associating relocation handles to relocation targets.
     pub fn id(&self) -> ProcedureRef {
         self.id
     }
@@ -276,6 +581,22 @@ impl ProcedureBuilder {
     ) {
         let instr = ins(&mut self.instrs);
         self.patch_code_offset(instr, code_offset);
+    }
+
+    pub fn reloc(
+        &mut self,
+        ins: impl FnOnce(&mut InstructionEncoder) -> InstructionRef,
+    ) -> RelocHandle {
+        let instr = ins(&mut self.instrs);
+        let offset = self.instrs[instr].operand_refs().nth(0).unwrap();
+        assert!(matches!(
+            self.instrs[instr][offset],
+            Operand::RelocatableOffset(_)
+        ));
+
+        let slot = RelocHandle::from_usize(self.reloc_patches.len());
+        self.reloc_patches.push((instr, offset));
+        slot
     }
 
     /// Patches an instruction's first operand to refer to a specifc code offset.
@@ -363,6 +684,7 @@ impl ProcedureBuilder {
 
             (offsets, current_offset)
         };
+        dbg!(&instr_offsets);
 
         // Compute case table offsets
         // These are located afte the last instruction of the procedure (the ABORT).
@@ -445,6 +767,25 @@ impl ProcedureBuilder {
             })
             .collect();
 
+        // Associate relocation patches with the instruction offsets so we don't have to compute it later
+        let reloc_patches: BTreeMap<_, _> = reloc_patches
+            .into_iter()
+            .enumerate()
+            .map(|(index, (instr, operand))| {
+                let handle = RelocHandle::from_usize(index);
+                (
+                    handle,
+                    InstrReloc {
+                        operand_offset: (instr_offsets[instr.as_usize()]
+                            + instrs[instr].opcode().size())
+                            as u32,
+                        instr,
+                        operand,
+                    },
+                )
+            })
+            .collect();
+
         let instrs = instrs.finish();
         Procedure {
             id,
@@ -469,7 +810,7 @@ pub struct Procedure {
     case_tables: Box<[CaseTable<u32>]>,
     // - operand patches
     //   - for relocs
-    reloc_patches: Vec<(InstructionRef, OperandRef, RelocHandle)>,
+    reloc_patches: BTreeMap<RelocHandle, InstrReloc>,
 }
 
 impl Procedure {
@@ -489,6 +830,13 @@ impl Procedure {
     pub fn size(&self) -> usize {
         self.size
     }
+}
+
+#[derive(Debug)]
+struct InstrReloc {
+    operand_offset: u32,
+    instr: InstructionRef,
+    operand: OperandRef,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -1084,6 +1432,10 @@ impl InstructionEncoder {
         self.add(Instruction::new(Opcode::ADDINTNAT))
     }
 
+    pub fn call(&mut self, offset: u32) -> InstructionRef {
+        self.add(Instruction::new(Opcode::CALL).with_operand(Operand::Offset(offset)))
+    }
+
     pub fn case(&mut self, descriptor: u32) -> InstructionRef {
         self.add(Instruction::new(Opcode::CASE).with_operand(Operand::Offset(descriptor)))
     }
@@ -1105,6 +1457,12 @@ impl InstructionEncoder {
             Instruction::new(Opcode::LOCATETEMP)
                 .with_operand(Operand::Nat4(locals_size))
                 .with_operand(Operand::Offset(temp_offset)),
+        )
+    }
+
+    pub fn pushaddr1(&mut self, offset: RelocatableOffset) -> InstructionRef {
+        self.add(
+            Instruction::new(Opcode::PUSHADDR1).with_operand(Operand::RelocatableOffset(offset)),
         )
     }
 
@@ -1643,6 +2001,185 @@ mod tests {
         assert_eq!(
             &*case_table.arm_branches,
             &[1 * 4, 3 * 4, 5 * 4, 7 * 4, 9 * 4]
+        );
+    }
+
+    #[test]
+    fn test_code_unit_with_same_unit_relocs() {
+        let (proc_1, reloc_1_2, reloc_1_3);
+        let (proc_2, reloc_2_3);
+        let proc_3;
+        let unit_1;
+
+        let mut bytecode = BytecodeBuilder::new();
+
+        // Step 1: Build skeleton
+        let mut unit = bytecode.build_code_unit("<No File>");
+
+        // procedure 1
+        {
+            let mut procedure = unit.build_procedure();
+
+            // call procedure 2
+            reloc_1_2 = procedure.reloc(|ins| ins.pushaddr1(RelocatableOffset::empty()));
+            // We let signature handling compute the size of the argument stack for us.
+            procedure.ins().call(0);
+
+            // call procedure 3
+            reloc_1_3 = procedure.reloc(|ins| ins.pushaddr1(RelocatableOffset::empty()));
+            // We let signature handling compute the size of the argument stack for us.
+            procedure.ins().call(0);
+
+            procedure.ins().return_();
+
+            proc_1 = procedure.id();
+            unit.submit_procedure(procedure.finish());
+        }
+
+        // procedure 2
+        {
+            let mut procedure = unit.build_procedure();
+
+            // call procedure 3
+            reloc_2_3 = procedure.reloc(|ins| ins.pushaddr1(RelocatableOffset::empty()));
+            // We let signature handling compute the size of the argument stack for us.
+            procedure.ins().call(0);
+
+            procedure.ins().return_();
+
+            proc_2 = procedure.id();
+            unit.submit_procedure(procedure.finish());
+        }
+
+        // procedure 3
+        {
+            let mut procedure = unit.build_procedure();
+            procedure.ins().return_();
+
+            proc_3 = procedure.id();
+            unit.submit_procedure(procedure.finish());
+        }
+        unit_1 = unit.id();
+        bytecode.submit_code_unit(unit.finish());
+
+        // Step 2: Build reloc targets
+        let relocs = vec![
+            (
+                proc_1,
+                reloc_1_2,
+                RelocTarget::Local(bytecode[unit_1].procedure_offset(proc_2)),
+            ),
+            (
+                proc_1,
+                reloc_1_3,
+                RelocTarget::Local(bytecode[unit_1].procedure_offset(proc_3)),
+            ),
+            (
+                proc_2,
+                reloc_2_3,
+                RelocTarget::Local(bytecode[unit_1].procedure_offset(proc_3)),
+            ),
+        ];
+        bytecode[unit_1].add_code_relocs(relocs);
+
+        // Step 3: Finish blob
+        let bytecode = bytecode.finish();
+
+        let unit = &bytecode[unit_1];
+        {
+            let procedure = &unit[proc_1];
+
+            assert_eq!(procedure.id().as_usize(), 0);
+            assert_eq!(unit.procedure_offset(proc_1), SectionOffset::Code(0x0));
+            assert_match_instrs(
+                procedure.instrs(),
+                &[
+                    // Procedures should always start with a PROC xxx
+                    (Opcode::PROC, &[Operand::Nat4(0)]),
+                    // Relocatable offsets to procedure should be patched with offset and link
+                    // `link` is relative to the base of the code table, not to other operands
+                    (
+                        Opcode::PUSHADDR1,
+                        &[Operand::RelocatableOffset(RelocatableOffset::new(
+                            8 * 4,
+                            15 * 4,
+                        ))],
+                    ),
+                    (Opcode::CALL, &[Operand::Offset(0)]),
+                    // Next patch link should point into the next procedure
+                    (
+                        Opcode::PUSHADDR1,
+                        &[Operand::RelocatableOffset(RelocatableOffset::new(
+                            18 * 4,
+                            25 * 4,
+                        ))],
+                    ),
+                    (Opcode::CALL, &[Operand::Offset(0)]),
+                    (Opcode::RETURN, &[]),
+                    // Procedures should always end with a ABORT NoResult
+                    (
+                        Opcode::ABORT,
+                        &[Operand::AbortReason(AbortReason::NoResult)],
+                    ),
+                ],
+            );
+        }
+
+        // Procedure 2, at offset 15 * 4
+        {
+            let procedure = &unit[proc_2];
+
+            assert_eq!(procedure.id().as_usize(), 1);
+            assert_eq!(unit.procedure_offset(proc_2), SectionOffset::Code(15 * 4));
+            assert_match_instrs(
+                procedure.instrs(),
+                &[
+                    // Procedures should always start with a PROC xxx
+                    (Opcode::PROC, &[Operand::Nat4(0)]),
+                    // Last relocatable offset in a list should have link offset 0
+                    (
+                        Opcode::PUSHADDR1,
+                        &[Operand::RelocatableOffset(RelocatableOffset::new(
+                            0,
+                            25 * 4,
+                        ))],
+                    ),
+                    (Opcode::CALL, &[Operand::Offset(0)]),
+                    (Opcode::RETURN, &[]),
+                    // Procedures should always end with a ABORT NoResult
+                    (
+                        Opcode::ABORT,
+                        &[Operand::AbortReason(AbortReason::NoResult)],
+                    ),
+                ],
+            );
+        }
+
+        // Procedure 3, at offset 25 * 4
+        {
+            let procedure = &unit[proc_3];
+
+            assert_eq!(procedure.id().as_usize(), 2);
+            assert_eq!(unit.procedure_offset(proc_3), SectionOffset::Code(25 * 4));
+            assert_match_instrs(
+                procedure.instrs(),
+                &[
+                    // Procedures should always start with a PROC xxx
+                    (Opcode::PROC, &[Operand::Nat4(0)]),
+                    (Opcode::RETURN, &[]),
+                    // Procedures should always end with a ABORT NoResult
+                    (
+                        Opcode::ABORT,
+                        &[Operand::AbortReason(AbortReason::NoResult)],
+                    ),
+                ],
+            );
+        }
+
+        // head should be at first entry in the list
+        assert_eq!(
+            unit.local_reloc_heads.get(&UnitSection::Code).copied(),
+            Some(3 * 4)
         );
     }
 }
