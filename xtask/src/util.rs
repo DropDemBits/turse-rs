@@ -17,3 +17,7 @@ pub fn project_root() -> camino::Utf8PathBuf {
 pub fn normalize_newlines(s: &str) -> String {
     s.replace("\r\n", "\n")
 }
+
+pub fn is_ci() -> bool {
+    std::env::var("CI").is_ok()
+}
