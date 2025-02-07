@@ -3,6 +3,7 @@ mod lowering;
 use std::fs;
 
 use heck::ToSnakeCase;
+use miette::IntoDiagnostic;
 use quote::{format_ident, quote};
 
 use lowering::LoweredGrammar;
@@ -13,10 +14,13 @@ use crate::util::project_root;
 
 use super::{add_preamble, ensure_file_contents, reformat};
 
-pub fn do_codegen(check: bool) -> eyre::Result<()> {
+pub fn do_codegen(check: bool) -> miette::Result<()> {
     let grammar = project_root().join("compiler/toc-syntax/parsed_turing.ungram");
 
-    let grammar = fs::read_to_string(grammar)?.parse()?;
+    let grammar = fs::read_to_string(grammar)
+        .into_diagnostic()?
+        .parse()
+        .into_diagnostic()?;
     let ast = lowering::lower_grammar(&grammar);
 
     let nodes_file = project_root().join("compiler/toc-syntax/src/ast/nodes.rs");
@@ -31,7 +35,7 @@ pub fn do_codegen(check: bool) -> eyre::Result<()> {
     Ok(())
 }
 
-fn generate_nodes(lowered: &LoweredGrammar) -> eyre::Result<String> {
+fn generate_nodes(lowered: &LoweredGrammar) -> miette::Result<String> {
     let lowered_groups = lowered.groups.iter().map(|group| {
         // as an enum
         let name = format_ident!("{}", group.name);
@@ -554,5 +558,5 @@ fn thing_to_method_name(token: &str) -> &str {
 
 #[test]
 fn test() {
-    let _ = do_codegen(true);
+    do_codegen(true).unwrap();
 }

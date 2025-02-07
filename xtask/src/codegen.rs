@@ -1,6 +1,6 @@
 use std::{fs, path::Path};
 
-use eyre::Context;
+use miette::{IntoDiagnostic, WrapErr};
 use xshell::{cmd, Shell};
 
 use crate::{
@@ -11,13 +11,16 @@ use crate::{
 mod syntax;
 
 impl flags::Codegen {
-    pub(crate) fn run(self, _sh: &Shell) -> eyre::Result<()> {
+    pub(crate) fn run(self, _sh: &Shell) -> miette::Result<()> {
+        let check = self.check;
+
         match self.codegen_type.unwrap_or_default() {
             flags::CodegenType::All => {
-                syntax::do_codegen(self.check)?;
+                syntax::do_codegen(check)?;
+
                 Ok(())
             }
-            flags::CodegenType::Grammar => syntax::do_codegen(self.check),
+            flags::CodegenType::Grammar => syntax::do_codegen(check),
             flags::CodegenType::TuringBytecode => {
                 todo!()
             }
@@ -27,8 +30,10 @@ impl flags::Codegen {
 
 // from rust-analyzer xtask and test-utils crates
 
-fn reformat(text: String) -> eyre::Result<String> {
-    let sh = Shell::new().context("while creating rustfmt shell")?;
+fn reformat(text: String) -> miette::Result<String> {
+    let sh = Shell::new()
+        .into_diagnostic()
+        .wrap_err("while creating rustfmt shell")?;
     let rustfmt_toml = project_root().join("rustfmt.toml");
 
     // check for rustfmt
@@ -38,7 +43,8 @@ fn reformat(text: String) -> eyre::Result<String> {
     )
     .stdin(text)
     .read()
-    .context("while formatting output")?;
+    .into_diagnostic()
+    .wrap_err("while formatting output")?;
 
     if !text.ends_with('\n') {
         text.push('\n');
