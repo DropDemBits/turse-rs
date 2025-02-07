@@ -19,8 +19,50 @@ pub(crate) fn parse_spec(text: &str) -> Result<BytecodeSpec, ParseError> {
     let instructions = get_required_node(&kdl, CommonNodes::InstructionList)?;
     let instructions = get_required_children(instructions, CommonNodes::InstructionList)?;
 
+    let (instr_defs, group_defs) = parse_instruction_list(instructions, &types)?;
+
+    Ok(BytecodeSpec {
+        types,
+        instructions: instr_defs.into_boxed_slice(),
+        groups: group_defs.into_boxed_slice(),
+    })
+}
+
+fn parse_instruction_list(
+    instructions: &kdl::KdlDocument,
+    types: &Types,
+) -> Result<(Vec<Instruction>, Vec<(Group, std::ops::Range<usize>)>), ParseError> {
     let mut instr_defs = vec![];
     let mut group_defs = vec![];
+
+    let mut mnemonic_names = HashMap::new();
+    let mut opcode_nums = HashMap::new();
+
+    let mut record_duplicates = |def: Instruction,
+                                 entry: &kdl::KdlNode|
+     -> Result<Instruction, ParseError> {
+        let mnemonic_span = entry.name().span();
+        if let Some(existing_def) = mnemonic_names.insert(def.mnemonic().to_owned(), mnemonic_span)
+        {
+            return Err(ParseError::DuplicateName(
+                NameKind::Mnemonic,
+                entry.name().value().to_owned(),
+                existing_def,
+                mnemonic_span,
+            ));
+        }
+
+        let opcode_span = entry.entry(0).expect("should have opcode number").span();
+        if let Some(existing_def) = opcode_nums.insert(def.opcode(), opcode_span) {
+            return Err(ParseError::DuplicateOpcode(
+                def.opcode(),
+                existing_def,
+                opcode_span,
+            ));
+        }
+
+        Ok(def)
+    };
 
     for entry in instructions.nodes() {
         if entry.name().value() == "group" {
@@ -45,7 +87,8 @@ pub(crate) fn parse_spec(text: &str) -> Result<BytecodeSpec, ParseError> {
                     }
                     _ => {
                         // within!
-                        instr_defs.push(parse_instruction(entry, &types)?);
+                        instr_defs
+                            .push(record_duplicates(parse_instruction(entry, types)?, entry)?);
                     }
                 }
             }
@@ -59,15 +102,11 @@ pub(crate) fn parse_spec(text: &str) -> Result<BytecodeSpec, ParseError> {
             ));
         } else {
             // as single instruction
-            instr_defs.push(parse_instruction(entry, &types)?);
+            instr_defs.push(record_duplicates(parse_instruction(entry, types)?, entry)?);
         }
     }
 
-    Ok(BytecodeSpec {
-        types,
-        instructions: instr_defs.into_boxed_slice(),
-        groups: group_defs.into_boxed_slice(),
-    })
+    Ok((instr_defs, group_defs))
 }
 
 fn parse_types(types: &kdl::KdlDocument) -> Result<Types, ParseError> {
@@ -625,9 +664,6 @@ mod tests {
     use crate::{Property, PropertyValue};
 
     use super::*;
-    // need to validate:
-    // - unique mnemonics
-    // - unique opcodes
 
     #[track_caller]
     fn parse_pass(src: &str) -> BytecodeSpec {
@@ -774,6 +810,42 @@ mod tests {
             assert_eq!(operand.ty, int4);
             assert_eq!(operand.description.as_deref(), Some("op3"));
         }
+    }
+
+    #[test]
+    fn parse_fail_instruction_duplicate_mnemonic() {
+        let err = parse_fail(
+            r#"
+            types {}
+            instructions {
+                INSTR_A 0x0 {}
+                INSTR_A 0x1 {}
+            }
+            "#,
+        );
+
+        assert!(
+            matches!(&err, ParseError::DuplicateName(NameKind::Mnemonic, ..)),
+            "{err:#?}"
+        );
+    }
+
+    #[test]
+    fn parse_fail_instruction_duplicate_opcode() {
+        let err = parse_fail(
+            r#"
+            types {}
+            instructions {
+                INSTR_A 0x0 {}
+                INSTR_B 0x0 {}
+            }
+            "#,
+        );
+
+        assert!(
+            matches!(&err, ParseError::DuplicateOpcode(0, ..)),
+            "{err:#?}"
+        );
     }
 
     #[test]

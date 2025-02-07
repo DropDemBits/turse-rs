@@ -160,7 +160,15 @@ pub enum ParseError {
         NameKind,
         String,
         #[label(primary, "first defined here")] miette::SourceSpan,
-        #[label("then defined here")] miette::SourceSpan,
+        #[label("defined here again")] miette::SourceSpan,
+    ),
+
+    #[error("duplicate instruction opcode number `{0}`")]
+    #[diagnostic(code(bytecode_spec::duplicate_name))]
+    DuplicateOpcode(
+        u32,
+        #[label(primary, "first used here")] miette::SourceSpan,
+        #[label("used here again")] miette::SourceSpan,
     ),
 
     #[error("type `{0}` is infinitely sized")]
