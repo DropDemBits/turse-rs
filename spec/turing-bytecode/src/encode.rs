@@ -5,14 +5,16 @@ use std::{
 };
 
 use either::Either;
-use instruction::{AbortReason, Instruction, Opcode, Operand, OperandRef, RelocatableOffset};
+use instruction::{Instruction, Operand, OperandRef};
 use section::{
     GlobalsAllocator, GlobalsSection, GlobalsSlot, ManifestAllocator, ManifestSection, ManifestSlot,
 };
 
-mod instruction;
+use crate::instruction::{AbortReason, Opcode, RelocatableOffset};
+
 mod writer;
 
+pub mod instruction;
 pub mod section;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -296,6 +298,7 @@ impl CodeUnitBuilder {
     }
 }
 
+// TODO: Type-state out unresolved vs resolved relocs
 #[derive(Debug)]
 pub struct CodeUnit {
     // need:
@@ -1528,6 +1531,8 @@ enum PatchWith {
 
 #[cfg(test)]
 mod tests {
+    use crate::instruction::{AbortReason, Opcode, RelocatableOffset};
+
     use super::*;
 
     #[track_caller]

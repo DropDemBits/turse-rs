@@ -4,55 +4,7 @@ use std::{
     ops::{Index, IndexMut},
 };
 
-// Will be generated
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum Opcode {
-    ABORT = 0x00,
-    ADDINTNAT = 0x05,
-    CALL = 0x32,
-    CASE = 0x35,
-    JUMP = 0x89,
-    JUMPB = 0x8A,
-    LOCATELOCAL = 0x96,
-    LOCATETEMP = 0x98,
-    PROC = 0xBA,
-    PUSHADDR1 = 0xBC,
-    PUSHVAL0 = 0xC2,
-    PUSHVAL1 = 0xC3,
-    RETURN = 0xCD,
-}
-
-impl Opcode {
-    /// Size of the opcode, in bytes.
-    pub fn size(&self) -> usize {
-        4
-    }
-}
-
-// Will be generated
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[repr(u32)]
-pub enum AbortReason {
-    NoResult = 9,
-}
-//
-// Can be generated
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct RelocatableOffset {
-    pub link: u32,
-    pub offset: u32,
-}
-
-impl RelocatableOffset {
-    pub fn new(link: u32, offset: u32) -> Self {
-        Self { link, offset }
-    }
-
-    /// Creates an unlinked relocatable offset
-    pub fn empty() -> Self {
-        Self { link: 0, offset: 0 }
-    }
-}
+use crate::instruction::{AbortReason, Opcode, RelocatableOffset};
 
 // Can be generated
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]

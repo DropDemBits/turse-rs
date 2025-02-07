@@ -82,23 +82,7 @@
 //   - need to keep track of already decoded regions
 
 pub mod encode;
+pub mod instruction;
 
 /// Magic constant that is at the start of every bytecode blob.
 pub const OBJECT_HEADER_MAGIC: &[u8] = b"TWEST\0";
-
-#[cfg(test)]
-mod tests {
-    use stackful_spec::BytecodeSpec;
-
-    #[test]
-    fn generate_from_spec() {
-        let spec: BytecodeSpec = include_str!("./spec.kdl").parse().unwrap();
-
-        // want: all instructions
-        for instr in &spec.instructions {
-            eprintln!("{instr:#?}");
-        }
-
-        // unimplemented!();
-    }
-}

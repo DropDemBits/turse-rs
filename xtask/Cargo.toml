@@ -13,8 +13,8 @@ stackful-spec.workspace = true
 
 camino.workspace = true
 heck = "0.4"
-kdl = "6.2.2"
-miette = { version = "7.4", features = ["fancy"] }
+miette = { workspace = true, features = ["fancy"] }
+proc-macro2.workspace = true
 quote = "1.0"
 thiserror.workspace = true
 ungrammar = "1.6.0"

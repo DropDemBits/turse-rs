@@ -73,7 +73,7 @@ fn write_code_unit(out: &mut impl Write, unit: &super::CodeUnit) -> io::Result<(
     // - body_no
     out.write_u16::<LE>(unit.body_unit.map_or(0, |it| it.as_usize() as u16))?;
     // - stub_no
-    out.write_u16::<LE>(unit.body_unit.map_or(0, |it| it.as_usize() as u16))?;
+    out.write_u16::<LE>(unit.stub_unit.map_or(0, |it| it.as_usize() as u16))?;
 
     // - code_size
     // Take into account reserved space at the beginning
