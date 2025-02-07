@@ -5,7 +5,7 @@ use xshell::{cmd, Shell};
 
 use crate::{
     flags,
-    util::{normalize_newlines, project_root},
+    util::{is_ci, normalize_newlines, project_root},
 };
 
 mod syntax;
@@ -76,7 +76,7 @@ fn ensure_file_contents(cg: flags::CodegenType, file: &Path, contents: &str, che
         panic!(
             "{} was not up-to-date{}",
             file.display(),
-            if std::env::var("CI").is_ok() {
+            if is_ci() {
                 format!(
                     "\n    NOTE: run `cargo xtask codegen {cg}` locally and commit the updated files\n"
                 )
