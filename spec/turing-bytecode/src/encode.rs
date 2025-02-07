@@ -6,7 +6,6 @@ use std::{
     ops::{Index, IndexMut},
 };
 
-use either::Either;
 use instruction::{Instruction, InstructionEncoder, InstructionRef, Operand, OperandRef};
 use section::{
     GlobalsAllocator, GlobalsSection, GlobalsSlot, ManifestAllocator, ManifestSection, ManifestSlot,
@@ -19,6 +18,7 @@ mod writer;
 pub mod instruction;
 pub mod section;
 
+/// An opaque handle representing an instruction with a [`RelocatableOffset`] in a procedure.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct RelocHandle(usize);
 
@@ -32,20 +32,7 @@ impl RelocHandle {
     }
 }
 
-// What (potential) section is the relocation meant to referring to.
-#[derive(Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum RelocDisposition {
-    /// Relocation refers to the same translation unit.
-    /// This is the default disposition.
-    #[default]
-    Local,
-    /// Relocation refers to a different translation unit.
-    External,
-    /// Relocation may or may not refer to the same translation unit, and will
-    /// be resolved at a later point.
-    Unknown,
-}
-
+/// Offset within a particular code unit's section.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum SectionOffset {
     Code(u32),
@@ -54,6 +41,24 @@ pub enum SectionOffset {
 }
 
 impl SectionOffset {
+    /// Section that this offset refers to.
+    pub fn section(self) -> UnitSection {
+        match self {
+            SectionOffset::Code(_) => UnitSection::Code,
+            SectionOffset::Manifest(_) => UnitSection::Manifest,
+            SectionOffset::Global(_) => UnitSection::Global,
+        }
+    }
+
+    /// Offset within the section
+    pub fn offset(self) -> u32 {
+        match self {
+            SectionOffset::Code(offset) => offset,
+            SectionOffset::Manifest(offset) => offset,
+            SectionOffset::Global(offset) => offset,
+        }
+    }
+
     pub fn as_offset(self) -> (UnitSection, u32) {
         match self {
             SectionOffset::Code(offset) => (UnitSection::Code, offset),
@@ -63,41 +68,56 @@ impl SectionOffset {
     }
 }
 
+/// A particular section within a [`CodeUnit`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum UnitSection {
+    /// Code section, containing procedures and [`CaseTable`]s.
     Code,
+    /// Manifest section, containing read-only data.
     Manifest,
+    /// Globals section, containing globals that are always zeroed at startup.
     Global,
 }
 
+/// Target for a [`RelocHandle`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum RelocTarget {
     Local(SectionOffset),
     External(CodeUnitRef, SectionOffset),
 }
 
-// Process
-// - Build individual procedures
-//   - build side table of reloc targets
-// - Aggregate procedures into a TU
+/// Bytecode builer entry point, used to build a [`BytecodeBlob`].
+///
+/// This is the main entry point for the rest of the builders
+#[derive(Debug)]
 pub struct BytecodeBuilder {
     // need:
     // - env options
-    // - unit ref gen
-    next_unit: u32,
-    units: BTreeMap<CodeUnitRef, CodeUnit>,
     main_unit: Option<CodeUnitRef>,
+    next_unit: u32,
+    units: BTreeMap<CodeUnitRef, CodeUnit<UnreslovedRelocs>>,
+}
+
+impl Default for BytecodeBuilder {
+    fn default() -> Self {
+        Self {
+            main_unit: None,
+            next_unit: 1,
+            units: BTreeMap::new(),
+        }
+    }
 }
 
 impl BytecodeBuilder {
+    /// Creates a new builder to build a bytecode blob.
     pub fn new() -> Self {
-        Self {
-            next_unit: 1,
-            units: BTreeMap::new(),
-            main_unit: None,
-        }
+        Self::default()
     }
 
+    /// Creates a builder for a [`CodeUnit`].
+    ///
+    /// Code units are typically associated with file system filenames, though
+    /// this is not a strict requirement.
     pub fn build_code_unit(&mut self, file_name: &str) -> CodeUnitBuilder {
         let id = NonZeroU32::new(self.next_unit).map(CodeUnitRef).unwrap();
         self.next_unit += 1;
@@ -105,17 +125,24 @@ impl BytecodeBuilder {
         CodeUnitBuilder::new(id, file_name)
     }
 
-    pub fn submit_code_unit(&mut self, unit: CodeUnit) {
+    /// Submits a code unit for inclusion into the final bytecode blob.
+    /// Any relocations offsets will be resolved once the bytecode blob is
+    /// finished being built.
+    pub fn submit_code_unit(&mut self, unit: CodeUnit<UnreslovedRelocs>) {
         let id = unit.id();
         let None = self.units.insert(id, unit) else {
             panic!("inserting duplicate code unit {id:?}");
         };
     }
 
+    /// Sets the code unit that will serve as the entry point of execution.
+    /// Typically used for the main unit (the file that code generation started
+    /// from), though this is not a strict requirement.
     pub fn main_unit(&mut self, code_unit: CodeUnitRef) {
         self.main_unit = Some(code_unit);
     }
 
+    /// Finishes a bytecode blob, ready for encoding.
     pub fn finish(self) -> BytecodeBlob {
         let Self {
             next_unit: _,
@@ -134,7 +161,7 @@ impl BytecodeBuilder {
 }
 
 impl Index<CodeUnitRef> for BytecodeBuilder {
-    type Output = CodeUnit;
+    type Output = CodeUnit<UnreslovedRelocs>;
 
     fn index(&self, index: CodeUnitRef) -> &Self::Output {
         self.units.get(&index).expect("invalid code unit ref")
@@ -147,15 +174,17 @@ impl IndexMut<CodeUnitRef> for BytecodeBuilder {
     }
 }
 
+/// Top-level bytecode structure, groups together [`CodeUnit`]s as well as
+/// containing execution preferences.
 #[derive(Debug)]
 pub struct BytecodeBlob {
     // also have config and whatnot
-    units: BTreeMap<CodeUnitRef, CodeUnit>,
+    units: BTreeMap<CodeUnitRef, CodeUnit<ResolvedRelocs>>,
     main_unit: Option<CodeUnitRef>,
 }
 
 impl BytecodeBlob {
-    pub fn code_units(&self) -> impl Iterator<Item = &'_ CodeUnit> {
+    pub fn code_units(&self) -> impl Iterator<Item = &'_ CodeUnit<ResolvedRelocs>> {
         self.units.values()
     }
 
@@ -169,13 +198,14 @@ impl BytecodeBlob {
 }
 
 impl Index<CodeUnitRef> for BytecodeBlob {
-    type Output = CodeUnit;
+    type Output = CodeUnit<ResolvedRelocs>;
 
     fn index(&self, index: CodeUnitRef) -> &Self::Output {
         self.units.get(&index).expect("invalid code unit ref")
     }
 }
 
+/// Refers to a [`CodeUnit`] in a [`BytecodeBuilder`] or [`BytecodeBlob`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(transparent)]
 pub struct CodeUnitRef(NonZeroU32);
@@ -186,6 +216,7 @@ impl CodeUnitRef {
     }
 }
 
+/// Builder for a [`CodeUnit`].
 #[derive(Debug)]
 pub struct CodeUnitBuilder {
     // need:
@@ -253,7 +284,7 @@ impl CodeUnitBuilder {
 
     /// Finishes the builder to produce a sealed [`CodeUnit`] with potentially
     /// unresolved relocations.
-    pub fn finish(self) -> CodeUnit {
+    pub fn finish(self) -> CodeUnit<UnreslovedRelocs> {
         let Self {
             id,
             file_name,
@@ -293,44 +324,46 @@ impl CodeUnitBuilder {
             procedure_offsets,
             manifest,
             globals,
-            code_relocs: BTreeMap::new(),
-            local_reloc_heads: BTreeMap::new(),
-            external_reloc_heads: BTreeMap::new(),
+            reloc_info: UnreslovedRelocs {
+                code_relocs: BTreeMap::new(),
+            },
         }
     }
 }
 
-// TODO: Type-state out unresolved vs resolved relocs
+/// Represents a bytecode code unit, which aggregates together procedures
+/// and various section data.
 #[derive(Debug)]
-pub struct CodeUnit {
-    // need:
-    // - unit ref
+pub struct CodeUnit<RelocInfo> {
     id: CodeUnitRef,
-    // - file name
     file_name: Box<str>,
     body_unit: Option<CodeUnitRef>,
     stub_unit: Option<CodeUnitRef>,
-    // - procedures
     procedures: BTreeMap<ProcedureRef, Procedure>,
-    // - procedure offsets
     procedure_offsets: BTreeMap<ProcedureRef, u32>,
-    // - manifest
     manifest: ManifestSection,
-    // - global
     globals: GlobalsSection,
-    // - offsets, partitioned by target and section
+    reloc_info: RelocInfo,
+}
+
+/// Designates a [`CodeUnit`] that still has unresolved relocations in it.
+#[derive(Debug)]
+pub struct UnreslovedRelocs {
     code_relocs: BTreeMap<
         (Option<CodeUnitRef>, UnitSection),
         BTreeMap<ProcedureRef, Vec<(RelocHandle, u32)>>,
     >,
+}
 
-    // final relocation heads
-    // todo: manifest patch chain list, which is a simple list of entries
+/// Designates a [`CodeUnit`] that has all of its reloctions resolved to
+/// a particular [`CodeUnit`]'s section.
+#[derive(Debug)]
+pub struct ResolvedRelocs {
     local_reloc_heads: BTreeMap<UnitSection, u32>,
     external_reloc_heads: BTreeMap<UnitSection, Vec<(CodeUnitRef, u32)>>,
 }
 
-impl CodeUnit {
+impl<RelocInfo> CodeUnit<RelocInfo> {
     pub fn id(&self) -> CodeUnitRef {
         self.id
     }
@@ -367,7 +400,10 @@ impl CodeUnit {
     pub fn globals_offset(&self, slot: GlobalsSlot) -> SectionOffset {
         SectionOffset::Global(self.globals().offset(slot))
     }
+}
 
+impl CodeUnit<UnreslovedRelocs> {
+    /// Adds code relocation targets to resolve to specific [`RelocHandle`]s.
     pub fn add_code_relocs(
         &mut self,
         relocs: impl IntoIterator<Item = (ProcedureRef, RelocHandle, RelocTarget)>,
@@ -384,6 +420,7 @@ impl CodeUnit {
             let (reloc_section, reloc_offset) = offset.as_offset();
 
             let proc_relocs = self
+                .reloc_info
                 .code_relocs
                 .entry((reloc_unit, reloc_section))
                 .or_insert(BTreeMap::new());
@@ -394,8 +431,8 @@ impl CodeUnit {
         }
     }
 
-    pub(crate) fn apply_relocs(mut self) -> CodeUnit {
-        let code_relocs = std::mem::take(&mut self.code_relocs);
+    pub(crate) fn apply_relocs(mut self) -> CodeUnit<ResolvedRelocs> {
+        let code_relocs = std::mem::take(&mut self.reloc_info.code_relocs);
         let mut local_reloc_heads = BTreeMap::new();
         let mut external_reloc_heads = BTreeMap::new();
 
@@ -489,15 +526,54 @@ impl CodeUnit {
             }
         }
 
+        // Transition into the resolved relocs typestate!
+        let Self {
+            id,
+            file_name,
+            body_unit,
+            stub_unit,
+            procedures,
+            procedure_offsets,
+            manifest,
+            globals,
+            reloc_info: _,
+        } = self;
+
         CodeUnit {
-            local_reloc_heads,
-            external_reloc_heads,
-            ..self
+            id,
+            file_name,
+            body_unit,
+            stub_unit,
+            procedures,
+            procedure_offsets,
+            manifest,
+            globals,
+            reloc_info: ResolvedRelocs {
+                local_reloc_heads,
+                external_reloc_heads,
+            },
         }
     }
 }
 
-impl Index<ProcedureRef> for CodeUnit {
+impl CodeUnit<ResolvedRelocs> {
+    /// Finds the offset for the start of the section's local relocation list.
+    pub fn local_relocs_start(&self, section: UnitSection) -> Option<u32> {
+        self.reloc_info.local_reloc_heads.get(&section).copied()
+    }
+
+    /// Finds the offset for the start of the section's external relocation list.
+    ///
+    /// Each entry refers to a different [`CodeUnit`].
+    pub fn external_relocs_start(&self, section: UnitSection) -> Option<&[(CodeUnitRef, u32)]> {
+        self.reloc_info
+            .external_reloc_heads
+            .get(&section)
+            .map(Vec::as_slice)
+    }
+}
+
+impl<RelocInfo> Index<ProcedureRef> for CodeUnit<RelocInfo> {
     type Output = Procedure;
 
     fn index(&self, index: ProcedureRef) -> &Self::Output {
@@ -505,6 +581,7 @@ impl Index<ProcedureRef> for CodeUnit {
     }
 }
 
+/// Reference to a [`Procedure`] within a [`CodeUnit`] or [`CodeUnitBuilder`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(transparent)]
 pub struct ProcedureRef(NonZeroU32);
@@ -515,6 +592,7 @@ impl ProcedureRef {
     }
 }
 
+/// Builder for a [`Procedure`]
 #[derive(Debug)]
 pub struct ProcedureBuilder {
     // need:
@@ -571,6 +649,9 @@ impl ProcedureBuilder {
         }
     }
 
+    /// Id to refer to the built procedure later.
+    ///
+    /// Used for later associating a [`RelocHandle`] with a specific [`RelocTarget`].
     pub fn id(&self) -> ProcedureRef {
         self.id
     }
@@ -631,6 +712,8 @@ impl ProcedureBuilder {
         self.patch_code_offset(instr, code_offset);
     }
 
+    /// Emits an instruction where the first operand is a [`RelocatableOffset`].
+    /// The [`RelocHandle`] is an opaque handle referring to this instruction's operand.
     pub fn reloc(
         &mut self,
         ins: impl FnOnce(&mut InstructionEncoder) -> InstructionRef,
@@ -669,6 +752,13 @@ impl ProcedureBuilder {
         self.locals.alloc(name, size, align)
     }
 
+    /// Emits a [**LOCATETEMP**] instruction
+    /// for the given `TemporarySlot`.
+    ///
+    /// Temporary offsets are not resolved until a procedure is finished
+    /// building, so this will take care of patching the correct offsets.
+    ///
+    /// [**LOCATETEMP**]: crate::instruction::Opcode::LOCATETEMP
     pub fn locate_temporary(&mut self, slot: TemporarySlot) {
         let locate_temp = self.instrs.locatetemp(0, 0);
         let locals_size = self.instrs[locate_temp].operand_refs().nth(0).unwrap();
@@ -683,6 +773,13 @@ impl ProcedureBuilder {
         ));
     }
 
+    /// Emits a [**LOCATELOCAL**](Opcode::LOCATELOCAL) instruction
+    /// for the given `TemporarySlot`.
+    ///
+    /// Temporary offsets are not resolved until a procedure is finished
+    /// building, so this will take care of patching the correct offsets.
+    ///
+    /// [**LOCATELOCAL**]: crate::instruction::Opcode::LOCATELOCAL
     pub fn locate_local(&mut self, slot: LocalSlot) {
         let locate_local = self.instrs.locatelocal(0);
         let local_offset = self.instrs[locate_local].operand_refs().nth(0).unwrap();
@@ -691,16 +788,29 @@ impl ProcedureBuilder {
             .push((locate_local, local_offset, PatchWith::LocalSlot(slot)));
     }
 
+    /// Starts a new temporary allocation scope.
+    ///
+    /// After leaving this scope, the space for any [`TemporarySlot`] allocated
+    /// in this function will be made available for future temporaries.
     pub fn in_temporary_scope(&mut self, in_scope: impl FnOnce(&mut Self)) {
         let old = self.temps.enter_scope();
         in_scope(self);
         self.temps.leave_scope(old);
     }
 
+    /// Gets the instruction encoder to encode instructions in.
+    ///
+    /// For most instructions that do not need later patching, this is the
+    /// preferred encoder entry point.
     pub fn ins(&mut self) -> &mut InstructionEncoder {
         &mut self.instrs
     }
 
+    /// Finishes building a procedure.
+    ///
+    /// This resolves all [`TemporarySlot`], [`LocalSlot`], and [`CodeOffset`]
+    /// offsets, as well as the call frame size. Any generated [`RelocHandle`]s
+    /// are later resolved by [`BytecodeBuilder::finish`].
     pub fn finish(self) -> Procedure {
         let Self {
             id,
@@ -837,6 +947,7 @@ impl ProcedureBuilder {
     }
 }
 
+/// A procedure containing instructions and case tables.
 #[derive(Debug)]
 pub struct Procedure {
     // store:
@@ -879,6 +990,7 @@ struct InstrReloc {
     operand: OperandRef,
 }
 
+/// Refers to a code section offset within a [`ProcedureBuilder`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct CodeOffset(u32);
 
@@ -893,14 +1005,14 @@ impl CodeOffset {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum CodeOffsetTarget {
+enum CodeOffsetTarget {
     Instruction(InstructionRef),
     CaseTable(CaseTableRef),
     Unanchored,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub struct CaseTableRef(u32);
+struct CaseTableRef(u32);
 
 impl CaseTableRef {
     fn from_usize(idx: usize) -> Self {
@@ -912,20 +1024,32 @@ impl CaseTableRef {
     }
 }
 
+/// Builder for a [`CaseTable`].
+///
+/// This manages building up a case table's entry list.
 #[derive(Debug)]
 pub struct CaseTableBuilder {
     signedness: Option<bool>,
     branches: BTreeMap<CaseBound, CodeOffset>,
 }
 
-impl CaseTableBuilder {
-    pub fn new() -> Self {
+impl Default for CaseTableBuilder {
+    fn default() -> Self {
         Self {
             signedness: None,
             branches: BTreeMap::new(),
         }
     }
+}
 
+impl CaseTableBuilder {
+    /// Creates a new case table builder.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Adds a case statement arm corresponding to a particular range and
+    /// branch target.
     pub fn add_arm(&mut self, bound: CaseRange, target: CodeOffset) {
         if self.signedness.is_none() {
             self.signedness = Some(bound.is_signed());
@@ -957,6 +1081,10 @@ impl CaseTableBuilder {
         }
     }
 
+    /// Finishes a case table, associating it with a specifc [**CASE**]
+    /// instruction and a default branch.
+    ///
+    /// [**CASE**]: crate::instruction::Opcode::CASE
     pub fn finish(self, case_instruction: InstructionRef, default_branch: CodeOffset) -> CaseTable {
         let Self {
             branches,
@@ -1025,6 +1153,7 @@ pub enum CaseRange {
 }
 
 impl CaseRange {
+    /// Length of the case range.
     pub fn len(self) -> u32 {
         match self {
             CaseRange::SingleU32(_) | CaseRange::SingleI32(_) => 1,
@@ -1033,20 +1162,9 @@ impl CaseRange {
         }
     }
 
+    /// If the case range represents a signed number range.
     pub fn is_signed(self) -> bool {
         matches!(self, CaseRange::SingleI32(_) | CaseRange::RangeI32(_, _))
-    }
-
-    pub fn as_unsigned(self) -> Either<u32, (u32, u32)> {
-        match self {
-            CaseRange::SingleU32(it) => Either::Left(it),
-            CaseRange::SingleI32(it) => Either::Left(u32::from_ne_bytes(it.to_ne_bytes())),
-            CaseRange::RangeU32(lo, hi) => Either::Right((lo, hi)),
-            CaseRange::RangeI32(lo, hi) => Either::Right((
-                u32::from_ne_bytes(lo.to_ne_bytes()),
-                u32::from_ne_bytes(hi.to_ne_bytes()),
-            )),
-        }
     }
 }
 
@@ -1065,7 +1183,9 @@ impl CaseBound {
     }
 }
 
-/// Describes a jump table for a CASE instruction.
+/// Describes a jump table for a [**CASE**] instruction.
+///
+/// [**CASE**]: crate::instruction::Opcode::CASE
 #[derive(Debug)]
 pub struct CaseTable<Offset = CodeOffset> {
     // Even though these are treated in the OT interpreter as signed values,
@@ -1120,7 +1240,7 @@ impl CaseTable<CodeOffset> {
 }
 
 #[derive(Debug)]
-pub struct TemporaryAllocator {
+struct TemporaryAllocator {
     // active scope information
     depth: u32,
     scope: u32,
@@ -1130,10 +1250,10 @@ pub struct TemporaryAllocator {
 }
 
 #[derive(Debug)]
-pub struct TemporaryInfo {
-    pub scope: TemporaryScope,
-    pub size: u32,
-    pub align: u32,
+struct TemporaryInfo {
+    scope: TemporaryScope,
+    size: u32,
+    align: u32,
 }
 
 impl TemporaryAllocator {
@@ -1147,7 +1267,7 @@ impl TemporaryAllocator {
     }
 
     /// Allocates a new temporary slot of the given size and alignment.
-    pub fn alloc(&mut self, size: u32, align: u32) -> TemporarySlot {
+    fn alloc(&mut self, size: u32, align: u32) -> TemporarySlot {
         assert!(align > 0);
         assert!(align.is_power_of_two() && align <= 4);
 
@@ -1171,7 +1291,7 @@ impl TemporaryAllocator {
     }
 
     /// Enters into a nested temporary scope.
-    pub fn enter_scope(&mut self) -> TemporaryScope {
+    fn enter_scope(&mut self) -> TemporaryScope {
         let old_scope = TemporaryScope {
             depth: self.depth,
             scope: self.scope,
@@ -1186,7 +1306,7 @@ impl TemporaryAllocator {
 
     /// Leaves a temporary scope.
     /// Any allocations made in the scope are effectively deallocated.
-    pub fn leave_scope(&mut self, old_scope: TemporaryScope) {
+    fn leave_scope(&mut self, old_scope: TemporaryScope) {
         let TemporaryScope { depth, scope } = old_scope;
 
         self.depth = depth;
@@ -1194,7 +1314,7 @@ impl TemporaryAllocator {
     }
 
     /// Finalizes the offsets of temporary slots.
-    pub fn finish(&self) -> TemporariesArea {
+    fn finish(&self) -> TemporariesArea {
         // Q: What's struct ABI?
         // max alignment: 0x4
         // possible alignments: 0x1, 0x2, 0x4 (based on size)
@@ -1285,7 +1405,7 @@ impl TemporaryAllocator {
     }
 }
 
-pub struct TemporariesArea {
+struct TemporariesArea {
     offsets: Box<[u32]>,
     size: u32,
 }
@@ -1305,11 +1425,12 @@ impl Index<TemporarySlot> for TemporariesArea {
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct TemporaryScope {
+struct TemporaryScope {
     depth: u32,
     scope: u32,
 }
 
+/// Refers to a temporary allocation within a procedure.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(transparent)]
 pub struct TemporarySlot(NonZeroU32);
@@ -1321,23 +1442,23 @@ impl TemporarySlot {
 }
 
 #[derive(Debug)]
-pub struct LocalAllocator {
+struct LocalAllocator {
     slots: Vec<LocalInfo>,
 }
 
 #[derive(Debug)]
-pub struct LocalInfo {
-    pub name: Option<Box<str>>,
-    pub size: u32,
-    pub align: u32,
+struct LocalInfo {
+    _name: Option<Box<str>>,
+    size: u32,
+    align: u32,
 }
 
 impl LocalAllocator {
-    pub fn new() -> Self {
+    fn new() -> Self {
         Self { slots: vec![] }
     }
 
-    pub fn alloc(&mut self, name: Option<&str>, size: u32, align: u32) -> LocalSlot {
+    fn alloc(&mut self, name: Option<&str>, size: u32, align: u32) -> LocalSlot {
         assert!(align > 0);
         assert!(align.is_power_of_two() && align <= 4);
 
@@ -1347,14 +1468,14 @@ impl LocalAllocator {
         let size = size.next_multiple_of(align);
 
         self.slots.push(LocalInfo {
-            name: name.map(|it| it.to_owned().into_boxed_str()),
+            _name: name.map(|it| it.to_owned().into_boxed_str()),
             size,
             align,
         });
         slot
     }
 
-    pub fn finish(self) -> LocalsArea {
+    fn finish(self) -> LocalsArea {
         let mut offset = 0u32;
 
         let offsets: Vec<_> = self
@@ -1377,12 +1498,14 @@ impl LocalAllocator {
     }
 }
 
+/// Represents the locals area of a procedure's call frame.
 pub struct LocalsArea {
     size: u32,
     offsets: Box<[u32]>,
 }
 
 impl LocalsArea {
+    /// Size of the locals area, in bytes.
     pub fn size(&self) -> u32 {
         self.size
     }
@@ -1396,6 +1519,7 @@ impl Index<LocalSlot> for LocalsArea {
     }
 }
 
+/// Refers to a local allocation within a procedure.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(transparent)]
 pub struct LocalSlot(NonZeroU32);
@@ -2127,9 +2251,6 @@ mod tests {
 
         // head should be at first entry in the list
         // (which tends to be closer to the end of the code section)
-        assert_eq!(
-            unit.local_reloc_heads.get(&UnitSection::Code).copied(),
-            Some(24 * 4)
-        );
+        assert_eq!(unit.local_relocs_start(UnitSection::Code), Some(24 * 4));
     }
 }
