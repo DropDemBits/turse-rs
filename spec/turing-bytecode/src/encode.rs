@@ -1,7 +1,7 @@
 //! Builders for encoding bytecode blobs.
 
 use std::{
-    collections::BTreeMap,
+    collections::{BTreeMap, HashSet},
     num::NonZeroU32,
     ops::{Index, IndexMut},
 };
@@ -433,6 +433,7 @@ impl CodeUnit<UnreslovedRelocs> {
 
     pub(crate) fn apply_relocs(mut self) -> CodeUnit<ResolvedRelocs> {
         let code_relocs = std::mem::take(&mut self.reloc_info.code_relocs);
+        let mut resolved_relocs = HashSet::new();
         let mut local_reloc_heads = BTreeMap::new();
         let mut external_reloc_heads = BTreeMap::new();
 
@@ -459,6 +460,8 @@ impl CodeUnit<UnreslovedRelocs> {
                     let patches: Vec<_> = relocs
                         .into_iter()
                         .map(|(reloc, section_offset)| {
+                            resolved_relocs.insert((proc, reloc));
+
                             let InstrReloc {
                                 operand_offset,
                                 instr,
@@ -524,6 +527,26 @@ impl CodeUnit<UnreslovedRelocs> {
                         ));
                 }
             }
+        }
+
+        // Ensure all relocs in all procedures were patched
+        if cfg!(debug_assertions) {
+            let all_relocs: HashSet<_> = self
+                .procedures
+                .iter()
+                .flat_map(|(proc_id, proc)| {
+                    proc.reloc_patches
+                        .iter()
+                        .enumerate()
+                        .map(|(index, _)| (*proc_id, RelocHandle::from_usize(index)))
+                })
+                .collect();
+            let unresolved_relocs: Vec<_> = all_relocs.difference(&resolved_relocs).collect();
+
+            debug_assert!(
+                unresolved_relocs.is_empty(),
+                "code unit has unresolved relocations: {unresolved_relocs:?}"
+            );
         }
 
         // Transition into the resolved relocs typestate!
