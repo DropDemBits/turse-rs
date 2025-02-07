@@ -2,20 +2,28 @@
 
 use std::fs;
 
-use super::project_root;
-use anyhow::Context;
+use crate::{flags, util::project_root};
 use xshell::{cmd, Shell};
 
-pub fn do_package() -> anyhow::Result<()> {
-    package_server()?;
-    package_client()?;
+impl flags::Package {
+    pub(crate) fn run(self, sh: &Shell) -> eyre::Result<()> {
+        match self.subcommand {
+            flags::PackageCmd::Lsp(cmd) => {
+                if let Some(_) = cmd.server() {
+                    package_server(sh)?;
+                }
 
-    Ok(())
+                if let Some(_) = cmd.client() {
+                    package_client(sh)?;
+                }
+
+                Ok(())
+            }
+        }
+    }
 }
 
-fn package_server() -> anyhow::Result<()> {
-    let sh = Shell::new().context("failed to create the shell")?;
-
+fn package_server(sh: &Shell) -> eyre::Result<()> {
     let manifest_path = project_root().join("Cargo.toml");
 
     // Build server binary
@@ -37,8 +45,7 @@ fn package_server() -> anyhow::Result<()> {
     Ok(())
 }
 
-fn package_client() -> anyhow::Result<()> {
-    let sh = Shell::new().context("failed to create the shell")?;
+fn package_client(sh: &Shell) -> eyre::Result<()> {
     let _dir = sh.push_dir(project_root().join("lsp-client/vscode"));
 
     if cfg!(target_os = "windows") {

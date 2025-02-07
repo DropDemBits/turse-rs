@@ -1,29 +1,21 @@
-use std::env;
+mod codegen;
+mod flags;
+mod package;
+mod util;
 
-fn main() {
-    let mut args = env::args();
-    let task = args.nth(1);
+use util::project_root;
+use xshell::Shell;
 
-    let res = match task.as_deref() {
-        Some("codegen") => xtask::do_codegen(),
-        Some("pack-ext") => xtask::do_package(),
-        _ => {
-            show_help();
-            Ok(())
-        }
-    };
+fn main() -> eyre::Result<()> {
+    color_eyre::install()?;
 
-    if let Err(e) = res {
-        eprintln!("Encountered error: {e}");
-        std::process::exit(-1);
+    let flags = flags::Xtask::from_env_or_exit();
+
+    let sh = &Shell::new()?;
+    sh.change_dir(project_root());
+
+    match flags.subcommand {
+        flags::XtaskCmd::Codegen(cmd) => cmd.run(sh),
+        flags::XtaskCmd::Package(cmd) => cmd.run(sh),
     }
-}
-
-fn show_help() {
-    println!(
-        r#"Available tasks:
-
-codegen         Performs necessary code generation
-pack-ext        Packages the extension"#
-    );
 }
