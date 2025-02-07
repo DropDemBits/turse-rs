@@ -1,3 +1,5 @@
+//! Builders for encoding bytecode blobs.
+
 use std::{
     collections::BTreeMap,
     num::NonZeroU32,
@@ -5,7 +7,7 @@ use std::{
 };
 
 use either::Either;
-use instruction::{Instruction, Operand, OperandRef};
+use instruction::{Instruction, InstructionEncoder, InstructionRef, Operand, OperandRef};
 use section::{
     GlobalsAllocator, GlobalsSection, GlobalsSlot, ManifestAllocator, ManifestSection, ManifestSlot,
 };
@@ -719,7 +721,7 @@ impl ProcedureBuilder {
             let mut current_offset = 0;
 
             let offsets: Vec<_> = instrs
-                .instrs
+                .instrs()
                 .iter()
                 .map(|instr| {
                     let at_offset = current_offset;
@@ -1401,123 +1403,6 @@ pub struct LocalSlot(NonZeroU32);
 impl LocalSlot {
     pub fn as_usize(self) -> usize {
         self.0.get().saturating_sub(1) as usize
-    }
-}
-
-#[derive(Debug)]
-pub struct InstructionEncoder {
-    instrs: Vec<Instruction>,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[repr(transparent)]
-pub struct InstructionRef(NonZeroU32);
-
-impl InstructionRef {
-    pub fn as_usize(self) -> usize {
-        self.0.get().saturating_sub(1) as usize
-    }
-}
-
-impl InstructionEncoder {
-    pub fn new() -> Self {
-        Self { instrs: vec![] }
-    }
-
-    /// Finishes encoding instructions, returning all of the encoded
-    /// instructions.
-    pub fn finish(self) -> Box<[Instruction]> {
-        self.instrs.into_boxed_slice()
-    }
-
-    /// Gets an [`InstructionRef`] to the potential next instruction.
-    /// Intended for prospectively placing a branch target at an instruction
-    /// that's yet to be encoded.
-    pub fn next_ref(&self) -> InstructionRef {
-        NonZeroU32::new(self.instrs.len().saturating_add(1) as u32)
-            .map(InstructionRef)
-            .unwrap()
-    }
-
-    fn add(&mut self, instr: Instruction) -> InstructionRef {
-        let slot = self.next_ref();
-        self.instrs.push(instr);
-        slot
-    }
-}
-
-impl Index<InstructionRef> for InstructionEncoder {
-    type Output = Instruction;
-
-    fn index(&self, index: InstructionRef) -> &Self::Output {
-        &self.instrs[index.as_usize()]
-    }
-}
-
-impl IndexMut<InstructionRef> for InstructionEncoder {
-    fn index_mut(&mut self, index: InstructionRef) -> &mut Self::Output {
-        &mut self.instrs[index.as_usize()]
-    }
-}
-
-// this part will be generated
-impl InstructionEncoder {
-    pub fn abort(&mut self, abort_kind: AbortReason) -> InstructionRef {
-        self.add(Instruction::new(Opcode::ABORT).with_operand(Operand::AbortReason(abort_kind)))
-    }
-
-    pub fn addintnat(&mut self) -> InstructionRef {
-        self.add(Instruction::new(Opcode::ADDINTNAT))
-    }
-
-    pub fn call(&mut self, offset: u32) -> InstructionRef {
-        self.add(Instruction::new(Opcode::CALL).with_operand(Operand::Offset(offset)))
-    }
-
-    pub fn case(&mut self, descriptor: u32) -> InstructionRef {
-        self.add(Instruction::new(Opcode::CASE).with_operand(Operand::Offset(descriptor)))
-    }
-
-    pub fn jump(&mut self, offset: u32) -> InstructionRef {
-        self.add(Instruction::new(Opcode::JUMP).with_operand(Operand::Offset(offset)))
-    }
-
-    pub fn jumpb(&mut self, offset: u32) -> InstructionRef {
-        self.add(Instruction::new(Opcode::JUMPB).with_operand(Operand::Offset(offset)))
-    }
-
-    pub fn locatelocal(&mut self, local_offset: u32) -> InstructionRef {
-        self.add(Instruction::new(Opcode::LOCATELOCAL).with_operand(Operand::Offset(local_offset)))
-    }
-
-    pub fn locatetemp(&mut self, locals_size: u32, temp_offset: u32) -> InstructionRef {
-        self.add(
-            Instruction::new(Opcode::LOCATETEMP)
-                .with_operand(Operand::Nat4(locals_size))
-                .with_operand(Operand::Offset(temp_offset)),
-        )
-    }
-
-    pub fn pushaddr1(&mut self, offset: RelocatableOffset) -> InstructionRef {
-        self.add(
-            Instruction::new(Opcode::PUSHADDR1).with_operand(Operand::RelocatableOffset(offset)),
-        )
-    }
-
-    pub fn pushval0(&mut self) -> InstructionRef {
-        self.add(Instruction::new(Opcode::PUSHVAL0))
-    }
-
-    pub fn pushval1(&mut self) -> InstructionRef {
-        self.add(Instruction::new(Opcode::PUSHVAL1))
-    }
-
-    pub fn proc(&mut self, locals_size: u32) -> InstructionRef {
-        self.add(Instruction::new(Opcode::PROC).with_operand(Operand::Nat4(locals_size)))
-    }
-
-    pub fn return_(&mut self) -> InstructionRef {
-        self.add(Instruction::new(Opcode::RETURN))
     }
 }
 

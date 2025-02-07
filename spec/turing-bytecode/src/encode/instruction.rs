@@ -1,39 +1,24 @@
+//! Encoded instruction format.
 use std::{
     io,
-    num::NonZeroU8,
+    num::{NonZeroU32, NonZeroU8},
     ops::{Index, IndexMut},
 };
 
-use crate::instruction::{AbortReason, Opcode, RelocatableOffset};
+use crate::instruction::Opcode;
 
-// Can be generated
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum Operand {
-    AbortReason(AbortReason),
-    Nat4(u32),
-    Offset(u32),
-    RelocatableOffset(RelocatableOffset),
-}
+mod generated;
 
-impl Operand {
-    /// Size of the operand, in bytes.
-    pub fn size(&self) -> usize {
-        match self {
-            Operand::AbortReason(_) => 4,
-            Operand::Nat4(_) => 4,
-            Operand::Offset(_) => 4,
-            Operand::RelocatableOffset(_) => 8,
-        }
-    }
-}
+pub use generated::*;
 
+/// A reference to an [`Operand`] within an [`Instruction`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(transparent)]
 pub struct OperandRef(NonZeroU8);
 
-// Can be generated
-const MAX_OPERANDS: usize = 4;
-
+/// An encoded instruction.
+///
+/// [`OperandRef`]s can be used to access and modify individual operands of an instruction.
 #[derive(Debug)]
 pub struct Instruction {
     opcode: Opcode,
@@ -44,7 +29,7 @@ impl Instruction {
     pub fn new(opcode: Opcode) -> Self {
         Self {
             opcode,
-            operands: [None, None, None, None],
+            operands: [None; MAX_OPERANDS],
         }
     }
 
@@ -56,10 +41,12 @@ impl Instruction {
         self
     }
 
+    /// Encoded opcode.
     pub fn opcode(&self) -> Opcode {
         self.opcode
     }
 
+    /// Iterator over the encoded instruction's operands.
     pub fn operands(&self) -> impl Iterator<Item = &Operand> {
         self.operands
             .iter()
@@ -67,6 +54,7 @@ impl Instruction {
             .flat_map(|slot| Some(slot.as_ref()?))
     }
 
+    /// Iterator over [`OperandRef`]s that refer to the instruction's operands.
     pub fn operand_refs(&self) -> impl Iterator<Item = OperandRef> + use<'_> {
         self.operands
             .iter()
@@ -84,19 +72,10 @@ impl Instruction {
     pub fn encode(&self, out: &mut impl io::Write) -> io::Result<()> {
         use byteorder::{WriteBytesExt, LE};
 
-        // this can be generated?
         out.write_u32::<LE>(self.opcode() as u32)?;
 
         for operand in self.operands() {
-            match operand {
-                Operand::AbortReason(value) => out.write_u32::<LE>(*value as u32)?,
-                Operand::Nat4(value) => out.write_u32::<LE>(*value)?,
-                Operand::Offset(value) => out.write_u32::<LE>(*value)?,
-                Operand::RelocatableOffset(value) => {
-                    out.write_u32::<LE>(value.link)?;
-                    out.write_u32::<LE>(value.offset)?;
-                }
-            }
+            operand.encode(out)?;
         }
 
         Ok(())
@@ -118,5 +97,76 @@ impl IndexMut<OperandRef> for Instruction {
         self.operands[index.0.get().saturating_sub(1) as usize]
             .as_mut()
             .unwrap()
+    }
+}
+
+/// Encodes a sequence of instructions.
+///
+/// Each instruction has a function that generates an [`Instruction`] of the right format.
+#[derive(Debug, Default)]
+pub struct InstructionEncoder {
+    instrs: Vec<Instruction>,
+}
+
+/// A reference to an [`Instruction`] inside of a [`InstructionEncoder`]
+/// or procedure instruction list.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[repr(transparent)]
+pub struct InstructionRef(NonZeroU32);
+
+impl InstructionRef {
+    pub fn as_usize(self) -> usize {
+        self.0.get().saturating_sub(1) as usize
+    }
+}
+
+impl InstructionEncoder {
+    pub fn new() -> Self {
+        Self { instrs: vec![] }
+    }
+
+    /// Finishes encoding instructions, returning all of the encoded
+    /// instructions.
+    pub fn finish(self) -> Box<[Instruction]> {
+        self.instrs.into_boxed_slice()
+    }
+
+    /// Gets an [`InstructionRef`] to the potential next instruction.
+    /// Intended for prospectively placing a branch target at an instruction
+    /// that's yet to be encoded.
+    pub fn next_ref(&self) -> InstructionRef {
+        NonZeroU32::new(self.instrs.len().saturating_add(1) as u32)
+            .map(InstructionRef)
+            .unwrap()
+    }
+
+    /// Every instruction that has been encoded so far.
+    pub fn instrs(&self) -> &[Instruction] {
+        &self.instrs
+    }
+
+    /// Every instruction that has been encoded so far, as a mutable slice.
+    pub fn instrs_mut(&mut self) -> &mut [Instruction] {
+        &mut self.instrs
+    }
+
+    fn add(&mut self, instr: Instruction) -> InstructionRef {
+        let slot = self.next_ref();
+        self.instrs.push(instr);
+        slot
+    }
+}
+
+impl Index<InstructionRef> for InstructionEncoder {
+    type Output = Instruction;
+
+    fn index(&self, index: InstructionRef) -> &Self::Output {
+        &self.instrs[index.as_usize()]
+    }
+}
+
+impl IndexMut<InstructionRef> for InstructionEncoder {
+    fn index_mut(&mut self, index: InstructionRef) -> &mut Self::Output {
+        &mut self.instrs[index.as_usize()]
     }
 }
