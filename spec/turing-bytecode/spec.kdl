@@ -43,6 +43,7 @@ types {
     This is an entry within a relocatable patch list, with `link` pointing to the next entry in the list.
     Each distinct relocatable patch list refers to the local code unit sections (code, manifest, and global), as well as to other code units's sections.
     """
+
     link "offset" { description "Offset to the next relocatable patch entry to fixup." }
     offset "offset" { description "Offset within the section, relative to the base address." }
   }
