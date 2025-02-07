@@ -7,7 +7,7 @@ use byteorder::{WriteBytesExt, LE};
 
 use crate::OBJECT_HEADER_MAGIC;
 
-use super::{BytecodeBlob, UnitSection};
+use super::{BytecodeBlob, CodeUnit, ResolvedRelocs, UnitSection};
 
 /// Maximum size of the code unit filename field
 const CODE_UNIT_NAME_SIZE: usize = 255;
@@ -49,7 +49,7 @@ pub(crate) fn encode_bytecode(out: &mut impl io::Write, blob: &BytecodeBlob) -> 
     Ok(())
 }
 
-fn write_code_unit(out: &mut impl Write, unit: &super::CodeUnit) -> io::Result<()> {
+fn write_code_unit(out: &mut impl Write, unit: &CodeUnit<ResolvedRelocs>) -> io::Result<()> {
     // - file_no
     out.write_u16::<LE>(unit.id().as_usize() as u16)?;
     // - file_name
@@ -134,13 +134,13 @@ fn write_code_unit(out: &mut impl Write, unit: &super::CodeUnit) -> io::Result<(
     ];
 
     for section in sections {
-        let patch_head = unit.local_reloc_heads.get(section).copied().unwrap_or(0);
+        let patch_head = unit.local_relocs_start(*section).unwrap_or(0);
         out.write_u32::<LE>(patch_head)?;
     }
 
     // - external_patches
     for section in sections {
-        if let Some(external_patches) = unit.external_reloc_heads.get(section) {
+        if let Some(external_patches) = unit.external_relocs_start(*section) {
             for (code_unit, patch_head) in external_patches {
                 out.write_u16::<LE>(code_unit.as_usize() as u16)?;
                 out.write_u32::<LE>(*patch_head)?;
