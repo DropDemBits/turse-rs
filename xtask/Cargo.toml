@@ -10,8 +10,11 @@ edition.workspace = true
 
 [dependencies]
 ungrammar = "1.6.0"
-anyhow = "1.0.0"
 quote = "1.0"
 heck = "0.4"
-xshell = "0.2.2"
-unindent = { workspace = true }
+xshell = "0.2.7"
+camino.workspace = true
+unindent.workspace = true
+xflags = "0.3.2"
+color-eyre = "0.6.3"
+eyre = "0.6.12"

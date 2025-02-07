@@ -14,7 +14,6 @@ edition = "2021"
 byteorder = "1.5.0"
 camino = "1.1.1"
 either = "1.13.0"
-if_chain = "1.0"
 itertools = "0.10.3"
 indexmap = "1.7.0"
 insta = "1.28"
@@ -53,12 +52,8 @@ toc-validate = { path = "compiler/toc-validate" }
 toc-vfs = { path = "compiler/toc-vfs" }
 toc-vfs-db = { path = "compiler/toc-vfs-db" }
 
-# IDE crates
-toc-ide-db = { path = "lsp-server/toc-ide-db" }
-
 # Instruction spec crates
 stackful-spec = { path = "spec/stackful-spec" }
-turing-bytecode = { path = "spec/turing-bytecode" }
 
 [profile.release]
 debug = true
