@@ -20,6 +20,7 @@ insta = "1.28"
 # FIXME: tied to tower-lsp version, use separate structs so that changes are confined to lsp-server
 lsp-types = "0.93.2"
 miette = "7.4"
+proc-macro2 = "1.0.93"
 paste = "1.0.5"
 # FIXME: migrate to salsa "3"/0.18.x, removes jars!
 salsa = { git = "https://github.com/salsa-rs/salsa/", rev = "a327acc126d5d760aea83a266b2c5d8c58736003", package = "salsa-2022" }

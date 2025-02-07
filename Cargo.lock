@@ -2486,8 +2486,8 @@ version = "0.1.0"
 dependencies = [
  "camino",
  "heck 0.4.1",
- "kdl",
  "miette",
+ "proc-macro2",
  "quote",
  "stackful-spec",
  "thiserror 2.0.11",

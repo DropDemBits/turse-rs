@@ -43,11 +43,11 @@ types {
     This is an entry within a relocatable patch list, with `link` pointing to the next entry in the list.
     Each distinct relocatable patch list refers to the local code unit sections (code, manifest, and global), as well as to other code units's sections.
     """
-    link "int4" { description "Offset to the next relocatable patch entry to fixup." }
-    offset "int4" { description "Offset within the section, relative to the base address." }
+    link "offset" { description "Offset to the next relocatable patch entry to fixup." }
+    offset "offset" { description "Offset within the section, relative to the base address." }
   }
   scalar "addrint" size=4 {
-    descripton """
+    description """
     Pointer-sized unsigned integer referring to a specific location in the execution address space.
     This is always a 32-bit integer as 64-bit execution address spaces are unsupported.
     """
@@ -100,7 +100,7 @@ types {
       error_code 25
     }
     no_result 9 {
-      descrption "For functions that return without producing a result"
+      description "For functions that return without producing a result"
       message "Function failed to give a result"
       error_code 26
     }
@@ -205,7 +205,7 @@ instructions {
       }
     }
     
-    ADDNATINT 0x08 "Add Reals" {
+    ADDREAL 0x08 "Add Reals" {
       description "Adds `lhs` and `rhs`, producing `out`."
       operands {}
       stack_before {
@@ -331,6 +331,7 @@ instructions {
   }
 
   PROC 0xBA "Begin Procedure" {
+    // TODO: Description
     operands {
       frame_size "nat4" {
         description "Size of the call frame to allocate for locals and temporaries."
@@ -376,5 +377,10 @@ instructions {
         one "int4" { description "Literal 1 value" }
       }
     }
+  }
+
+  RETURN 0xCD "Return From Procedure" {
+    // TODO: Description
+    // TODO: Stack Effect
   }
 }

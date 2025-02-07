@@ -9,6 +9,7 @@ use crate::{
 };
 
 mod syntax;
+mod turing_bytecode;
 
 impl flags::Codegen {
     pub(crate) fn run(self, _sh: &Shell) -> miette::Result<()> {
@@ -17,13 +18,12 @@ impl flags::Codegen {
         match self.codegen_type.unwrap_or_default() {
             flags::CodegenType::All => {
                 syntax::do_codegen(check)?;
+                turing_bytecode::codegen(check)?;
 
                 Ok(())
             }
             flags::CodegenType::Grammar => syntax::do_codegen(check),
-            flags::CodegenType::TuringBytecode => {
-                todo!()
-            }
+            flags::CodegenType::TuringBytecode => turing_bytecode::codegen(check),
         }
     }
 }
