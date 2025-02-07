@@ -10,9 +10,8 @@ use crate::{flags, util::project_root};
 
 use super::{add_preamble, ensure_file_contents, reformat};
 
-// todo!
 pub(crate) fn codegen(check: bool) -> miette::Result<()> {
-    let spec_path = "spec/turing-bytecode/src/spec.kdl";
+    let spec_path = "spec/turing-bytecode/spec.kdl";
     let spec = fs::read_to_string(project_root().join(spec_path)).into_diagnostic()?;
     let spec: BytecodeSpec = spec.parse().map_err(|err| {
         miette::Report::from(err).with_source_code(miette::NamedSource::new(spec_path, spec))
