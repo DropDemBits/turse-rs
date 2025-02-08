@@ -1,5 +1,6 @@
 //! References to entities that are used within the bytecode spec.
 
+use crate::Types;
 #[allow(unused_imports)]
 use crate::{BytecodeSpec, Instruction};
 
@@ -11,6 +12,22 @@ macro_rules! entity_impl {
             }
 
             pub fn index(self) -> usize {
+                self.0
+            }
+        }
+    };
+}
+
+macro_rules! type_impl {
+    ($name:ident, $as_cast:ident) => {
+        impl $name {
+            /// Cast to this concrete type ref.
+            pub fn cast(ty: TypeRef, types: &Types) -> Option<Self> {
+                types[ty].$as_cast().map(|_| Self(ty))
+            }
+
+            /// Underlying [`TypeRef`] that this ref refers to.
+            pub fn type_ref(self) -> TypeRef {
                 self.0
             }
         }
@@ -56,46 +73,44 @@ entity_impl!(TypeRef);
 
 /// Refers to a specific scalar type in a [`BytecodeSpec`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct ScalarRef(TypeRef);
-
-impl ScalarRef {
-    /// Underlying [`TypeRef`] that this ref refers to.
-    pub fn type_ref(self) -> TypeRef {
-        self.0
-    }
-}
+pub struct ScalarRef(pub(crate) TypeRef);
+type_impl!(ScalarRef, as_scalar);
 
 /// Refers to a specific struct type in a [`BytecodeSpec`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct StructRef(TypeRef);
-
-impl StructRef {
-    /// Underlying [`TypeRef`] that this ref refers to.
-    pub fn type_ref(self) -> TypeRef {
-        self.0
-    }
-}
+pub struct StructRef(pub(crate) TypeRef);
+type_impl!(StructRef, as_struct);
 
 /// Refers to a specific enum type in a [`BytecodeSpec`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct EnumRef(TypeRef);
+pub struct EnumRef(pub(crate) TypeRef);
+type_impl!(EnumRef, as_enum);
 
-impl EnumRef {
-    /// Underlying [`TypeRef`] that this ref refers to.
-    pub fn type_ref(self) -> TypeRef {
+/// Refers to a specific union type in a [`BytecodeSpec`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct UnionRef(pub(crate) TypeRef);
+type_impl!(UnionRef, as_union);
+
+from_impls!(ScalarRef, StructRef, EnumRef, UnionRef for TypeRef);
+
+/// Refers to a specific enum type variant in a [`BytecodeSpec`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct EnumVariantRef(pub(crate) EnumRef, pub(crate) usize);
+
+impl EnumVariantRef {
+    /// Which enum type this variant is a part of.
+    pub fn ty(self) -> EnumRef {
         self.0
     }
 }
 
-from_impls!(ScalarRef, StructRef, EnumRef for TypeRef);
-
-/// Refers to a specific enum type variant in a [`BytecodeSpec`].
+/// Refers to a specific union type variant in a [`BytecodeSpec`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct VariantRef(EnumRef, usize);
+pub struct UnionVariantRef(pub(crate) UnionRef, pub(crate) usize);
 
-impl VariantRef {
-    /// Which enum type this variant is a part of.
-    pub fn ty(self) -> EnumRef {
+impl UnionVariantRef {
+    /// Which union type this variant is a part of.
+    pub fn ty(self) -> UnionRef {
         self.0
     }
 }

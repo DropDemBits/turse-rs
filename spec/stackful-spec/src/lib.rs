@@ -14,8 +14,11 @@
 //!
 //! Because instructions may differ in operation based on operands, there is
 //! a condition node that applies based on certain conditions. Instructions
-//! are assumed to always be decoded in the same way, thus dynamically decoded
-//! operands are out of the scope of this specification.
+//! are assumed to always be decoded in the same way from the opcode and
+//! immediate operands alone, thus dynamically decoded operands are out of the
+//! scope of this specification. Variably-sized instructions must immediately
+//! have a discriminator value before the variable-sized decode section, which
+//! is achieved through using [`Union`] operands.
 
 use std::{
     collections::BTreeMap,
@@ -25,8 +28,8 @@ use std::{
 };
 
 use entities::{
-    EnumRef, ImmediateOperand, ScalarRef, StackAfterOperand, StackBeforeOperand, StructRef,
-    TypeRef, VariantRef,
+    EnumRef, EnumVariantRef, ImmediateOperand, ScalarRef, StackAfterOperand, StackBeforeOperand,
+    StructRef, TypeRef, UnionVariantRef,
 };
 
 pub mod entities;
@@ -163,14 +166,6 @@ pub enum ParseError {
         #[label("defined here again")] miette::SourceSpan,
     ),
 
-    #[error("duplicate instruction opcode number `{0}`")]
-    #[diagnostic(code(bytecode_spec::duplicate_name))]
-    DuplicateOpcode(
-        u32,
-        #[label(primary, "first used here")] miette::SourceSpan,
-        #[label("used here again")] miette::SourceSpan,
-    ),
-
     #[error("type `{0}` is infinitely sized")]
     #[diagnostic(code(bytecode_spec::cyclic_type))]
     CyclicType(
@@ -202,6 +197,8 @@ pub enum CommonNodes {
     OpcodeNode,
     StructNode,
     EnumNode,
+    UnionNode,
+    UnionVariantNode,
 }
 
 impl CommonNodes {
@@ -214,6 +211,8 @@ impl CommonNodes {
             CommonNodes::OpcodeNode => "opcode",
             CommonNodes::StructNode => "struct",
             CommonNodes::EnumNode => "enum",
+            CommonNodes::UnionNode => "union",
+            CommonNodes::UnionVariantNode => "union variant",
         }
     }
 }
@@ -233,6 +232,7 @@ pub enum NameKind {
     Field,
     Operand,
     Mnemonic,
+    InstructionOpcode,
 }
 
 impl Display for NameKind {
@@ -245,6 +245,7 @@ impl Display for NameKind {
             NameKind::Field => "field name",
             NameKind::Operand => "operand",
             NameKind::Mnemonic => "mnemonic",
+            NameKind::InstructionOpcode => "instruction opcode",
         })
     }
 }
@@ -272,11 +273,20 @@ impl Display for StringList {
 /// Contains the definitions for types used by all operands.
 #[derive(Debug)]
 pub struct Types {
+    /// Definitions of every type.
     pub types: Box<[Type]>,
-    by_name: BTreeMap<String, TypeRef>,
+    by_name: BTreeMap<Str, TypeRef>,
 }
 
 impl Types {
+    /// Provides an iterator over all type definitions with the associated type ref.
+    pub fn defs(&self) -> impl Iterator<Item = (TypeRef, &Type)> {
+        self.types
+            .iter()
+            .enumerate()
+            .map(|(index, ty)| (TypeRef::from_usize(index), ty))
+    }
+
     /// Finds a type by name
     pub fn get(&self, name: &str) -> Option<TypeRef> {
         self.by_name.get(name).copied()
@@ -359,6 +369,9 @@ pub struct Instruction {
     description: Option<Str>,
     // don't have to expose these immediately
     immediate_operands: Box<[Operand]>,
+    // representing stack operands is hard because
+    // - decode may be conditional
+    // stack operand refs refer to specific named slots, not instances hidden behind conditional decode
     stack_before_operands: Box<[Operand]>,
     stack_after_operands: Box<[Operand]>,
     conditional_decodes: Option<Box<[ConditionalDecode]>>,
@@ -463,7 +476,7 @@ pub enum PredicateOperand {
     /// Refers to a specific [`ImmediateOperand`].
     ImmediateOperand(ImmediateOperand),
     /// Refers to a specific enum's variant
-    VariantRef(VariantRef),
+    VariantRef(EnumVariantRef),
 }
 
 #[derive(Debug)]
@@ -471,7 +484,7 @@ pub enum ComputedExpr {
     /// Refers to a specific [`ImmediateOperand`].
     ImmediateOperand(ImmediateOperand),
     /// Refers to a specific enum's variant
-    VariantRef(VariantRef),
+    VariantRef(EnumVariantRef),
     Add(Box<ComputedExpr>, Box<ComputedExpr>),
     Sub(Box<ComputedExpr>, Box<ComputedExpr>),
     Mul(Box<ComputedExpr>, Box<ComputedExpr>),
@@ -502,6 +515,7 @@ pub enum Type {
     Scalar(Scalar),
     Struct(Struct),
     Enum(Enum),
+    Union(Union),
 }
 
 impl Type {
@@ -511,6 +525,7 @@ impl Type {
             Type::Scalar(it) => &it.name,
             Type::Struct(it) => &it.name,
             Type::Enum(it) => &it.name,
+            Type::Union(it) => &it.name,
         }
     }
 
@@ -520,6 +535,7 @@ impl Type {
             Type::Scalar(it) => it.description.as_deref(),
             Type::Struct(it) => it.description.as_deref(),
             Type::Enum(it) => it.description.as_deref(),
+            Type::Union(it) => it.description.as_deref(),
         }
     }
 
@@ -529,6 +545,7 @@ impl Type {
             Type::Scalar(it) => it.size,
             Type::Struct(it) => it.size,
             Type::Enum(it) => it.size,
+            Type::Union(it) => it.size,
         }
     }
 
@@ -549,6 +566,13 @@ impl Type {
     pub fn as_enum(&self) -> Option<&Enum> {
         match self {
             Type::Enum(it) => Some(it),
+            _ => None,
+        }
+    }
+
+    pub fn as_union(&self) -> Option<&Union> {
+        match self {
+            Type::Union(it) => Some(it),
             _ => None,
         }
     }
@@ -591,7 +615,7 @@ pub struct Struct {
     name: Str,
     description: Option<Str>,
     size: u32,
-    fields: Box<[StructField]>,
+    fields: Box<[AdtField]>,
 }
 
 impl Struct {
@@ -611,20 +635,20 @@ impl Struct {
     }
 
     /// Fields of the struct.
-    pub fn fields(&self) -> &[StructField] {
+    pub fn fields(&self) -> &[AdtField] {
         &self.fields
     }
 }
 
-/// A field within a [`Struct`].
+/// A field within a [`Struct`] or [`Union`].
 #[derive(Debug)]
-pub struct StructField {
+pub struct AdtField {
     name: Str,
     ty: Str,
     description: Option<Str>,
 }
 
-impl StructField {
+impl AdtField {
     /// Name of the field.
     pub fn name(&self) -> &str {
         &self.name
@@ -643,13 +667,13 @@ impl StructField {
 
 /// A value with possible variants.
 #[derive(Debug)]
-#[non_exhaustive]
 pub struct Enum {
     name: Str,
     description: Option<Str>,
     size: u32,
     repr_type: Option<Str>,
     variants: Box<[EnumVariant]>,
+    by_name: BTreeMap<Str, EnumVariantRef>,
 }
 
 impl Enum {
@@ -658,29 +682,34 @@ impl Enum {
         &self.name
     }
 
-    /// Detailed description of the type
+    /// Detailed description of the type.
     pub fn description(&self) -> Option<&str> {
         self.description.as_deref()
     }
 
-    /// Size of the type, typically in bytes
+    /// Size of the type, typically in bytes.
     pub fn size(&self) -> u32 {
         self.size
     }
 
-    /// What this type may be represented as when generating code
+    /// What this type may be represented as when generating code.
     pub fn repr_type(&self) -> Option<&str> {
         self.repr_type.as_deref()
     }
 
-    /// Variants of this enum
+    /// Variants of this enum.
     pub fn variants(&self) -> &[EnumVariant] {
         &self.variants
     }
+
+    /// Gets a ref to a specific variant.
+    pub fn get_variant(&self, variant: &str) -> Option<EnumVariantRef> {
+        self.by_name.get(variant).copied()
+    }
 }
 
+/// A variant of an enum type.
 #[derive(Debug)]
-#[non_exhaustive]
 pub struct EnumVariant {
     name: Str,
     description: Option<Str>,
@@ -779,6 +808,98 @@ impl Display for PropertyKind {
             PropertyKind::Number => "integer",
             PropertyKind::Bool => "bool",
         })
+    }
+}
+
+/// A value with possible variants, each containing a different set of dynamic
+/// data.
+#[derive(Debug)]
+pub struct Union {
+    name: Str,
+    description: Option<Str>,
+    // size of the tag
+    tag_size: u32,
+    // size of the tag + size of the largest variant
+    size: u32,
+    repr_type: Option<Str>,
+    variants: Box<[UnionVariant]>,
+    by_name: BTreeMap<Str, UnionVariantRef>,
+}
+
+impl Union {
+    /// Name of the type.
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// Detailed description of the type.
+    pub fn description(&self) -> Option<&str> {
+        self.description.as_deref()
+    }
+
+    /// Size of the tag type, typically in bytes.
+    pub fn tag_size(&self) -> u32 {
+        self.tag_size
+    }
+
+    /// Size of the type, typically in bytes.
+    ///
+    /// This is computed from the sum of the tag size and the size of the
+    /// largest variant.
+    pub fn size(&self) -> u32 {
+        self.size
+    }
+
+    /// What the tag of this type may be represented as when generating code.
+    pub fn repr_type(&self) -> Option<&str> {
+        self.repr_type.as_deref()
+    }
+
+    /// Variants of this union.
+    pub fn variants(&self) -> &[UnionVariant] {
+        &self.variants
+    }
+
+    /// Gets a ref to a specific variant.
+    pub fn get_variant(&self, variant: &str) -> Option<UnionVariantRef> {
+        self.by_name.get(variant).copied()
+    }
+}
+
+/// A variant of a union type.
+#[derive(Debug)]
+pub struct UnionVariant {
+    name: Str,
+    description: Option<Str>,
+    size: u32,
+    ordinal: u32,
+    fields: Box<[AdtField]>,
+}
+
+impl UnionVariant {
+    /// Name of the variant
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// Detailed description of the variant
+    pub fn description(&self) -> Option<&str> {
+        self.description.as_deref()
+    }
+
+    /// Size of the variant, typically in bytes.
+    pub fn size(&self) -> u32 {
+        self.size
+    }
+
+    /// Ordinal index of the variant
+    pub fn ordinal(&self) -> u32 {
+        self.ordinal
+    }
+
+    /// Fields of the variant.
+    pub fn fields(&self) -> &[AdtField] {
+        &self.fields
     }
 }
 
