@@ -55,6 +55,7 @@ toc-vfs-db = { path = "compiler/toc-vfs-db" }
 
 # Instruction spec crates
 stackful-spec = { path = "spec/stackful-spec" }
+turing-bytecode = { path = "spec/turing-bytecode" }
 
 [profile.release]
 debug = true

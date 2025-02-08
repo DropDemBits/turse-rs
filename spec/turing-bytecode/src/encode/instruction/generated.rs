@@ -3,31 +3,68 @@
 use crate::encode::instruction::{Instruction, InstructionEncoder, InstructionRef};
 use crate::instruction::*;
 use byteorder::{WriteBytesExt, LE};
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 #[doc = "An operand for an encoded instruction."]
 pub enum Operand {
+    Int1(Int1),
+    Int2(Int2),
+    Int4(Int4),
+    Nat2(Nat2),
     Nat4(Nat4),
+    Real8(Real8),
     Offset(Offset),
     RelocatableOffset(RelocatableOffset),
+    Addrint(Addrint),
     AbortReason(AbortReason),
+    PutKind(PutKind),
 }
 impl Operand {
     #[doc = "Size of the operand, in bytes."]
     pub fn size(&self) -> usize {
         match self {
+            Self::Int1(_) => 4usize,
+            Self::Int2(_) => 4usize,
+            Self::Int4(_) => 4usize,
+            Self::Nat2(_) => 4usize,
             Self::Nat4(_) => 4usize,
+            Self::Real8(_) => 8usize,
             Self::Offset(_) => 4usize,
             Self::RelocatableOffset(_) => 8usize,
+            Self::Addrint(_) => 4usize,
             Self::AbortReason(_) => 4usize,
+            Self::PutKind(_) => 4usize,
         }
     }
     #[doc = "Encodes the operand into the equivalent byte representation."]
     pub fn encode(&self, out: &mut impl std::io::Write) -> std::io::Result<()> {
         match self {
+            Self::Int1(value) => {
+                out.write_i8(*value)?;
+                out.write_u8(0)?;
+                out.write_u8(0)?;
+                out.write_u8(0)?;
+                Ok(())
+            }
+            Self::Int2(value) => {
+                out.write_i16::<LE>(*value)?;
+                out.write_u8(0)?;
+                out.write_u8(0)?;
+                Ok(())
+            }
+            Self::Int4(value) => out.write_i32::<LE>(*value),
+            Self::Nat2(value) => {
+                out.write_u16::<LE>(*value)?;
+                out.write_u8(0)?;
+                out.write_u8(0)?;
+                Ok(())
+            }
             Self::Nat4(value) => out.write_u32::<LE>(*value),
+            Self::Real8(value) => out.write_f64::<LE>(*value),
             Self::Offset(value) => out.write_u32::<LE>(*value),
             Self::RelocatableOffset(value) => value.encode(out),
+            Self::Addrint(value) => out.write_u32::<LE>(*value),
             Self::AbortReason(value) => value.encode(out),
+            Self::PutKind(value) => value.encode(out),
         }
     }
 }
@@ -41,6 +78,36 @@ impl RelocatableOffset {
     }
 }
 impl AbortReason {
+    #[doc = "Encodes the type into the equivalent byte representation."]
+    pub fn encode(&self, out: &mut impl std::io::Write) -> std::io::Result<()> {
+        out.write_u32::<LE>(*self as u32)
+    }
+}
+impl PutKind {
+    #[doc = "Encodes the type into the equivalent byte representation."]
+    pub fn encode(&self, out: &mut impl std::io::Write) -> std::io::Result<()> {
+        out.write_u32::<LE>(*self as u32)
+    }
+}
+impl GetKind {
+    #[doc = "Encodes the type into the equivalent byte representation."]
+    pub fn encode(&self, out: &mut impl std::io::Write) -> std::io::Result<()> {
+        out.write_u32::<LE>(*self as u32)
+    }
+}
+impl StdStream {
+    #[doc = "Encodes the type into the equivalent byte representation."]
+    pub fn encode(&self, out: &mut impl std::io::Write) -> std::io::Result<()> {
+        out.write_u32::<LE>(*self as u32)
+    }
+}
+impl StreamKind {
+    #[doc = "Encodes the type into the equivalent byte representation."]
+    pub fn encode(&self, out: &mut impl std::io::Write) -> std::io::Result<()> {
+        out.write_u32::<LE>(*self as u32)
+    }
+}
+impl CheckKind {
     #[doc = "Encodes the type into the equivalent byte representation."]
     pub fn encode(&self, out: &mut impl std::io::Write) -> std::io::Result<()> {
         out.write_u32::<LE>(*self as u32)
@@ -73,6 +140,16 @@ impl InstructionEncoder {
     pub fn case(&mut self, descriptor: Offset) -> InstructionRef {
         self.add(Instruction::new(Opcode::CASE).with_operand(Operand::Offset(descriptor)))
     }
+    #[doc = "Encode a [**INCLINENO**](Opcode::INCLINENO) instruction."]
+    pub fn inclineno(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::INCLINENO)) }
+    #[doc = "Encode a [**JUMP**](Opcode::JUMP) instruction.\n\n## Operands\n\n- offset: Offset to jump forward by, in bytes\n"]
+    pub fn jump(&mut self, offset: Offset) -> InstructionRef {
+        self.add(Instruction::new(Opcode::JUMP).with_operand(Operand::Offset(offset)))
+    }
+    #[doc = "Encode a [**JUMPB**](Opcode::JUMPB) instruction.\n\n## Operands\n\n- offset: Offset to jump backwards by, in bytes\n"]
+    pub fn jumpb(&mut self, offset: Offset) -> InstructionRef {
+        self.add(Instruction::new(Opcode::JUMPB).with_operand(Operand::Offset(offset)))
+    }
     #[doc = "Encode a [**LOCATELOCAL**](Opcode::LOCATELOCAL) instruction.\n\n## Operands\n\n- offset: Offset in the locals area\n"]
     pub fn locatelocal(&mut self, offset: Offset) -> InstructionRef {
         self.add(Instruction::new(Opcode::LOCATELOCAL).with_operand(Operand::Offset(offset)))
@@ -85,17 +162,13 @@ impl InstructionEncoder {
                 .with_operand(Operand::Offset(offset)),
         )
     }
-    #[doc = "Encode a [**JUMP**](Opcode::JUMP) instruction.\n\n## Operands\n\n- offset: Offset to jump forward by, in bytes\n"]
-    pub fn jump(&mut self, offset: Offset) -> InstructionRef {
-        self.add(Instruction::new(Opcode::JUMP).with_operand(Operand::Offset(offset)))
-    }
-    #[doc = "Encode a [**JUMPB**](Opcode::JUMPB) instruction.\n\n## Operands\n\n- offset: Offset to jump backwards by, in bytes\n"]
-    pub fn jumpb(&mut self, offset: Offset) -> InstructionRef {
-        self.add(Instruction::new(Opcode::JUMPB).with_operand(Operand::Offset(offset)))
-    }
     #[doc = "Encode a [**PROC**](Opcode::PROC) instruction.\n\n## Operands\n\n- frame_size: Size of the call frame to allocate for locals and temporaries.\n"]
     pub fn proc(&mut self, frame_size: Nat4) -> InstructionRef {
         self.add(Instruction::new(Opcode::PROC).with_operand(Operand::Nat4(frame_size)))
+    }
+    #[doc = "Encode a [**PUSHADDR**](Opcode::PUSHADDR) instruction.\n\n## Operands\n\n- addr: Absolute address to refer to.\n"]
+    pub fn pushaddr(&mut self, addr: Addrint) -> InstructionRef {
+        self.add(Instruction::new(Opcode::PUSHADDR).with_operand(Operand::Addrint(addr)))
     }
     #[doc = "Encode a [**PUSHADDR1**](Opcode::PUSHADDR1) instruction.\n\n## Operands\n\n- offset: Runtime-resolved offset within a section.\n"]
     pub fn pushaddr1(&mut self, offset: RelocatableOffset) -> InstructionRef {
@@ -103,10 +176,44 @@ impl InstructionEncoder {
             Instruction::new(Opcode::PUSHADDR1).with_operand(Operand::RelocatableOffset(offset)),
         )
     }
+    #[doc = "Encode a [**PUSHCOPY**](Opcode::PUSHCOPY) instruction."]
+    pub fn pushcopy(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::PUSHCOPY)) }
+    #[doc = "Encode a [**PUSHINT**](Opcode::PUSHINT) instruction.\n\n## Operands\n\n- literal: Literal value to push.\n"]
+    pub fn pushint(&mut self, literal: Int4) -> InstructionRef {
+        self.add(Instruction::new(Opcode::PUSHINT).with_operand(Operand::Int4(literal)))
+    }
+    #[doc = "Encode a [**PUSHINT1**](Opcode::PUSHINT1) instruction.\n\n## Operands\n\n- literal: Literal value to push.\n"]
+    pub fn pushint1(&mut self, literal: Int1) -> InstructionRef {
+        self.add(Instruction::new(Opcode::PUSHINT1).with_operand(Operand::Int1(literal)))
+    }
+    #[doc = "Encode a [**PUSHINT2**](Opcode::PUSHINT2) instruction.\n\n## Operands\n\n- literal: Literal value to push.\n"]
+    pub fn pushint2(&mut self, literal: Int2) -> InstructionRef {
+        self.add(Instruction::new(Opcode::PUSHINT2).with_operand(Operand::Int2(literal)))
+    }
+    #[doc = "Encode a [**PUSHREAL**](Opcode::PUSHREAL) instruction.\n\n## Operands\n\n- literal: Literal value to push.\n"]
+    pub fn pushreal(&mut self, literal: Real8) -> InstructionRef {
+        self.add(Instruction::new(Opcode::PUSHREAL).with_operand(Operand::Real8(literal)))
+    }
     #[doc = "Encode a [**PUSHVAL0**](Opcode::PUSHVAL0) instruction."]
     pub fn pushval0(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::PUSHVAL0)) }
     #[doc = "Encode a [**PUSHVAL1**](Opcode::PUSHVAL1) instruction."]
     pub fn pushval1(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::PUSHVAL1)) }
+    #[doc = "Encode a [**PUT**](Opcode::PUT) instruction.\n\n## Operands\n\n- put_kind: Which kind of item to put.\n"]
+    pub fn put(&mut self, put_kind: PutKind) -> InstructionRef {
+        self.add(Instruction::new(Opcode::PUT).with_operand(Operand::PutKind(put_kind)))
+    }
     #[doc = "Encode a [**RETURN**](Opcode::RETURN) instruction."]
     pub fn return_(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::RETURN)) }
+    #[doc = "Encode a [**SETFILENO**](Opcode::SETFILENO) instruction.\n\n## Operands\n\n- file_no: File number to set location to\n- line_no: Line number to set location to\n"]
+    pub fn setfileno(&mut self, file_no: Nat2, line_no: Nat2) -> InstructionRef {
+        self.add(
+            Instruction::new(Opcode::SETFILENO)
+                .with_operand(Operand::Nat2(file_no))
+                .with_operand(Operand::Nat2(line_no)),
+        )
+    }
+    #[doc = "Encode a [**SETLINENO**](Opcode::SETLINENO) instruction.\n\n## Operands\n\n- line_no: Line number to set location to\n"]
+    pub fn setlineno(&mut self, line_no: Nat2) -> InstructionRef {
+        self.add(Instruction::new(Opcode::SETLINENO).with_operand(Operand::Nat2(line_no)))
+    }
 }
