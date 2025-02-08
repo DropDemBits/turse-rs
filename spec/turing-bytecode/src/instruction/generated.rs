@@ -22,27 +22,53 @@ pub enum Opcode {
     CALL = 0x32,
     #[doc = "Case Of\n\nJumps to a specific branch depending on `selector`.\n`descriptor` points to a case descriptor describing the case bounds, default branch offset, and per-entry branch.\nSuccinctly, it is of the following layout:\n\n| Type     | Name           |\n|----------|----------------|\n| `int4`   | lower_bound    |\n| `int4`   | upper_bound    | \n| `offset` | default_branch |\n| `offset` | arm_0          |\n| `offset` | arm_1          |\n| ...      | ...            |\n| `offset` | arm_n          |\n\nNote that the case descriptor cannot have more than 1000 arm offsets when targeting Turing/OpenTuring interpreters.\n\nAll offsets are relative to the address of the `descriptor` operand."]
     CASE = 0x35,
-    #[doc = "Locate Local Slot\n\nLocates the address of a local in the current call frame.\nOffset is computed relative to the start of the local area."]
-    LOCATELOCAL = 0x96,
-    #[doc = "Locate Temporary Slot\n\nLocates the address of a temporary in the current call frame.\nOffset is computed relative to the start of the temporaries area.\n\nAs the temporaries area is located after the locals area in the call frame, the size of the call frame must also be known."]
-    LOCATETEMP = 0x98,
+    #[doc = "Increment Line Number\n\nIncrements the line number up by 1.\n\nPrimarily used for debugging, this has no effect on the program state."]
+    INCLINENO = 0x7D,
     #[doc = "Jump Forward\n\nAdvances program counter forwards by `offset` bytes.\nOffset is relative to the address of the offset operand."]
     JUMP = 0x89,
     #[doc = "Jump Backward\n\nRetreats program counter backwards by `offset` bytes.\nOffset is relative to the address of the offset operand."]
     JUMPB = 0x8A,
+    #[doc = "Locate Local Slot\n\nLocates the address of a local in the current call frame.\nOffset is computed relative to the start of the local area."]
+    LOCATELOCAL = 0x96,
+    #[doc = "Locate Temporary Slot\n\nLocates the address of a temporary in the current call frame.\nOffset is computed relative to the start of the temporaries area.\n\nAs the temporaries area is located after the locals area in the call frame, the size of the call frame must also be known."]
+    LOCATETEMP = 0x98,
     #[doc = "Begin Procedure\n\n"]
     PROC = 0xBA,
+    #[doc = "Push Address\n\nPushes an absolute address. The address will not be relocated."]
+    PUSHADDR = 0xBB,
     #[doc = "Push Relocatable Address\n\nPushes a relocatable address with a runtime-determined base address.\n\nThis may be relative to the base address of the local or external code unit section (code, manifest, or global)."]
     PUSHADDR1 = 0xBC,
+    #[doc = "Push Copy of Value\n\nPushes a copy of the top value on the operand stack.\n\nWill only copy `nat4` sized or smaller values."]
+    PUSHCOPY = 0xBD,
+    #[doc = "Push Literal Int Value\n\nPushes a literal `int` value onto the operand stack."]
+    PUSHINT = 0xBE,
+    #[doc = "Push Literal Int1 Value\n\nPushes a literal `int1` value onto the operand stack."]
+    PUSHINT1 = 0xBF,
+    #[doc = "Push Literal Int2 Value\n\nPushes a literal `int2` value onto the operand stack."]
+    PUSHINT2 = 0xC0,
+    #[doc = "Push Literal Real Value\n\nPushes a literal `real8` value onto the operand stack."]
+    PUSHREAL = 0xC1,
     #[doc = "Push Literal 0\n\nPushes a literal 0 value onto the operand stack."]
     PUSHVAL0 = 0xC2,
     #[doc = "Push Literal 1\n\nPushes a literal 1 value onto the operand stack."]
     PUSHVAL1 = 0xC3,
+    #[doc = "Put Characters to Stream\n\nPuts the given value to the provided `stream`.\n\nThe actual number of stack arguments is based on `put_kind`, as different put items have different uses for the arguments."]
+    PUT = 0xC4,
     #[doc = "Return From Procedure\n\n"]
     RETURN = 0xCD,
+    #[doc = "Set File & Line Number\n\nSets the current execution file number and line number.\n\nPrimarily used for debugging, this has no effect on the program state."]
+    SETFILENO = 0xD5,
+    #[doc = "Set Line Number\n\nSets the current execution line number, using the same file number.\n\nPrimarily used for debugging, this has no effect on the program state."]
+    SETLINENO = 0xD6,
 }
+#[doc = "8-bit signed integer."]
+pub type Int1 = i8;
+#[doc = "16-bit signed integer."]
+pub type Int2 = i16;
 #[doc = "32-bit signed integer."]
 pub type Int4 = i32;
+#[doc = "16-bit unsigned integer."]
+pub type Nat2 = u16;
 #[doc = "32-bit unsigned integer."]
 pub type Nat4 = u32;
 #[doc = "binary32 floating-point number."]
@@ -117,4 +143,115 @@ impl AbortReason {
             Self::NoResult => "Function failed to give a result",
         }
     }
+}
+#[doc = "Valid put items for **PUT**."]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[repr(u32)]
+pub enum PutKind {
+    #[doc = "Boolean item for putting `boolean` values."]
+    Boolean = 0u32,
+    #[doc = "Char item for putting `char` values."]
+    Char = 1u32,
+    #[doc = "CharN item for putting `char(N)` values.\n\n## Note\nThe stack argument ordering is emitted in the opposite order from original Turing, where `width` and `length` are swapped.\nThis uses the ordering from the bytecode executor, which is the ultimate consumer of the bytecode anyways."]
+    CharN = 2u32,
+    #[doc = "Enum item for putting `enum` types.\n\nPoints to a list of variant names."]
+    Enum = 3u32,
+    #[doc = "Int item for putting `int` types, with only the width argument."]
+    Int = 4u32,
+    #[doc = "Int item for putting `int` types, with the width and fractional width arguments."]
+    IntFract = 5u32,
+    #[doc = "Int item for putting `int` types, with the width, fractional width, and exponent width arguments."]
+    IntExp = 6u32,
+    #[doc = "Nat item for putting `nat` types, with only the width argument."]
+    Nat = 7u32,
+    #[doc = "Nat item for putting `nat` types, with the width and fractional width arguments."]
+    NatFract = 8u32,
+    #[doc = "Nat item for putting `nat` types, with the width, fractional width, and exponent width arguments."]
+    NatExp = 9u32,
+    #[doc = "Real item for putting `real` types, with only the width argument."]
+    Real = 10u32,
+    #[doc = "Real item for putting `real` types, with the width and fractional width arguments."]
+    RealFract = 11u32,
+    #[doc = "Real item for putting `real` types, with the width, fractional width, and exponent width arguments."]
+    RealExp = 12u32,
+    #[doc = "String item for putting `string` types."]
+    String = 13u32,
+    #[doc = "Skip item, only putting a newline."]
+    Skip = 14u32,
+}
+impl PutKind {
+    #[doc = "Size of the type, in bytes."]
+    pub fn size(&self) -> usize { 4usize }
+}
+#[doc = "Valid get items for **GET**."]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[repr(u32)]
+pub enum GetKind {
+    Skip = 14u32,
+}
+impl GetKind {
+    #[doc = "Size of the type, in bytes."]
+    pub fn size(&self) -> usize { 4usize }
+}
+#[doc = "Standard streams selectable from [**SETSTDSTREAM**].\n\n[**SETSTDSTREAM**](Opcode::SETSTDSTREAM)"]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[repr(u32)]
+pub enum StdStream {
+    #[doc = "Standard in stream."]
+    Stdin = 1u32,
+    #[doc = "Standard out stream."]
+    Stdout = 2u32,
+}
+impl StdStream {
+    #[doc = "Size of the type, in bytes."]
+    pub fn size(&self) -> usize { 4usize }
+    pub fn default_handle(&self) -> isize {
+        match self {
+            Self::Stdin => -2isize,
+            Self::Stdout => -1isize,
+        }
+    }
+}
+#[doc = "Stream operations that can be used from [**SETSTREAM**].\n\n[**SETSTREAM**](Opcode::SETSTREAM)"]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[repr(u32)]
+pub enum StreamKind {
+    Seek = 0u32,
+    Get = 1u32,
+    Put = 2u32,
+    Read = 3u32,
+    Write = 4u32,
+}
+impl StreamKind {
+    #[doc = "Size of the type, in bytes."]
+    pub fn size(&self) -> usize { 4usize }
+}
+#[doc = "Which kind of check is being performed in a **CHKRANGE**."]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[repr(u32)]
+pub enum CheckKind {
+    #[doc = "Range check as part of an assignment."]
+    Assign = 0u32,
+    #[doc = "Negative or zero char(*) length."]
+    AnyChar = 1u32,
+    #[doc = "Value passed to `chr` is not in `[0,255]`."]
+    Chr = 2u32,
+    #[doc = "After an arithmetic operation."]
+    IntOverflow = 3u32,
+    #[doc = "Range check as part of an assignemt into a range."]
+    RangeAssign = 4u32,
+    #[doc = "Computation of a for-loop step."]
+    LoopStep = 5u32,
+    #[doc = "Asserting that `pred` isn't applied on the first element of a sequence."]
+    Pred = 6u32,
+    #[doc = "Asserting that `succ` isn't applied on the last element of a sequence."]
+    Succ = 7u32,
+    #[doc = "Asserting that a value is a valid tag for a given union."]
+    TagValue = 8u32,
+    #[doc = "Range check as part of range parameter passing."]
+    ValueParam = 9u32,
+}
+impl CheckKind {
+    #[doc = "Size of the type, in bytes."]
+    pub fn size(&self) -> usize { 4usize }
 }

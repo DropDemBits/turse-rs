@@ -851,9 +851,9 @@ checksum = "d75a2a4b1b190afb6f5425f10f6a8f959d2ea0b9c2b1d79553551850539e4674"
 
 [[package]]
 name = "kdl"
-version = "6.2.2"
+version = "6.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6d63de1aa3d632a8dd61da7cddfc499e9f88e6265d85bd84002419c3cdd3dc8f"
+checksum = "412e2cf22cb560469db5b211c594ff9dcd490c6964e284ea64eddffe41c2249c"
 dependencies = [
  "miette",
  "num",
@@ -2231,8 +2231,6 @@ name = "turing-bytecode"
 version = "0.1.0"
 dependencies = [
  "byteorder",
- "either",
- "stackful-spec",
 ]
 
 [[package]]

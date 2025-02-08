@@ -14,12 +14,18 @@ pub struct SectionAllocator<S: SectionInfo> {
     _section: PhantomData<S>,
 }
 
-impl<S: SectionInfo> SectionAllocator<S> {
-    pub fn new() -> Self {
+impl<S: SectionInfo> Default for SectionAllocator<S> {
+    fn default() -> Self {
         Self {
             allocs: vec![],
             _section: PhantomData,
         }
+    }
+}
+
+impl<S: SectionInfo> SectionAllocator<S> {
+    pub fn new() -> Self {
+        Self::default()
     }
 
     pub fn finish(self) -> Section<S> {

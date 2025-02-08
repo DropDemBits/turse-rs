@@ -5,11 +5,29 @@
 //   they must always be uplifted into addresses in the locals area.
 
 types {
+  scalar "int1" size=1 {
+    description """
+    8-bit signed integer.
+    """
+    repr_type "i8"
+  }
+  scalar "int2" size=2 {
+    description """
+    16-bit signed integer.
+    """
+    repr_type "i16"
+  }
   scalar "int4" size=4 {
     description """
     32-bit signed integer.
     """
     repr_type "i32"
+  }
+  scalar "nat2" size=2 {
+    description """
+    16-bit unsigned integer.
+    """
+    repr_type "u16"
   }
   scalar "nat4" size=4 {
     description """
@@ -104,6 +122,173 @@ types {
       description "For functions that return without producing a result"
       message "Function failed to give a result"
       error_code 26
+    }
+  }
+  enum "put_kind" size=4 {
+    description """
+    Valid put items for **PUT**.
+    """
+    repr_type "u32"
+
+    boolean 0 {
+      description """
+      Boolean item for putting `boolean` values.
+      """
+    }
+    char 1 {
+      description """
+      Char item for putting `char` values.
+      """
+    }
+    char_n 2 {
+      description """
+      CharN item for putting `char(N)` values.
+
+      ## Note
+      The stack argument ordering is emitted in the opposite order from original Turing, where `width` and `length` are swapped.
+      This uses the ordering from the bytecode executor, which is the ultimate consumer of the bytecode anyways.
+      """
+    }
+    enum 3 {
+      description """
+      Enum item for putting `enum` types.
+
+      Points to a list of variant names.
+      """
+    }
+    int 4 {
+      description """
+      Int item for putting `int` types, with only the width argument.
+      """
+    }
+    int_fract 5 {
+      description """
+      Int item for putting `int` types, with the width and fractional width arguments.
+      """
+    }
+    int_exp 6 {
+      description """
+      Int item for putting `int` types, with the width, fractional width, and exponent width arguments.
+      """
+    }
+    // note: some of these nat ones crash the intepreter?
+    nat 7 {
+      description """
+      Nat item for putting `nat` types, with only the width argument.
+      """
+    }
+    nat_fract 8 {
+      description """
+      Nat item for putting `nat` types, with the width and fractional width arguments.
+      """
+    }
+    nat_exp 9 {
+      description """
+      Nat item for putting `nat` types, with the width, fractional width, and exponent width arguments.
+      """
+    }
+    real 10 {
+      description """
+      Real item for putting `real` types, with only the width argument.
+      """
+    }
+    real_fract 11 {
+      description """
+      Real item for putting `real` types, with the width and fractional width arguments.
+      """
+    }
+    real_exp 12 {
+      description """
+      Real item for putting `real` types, with the width, fractional width, and exponent width arguments.
+      """
+    }
+    string 13 {
+      description """
+      String item for putting `string` types.
+      """
+    }
+    skip 14 {
+      description """
+      Skip item, only putting a newline.
+      """
+    }
+  }
+  enum "get_kind" size=4 {
+    description """
+    Valid get items for **GET**.
+    """
+    repr_type "u32"
+
+    skip 14
+  }
+  enum "std_stream" size=4 {
+    description """
+    Standard streams selectable from [**SETSTDSTREAM**].
+
+    [**SETSTDSTREAM**](Opcode::SETSTDSTREAM)
+    """
+    repr_type "u32"
+
+    stdin 1 {
+      description """
+      Standard in stream.
+      """
+      default_handle -2
+    }
+    stdout 2 {
+      description """
+      Standard out stream.
+      """
+      default_handle -1
+    }
+  }
+  enum "stream_kind" size=4 {
+    description """
+    Stream operations that can be used from [**SETSTREAM**].
+
+    [**SETSTREAM**](Opcode::SETSTREAM)
+    """
+    repr_type "u32"
+
+    seek 0 {}
+    get 1 {}
+    put 2 {}
+    read 3 {}
+    write 4 {}
+  }
+  enum "check_kind" size=4 {
+    description "Which kind of check is being performed in a **CHKRANGE**."
+    repr_type "u32"
+
+    assign 0 {
+      description "Range check as part of an assignment."
+    }
+    any_char 1 {
+      description "Negative or zero char(*) length."
+    }
+    chr 2 {
+      description "Value passed to `chr` is not in `[0,255]`."
+    }
+    int_overflow 3 {
+      description "After an arithmetic operation."
+    }
+    range_assign 4 {
+      description "Range check as part of an assignemt into a range."
+    }
+    loop_step 5 {
+      description "Computation of a for-loop step."
+    }
+    pred 6 {
+      description "Asserting that `pred` isn't applied on the first element of a sequence."
+    }
+    succ 7 {
+      description  "Asserting that `succ` isn't applied on the last element of a sequence."
+    }
+    tag_value 8 {
+      description "Asserting that a value is a valid tag for a given union." 
+    }
+    value_param 9 {
+      description "Range check as part of range parameter passing."
     }
   }
 }
@@ -268,6 +453,42 @@ instructions {
     stack_after {}
   }
 
+  INCLINENO 0x7D "Increment Line Number" {
+    description """
+    Increments the line number up by 1.
+
+    Primarily used for debugging, this has no effect on the program state.
+    """
+  }
+
+  group "Jump" {
+    description """
+    Changes program execution forwards or backwards. 
+    """
+    
+    JUMP 0x89 "Jump Forward" {
+      description """
+      Advances program counter forwards by `offset` bytes.
+      Offset is relative to the address of the offset operand.
+      """
+
+      operands {
+        offset "offset" { description "Offset to jump forward by, in bytes" }
+      }
+    }
+
+    JUMPB 0x8A "Jump Backward" {
+      description """
+      Retreats program counter backwards by `offset` bytes.
+      Offset is relative to the address of the offset operand.
+      """
+      
+      operands {
+        offset "offset" { description "Offset to jump backwards by, in bytes" }
+      }
+    }
+  }
+
   group "Locate Address" {
     LOCATELOCAL 0x96 "Locate Local Slot" {
       description """
@@ -303,34 +524,6 @@ instructions {
     }
   }
 
-  group "Jump" {
-    description """
-    Changes program execution forwards or backwards. 
-    """
-    
-    JUMP 0x89 "Jump Forward" {
-      description """
-      Advances program counter forwards by `offset` bytes.
-      Offset is relative to the address of the offset operand.
-      """
-
-      operands {
-        offset "offset" { description "Offset to jump forward by, in bytes" }
-      }
-    }
-
-    JUMPB 0x8A "Jump Backward" {
-      description """
-      Retreats program counter backwards by `offset` bytes.
-      Offset is relative to the address of the offset operand.
-      """
-      
-      operands {
-        offset "offset" { description "Offset to jump backwards by, in bytes" }
-      }
-    }
-  }
-
   PROC 0xBA "Begin Procedure" {
     // TODO: Description
     operands {
@@ -342,6 +535,20 @@ instructions {
   }
 
   group "Push Value Onto Stack" {
+    PUSHADDR 0xBB "Push Address" {
+      description """
+      Pushes an absolute address. The address will not be relocated.
+      """
+
+      operands {
+        addr "addrint" { description "Absolute address to refer to."}
+      }
+      stack_before {}
+      stack_after {
+        addr "addrint" { description "Absolute address." }
+      }
+    }
+
     PUSHADDR1 0xBC "Push Relocatable Address" {
       description """
       Pushes a relocatable address with a runtime-determined base address.
@@ -354,6 +561,92 @@ instructions {
       stack_before {}
       stack_after {
         addr "addrint" { description "Computed offset and base address." }
+      }
+    }
+
+    PUSHCOPY 0xBD "Push Copy of Value" {
+      description """
+      Pushes a copy of the top value on the operand stack.
+
+      Will only copy `nat4` sized or smaller values.
+      """
+
+      operands {}
+      stack_before {
+        value "nat4" { description "Value to copy." }
+      }
+      stack_after {
+        value "nat4" {
+          description "Original value to copy."
+          preserves (stack_before).value
+        }
+        copy "nat4" {
+          description "Copied value."
+        }
+      }
+    }
+
+    PUSHINT 0xBE "Push Literal Int Value" {
+      description """
+      Pushes a literal `int` value onto the operand stack.
+      """
+
+      operands {
+        literal "int4" { description "Literal value to push." }
+      }
+      stack_before {}
+      stack_after {
+        value "int4" {
+          description "Literal value pushed onto the operand stack."
+        }
+      }
+    }
+
+    PUSHINT1 0xBF "Push Literal Int1 Value" {
+      description """
+      Pushes a literal `int1` value onto the operand stack.
+      """
+
+      operands {
+        literal "int1" { description "Literal value to push." }
+      }
+      stack_before {}
+      stack_after {
+        value "int1" {
+          description "Literal value pushed onto the operand stack."
+        }
+      }
+    }
+
+    PUSHINT2 0xC0 "Push Literal Int2 Value" {
+      description """
+      Pushes a literal `int2` value onto the operand stack.
+      """
+
+      operands {
+        literal "int2" { description "Literal value to push." }
+      }
+      stack_before {}
+      stack_after {
+        value "int2" {
+          description "Literal value pushed onto the operand stack."
+        }
+      }
+    }
+
+    PUSHREAL 0xC1 "Push Literal Real Value" {
+      description """
+      Pushes a literal `real8` value onto the operand stack.
+      """
+
+      operands {
+        literal "real8" { description "Literal value to push." }
+      }
+      stack_before {}
+      stack_after {
+        value "real8" {
+          description "Literal value pushed onto the operand stack."
+        }
       }
     }
 
@@ -380,8 +673,140 @@ instructions {
     }
   }
 
+  PUT 0xC4 "Put Characters to Stream" {
+    description """
+    Puts the given value to the provided `stream`.
+    
+    The actual number of stack arguments is based on `put_kind`, as different put items have different uses for the arguments.
+    """
+    operands {
+      put_kind "put_kind" {
+        description """
+        Which kind of item to put.
+        """
+      }
+    }
+
+    stack_before {
+      @conditional-case (operands).put_kind {
+        @case (put_kind).boolean {
+          value "nat4" { description "`boolean` value to put." }
+        }
+        @case (put_kind).char {
+          value "nat1" { description "`char` value to put." }
+        }
+        @case (put_kind).char_n {
+          value "addrint" { description "`char(N)` value to put." }
+          length "nat4" {
+            description """
+            Byte length of the `char(N)` type.
+            """
+          }
+        }
+        @case (put_kind).enum {
+          value "nat4" { description "`enum` value to put." }
+        }
+        @case (put_kind).int (put_kind).int_fract (put_kind).int_exp {
+          value "int4" { description "`int` value to put." }
+        }
+        @case (put_kind).nat (put_kind).nat_fract (put_kind).nat_exp {
+          value "nat4" { description "`nat` value to put." }
+        }
+        @case (put_kind).real (put_kind).real_fract (put_kind).real_exp {
+          value "real8" { description "`real` value to put." }
+        }
+        @case (put_kind).string {
+          value "addrint" { description "`string` value to put." }
+        }
+      }
+      @conditional {
+        @predicate (operands).put_kind "!=" (put_kind).skip
+
+        width "int4" {
+          description """
+          Minimum number of characters to put.
+          If less characters than the minimum are printed, the remaining count is padded to the right with spaces.
+          """
+        }
+      }
+      @conditional {
+        @predicate (operands).put_kind "==" (put_kind).int_fract
+        @predicate (operands).put_kind "==" (put_kind).nat_fract
+        @predicate (operands).put_kind "==" (put_kind).real_fract
+
+        fractional_width "int4" {
+          description """
+          Minimum number of decimal places to put.
+          Contributes to the number of characters printed.
+          """
+        }
+      }
+      @conditional {
+        @predicate (operands).put_kind "==" (put_kind).int_exp
+        @predicate (operands).put_kind "==" (put_kind).nat_exp
+        @predicate (operands).put_kind "==" (put_kind).real_exp
+
+        exponent_width "int4" {
+          description """
+          Minimum number of exponential digits to put.
+          Contributes to the number of characters printed.
+          """
+        }
+      }
+      @conditional {
+        @predicate (operands).put_kind "==" (put_kind).enum
+
+        variant_names "addrint" {
+          description """
+          Array of names of the enum variants.
+          Any out-of-range values are put as the raw ordinal value.
+          """
+        }
+      }
+      stream "addrint" {
+        description """
+        Stream to put characters to.
+        """
+      }
+    }
+    stack_after {}
+  }
+
   RETURN 0xCD "Return From Procedure" {
     // TODO: Description
     // TODO: Stack Effect
+  }
+
+  group "Set Location" {
+    description """
+    Modifies the current execution location to match the source code representation.
+
+    Primarily used for debugging, this has no effect on the program state.
+    """
+
+    SETFILENO 0xD5 "Set File & Line Number" {
+      description """
+      Sets the current execution file number and line number.
+
+      Primarily used for debugging, this has no effect on the program state.
+      """
+      
+      operands {
+        file_no "nat2" { description "File number to set location to" }
+        line_no "nat2" { description "Line number to set location to" }
+      }
+    }
+
+    SETLINENO 0xD6 "Set Line Number" {
+      description """
+      Sets the current execution line number, using the same file number.
+
+      Primarily used for debugging, this has no effect on the program state.
+      """
+      
+      operands {
+        line_no "nat2" { description "Line number to set location to" }
+      }
+    }
   }
 }

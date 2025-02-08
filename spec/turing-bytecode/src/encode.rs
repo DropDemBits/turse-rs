@@ -815,10 +815,16 @@ impl ProcedureBuilder {
     ///
     /// After leaving this scope, the space for any [`TemporarySlot`] allocated
     /// in this function will be made available for future temporaries.
-    pub fn in_temporary_scope(&mut self, in_scope: impl FnOnce(&mut Self)) {
-        let old = self.temps.enter_scope();
-        in_scope(self);
-        self.temps.leave_scope(old);
+    pub fn enter_temporary_scope(&mut self) -> TemporaryScope {
+        self.temps.enter_scope()
+    }
+
+    /// Ends a temporary allocation scope.
+    ///
+    /// The space for all [`TemporarySlot`]s allocated in this scope
+    /// will be made available for future temporaries.
+    pub fn leave_temporary_scope(&mut self, old_scope: TemporaryScope) {
+        self.temps.leave_scope(old_scope);
     }
 
     /// Gets the instruction encoder to encode instructions in.
@@ -1447,8 +1453,9 @@ impl Index<TemporarySlot> for TemporariesArea {
     }
 }
 
+/// Represents a temporary allocation scope.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-struct TemporaryScope {
+pub struct TemporaryScope {
     depth: u32,
     scope: u32,
 }
