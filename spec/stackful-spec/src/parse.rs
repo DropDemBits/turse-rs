@@ -1,12 +1,15 @@
 use std::{
+    borrow::Borrow,
     collections::{BTreeMap, HashMap, HashSet},
-    ops::ControlFlow,
+    hash::Hash,
+    ops::{ControlFlow, Index},
 };
 
 use crate::{
-    entities::TypeRef, BytecodeSpec, CommonNodes, Enum, EnumVariant, Group, Instruction, NameKind,
-    Operand, ParseError, Property, PropertyValue, Scalar, StringList, Struct, StructField, Type,
-    Types,
+    entities::{EnumRef, EnumVariantRef, TypeRef, UnionRef, UnionVariantRef},
+    AdtField, BytecodeSpec, CommonNodes, Enum, EnumVariant, Group, Instruction, NameKind, Operand,
+    ParseError, Property, PropertyValue, Scalar, StringList, Struct, Type, Types, Union,
+    UnionVariant,
 };
 
 pub(crate) fn parse_spec(text: &str) -> Result<BytecodeSpec, ParseError> {
@@ -35,34 +38,18 @@ fn parse_instruction_list(
     let mut instr_defs = vec![];
     let mut group_defs = vec![];
 
-    let mut mnemonic_names = HashMap::new();
-    let mut opcode_nums = HashMap::new();
+    let mut mnemonic_defs = DefsTracker::<_>::new(NameKind::Mnemonic);
+    let mut opcode_defs = DefsTracker::<_>::new(NameKind::InstructionOpcode);
 
-    let mut record_duplicates = |def: Instruction,
-                                 entry: &kdl::KdlNode|
-     -> Result<Instruction, ParseError> {
-        let mnemonic_span = entry.name().span();
-        if let Some(existing_def) = mnemonic_names.insert(def.mnemonic().to_owned(), mnemonic_span)
-        {
-            return Err(ParseError::DuplicateName(
-                NameKind::Mnemonic,
-                entry.name().value().to_owned(),
-                existing_def,
-                mnemonic_span,
-            ));
-        }
+    let mut record_duplicates =
+        |def: Instruction, entry: &kdl::KdlNode| -> Result<Instruction, ParseError> {
+            mnemonic_defs.track_def(def.mnemonic().to_owned(), entry.name().span())?;
 
-        let opcode_span = entry.entry(0).expect("should have opcode number").span();
-        if let Some(existing_def) = opcode_nums.insert(def.opcode(), opcode_span) {
-            return Err(ParseError::DuplicateOpcode(
-                def.opcode(),
-                existing_def,
-                opcode_span,
-            ));
-        }
+            let opcode_span = entry.entry(0).expect("should have opcode number").span();
+            opcode_defs.track_def(def.opcode(), opcode_span)?;
 
-        Ok(def)
-    };
+            Ok(def)
+        };
 
     for entry in instructions.nodes() {
         if entry.name().value() == "group" {
@@ -113,29 +100,22 @@ fn parse_types(types: &kdl::KdlDocument) -> Result<Types, ParseError> {
     let mut type_defs = vec![];
     let mut types_by_name = BTreeMap::new();
 
-    let mut type_names = HashMap::new();
-    let mut field_tys = HashMap::new();
+    let mut name_defs = DefsTracker::new(NameKind::Type);
+    let mut field_ty_checks = vec![];
 
     for entry in types.nodes() {
         let slot = TypeRef::from_usize(type_defs.len());
 
         let def = match entry.name().value() {
             "scalar" => Type::Scalar(parse_scalar(entry)?),
-            "struct" => Type::Struct(parse_struct(entry, slot, &mut field_tys)?),
-            "enum" => Type::Enum(parse_enum(entry)?),
+            "struct" => Type::Struct(parse_struct(entry, &mut field_ty_checks)?),
+            "enum" => Type::Enum(parse_enum(entry, slot)?),
+            "union" => Type::Union(parse_union(entry, slot, &mut field_ty_checks)?),
             _ => return Err(ParseError::InvalidTypeKind(entry.name().span())),
         };
 
         let def_span = entry.name().span();
-
-        if let Some(existing_def) = type_names.insert(def.name().to_owned(), def_span) {
-            return Err(ParseError::DuplicateName(
-                NameKind::Type,
-                def.name().to_owned(),
-                existing_def,
-                def_span,
-            ));
-        }
+        name_defs.track_def(def.name().to_owned(), def_span)?;
 
         types_by_name.insert(def.name().to_owned(), slot);
         type_defs.push(def);
@@ -146,73 +126,79 @@ fn parse_types(types: &kdl::KdlDocument) -> Result<Types, ParseError> {
         by_name: types_by_name,
     };
 
-    check_acyclic_types(&types, &type_names, &field_tys)?;
+    check_field_types(&types, field_ty_checks)?;
+    check_acyclic_types(&types).map_err(|err| {
+        let mut tys: Vec<_> = err.participant_tys.iter().map(|ty| &types[*ty]).collect();
+        let first = tys.remove(0).name().to_owned();
+        let first_span = name_defs[first.as_str()];
+        let participant_spans = tys.iter().map(|ty| name_defs[ty.name()]).collect();
+
+        ParseError::CyclicType(first, first_span, participant_spans)
+    })?;
     // TODO: struct size compute validation
 
     Ok(types)
 }
 
-fn check_acyclic_types(
+fn check_field_types(
     types: &Types,
-    def_spans: &HashMap<String, miette::SourceSpan>,
-    field_ty_spans: &HashMap<TypeRef, HashMap<String, miette::SourceSpan>>,
+    checks: Vec<(String, miette::SourceSpan)>,
 ) -> Result<(), ParseError> {
+    for (ty, field_ty_span) in checks {
+        if let None = types.get(&ty) {
+            return Err(ParseError::UnknownTypeName(ty, field_ty_span));
+        }
+    }
+
+    Ok(())
+}
+
+struct CycleError {
+    participant_tys: Vec<TypeRef>,
+}
+
+fn check_acyclic_types(types: &Types) -> Result<(), CycleError> {
     let mut ty_stack = vec![];
     let mut visited_tys = HashSet::new();
 
-    fn check_struct(
-        strukt: &Struct,
+    fn check_fields(
+        ty: &Type,
         types: &Types,
         ty_stack: &mut Vec<TypeRef>,
         visited_tys: &mut HashSet<TypeRef>,
-        def_spans: &HashMap<String, miette::SourceSpan>,
-        field_ty_spans: &HashMap<TypeRef, HashMap<String, miette::SourceSpan>>,
-    ) -> Result<(), ParseError> {
-        let strukt_ref = types.get(strukt.name()).expect("self struct should exist");
+    ) -> Result<(), CycleError> {
+        if matches!(ty, Type::Enum(_) | Type::Scalar(_)) {
+            // Enums and scalars are leaf types, no need to traverse them.
+            return Ok(());
+        }
 
-        ty_stack.push(strukt_ref);
+        let self_ref = types.get(ty.name()).expect("self ty should exist");
+
+        ty_stack.push(self_ref);
         {
-            if !visited_tys.insert(strukt_ref) {
+            if !visited_tys.insert(self_ref) {
                 // Type has been visited before, fails occurs-check
                 let cycle_start = ty_stack
                     .iter()
-                    .position(|it| *it == strukt_ref)
-                    .expect("struct ref should be in the type stack");
-                let participant_spans: Vec<_> = ty_stack[(cycle_start + 1)..]
-                    .iter()
-                    .map(|ty_ref| def_spans[types[*ty_ref].name()])
-                    .collect();
+                    .position(|it| *it == self_ref)
+                    .expect("cycle start ref should be in the type stack");
 
-                return Err(ParseError::CyclicType(
-                    strukt.name().to_owned(),
-                    def_spans[strukt.name()],
-                    participant_spans,
-                ));
+                return Err(CycleError {
+                    participant_tys: Vec::from(&ty_stack[cycle_start..]),
+                });
             }
 
-            let err = for_each_field(strukt, |field| {
-                let Some(field_ty) = types.get(field.ty()) else {
-                    // Field refers to an unknown type
-                    return ControlFlow::Break(ParseError::UnknownTypeName(
-                        field.ty().to_owned(),
-                        field_ty_spans[&strukt_ref][field.name()],
-                    ));
-                };
+            let mut visted_in_siblings = HashSet::new();
 
-                let strukt = match &types[field_ty] {
-                    Type::Struct(strukt) => strukt,
-                    // Enums and scalars are "leaf" types, no need to explore them
-                    Type::Enum(_) | Type::Scalar(_) => return ControlFlow::Continue(()),
-                };
+            let err = for_each_field(ty, |field| {
+                let field_ty = types.get(field.ty()).expect("type should be known");
 
-                match check_struct(
-                    strukt,
-                    types,
-                    ty_stack,
-                    visited_tys,
-                    def_spans,
-                    field_ty_spans,
-                ) {
+                if !visted_in_siblings.insert(field_ty) {
+                    // Already visited in another sibling field
+                    return ControlFlow::Continue(());
+                }
+
+                match check_fields(&types[field_ty], types, ty_stack, visited_tys) {
                     Ok(_) => ControlFlow::Continue(()),
                     Err(err) => ControlFlow::Break(err),
                 }
@@ -227,22 +213,12 @@ fn check_acyclic_types(
         Ok(())
     }
 
-    for (ty_ref, ty) in types.types.iter().enumerate() {
-        let Some(strukt) = ty.as_struct() else {
+    for (ty_ref, ty) in types.defs() {
+        if visited_tys.contains(&ty_ref) {
             continue;
-        };
-        let ty_ref = TypeRef::from_usize(ty_ref);
-
-        if !visited_tys.contains(&ty_ref) {
-            check_struct(
-                strukt,
-                types,
-                &mut ty_stack,
-                &mut visited_tys,
-                def_spans,
-                field_ty_spans,
-            )?;
         }
+
+        check_fields(ty, types, &mut ty_stack, &mut visited_tys)?;
     }
 
     Ok(())
@@ -264,17 +240,29 @@ fn parse_scalar(node: &kdl::KdlNode) -> Result<Scalar, ParseError> {
 
 fn parse_struct(
     node: &kdl::KdlNode,
-    slot: TypeRef,
-    field_tys: &mut HashMap<TypeRef, HashMap<String, miette::SourceSpan>>,
+    field_ty_checks: &mut Vec<(String, miette::SourceSpan)>,
 ) -> Result<Struct, ParseError> {
     let name = parse_required_string_entry(node, 0)?;
     let size = parse_required_u32_entry(node, "size")?;
     let description = parse_description(node)?;
+    let fields = parse_adt_fields(node, CommonNodes::StructNode, field_ty_checks)?;
 
-    let fields = get_required_children(node, CommonNodes::StructNode)?;
+    Ok(Struct {
+        name: name.to_owned(),
+        description: description.map(String::from),
+        size,
+        fields: fields.into_boxed_slice(),
+    })
+}
+
+fn parse_adt_fields(
+    node: &kdl::KdlNode,
+    node_type: CommonNodes,
+    field_ty_checks: &mut Vec<(String, miette::SourceSpan)>,
+) -> Result<Vec<AdtField>, ParseError> {
+    let fields = get_required_children(node, node_type)?;
     let mut field_defs = vec![];
-    let mut field_names = HashMap::new();
-    let mut field_ty_spans = HashMap::new();
+    let mut field_name_defs = DefsTracker::new(NameKind::Field);
 
     for field_entry in fields.nodes() {
         let name = field_entry.name().value();
@@ -287,46 +275,33 @@ fn parse_struct(
         let ty = parse_required_string_entry(field_entry, 0)?;
         let description = parse_description(field_entry)?;
 
-        field_ty_spans.insert(
-            name.to_owned(),
+        field_ty_checks.push((
+            ty.to_owned(),
             field_entry.entry(0).expect("field should have type").span(),
-        );
+        ));
 
-        let def_span = field_entry.name().span();
-        if let Some(existing_field) = field_names.insert(name.to_owned(), def_span) {
-            return Err(ParseError::DuplicateName(
-                NameKind::Field,
-                name.to_owned(),
-                existing_field,
-                def_span,
-            ));
-        }
+        field_name_defs.track_def(name.to_owned(), field_entry.name().span())?;
 
-        field_defs.push(StructField {
+        field_defs.push(AdtField {
             name: name.to_owned(),
             ty: ty.to_owned(),
             description: description.map(String::from),
         });
     }
 
-    field_tys.insert(slot, field_ty_spans);
-
-    Ok(Struct {
-        name: name.to_owned(),
-        description: description.map(String::from),
-        size,
-        fields: field_defs.into_boxed_slice(),
-    })
+    Ok(field_defs)
 }
 
-fn parse_enum(node: &kdl::KdlNode) -> Result<Enum, ParseError> {
+fn parse_enum(node: &kdl::KdlNode, slot: TypeRef) -> Result<Enum, ParseError> {
+    let slot = EnumRef(slot);
+
     let name = parse_required_string_entry(node, 0)?;
     let size = parse_required_u32_entry(node, "size")?;
     let description = parse_description(node)?;
     let repr_type = parse_string_child(node, "repr_type")?;
 
     let variants = get_required_children(node, CommonNodes::EnumNode)?;
-    let mut variant_names = HashMap::new();
+    let mut variant_names = DefsTracker::new(NameKind::Variant);
     let mut variant_defs = vec![];
     let mut ordinal_iota = 0;
     let mut property_types = HashMap::new();
@@ -344,7 +319,7 @@ fn parse_enum(node: &kdl::KdlNode) -> Result<Enum, ParseError> {
         let mut properties = BTreeMap::new();
 
         if let Some(variant_properties) = variant_entry.children().map(|it| it.nodes()) {
-            let mut property_names = HashMap::new();
+            let mut property_names = DefsTracker::new(NameKind::Property);
 
             for property_entry in variant_properties {
                 let name = property_entry.name().value();
@@ -378,6 +353,8 @@ fn parse_enum(node: &kdl::KdlNode) -> Result<Enum, ParseError> {
                     }
                 }
 
+                property_names.track_def(name.to_owned(), property_entry.name().span())?;
+
                 properties.insert(
                     name.to_owned(),
                     Property {
@@ -385,18 +362,10 @@ fn parse_enum(node: &kdl::KdlNode) -> Result<Enum, ParseError> {
                         value,
                     },
                 );
-
-                let def_span = property_entry.name().span();
-                if let Some(existing_field) = property_names.insert(name.to_owned(), def_span) {
-                    return Err(ParseError::DuplicateName(
-                        NameKind::Property,
-                        name.to_owned(),
-                        existing_field,
-                        def_span,
-                    ));
-                }
             }
         }
+
+        variant_names.track_def(name.to_owned(), variant_entry.name().span())?;
 
         variant_defs.push(EnumVariant {
             name: name.to_owned(),
@@ -404,16 +373,6 @@ fn parse_enum(node: &kdl::KdlNode) -> Result<Enum, ParseError> {
             description: description.map(String::from),
             properties,
         });
-
-        let def_span = variant_entry.name().span();
-        if let Some(existing_variant) = variant_names.insert(name.to_owned(), def_span) {
-            return Err(ParseError::DuplicateName(
-                NameKind::Variant,
-                name.to_owned(),
-                existing_variant,
-                def_span,
-            ));
-        }
 
         ordinal_iota = ordinal + 1;
     }
@@ -443,12 +402,90 @@ fn parse_enum(node: &kdl::KdlNode) -> Result<Enum, ParseError> {
         }
     }
 
+    let by_name = variant_defs
+        .iter()
+        .enumerate()
+        .map(|(index, variant)| (variant.name().to_owned(), EnumVariantRef(slot, index)))
+        .collect();
+
     Ok(Enum {
         name: name.to_owned(),
         description: description.map(String::from),
         size,
         repr_type: repr_type.map(String::from),
         variants: variant_defs.into_boxed_slice(),
+        by_name,
+    })
+}
+
+fn parse_union(
+    node: &kdl::KdlNode,
+    slot: TypeRef,
+    field_ty_checks: &mut Vec<(String, miette::SourceSpan)>,
+) -> Result<Union, ParseError> {
+    let slot = UnionRef(slot);
+
+    let name = parse_required_string_entry(node, 0)?;
+    let tag_size = parse_required_u32_entry(node, "tag_size")?;
+    let description = parse_description(node)?;
+    let repr_type = parse_string_child(node, "repr_type")?;
+
+    let variants = get_required_children(node, CommonNodes::UnionNode)?;
+    let mut variant_names = DefsTracker::new(NameKind::Variant);
+    let mut variant_defs = vec![];
+    let mut ordinal_iota = 0;
+
+    for variant_entry in variants.nodes() {
+        let name = variant_entry.name().value();
+
+        // Skip nodes with special names
+        if matches!(name, "description" | "repr_type") {
+            continue;
+        }
+
+        let size = parse_required_u32_entry(variant_entry, "size")?;
+        let ordinal = parse_u32_entry(variant_entry, 0)?.unwrap_or(ordinal_iota);
+        let description = parse_description(variant_entry)?;
+        let fields = parse_adt_fields(
+            variant_entry,
+            CommonNodes::UnionVariantNode,
+            field_ty_checks,
+        )?;
+
+        variant_names.track_def(name.to_owned(), variant_entry.name().span())?;
+
+        variant_defs.push(UnionVariant {
+            name: name.to_owned(),
+            description: description.map(String::from),
+            size,
+            ordinal,
+            fields: fields.into_boxed_slice(),
+        });
+
+        ordinal_iota = ordinal + 1;
+    }
+
+    let by_name = variant_defs
+        .iter()
+        .enumerate()
+        .map(|(index, variant)| (variant.name().to_owned(), UnionVariantRef(slot, index)))
+        .collect();
+
+    let size = tag_size
+        + variant_defs
+            .iter()
+            .map(|variant| variant.size())
+            .max()
+            .unwrap_or(0u32);
+
+    Ok(Union {
+        name: name.to_owned(),
+        description: description.map(String::from),
+        tag_size,
+        size,
+        repr_type: repr_type.map(String::from),
+        variants: variant_defs.into_boxed_slice(),
+        by_name,
     })
 }
 
@@ -460,21 +497,12 @@ fn parse_instruction(node: &kdl::KdlNode, types: &Types) -> Result<Instruction, 
     let immediate_operands = if let Some(operands) = find_child(node, "operands") {
         let operands = get_required_children(operands, CommonNodes::OperandsList)?;
         let mut operand_defs = vec![];
-        let mut operand_names = HashMap::new();
+        let mut operand_names = DefsTracker::new(NameKind::Operand);
 
         for entry in operands.nodes() {
             let def = parse_operand(entry, types)?;
 
-            let def_span = entry.name().span();
-
-            if let Some(existing_name) = operand_names.insert(def.name.to_owned(), def_span) {
-                return Err(ParseError::DuplicateName(
-                    NameKind::Operand,
-                    def.name.to_owned(),
-                    existing_name,
-                    def_span,
-                ));
-            }
+            operand_names.track_def(def.name.to_owned(), entry.name().span())?;
 
             operand_defs.push(def);
         }
@@ -530,10 +558,7 @@ fn get_required_node(
 ) -> Result<&kdl::KdlNode, ParseError> {
     match children.get(&node_type.node_name()) {
         Some(it) => Ok(it),
-        None => Err(ParseError::NodeRequired(
-            crate::CommonNodes::TypeList,
-            children.span(),
-        )),
+        None => Err(ParseError::NodeRequired(node_type, children.span())),
     }
 }
 
@@ -645,18 +670,80 @@ fn parse_string_child<'node>(
     Some(parse_required_string_entry(child_node, 0)).transpose()
 }
 
-fn for_each_field<R>(
-    strukt: &Struct,
-    mut it: impl FnMut(&StructField) -> ControlFlow<R>,
-) -> Option<R> {
-    for field in strukt.fields() {
-        match it(field) {
-            ControlFlow::Continue(_) => {}
-            ControlFlow::Break(res) => return Some(res),
+fn for_each_field<R>(ty: &Type, mut it: impl FnMut(&AdtField) -> ControlFlow<R>) -> Option<R> {
+    match ty {
+        // Enums and scalars are leaf types, no need to check them for fields.
+        Type::Enum(_) | Type::Scalar(_) => {}
+        Type::Struct(strukt) => {
+            for field in strukt.fields() {
+                match it(field) {
+                    ControlFlow::Continue(_) => {}
+                    ControlFlow::Break(res) => return Some(res),
+                }
+            }
+        }
+        Type::Union(union) => {
+            for field in union.variants().iter().flat_map(|variant| variant.fields()) {
+                match it(field) {
+                    ControlFlow::Continue(_) => {}
+                    ControlFlow::Break(res) => return Some(res),
+                }
+            }
         }
     }
 
     None
+}
+
+struct DefsTracker<K> {
+    defs: HashMap<K, miette::SourceSpan>,
+    name_kind: NameKind,
+}
+
+impl<K> DefsTracker<K> {
+    fn new(name_kind: NameKind) -> Self {
+        Self {
+            defs: HashMap::new(),
+            name_kind,
+        }
+    }
+}
+
+impl<K> DefsTracker<K>
+where
+    K: Eq + Hash,
+{
+    fn track_def(&mut self, def: K, def_span: miette::SourceSpan) -> Result<(), ParseError>
+    where
+        K: ToString,
+    {
+        use std::collections::hash_map::Entry;
+
+        match self.defs.entry(def) {
+            Entry::Occupied(occupied_entry) => Err(ParseError::DuplicateName(
+                self.name_kind,
+                occupied_entry.key().to_string(),
+                *occupied_entry.get(),
+                def_span,
+            )),
+            Entry::Vacant(vacant_entry) => {
+                vacant_entry.insert(def_span);
+                Ok(())
+            }
+        }
+    }
+}
+
+impl<K, Q> Index<&Q> for DefsTracker<K>
+where
+    K: Eq + Hash + Borrow<Q>,
+    Q: Eq + Hash + ?Sized,
+{
+    type Output = miette::SourceSpan;
+
+    fn index(&self, index: &Q) -> &Self::Output {
+        &self.defs[index]
+    }
 }
 
 #[cfg(test)]
@@ -843,7 +930,10 @@ mod tests {
         );
 
         assert!(
-            matches!(&err, ParseError::DuplicateOpcode(0, ..)),
+            matches!(
+                &err,
+                ParseError::DuplicateName(NameKind::InstructionOpcode, ..)
+            ),
             "{err:#?}"
         );
     }
@@ -973,13 +1063,14 @@ mod tests {
     }
 
     #[test]
-    fn parse_type_struct_nested() {
+    fn parse_type_struct_nested_siblings() {
         // occurs check & existence should pass this
         let out = parse_pass(
             r#"
                 types {
-                    struct some_struct size=4 {
-                        inner another_struct
+                    struct some_struct size=8 {
+                        inner1 another_struct
+                        inner2 another_struct
                     }
 
                     struct another_struct size=4 {
@@ -997,12 +1088,19 @@ mod tests {
         let strukt = out.types.types[0].as_struct().unwrap();
         assert_eq!(strukt.name(), "some_struct");
         assert_eq!(strukt.description(), None);
-        assert_eq!(strukt.size(), 4);
-        assert_eq!(strukt.fields().len(), 1);
+        assert_eq!(strukt.size(), 8);
+        assert_eq!(strukt.fields().len(), 2);
 
         {
             let field = &strukt.fields()[0];
-            assert_eq!(field.name(), "inner");
+            assert_eq!(field.name(), "inner1");
+            assert_eq!(field.ty(), "another_struct");
+            assert_eq!(field.description(), None);
+        }
+
+        {
+            let field = &strukt.fields()[1];
+            assert_eq!(field.name(), "inner2");
             assert_eq!(field.ty(), "another_struct");
             assert_eq!(field.description(), None);
         }
@@ -1079,7 +1177,7 @@ mod tests {
     }
 
     #[test]
-    fn parse_fail_duplicate_field_names() {
+    fn parse_fail_duplicate_struct_field_names() {
         let err = parse_fail(
             r#"
             types {
@@ -1100,7 +1198,7 @@ mod tests {
     }
 
     #[test]
-    fn parse_enum() {
+    fn parse_type_enum() {
         let out = parse_pass(
             r#"
                 types {
@@ -1187,7 +1285,7 @@ mod tests {
     }
 
     #[test]
-    fn parse_enum_optional_iota() {
+    fn parse_type_enum_optional_iota() {
         let out = parse_pass(
             r#"
                 types {
@@ -1321,6 +1419,325 @@ mod tests {
         );
     }
 
+    #[test]
+    fn parse_type_union() {
+        let out = parse_pass(
+            r#"
+            types {
+                union "tagged_kinds" tag_size=4 {
+                    description "a description"
+                    repr_type "u32"
+
+                    v1 1 size=4 {
+                        description "variant 1"
+                        field1 "int4" { description "some field 1" }
+                    }
+                    v2 2 size=8 {
+                        field2 "int4" { description "some field 2" }
+                        field3 "int4" { description "some field 3" }
+                    }
+                }
+                scalar "int4" size=4 {}
+            }
+            instructions {}
+            "#,
+        );
+
+        assert_eq!(out.types.types.len(), 2);
+
+        let union = out.types.types[0].as_union().unwrap();
+
+        assert_eq!(union.name(), "tagged_kinds");
+        assert_eq!(union.description(), Some("a description"));
+        assert_eq!(union.tag_size(), 4);
+        assert_eq!(union.size(), 12); // sum of the largest variant
+        assert_eq!(union.repr_type(), Some("u32"));
+        assert_eq!(union.variants().len(), 2);
+
+        {
+            let variant = &union.variants()[0];
+            assert_eq!(variant.name(), "v1");
+            assert_eq!(variant.description(), Some("variant 1"));
+            assert_eq!(variant.size(), 4);
+            assert_eq!(variant.ordinal(), 1);
+            assert_eq!(variant.fields().len(), 1);
+
+            {
+                let field = &variant.fields()[0];
+                assert_eq!(field.name(), "field1");
+                assert_eq!(field.ty(), "int4");
+                assert_eq!(field.description(), Some("some field 1"));
+            }
+        }
+
+        {
+            let variant = &union.variants()[1];
+            assert_eq!(variant.name(), "v2");
+            assert_eq!(variant.description(), None);
+            assert_eq!(variant.size(), 8);
+            assert_eq!(variant.ordinal(), 2);
+            assert_eq!(variant.fields().len(), 2);
+
+            {
+                let field = &variant.fields()[0];
+                assert_eq!(field.name(), "field2");
+                assert_eq!(field.ty(), "int4");
+                assert_eq!(field.description(), Some("some field 2"));
+            }
+
+            {
+                let field = &variant.fields()[1];
+                assert_eq!(field.name(), "field3");
+                assert_eq!(field.ty(), "int4");
+                assert_eq!(field.description(), Some("some field 3"));
+            }
+        }
+    }
+
+    #[test]
+    fn parse_type_union_optional_fields() {
+        let out = parse_pass(
+            r#"
+                types {
+                    union "minimal" tag_size=4 {
+                    }
+                }
+                instructions {}
+            "#,
+        );
+
+        assert_eq!(out.types.types.len(), 1);
+        let union = out.types.types[0].as_union().expect("must be union");
+
+        assert_eq!(union.name(), "minimal");
+        assert_eq!(union.description(), None);
+        assert_eq!(union.tag_size(), 4);
+        assert_eq!(union.size(), 4);
+        assert_eq!(union.variants().len(), 0);
+    }
+
+    #[test]
+    fn parse_type_union_variant_optional_fields() {
+        let out = parse_pass(
+            r#"
+                types {
+                    union "minimal_variant" tag_size=4 {
+                        v1 size=0 {}
+                    }
+                }
+                instructions {}
+            "#,
+        );
+
+        assert_eq!(out.types.types.len(), 1);
+        let union = out.types.types[0].as_union().expect("must be union");
+
+        assert_eq!(union.name(), "minimal_variant");
+        assert_eq!(union.description(), None);
+        assert_eq!(union.tag_size(), 4);
+        assert_eq!(union.size(), 4);
+        assert_eq!(union.variants().len(), 1);
+
+        {
+            let variant = &union.variants()[0];
+            assert_eq!(variant.name(), "v1");
+            assert_eq!(variant.description(), None);
+            assert_eq!(variant.size(), 0);
+            assert_eq!(variant.ordinal(), 0);
+            assert_eq!(variant.fields().len(), 0);
+        }
+    }
+
+    #[test]
+    fn parse_type_union_optional_iota() {
+        let out = parse_pass(
+            r#"
+                types {
+                   union implict_iota tag_size=4 {
+                       variant_0 0 size=0 {}
+                       variant_1 size=0 {}
+                       variant_2 size=0 {}
+                       variant_4 4 size=0 {}
+                       variant_5 size=0 {}
+                       variant_6 size=0 {}
+                   } 
+                }
+                instructions {}
+            "#,
+        );
+
+        assert_eq!(out.types.types.len(), 1);
+
+        let union = out.types.types[0].as_union().unwrap();
+        assert_eq!(union.variants().len(), 6);
+
+        let expected_ordinals = &[0, 1, 2, 4, 5, 6];
+
+        for (variant, expected) in union.variants().iter().zip(expected_ordinals.iter()) {
+            assert_eq!(
+                variant.ordinal(),
+                *expected,
+                "for variant {}",
+                variant.name()
+            );
+        }
+    }
+
+    #[test]
+    fn parse_fail_duplicate_union_variant_names() {
+        let err = parse_fail(
+            r#"
+            types {
+                union e tag_size=4 {
+                    v1 size=0 {}
+                    v1 size=0 {}
+                }
+            }
+            instructions {}
+            "#,
+        );
+
+        assert!(
+            matches!(err, ParseError::DuplicateName(NameKind::Variant, ..)),
+            "{err:#?}"
+        );
+    }
+
+    #[test]
+    fn parse_fail_duplicate_union_variant_field_names() {
+        let err = parse_fail(
+            r#"
+            types {
+                union some_union tag_size=4 {
+                    v1 size=8 {
+                        field1 int
+                        field1 int
+                    }
+                }
+                scalar int size=4
+            }
+            instructions {}
+            "#,
+        );
+
+        assert!(
+            matches!(err, ParseError::DuplicateName(NameKind::Field, ..)),
+            "{err:#?}"
+        );
+    }
+
+    #[test]
+    fn parse_fail_unknown_union_variant_field_type() {
+        let err = parse_fail(
+            r#"
+            types {
+                union something tag_size=4 {
+                    v1 size=4 {
+                        field "unknown_type"
+                    }
+                }
+            }
+            instructions {}
+            "#,
+        );
+
+        assert!(
+            matches!(
+                &err,
+                ParseError::UnknownTypeName(ty_name, ..) if ty_name == "unknown_type"
+            ),
+            "{err:#?}"
+        );
+    }
+
+    #[test]
+    fn parse_fail_cyclic_union_defs() {
+        let err = parse_fail(
+            r#"
+            types {
+                // root should not be included in the cycle participants
+                union root tag_size=4 {
+                    v1 size=4 {
+                        field A
+                    }
+                }
+
+                union A tag_size=4 {
+                    v1 size=4 {
+                        field B
+                    }
+                }
+
+                union B tag_size=4 {
+                    v1 size=4 {
+                        field C
+                    }
+                }
+
+                union C tag_size=4 {
+                    v1 size=4 {
+                        field A
+                    }
+                }
+            }
+            instructions {}
+            "#,
+        );
+
+        assert!(
+            matches!(
+                &err,
+                ParseError::CyclicType(ty_name, _, ty_chain) if ty_name == "A" && ty_chain.len() == 3
+            ),
+            "{err:#?}"
+        );
+    }
+
+    #[test]
+    fn parse_fail_cyclic_struct_defs_with_union_participant() {
+        let err = parse_fail(
+            r#"
+            types {
+                // root should not be included in the cycle participants
+                struct root size=4 {
+                    field A
+                }
+
+                struct A size=4 {
+                    field B
+                }
+
+                union B tag_size=4 {
+                    v1 size=4 {
+                        field leaf
+                    }
+                    v2 size=8 {
+                        field1 leaf
+                        field2 leaf
+                    }
+                    v3 size=4 {
+                        field C
+                    }
+                }
+
+                struct C size=4 {
+                    field A
+                }
+
+                scalar leaf size=4
+            }
+            instructions {}
+            "#,
+        );
+
+        assert!(
+            matches!(
+                &err,
+                ParseError::CyclicType(ty_name, _, ty_chain) if ty_name == "A" && ty_chain.len() == 3
+            ),
+            "{err:#?}"
+        );
+    }
     #[test]
     fn parse_fail_duplicate_type_names() {
         let err = parse_fail(
