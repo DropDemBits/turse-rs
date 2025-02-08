@@ -4,7 +4,7 @@ use heck::{ToPascalCase, ToSnekCase};
 use miette::IntoDiagnostic;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote, ToTokens};
-use stackful_spec::BytecodeSpec;
+use stackful_spec::{BytecodeSpec, PropertyKind, PropertyValue, Type};
 
 use crate::{flags, util::project_root};
 
@@ -102,7 +102,7 @@ fn generate_types(spec: &BytecodeSpec) -> TokenStream {
         .types
         .iter()
         .map(|ty| match ty {
-            stackful_spec::Type::Scalar(ty) => {
+            Type::Scalar(ty) => {
                 let doc = doc_comment(ty.description());
                 let ident = format_ident!("{}", ty.name().to_pascal_case());
                 let repr_ty = format_ident!(
@@ -115,7 +115,7 @@ fn generate_types(spec: &BytecodeSpec) -> TokenStream {
                     pub type #ident = #repr_ty;
                 }
             }
-            stackful_spec::Type::Struct(ty) => {
+            Type::Struct(ty) => {
                 let doc = doc_comment(ty.description());
                 let ident = format_ident!("{}", ty.name().to_pascal_case());
                 let size = ty.size() as usize;
@@ -150,7 +150,7 @@ fn generate_types(spec: &BytecodeSpec) -> TokenStream {
                     }
                 }
             }
-            stackful_spec::Type::Enum(ty) => {
+            Type::Enum(ty) => {
                 let doc = doc_comment(ty.description());
                 let ident = format_ident!("{}", ty.name().to_pascal_case());
                 let repr_ty = format_ident!(
@@ -200,9 +200,15 @@ fn generate_types(spec: &BytecodeSpec) -> TokenStream {
 
                         let ident = format_ident!("{}", prop_name.to_snek_case());
                         let prop_ty = match prop_kind {
-                            stackful_spec::PropertyKind::String => quote! { &'static str },
-                            stackful_spec::PropertyKind::Number => quote! { usize },
-                            stackful_spec::PropertyKind::Bool => quote! { bool },
+                            PropertyKind::String => quote! { &'static str },
+                            PropertyKind::Number => {
+                                if values.iter().any(|(_, value)| matches!(value, PropertyValue::Number(n) if n.is_negative())) {
+                                    quote! { isize }
+                                } else {
+                                    quote! { usize }
+                                }
+                            },
+                            PropertyKind::Bool => quote! { bool },
                             _ => unimplemented!("unhandled property type {prop_kind:?}"),
                         };
 
@@ -211,13 +217,13 @@ fn generate_types(spec: &BytecodeSpec) -> TokenStream {
                             .map(|(variant, value)| {
                                 let ident = format_ident!("{}", variant.to_pascal_case());
                                 let value = match value {
-                                    stackful_spec::PropertyValue::String(v) => quote! { #v },
-                                    stackful_spec::PropertyValue::Number(v) => {
+                                    PropertyValue::String(v) => quote! { #v },
+                                    PropertyValue::Number(v) => {
                                         proc_macro2::Literal::from_str(&format!("{}{prop_ty}", v))
                                             .expect("property type number should be valid")
                                             .to_token_stream()
                                     }
-                                    stackful_spec::PropertyValue::Bool(v) => quote! { #v },
+                                    PropertyValue::Bool(v) => quote! { #v },
                                     _ => todo!(),
                                 };
 
@@ -228,7 +234,7 @@ fn generate_types(spec: &BytecodeSpec) -> TokenStream {
                         accessors.push(quote! {
                             pub fn #ident(&self) -> #prop_ty {
                                 match self {
-                                    #(#arms ,)*
+                                    #(#arms,)*
                                 }
                             }
                         });
@@ -319,7 +325,8 @@ fn generate_encode_operands(spec: &BytecodeSpec) -> TokenStream {
         .iter()
         .map(|ty| {
             let ident = format_ident!("{}", ty.name().to_pascal_case());
-            let size = proc_macro2::Literal::usize_suffixed(ty.size() as usize);
+            // Instruction operands are always aligned to the next 4-byte boundary.
+            let size = proc_macro2::Literal::usize_suffixed(ty.size().next_multiple_of(4) as usize);
 
             quote! { Self::#ident(_) => #size }
         })
@@ -331,12 +338,35 @@ fn generate_encode_operands(spec: &BytecodeSpec) -> TokenStream {
             let ident = format_ident!("{}", ty.name().to_pascal_case());
             let encode = encode_type(ty, quote! { value }, format_ident!("out"), true);
 
-            quote! { Self::#ident(value) => #encode }
+            if let Some(padding) = ty
+                .size()
+                .next_multiple_of(4)
+                .checked_sub(ty.size())
+                .filter(|padding| *padding > 0)
+            {
+                // Operands are always aligned to 4-byte boundaries, pad up to the nearest one.
+                let padding: Vec<_> = (0..padding)
+                    .into_iter()
+                    .map(|_| quote! { out.write_u8(0) })
+                    .collect();
+
+                quote! {
+                    Self::#ident(value) => {
+                        #encode?;
+                        #(#padding?;)*
+
+                        Ok(())
+                    }
+                }
+            } else {
+                // No padding required, can emit as-is
+                quote! { Self::#ident(value) => #encode }
+            }
         })
         .collect();
 
     quote! {
-        #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+        #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
         #[doc = "An operand for an encoded instruction."]
         pub enum Operand {
             #(#variants),*
@@ -346,14 +376,14 @@ fn generate_encode_operands(spec: &BytecodeSpec) -> TokenStream {
             #[doc = "Size of the operand, in bytes."]
             pub fn size(&self) -> usize {
                 match self {
-                    #(#sizes ,)*
+                    #(#sizes,)*
                 }
             }
 
             #[doc = "Encodes the operand into the equivalent byte representation."]
             pub fn encode(&self, out: &mut impl std::io::Write) -> std::io::Result<()> {
                 match self {
-                    #(#encodes ,)*
+                    #(#encodes,)*
                 }
             }
         }
@@ -367,8 +397,8 @@ fn generate_encode_impls(spec: &BytecodeSpec) -> TokenStream {
         let ident = format_ident!("{}", ty.name().to_pascal_case());
 
         match ty {
-            stackful_spec::Type::Scalar(_) => quote! {},
-            stackful_spec::Type::Struct(ty) => {
+            Type::Scalar(_) => quote! {},
+            Type::Struct(ty) => {
                 let field_encodes: Vec<_> = ty
                     .fields()
                     .iter()
@@ -401,19 +431,23 @@ fn generate_encode_impls(spec: &BytecodeSpec) -> TokenStream {
                     }
                 }
             }
-            stackful_spec::Type::Enum(ty) => {
-                let repr_type = format_ident!(
-                    "{}",
-                    ty.repr_type()
-                        .expect("all enum types should have repr types")
-                );
+            Type::Enum(ty) => {
+                let repr_type = ty
+                    .repr_type()
+                    .expect("all enum types should have repr types");
+                let as_repr = format_ident!("{repr_type}");
                 let write_ident = format_ident!("write_{repr_type}");
+                let as_le = if matches!(repr_type, "u8" | "i8") {
+                    quote! {}
+                } else {
+                    quote! {LE}
+                };
 
                 quote! {
                     impl #ident {
                         #[doc = "Encodes the type into the equivalent byte representation."]
                         pub fn encode(&self, out: &mut impl std::io::Write) -> std::io::Result<()> {
-                            out.#write_ident::<LE>(*self as #repr_type)
+                            out.#write_ident::<#as_le>(*self as #as_repr)
                         }
                     }
                 }
@@ -426,26 +460,30 @@ fn generate_encode_impls(spec: &BytecodeSpec) -> TokenStream {
 }
 
 fn encode_type(
-    ty: &stackful_spec::Type,
+    ty: &Type,
     value_expr: TokenStream,
     out_ident: proc_macro2::Ident,
     deref: bool,
 ) -> TokenStream {
     match ty {
-        stackful_spec::Type::Scalar(ty) => {
-            let write_ident = format_ident!(
-                "write_{}",
-                ty.repr_type()
-                    .expect("all scalar types should have repr types")
-            );
+        Type::Scalar(ty) => {
+            let repr_type = ty
+                .repr_type()
+                .expect("all scalar types should have repr types");
+            let write_ident = format_ident!("write_{repr_type}");
+            let as_le = if matches!(repr_type, "u8" | "i8") {
+                quote! {}
+            } else {
+                quote! {LE}
+            };
 
             if deref {
-                quote! { #out_ident.#write_ident::<LE>(*#value_expr) }
+                quote! { #out_ident.#write_ident::<#as_le>(*#value_expr) }
             } else {
-                quote! { #out_ident.#write_ident::<LE>(#value_expr) }
+                quote! { #out_ident.#write_ident::<#as_le>(#value_expr) }
             }
         }
-        stackful_spec::Type::Struct(_) | stackful_spec::Type::Enum(_) => {
+        Type::Struct(_) | Type::Enum(_) => {
             quote! { #value_expr.encode(#out_ident) }
         }
         _ => unimplemented!("unhandled encoding type {ty:?}"),
