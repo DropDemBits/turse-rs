@@ -1836,6 +1836,7 @@ dependencies = [
  "toc-reporting",
  "toc-source-graph",
  "toc-span",
+ "turing-bytecode",
 ]
 
 [[package]]

@@ -121,11 +121,11 @@ pub enum Opcode {
 pub type Int1 = i8;
 #[doc = "16-bit signed integer."]
 pub type Int2 = i16;
-#[doc = "32-bit signed integer."]
+#[doc = "32-bit signed integer.\n\n`0x80000000` is used as a sentinel value in `int` to represent uninitialized `int` variables.\n`int4` values have no such sentinel values."]
 pub type Int4 = i32;
 #[doc = "16-bit unsigned integer."]
 pub type Nat2 = u16;
-#[doc = "32-bit unsigned integer."]
+#[doc = "32-bit unsigned integer.\n\n`0xFFFFFFFF` is used as a sentinel value in `nat` to represent uninitialized `nat` variables.\n`nat4` values have no such sentinel values."]
 pub type Nat4 = u32;
 #[doc = "binary32 floating-point number."]
 pub type Real4 = f32;
@@ -135,7 +135,7 @@ pub type Real8 = f64;
 pub type Set16 = u16;
 #[doc = "Compact bitset, storing up to 32 elements.\nSets up to 4 bytes in size store the backing bitset inline with the value."]
 pub type Set32 = u32;
-#[doc = "Address-sized signed integer to offset an `addrint` address with.\nAlways a 32-bit integer, and is always less than or equal to 2^31 - 1 and greater than or equal to -2^31.\nAllocations can never exceed the size of an offset, and are thus limited to a maximum of 2^31 - 1 bytes."]
+#[doc = "Address-sized signed integer to offset an `addrint` address with.\nAlways a 32-bit integer, and is always less than or equal to 2^31 - 1 and greater than or equal to -2^31.\nAllocations can never exceed the size of an offset, and are thus limited to a maximum of 2^31 - 1 bytes.\n\n`0xFFFFFFFF` is used as a sentinel value to represent uninitialized `addrint` variables."]
 pub type Offset = u32;
 #[doc = "Relocatable address that is resolved at runtime.\nThis is an entry within a relocatable patch list, with `link` pointing to the next entry in the list.\nEach distinct relocatable patch list refers to the local code unit sections (code, manifest, and global), as well as to other code units's sections."]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]

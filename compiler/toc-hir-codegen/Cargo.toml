@@ -10,11 +10,12 @@ edition.workspace = true
 
 [dependencies]
 byteorder = "1.4.3"
-indexmap = { workspace = true }
-toc-analysis = { workspace = true }
-toc-ast-db = { workspace = true }
-toc-hir = { workspace = true }
-toc-hir-db = { workspace = true }
-toc-reporting = { workspace = true }
-toc-source-graph = { workspace = true }
-toc-span = { workspace = true }
+indexmap.workspace = true
+toc-analysis.workspace = true
+toc-ast-db.workspace = true
+toc-hir.workspace = true
+toc-hir-db.workspace = true
+toc-reporting.workspace = true
+toc-source-graph.workspace = true
+toc-span.workspace = true
+turing-bytecode.workspace = true

@@ -20,6 +20,9 @@ types {
   scalar "int4" size=4 {
     description """
     32-bit signed integer.
+
+    `0x80000000` is used as a sentinel value in `int` to represent uninitialized `int` variables.
+    `int4` values have no such sentinel values.
     """
     repr_type "i32"
   }
@@ -32,6 +35,9 @@ types {
   scalar "nat4" size=4 {
     description """
     32-bit unsigned integer.
+
+    `0xFFFFFFFF` is used as a sentinel value in `nat` to represent uninitialized `nat` variables.
+    `nat4` values have no such sentinel values.
     """
     repr_type "u32"
   }
@@ -66,6 +72,8 @@ types {
     Address-sized signed integer to offset an `addrint` address with.
     Always a 32-bit integer, and is always less than or equal to 2^31 - 1 and greater than or equal to -2^31.
     Allocations can never exceed the size of an offset, and are thus limited to a maximum of 2^31 - 1 bytes.
+
+    `0xFFFFFFFF` is used as a sentinel value to represent uninitialized `addrint` variables.
     """
     repr_type "u32"
   }

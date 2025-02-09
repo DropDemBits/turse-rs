@@ -4,16 +4,16 @@
 // Encoded as (previous_reloc: u32, section_offset:u32)
 #[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct RelocatableOffset(pub usize);
+pub struct OldRelocatableOffset(pub usize);
 
 /// A branch target that will be patched by a later instruction
 #[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct CodeOffset(pub usize);
+pub struct OldCodeOffset(pub usize);
 
 /// A reference to the temporaries area in a function
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct TemporarySlot(pub usize);
+pub struct OldTemporarySlot(pub usize);
 
 /// Descriptor used for keeping state in `for` loops
 ///
@@ -512,7 +512,7 @@ define_encodings! {
         /// ### Stack Effect
         /// `( ??? -- ??? )`
         ///
-        CALLIMPLEMENTBY (RelocatableOffset) = 0x34,
+        CALLIMPLEMENTBY (OldRelocatableOffset) = 0x34,
 
         /// ## CASE (descriptor:offset)
         /// (description)
@@ -520,7 +520,7 @@ define_encodings! {
         /// ### Stack Effect
         /// `( ??? -- ??? )`
         ///
-        CASE (CodeOffset) = 0x35,
+        CASE (OldCodeOffset) = 0x35,
 
         /// ## CAT ()
         /// (description)
@@ -723,7 +723,7 @@ define_encodings! {
         /// ### Stack Effect
         /// `( forDescriptor:addrint -- )`
         ///
-        ENDFOR (CodeOffset) = 0x4C,
+        ENDFOR (OldCodeOffset) = 0x4C,
 
         /// ## EOF ()
         /// (description)
@@ -982,7 +982,7 @@ define_encodings! {
         /// ### Stack Effect
         /// `( start:i32 end:i32 step:i32 forDescriptor:addrint -- )`
         ///
-        FOR (CodeOffset) = 0x6A,
+        FOR (OldCodeOffset) = 0x6A,
 
         /// ## FORK (patchLink:offset, processName:addrint, paramBlockSize:offset)
         /// (description)
@@ -990,7 +990,7 @@ define_encodings! {
         /// ### Stack Effect
         /// `( ??? -- ??? )`
         ///
-        FORK (RelocatableOffset, u32) = 0x6B,
+        FORK (OldRelocatableOffset, u32) = 0x6B,
 
         /// ## FREE (monitorField:offset)
         /// (description)
@@ -1129,7 +1129,7 @@ define_encodings! {
         /// ### Stack Effect
         /// `( condition:bool -- ??? )`
         ///
-        IF (CodeOffset) = 0x7B,
+        IF (OldCodeOffset) = 0x7B,
 
         /// ## IN (setSize:u32, lo:i32, hi:i32)
         /// (description)
@@ -1167,7 +1167,7 @@ define_encodings! {
         ///
         /// `( condition:bool -- )`
         ///
-        INFIXAND (CodeOffset) = 0x7F,
+        INFIXAND (OldCodeOffset) = 0x7F,
 
         /// ## INFIXOR (jumpTo:offset)
         /// Follows the branch if `condition` is true.
@@ -1180,7 +1180,7 @@ define_encodings! {
         ///
         /// `( condition:bool -- )`
         ///
-        INFIXOR (CodeOffset) = 0x80,
+        INFIXOR (OldCodeOffset) = 0x80,
 
         /// ## INITARRAYDESC ()
         /// (description)
@@ -1196,7 +1196,7 @@ define_encodings! {
         /// ### Stack Effect
         /// `( ??? -- ??? )`
         ///
-        INITCONDITION (RelocatableOffset) = 0x82,
+        INITCONDITION (OldRelocatableOffset) = 0x82,
 
         /// ## INITMONITOR (patchLink:offset, name:addrint)
         /// (description)
@@ -1204,7 +1204,7 @@ define_encodings! {
         /// ### Stack Effect
         /// `( ??? -- ??? )`
         ///
-        INITMONITOR (RelocatableOffset) = 0x83,
+        INITMONITOR (OldRelocatableOffset) = 0x83,
 
         /// ## INITUNIT (patchLink:offset, markerAddr:addrint, initSkip:offset, markerVal:u8)
         /// (description)
@@ -1212,7 +1212,7 @@ define_encodings! {
         /// ### Stack Effect
         /// `( ??? -- ??? )`
         ///
-        INITUNIT (RelocatableOffset, u32, u8) = 0x84,
+        INITUNIT (OldRelocatableOffset, u32, u8) = 0x84,
 
         /// ## INTREAL ()
         /// Converts `int` into `real`
@@ -1244,7 +1244,7 @@ define_encodings! {
         /// ### Stack Effect
         /// `( ??? -- ??? )`
         ///
-        JSR (CodeOffset) = 0x88,
+        JSR (OldCodeOffset) = 0x88,
 
         /// ## JUMP (jumpTo:offset)
         /// Jumps the program counter forwards relative to the current instruction.
@@ -1254,7 +1254,7 @@ define_encodings! {
         /// ### Stack Effect
         /// `( -- )`
         ///
-        JUMP (CodeOffset) = 0x89,
+        JUMP (OldCodeOffset) = 0x89,
 
         /// ## JUMPB (jumpTo:offset)
         /// Jumps the program counter backwards relative to the current instruction.
@@ -1264,7 +1264,7 @@ define_encodings! {
         /// ### Stack Effect
         /// `( -- )`
         ///
-        JUMPB (CodeOffset) = 0x8A,
+        JUMPB (OldCodeOffset) = 0x8A,
 
         /// ## LECLASS ()
         /// Compares `lhs` with `rhs`, producing a `compare` of true if `lhs <= rhs`
@@ -1383,7 +1383,7 @@ define_encodings! {
         /// ### Stack Effect
         /// `( -- tempAt:addrint )`
         ///
-        LOCATETEMP (TemporarySlot) = 0x98,
+        LOCATETEMP (OldTemporarySlot) = 0x98,
 
         /// ## LTCLASS ()
         /// (description)
@@ -1689,7 +1689,7 @@ define_encodings! {
         /// ### Stack Effect
         /// `( -- imm:addrint )`
         ///
-        PUSHADDR1 (RelocatableOffset) = 0xBC,
+        PUSHADDR1 (OldRelocatableOffset) = 0xBC,
 
         /// ## PUSHCOPY ()
         /// Pushes a copy of `value` onto the data stack.
