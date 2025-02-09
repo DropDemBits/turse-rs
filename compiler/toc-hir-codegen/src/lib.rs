@@ -4,7 +4,6 @@ use std::io;
 
 use byteorder::{LittleEndian as LE, WriteBytesExt};
 use indexmap::{IndexMap, IndexSet};
-use instruction::{CheckKind, RelocatableOffset};
 use toc_analysis::{db::HirAnalysis, ty};
 use toc_hir::{
     body as hir_body, expr as hir_expr, item as hir_item, package as hir_package,
@@ -14,10 +13,17 @@ use toc_hir::{
 };
 use toc_reporting::CompileResult;
 use toc_span::{FileId, Span};
+use turing_bytecode::{
+    encode::{
+        section::ManifestAllocator, BytecodeBlob, BytecodeBuilder, CodeUnitRef, Procedure,
+        ProcedureBuilder, ProcedureRef, RelocHandle, RelocTarget, TemporarySlot,
+    },
+    instruction::{AbortReason, RelocatableOffset},
+};
 
 use crate::instruction::{
-    AbortSource, CodeOffset, ForDescriptor, GetKind, Opcode, PutKind, StdStream, StreamKind,
-    TemporarySlot,
+    CheckKind, ForDescriptor, GetKind, OldCodeOffset, OldTemporarySlot, Opcode, PutKind, StdStream,
+    StreamKind,
 };
 
 mod instruction;
@@ -35,6 +41,17 @@ pub struct CodeBlob {
 
     main_body: Option<(hir_package::PackageId, hir_body::BodyId)>,
     body_fragments: IndexMap<(hir_package::PackageId, hir_body::BodyId), BodyCode>,
+}
+
+#[derive(Debug, Default)]
+struct CodeGenCtx {
+    blob: BytecodeBuilder,
+    file_map: IndexMap<FileId, CodeUnitRef>,
+    manifest_allocator: ManifestAllocator,
+    // deduplicated strings list
+    strings: IndexMap<String, Vec<(ProcedureRef, RelocHandle)>>,
+    procedure_bodies:
+        IndexMap<(hir_package::PackageId, hir_body::BodyId), (CodeUnitRef, ProcedureRef)>,
 }
 
 impl CodeBlob {
@@ -128,7 +145,10 @@ impl CodeBlob {
         out.write_u16::<LE>(0)?;
 
         // code_table
-        let mut reloc_tracker = RelocationTracker::new(self);
+        let reloc_tracker = RelocationTracker {
+            last_location: [None; 3],
+            code_blob: self,
+        };
         let mut code_table = vec![0xAA; 4]; // (initial bytes overwritten later)
 
         // Emit trampoline
@@ -145,7 +165,7 @@ impl CodeBlob {
             let offset = target - (4 + 4);
             eprintln!("main body at {offset:x}");
 
-            code_table.write_u32::<LE>(Opcode::JUMP(CodeOffset(0)).encoding_kind().into())?;
+            code_table.write_u32::<LE>(Opcode::JUMP(OldCodeOffset(0)).encoding_kind().into())?;
             code_table.write_u32::<LE>(offset)?;
         } else {
             // FIXME: This is very reachable once we lower unit modules
@@ -153,9 +173,7 @@ impl CodeBlob {
         }
 
         // Emit bodies
-        for body_code in self.body_fragments.values() {
-            body_code.encode_to(&mut reloc_tracker, &mut code_table)?;
-        }
+        for body_code in self.body_fragments.values() {}
 
         out.write_u32::<LE>(
             code_table
@@ -200,55 +218,55 @@ impl CodeBlob {
         Ok(())
     }
 
-    fn add_const_str(&mut self, str: &str) -> RelocatableOffset {
-        // reserve space for str bytes & null terminator
-        let storage_len = str.len() + 1;
-        let reloc_at = self.reserve_const_bytes(storage_len);
+    // fn add_const_str(&mut self, str: &str) -> RelocatableOffset {
+    //     // reserve space for str bytes & null terminator
+    //     let storage_len = str.len() + 1;
+    //     let reloc_at = self.reserve_const_bytes(storage_len);
 
-        // str data + null terminator
-        self.const_bytes.extend_from_slice(str.as_bytes());
-        self.const_bytes.push(0);
+    //     // str data + null terminator
+    //     self.const_bytes.extend_from_slice(str.as_bytes());
+    //     self.const_bytes.push(0);
 
-        reloc_at
-    }
+    //     reloc_at
+    // }
 
-    fn reserve_const_bytes(&mut self, len: usize) -> RelocatableOffset {
-        let start_at = self.const_bytes.len();
-        self.const_bytes.reserve(len);
+    // fn reserve_const_bytes(&mut self, len: usize) -> RelocatableOffset {
+    //     let start_at = self.const_bytes.len();
+    //     self.const_bytes.reserve(len);
 
-        let reloc_id = self.reloc_table.len();
-        self.reloc_table.push(RelocInfo {
-            section: RelocSection::Manifest,
-            target: RelocTarget::Offset(start_at),
-        });
+    //     let reloc_id = self.reloc_table.len();
+    //     self.reloc_table.push(RelocInfo {
+    //         section: RelocSection::Manifest,
+    //         target: RelocTarget::Offset(start_at),
+    //     });
 
-        RelocatableOffset(reloc_id)
-    }
+    //     RelocatableOffset(reloc_id)
+    // }
 
-    fn reloc_to_code_body(
-        &mut self,
-        package_id: hir_package::PackageId,
-        body_id: hir_body::BodyId,
-    ) -> RelocatableOffset {
-        let reloc_id = self.reloc_table.len();
-        self.reloc_table.push(RelocInfo {
-            section: RelocSection::Code,
-            target: RelocTarget::Body(package_id, body_id),
-        });
+    // fn reloc_to_code_body(
+    //     &mut self,
+    //     package_id: hir_package::PackageId,
+    //     body_id: hir_body::BodyId,
+    // ) -> RelocatableOffset {
+    //     let reloc_id = self.reloc_table.len();
+    //     self.reloc_table.push(RelocInfo {
+    //         section: RelocSection::Code,
+    //         target: RelocTarget::Body(package_id, body_id),
+    //     });
 
-        RelocatableOffset(reloc_id)
-    }
+    //     RelocatableOffset(reloc_id)
+    // }
 
-    fn freeze_body_offsets(&mut self) {
-        // Initial 4 bytes are for the `CALLIMPLEMENTBY` opcode
-        // Next bytes are for the trampoline to the main body
-        let mut next_offset = 4 + Opcode::JUMP(CodeOffset(0)).size();
+    // fn freeze_body_offsets(&mut self) {
+    //     // Initial 4 bytes are for the `CALLIMPLEMENTBY` opcode
+    //     // Next bytes are for the trampoline to the main body
+    //     let mut next_offset = 4 + Opcode::JUMP(CodeOffset(0)).size();
 
-        for (_, body) in &mut self.body_fragments {
-            body.base_offset = next_offset;
-            next_offset += body.size();
-        }
-    }
+    //     for (_, body) in &mut self.body_fragments {
+    //         body.base_offset = next_offset;
+    //         next_offset += body.size();
+    //     }
+    // }
 }
 
 struct RelocInfo {
@@ -256,10 +274,10 @@ struct RelocInfo {
     target: RelocTarget,
 }
 
-enum RelocTarget {
-    Offset(usize),
-    Body(hir_package::PackageId, hir_body::BodyId),
-}
+// enum RelocTarget {
+//     Offset(usize),
+//     Body(hir_package::PackageId, hir_body::BodyId),
+// }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum RelocSection {
@@ -270,7 +288,7 @@ enum RelocSection {
 
 /// Generates code from the given HIR database,
 /// or producing nothing if an error was encountered before code generation.
-pub fn generate_code(db: &dyn CodeGenDB) -> CompileResult<Option<CodeBlob>> {
+pub fn generate_code(db: &dyn CodeGenDB) -> CompileResult<Option<BytecodeBlob>> {
     // Bail if there are any errors from analysis
     let res = db.analyze_packages();
 
@@ -281,10 +299,26 @@ pub fn generate_code(db: &dyn CodeGenDB) -> CompileResult<Option<CodeBlob>> {
     // Start producing blobs for each package
     // Only deal with one package right now
     let pkg_graph = toc_source_graph::source_graph(db.up()).as_ref().unwrap();
-    let mut blob = CodeBlob::default();
+    let mut cctx = CodeGenCtx::default();
+
+    // Generate <No File> unit first
+    {
+        let mut unit = cctx.blob.build_code_unit("<No File>");
+        let mut proc = unit.build_procedure();
+        proc.ins().return_();
+        unit.submit_procedure(proc.finish());
+        cctx.blob.submit_code_unit(unit.finish());
+    }
+
+    // ???: How do we figure out which file will serve as the main body?
+    // For now, we only deal with one file, so that will always serve as the main body
+    // TODO: toposort calls to module initialization bodies
 
     if let Some(&package_id) = pkg_graph.all_packages(db.up()).first() {
         let root_file = package_id.root(db.up());
+        let mut main_unit = cctx
+            .blob
+            .build_code_unit(root_file.raw_path(db.up()).as_str());
 
         // This package will act as the main file
         let package = db.package(package_id.into());
@@ -300,7 +334,8 @@ pub fn generate_code(db: &dyn CodeGenDB) -> CompileResult<Option<CodeBlob>> {
             }
         };
 
-        blob.main_body = Some((package_id.into(), main_body));
+        // Reserve the first procedure for the entry point trampoline
+        let mut entry_point_proc = main_unit.build_procedure();
 
         // Generate code for each statement body
         for body_id in package.body_ids() {
@@ -316,7 +351,8 @@ pub fn generate_code(db: &dyn CodeGenDB) -> CompileResult<Option<CodeBlob>> {
                     // branch to, thus we can't fall back on simple HIR walking.
                     let body_code = BodyCodeGenerator::generate_body(
                         db,
-                        &mut blob,
+                        &mut cctx,
+                        main_unit.build_procedure(),
                         package_id.into(),
                         package.as_ref(),
                         body_id,
@@ -324,25 +360,29 @@ pub fn generate_code(db: &dyn CodeGenDB) -> CompileResult<Option<CodeBlob>> {
                         *ret_param,
                     );
 
-                    println!("gen code:");
-                    for (idx, opc) in body_code.fragment.opcodes.iter().enumerate() {
-                        println!("{idx:4}    {opc:?}");
-                    }
-                    println!("\noffsets:");
-                    for (idx, off) in body_code.fragment.code_offsets.iter().enumerate() {
-                        println!("{idx:4}    {off:?}");
-                    }
-                    println!("\nlocals ({} bytes):", body_code.fragment.locals_size);
-                    for (idx, (def_id, target)) in body_code.fragment.locals.iter().enumerate() {
-                        println!("{idx:4}    ({def_id:?})> {target:?}");
-                    }
-                    println!("\ntemporaries ({} bytes):", body_code.fragment.temps_size);
-                    for (idx, off) in body_code.fragment.temps.iter().enumerate() {
-                        println!("{idx:4}    {off:?}");
-                    }
+                    // println!("gen code:");
+                    // for (idx, opc) in body_code.fragment.opcodes.iter().enumerate() {
+                    //     println!("{idx:4}    {opc:?}");
+                    // }
+                    // println!("\noffsets:");
+                    // for (idx, off) in body_code.fragment.code_offsets.iter().enumerate() {
+                    //     println!("{idx:4}    {off:?}");
+                    // }
+                    // println!("\nlocals ({} bytes):", body_code.fragment.locals_size);
+                    // for (idx, (def_id, target)) in body_code.fragment.locals.iter().enumerate() {
+                    //     println!("{idx:4}    ({def_id:?})> {target:?}");
+                    // }
+                    // println!("\ntemporaries ({} bytes):", body_code.fragment.temps_size);
+                    // for (idx, off) in body_code.fragment.temps.iter().enumerate() {
+                    //     println!("{idx:4}    {off:?}");
+                    // }
 
-                    blob.body_fragments
-                        .insert((package_id.into(), body_id), body_code);
+                    cctx.procedure_bodies.insert(
+                        (package_id.into(), body_id),
+                        (main_unit.id(), body_code.proc.id()),
+                    );
+
+                    main_unit.submit_procedure(body_code.proc);
                 }
                 hir_body::BodyKind::Exprs(_expr) => {
                     // We don't start code generation from expr bodies
@@ -351,29 +391,51 @@ pub fn generate_code(db: &dyn CodeGenDB) -> CompileResult<Option<CodeBlob>> {
                 }
             }
         }
+
+        // Fill entrypoint procedure with trampoline
+        cctx.blob.main_unit(main_unit.id());
+
+        let (entry_point_id, entry_point_reloc) = {
+            let proc = &mut entry_point_proc;
+            let id = proc.id();
+
+            let reloc = proc.reloc(|ins| ins.pushaddr1(RelocatableOffset::empty()));
+            proc.ins().return_();
+            main_unit.submit_procedure(entry_point_proc.finish());
+
+            (id, reloc)
+        };
+
+        let main_unit_id = main_unit.id();
+        cctx.blob.submit_code_unit(main_unit.finish());
+        let (entry_unit, entry_proc) = &cctx
+            .procedure_bodies
+            .get(&(package_id.into(), main_body))
+            .expect("main body should have code");
+        let entry_proc = cctx.blob[*entry_unit].procedure_offset(*entry_proc);
+
+        cctx.blob[main_unit_id].add_code_relocs([(
+            entry_point_id,
+            entry_point_reloc,
+            RelocTarget::External(*entry_unit, entry_proc),
+        )]);
     } else {
         unreachable!()
     }
 
-    blob.freeze_body_offsets();
-
-    // ???: How do we figure out which file will serve as the main body?
-    // For now, we only deal with one file, so that will always serve as the main body
-    // TODO: toposort calls to module initialization bodies
-
-    res.map(|_| Some(blob))
+    res.map(|_| Some(cctx.blob.finish()))
 }
 
 #[derive(Debug, Clone, Copy)]
 enum BlockBranches {
-    Loop(CodeOffset, CodeOffset),
-    For(ForDescriptorSlot, CodeOffset, CodeOffset),
+    Loop(OldCodeOffset, OldCodeOffset),
+    For(ForDescriptorSlot, OldCodeOffset, OldCodeOffset),
 }
 
 #[derive(Debug, Clone, Copy)]
 enum ForDescriptorSlot {
     Local(DefId),
-    Temporary(TemporarySlot),
+    Temporary(OldTemporarySlot),
 }
 
 impl ForDescriptorSlot {
@@ -390,90 +452,14 @@ struct RelocationTracker<'a> {
     code_blob: &'a CodeBlob,
 }
 
-impl<'a> RelocationTracker<'a> {
-    fn new(code_blob: &'a CodeBlob) -> Self {
-        Self {
-            last_location: [None; 3],
-            code_blob,
-        }
-    }
-
-    fn add_reloc(&mut self, relative_to: usize, reloc_offset: RelocatableOffset) -> (u32, u32) {
-        let reloc_info = &self.code_blob.reloc_table[reloc_offset.0];
-        let offset = match reloc_info.target {
-            RelocTarget::Offset(offset) => offset,
-            RelocTarget::Body(package_id, body_id) => self
-                .code_blob
-                .body_fragments
-                .get(&(package_id, body_id))
-                .map(|body| body.base_offset)
-                .expect("missing body code"),
-        };
-
-        // Point to the 1st operand (patch_link, skipping opcode)
-        let last_location =
-            self.last_location[reloc_info.section as usize].replace(relative_to + 4);
-        let patch_jump = last_location.unwrap_or(0);
-
-        (patch_jump as u32, offset as u32)
-    }
-}
-
 struct OffsetTable {
     instruction_offsets: Vec<u32>,
 }
 
-impl OffsetTable {
-    fn build_table(code_fragment: &CodeFragment, base_offset: usize) -> Self {
-        let mut instruction_pointer = base_offset.try_into().expect("code table is too big");
-        let offsets: Vec<_> = code_fragment
-            .opcodes
-            .iter()
-            .map(move |op| {
-                let at = instruction_pointer;
-                instruction_pointer += op.size() as u32;
-                at
-            })
-            .collect();
-
-        Self {
-            instruction_offsets: offsets,
-        }
-    }
-
-    fn relative_address(&self, at: usize) -> usize {
-        self.instruction_offsets[at] as usize
-    }
-
-    fn backward_offset(&self, from: usize, to: usize) -> usize {
-        // account for already adjusted pc
-        let from_offset = self.instruction_offsets[from] + 4;
-        let to_offset = self.instruction_offsets[to];
-
-        let offset = from_offset
-            .checked_sub(to_offset)
-            .expect("forward branch computed with backward offset");
-
-        offset.try_into().unwrap()
-    }
-
-    fn forward_offset(&self, from: usize, to: usize) -> usize {
-        // account for already adjusted pc
-        let from_offset = self.instruction_offsets[from] + 4;
-        let to_offset = self.instruction_offsets[to];
-
-        let offset = to_offset
-            .checked_sub(from_offset)
-            .expect("backward branch computed with forward offset");
-
-        offset.try_into().unwrap()
-    }
-}
-
-#[derive(Default)]
 struct BodyCode {
     fragment: CodeFragment,
     base_offset: usize,
+    proc: Procedure,
 }
 
 impl BodyCode {
@@ -482,401 +468,17 @@ impl BodyCode {
         self.fragment.opcodes.iter().map(Opcode::size).sum()
     }
 
-    fn encode_to(
+    fn resolve_backward_target(
         &self,
-        reloc_tracker: &mut RelocationTracker,
-        out: &mut impl io::Write,
-    ) -> io::Result<()> {
-        // Build table for resolving code offsets
-        let offset_table = OffsetTable::build_table(&self.fragment, self.base_offset);
-
-        for (pc, op) in self.fragment.opcodes.iter().enumerate() {
-            self.write_opcode(pc, *op, out, reloc_tracker, &offset_table)?;
-        }
-
-        Ok(())
+        from: usize,
+        to: OldCodeOffset,
+        offsets: &OffsetTable,
+    ) -> u32 {
+        0
     }
 
-    fn write_opcode(
-        &self,
-        pc: usize,
-        opcode: Opcode,
-        out: &mut impl io::Write,
-        reloc_tracker: &mut RelocationTracker<'_>,
-        offset_table: &OffsetTable,
-    ) -> io::Result<()> {
-        // Emit opcode
-        out.write_u32::<LE>(opcode.encoding_kind().into())?;
-
-        // Emit operands
-        match opcode {
-            Opcode::ABORT(kind) | Opcode::ABORTCOND(kind) => {
-                out.write_u32::<LE>(kind.encoding_kind().into())?;
-            }
-            Opcode::ABSINT() => {}
-            Opcode::ABSREAL() => {}
-            Opcode::ADDINT() => {}
-            Opcode::ADDINTNAT() => {}
-            Opcode::ADDNAT() => {}
-            Opcode::ADDNATINT() => {}
-            Opcode::ADDREAL() => {}
-            Opcode::ADDSET(_) => todo!(),
-            Opcode::ALLOCFLEXARRAY() => {}
-            Opcode::ALLOCGLOB() => {}
-            Opcode::ALLOCGLOBARRAY() => {}
-            Opcode::ALLOCLOC() => {}
-            Opcode::ALLOCLOCARRAY() => {}
-            Opcode::AND() => {}
-            Opcode::ARRAYUPPER(_) => todo!(),
-            Opcode::ASNADDR() => {}
-            Opcode::ASNINT() => {}
-            Opcode::ASNINT1() => {}
-            Opcode::ASNINT2() => {}
-            Opcode::ASNINT4() => {}
-            Opcode::ASNNAT() => {}
-            Opcode::ASNNAT1() => {}
-            Opcode::ASNNAT2() => {}
-            Opcode::ASNNAT4() => {}
-            Opcode::ASNPTR() => {}
-            Opcode::ASNREAL() => {}
-            Opcode::ASNREAL4() => {}
-            Opcode::ASNREAL8() => {}
-            Opcode::ASNADDRINV() => {}
-            Opcode::ASNINTINV() => {}
-            Opcode::ASNINT1INV() => {}
-            Opcode::ASNINT2INV() => {}
-            Opcode::ASNINT4INV() => {}
-            Opcode::ASNNATINV() => {}
-            Opcode::ASNNAT1INV() => {}
-            Opcode::ASNNAT2INV() => {}
-            Opcode::ASNNAT4INV() => {}
-            Opcode::ASNPTRINV() => {}
-            Opcode::ASNREALINV() => {}
-            Opcode::ASNREAL4INV() => {}
-            Opcode::ASNREAL8INV() => {}
-            Opcode::ASNNONSCALAR(len) | Opcode::ASNNONSCALARINV(len) => {
-                out.write_u32::<LE>(len)?;
-            }
-            Opcode::ASNSTR() => {}
-            Opcode::ASNSTRINV() => {}
-            Opcode::BEGINHANDLER(_, _) => todo!(),
-            Opcode::BITSASSIGN(_, _, _) => todo!(),
-            Opcode::BITSEXTRACT(_, _) => todo!(),
-            Opcode::CALL(offset) => {
-                out.write_u32::<LE>(offset)?;
-            }
-            Opcode::CALLEXTERNAL(_) => todo!(),
-            Opcode::CALLIMPLEMENTBY(_) => todo!(),
-            Opcode::CASE(_) => todo!(),
-            Opcode::CAT() => {}
-            Opcode::CHARSUBSTR1(_) => todo!(),
-            Opcode::CHARSUBSTR2(_) => todo!(),
-            Opcode::CHARTOCSTR() => {}
-            Opcode::CHARTOSTR() => {}
-            Opcode::CHARTOSTRLEFT() => {}
-            Opcode::CHKCHRSTRSIZE(len) | Opcode::CHKCSTRRANGE(len) => {
-                out.write_u32::<LE>(len)?;
-            }
-            Opcode::CHKRANGE(peek_at, min, max, kind) => {
-                out.write_u32::<LE>(peek_at)?;
-                out.write_i32::<LE>(min)?;
-                out.write_i32::<LE>(max)?;
-                out.write_u32::<LE>(kind.encoding_kind().into())?;
-            }
-            Opcode::CHKSTRRANGE(len) => {
-                out.write_u32::<LE>(len.into())?;
-            }
-            Opcode::CHKSTRSIZE(len) => {
-                out.write_u32::<LE>(len)?;
-            }
-            Opcode::CLOSE() => {}
-            Opcode::COPYARRAYDESC() => {}
-            Opcode::CSTRTOCHAR() => {}
-            Opcode::CSTRTOSTR() => {}
-            Opcode::CSTRTOSTRLEFT() => {}
-            Opcode::DEALLOCFLEXARRAY() => {}
-            Opcode::DECSP(_) => todo!(),
-            Opcode::DIVINT() => {}
-            Opcode::DIVNAT() => {}
-            Opcode::DIVREAL() => {}
-            Opcode::EMPTY() => {}
-            Opcode::ENDFOR(back_to) => {
-                let offset = self.resolve_backward_target(pc, back_to, offset_table);
-                out.write_u32::<LE>(offset)?;
-            }
-            Opcode::EOF() => {}
-            Opcode::EQADDR() => {}
-            Opcode::EQCHARN(_) => todo!(),
-            Opcode::EQINT() => {}
-            Opcode::EQINTNAT() => {}
-            Opcode::EQNAT() => {}
-            Opcode::EQREAL() => {}
-            Opcode::EQSTR() => {}
-            Opcode::EQSET(_) => todo!(),
-            Opcode::EXPINTINT() => {}
-            Opcode::EXPREALINT() => {}
-            Opcode::EXPREALREAL() => {}
-            Opcode::FETCHADDR() => {}
-            Opcode::FETCHBOOL() => {}
-            Opcode::FETCHINT() => {}
-            Opcode::FETCHINT1() => {}
-            Opcode::FETCHINT2() => {}
-            Opcode::FETCHINT4() => {}
-            Opcode::FETCHNAT() => {}
-            Opcode::FETCHNAT1() => {}
-            Opcode::FETCHNAT2() => {}
-            Opcode::FETCHNAT4() => {}
-            Opcode::FETCHPTR() => {}
-            Opcode::FETCHREAL() => {}
-            Opcode::FETCHREAL4() => {}
-            Opcode::FETCHREAL8() => {}
-            Opcode::FETCHSET(_) => todo!(),
-            Opcode::FETCHSTR() => {}
-            Opcode::FIELD(_) => todo!(),
-            Opcode::FOR(skip_to) => {
-                let offset = self.resolve_forward_target(pc, skip_to, offset_table);
-                out.write_u32::<LE>(offset)?;
-            }
-            Opcode::FORK(_, _) => todo!(),
-            Opcode::FREE(_) => todo!(),
-            Opcode::FREECLASS(_) => todo!(),
-            Opcode::FREEU() => {}
-            Opcode::GECLASS() => {}
-            Opcode::GECHARN(_) => todo!(),
-            Opcode::GEINT() => {}
-            Opcode::GEINTNAT() => {}
-            Opcode::GENAT() => {}
-            Opcode::GENATINT() => {}
-            Opcode::GEREAL() => {}
-            Opcode::GESTR() => {}
-            Opcode::GESET(_) => todo!(),
-            Opcode::GET(kind) => {
-                out.write_u32::<LE>(kind.encoding_kind().into())?;
-
-                match kind {
-                    GetKind::Skip() => {}
-                    GetKind::Boolean() | GetKind::Char() => {
-                        out.write_u32::<LE>(1)?;
-                    }
-                    GetKind::CharRange(min, max) => {
-                        out.write_u32::<LE>(1)?;
-                        out.write_i32::<LE>(min)?;
-                        out.write_i32::<LE>(max)?;
-                    }
-                    GetKind::CharN(size)
-                    | GetKind::Enum(size)
-                    | GetKind::Int(size)
-                    | GetKind::Nat(size)
-                    | GetKind::Real(size)
-                    | GetKind::StringExact(size)
-                    | GetKind::StringLine(size)
-                    | GetKind::StringToken(size) => {
-                        out.write_u32::<LE>(size)?;
-                    }
-                    GetKind::EnumRange(size, min, max) | GetKind::IntRange(size, min, max) => {
-                        out.write_u32::<LE>(size)?;
-                        out.write_i32::<LE>(min)?;
-                        out.write_i32::<LE>(max)?;
-                    }
-                }
-            }
-            Opcode::GETPRIORITY() => {}
-            Opcode::GTCLASS() => {}
-            Opcode::IN(_, _, _) => todo!(),
-            Opcode::INCLINENO() => {}
-            Opcode::INCSP(amount) => {
-                out.write_u32::<LE>(amount)?;
-            }
-            Opcode::INFIXAND(_) => todo!(),
-            Opcode::INITARRAYDESC() => {}
-            Opcode::INITCONDITION(_) => todo!(),
-            Opcode::INITMONITOR(_) => todo!(),
-            Opcode::INITUNIT(_, _, _) => todo!(),
-            Opcode::INTREAL() => {}
-            Opcode::INTREALLEFT() => {}
-            Opcode::INTSTR() => {}
-            Opcode::JSR(_) => todo!(),
-            Opcode::IF(skip_to) | Opcode::INFIXOR(skip_to) | Opcode::JUMP(skip_to) => {
-                let offset = self.resolve_forward_target(pc, skip_to, offset_table);
-                out.write_u32::<LE>(offset)?;
-            }
-            Opcode::JUMPB(back_to) => {
-                let offset = self.resolve_backward_target(pc, back_to, offset_table);
-                out.write_u32::<LE>(offset)?;
-            }
-            Opcode::LECLASS() => {}
-            Opcode::LECHARN(_) => todo!(),
-            Opcode::LEINT() => {}
-            Opcode::LEINTNAT() => {}
-            Opcode::LENAT() => {}
-            Opcode::LENATINT() => {}
-            Opcode::LEREAL() => {}
-            Opcode::LESTR() => {}
-            Opcode::LESET(_) => todo!(),
-            Opcode::LOCATEARG(_) => todo!(),
-            Opcode::LOCATECLASS(_) => todo!(),
-            Opcode::LOCATELOCAL(offset) => {
-                out.write_u32::<LE>(offset)?;
-            }
-            Opcode::LOCATEPARM(offset) => {
-                out.write_u32::<LE>(offset)?;
-            }
-            Opcode::LOCATETEMP(temp_slot) => {
-                let slot_info = self.fragment.temps.get(temp_slot.0).unwrap();
-
-                // locals_area
-                out.write_u32::<LE>(self.fragment.frame_size())?;
-                // temporary
-                out.write_u32::<LE>(slot_info.offset)?;
-            }
-            Opcode::LTCLASS() => {}
-            Opcode::MAXINT() => {}
-            Opcode::MAXNAT() => {}
-            Opcode::MAXREAL() => {}
-            Opcode::MININT() => {}
-            Opcode::MINNAT() => {}
-            Opcode::MINREAL() => {}
-            Opcode::MODINT() => {}
-            Opcode::MODNAT() => {}
-            Opcode::MODREAL() => {}
-            Opcode::MONITORENTER() => {}
-            Opcode::MONITOREXIT() => {}
-            Opcode::MULINT() => {}
-            Opcode::MULNAT() => {}
-            Opcode::MULREAL() => {}
-            Opcode::MULSET(_) => todo!(),
-            Opcode::NATREAL() => {}
-            Opcode::NATREALLEFT() => {}
-            Opcode::NATSTR() => {}
-            Opcode::NEGINT() => {}
-            Opcode::NEGREAL() => {}
-            Opcode::NEW() => {}
-            Opcode::NEWARRAY() => {}
-            Opcode::NEWCLASS() => {}
-            Opcode::NEWU() => {}
-            Opcode::NOT() => {}
-            Opcode::NUMARRAYELEMENTS() => {}
-            Opcode::OBJCLASS() => {}
-            Opcode::OPEN(_, _) => todo!(),
-            Opcode::OR() => {}
-            Opcode::ORD() => {}
-            Opcode::PAUSE() => {}
-            Opcode::PRED() => {}
-            Opcode::PROC(frame_size) => {
-                out.write_u32::<LE>(frame_size)?;
-            }
-            Opcode::PUSHADDR(_) => todo!(),
-            Opcode::PUSHADDR1(reloc_offset) => {
-                let relative_to = offset_table.relative_address(pc);
-                let (patch_link, offset) = reloc_tracker.add_reloc(relative_to, reloc_offset);
-
-                out.write_u32::<LE>(patch_link)?;
-                out.write_u32::<LE>(offset)?;
-            }
-            Opcode::PUSHCOPY() => {}
-            Opcode::PUSHINT(value) => {
-                out.write_u32::<LE>(value)?;
-            }
-            Opcode::PUSHINT1(value) => {
-                out.write_u32::<LE>(value.into())?;
-            }
-            Opcode::PUSHINT2(value) => {
-                out.write_u32::<LE>(value.into())?;
-            }
-            Opcode::PUSHREAL(value) => {
-                out.write_f64::<LE>(value)?;
-            }
-            Opcode::PUSHVAL0() => {}
-            Opcode::PUSHVAL1() => {}
-            Opcode::PUT(kind) => {
-                out.write_u32::<LE>(kind.encoding_kind().into())?;
-            }
-            Opcode::QUIT() => {}
-            Opcode::READ() => {}
-            Opcode::REALDIVIDE() => {}
-            Opcode::REMINT() => {}
-            Opcode::REMREAL() => {}
-            Opcode::RESOLVEDEF(_) => todo!(),
-            Opcode::RESOLVEPTR() => {}
-            Opcode::RESTORESP() => {}
-            Opcode::RETURN() => {}
-            Opcode::RTS() => {}
-            Opcode::SAVESP() => {}
-            Opcode::SEEK() => {}
-            Opcode::SEEKSTAR() => {}
-            Opcode::SETALL(_, _) => todo!(),
-            Opcode::SETCLR(_) => todo!(),
-            Opcode::SETELEMENT(_, _, _) => todo!(),
-            Opcode::SETFILENO(file_no, line_no) => {
-                out.write_u32::<LE>(file_no.into())?;
-                out.write_u32::<LE>(line_no.into())?;
-            }
-            Opcode::SETLINENO(line_no) => {
-                out.write_u32::<LE>(line_no.into())?;
-            }
-            Opcode::SETPRIORITY() => {}
-            Opcode::SETSTDSTREAM(stream) => {
-                out.write_u32::<LE>(stream.encoding_kind().into())?;
-            }
-            Opcode::SETSTREAM(_) => todo!(),
-            Opcode::SHL() => {}
-            Opcode::SHR() => {}
-            Opcode::SIGNAL(_) => todo!(),
-            Opcode::STRINT() => {}
-            Opcode::STRINTOK() => {}
-            Opcode::STRNAT() => {}
-            Opcode::STRNATOK() => {}
-            Opcode::STRTOCHAR() => {}
-            Opcode::SUBINT() => {}
-            Opcode::SUBINTNAT() => {}
-            Opcode::SUBNAT() => {}
-            Opcode::SUBNATINT() => {}
-            Opcode::SUBREAL() => {}
-            Opcode::SUBSCRIPT() => {}
-            Opcode::SUBSET(_) => todo!(),
-            Opcode::SUBSTR1(_) => todo!(),
-            Opcode::SUBSTR2(_) => todo!(),
-            Opcode::SUCC() => {}
-            Opcode::TAG(_) => todo!(),
-            Opcode::TELL() => {}
-            Opcode::UFIELD(_, _, _) => todo!(),
-            Opcode::UNINIT() => {}
-            Opcode::UNINITADDR() => {}
-            Opcode::UNINITBOOLEAN() => {}
-            Opcode::UNINITINT() => {}
-            Opcode::UNINITNAT() => {}
-            Opcode::UNINITREAL() => {}
-            Opcode::UNINITSTR() => {}
-            Opcode::UNLINKHANDLER() => {}
-            Opcode::VSUBSCRIPT(_, _, _) => todo!(),
-            Opcode::WAIT(_) => todo!(),
-            Opcode::WRITE() => {}
-            Opcode::XOR() => {}
-            Opcode::XORSET(_) => {}
-            Opcode::BREAK() => {}
-            Opcode::SYSEXIT() => {}
-            Opcode::ILLEGAL() => {}
-        }
-
-        Ok(())
-    }
-
-    fn resolve_backward_target(&self, from: usize, to: CodeOffset, offsets: &OffsetTable) -> u32 {
-        let jump_to = match self.fragment.code_offsets[to.0] {
-            OffsetTarget::Branch(to) => to.expect("unresolved branch"),
-        };
-        let offset = offsets.backward_offset(from, jump_to);
-
-        offset.try_into().unwrap()
-    }
-
-    fn resolve_forward_target(&self, from: usize, to: CodeOffset, offsets: &OffsetTable) -> u32 {
-        let jump_to = match self.fragment.code_offsets[to.0] {
-            OffsetTarget::Branch(to) => to.expect("unresolved branch"),
-        };
-        let offset = offsets.forward_offset(from, jump_to);
-
-        offset.try_into().unwrap()
+    fn resolve_forward_target(&self, from: usize, to: OldCodeOffset, offsets: &OffsetTable) -> u32 {
+        0
     }
 }
 
@@ -894,7 +496,8 @@ struct BodyCodeGenerator<'a> {
     body: &'a hir_body::Body,
     code_fragment: &'a mut CodeFragment,
 
-    code_blob: &'a mut CodeBlob,
+    cctx: &'a mut CodeGenCtx,
+    proc: ProcedureBuilder,
     last_location: Option<(usize, usize)>,
     branch_stack: Vec<BlockBranches>,
 }
@@ -902,7 +505,8 @@ struct BodyCodeGenerator<'a> {
 impl BodyCodeGenerator<'_> {
     fn generate_body(
         db: &dyn CodeGenDB,
-        code_blob: &mut CodeBlob,
+        codegen_ctx: &mut CodeGenCtx,
+        proc: ProcedureBuilder,
         package_id: hir_package::PackageId,
         package: &hir_package::Package,
         body_id: hir_body::BodyId,
@@ -919,7 +523,8 @@ impl BodyCodeGenerator<'_> {
             body: package.body(body_id),
             code_fragment: &mut code_fragment,
 
-            code_blob,
+            cctx: codegen_ctx,
+            proc,
             last_location: None,
             branch_stack: vec![],
         };
@@ -927,7 +532,7 @@ impl BodyCodeGenerator<'_> {
         // FIXME: Bind imported defs
         gen.bind_inputs(param_defs, ret_param);
 
-        gen.code_fragment.emit_opcode(Opcode::PROC(0));
+        // gen.code_fragment.emit_opcode(Opcode::PROC(0));
 
         match &package.body(body_id).kind {
             hir_body::BodyKind::Stmts(stmts, ..) => gen.generate_stmt_list(stmts),
@@ -953,15 +558,15 @@ impl BodyCodeGenerator<'_> {
                 item_ty.kind(gen.db.up()),
                 ty::TypeKind::Subprogram(toc_hir::symbol::SubprogramKind::Function, ..)
             ) {
-                gen.code_fragment
-                    .emit_opcode(Opcode::ABORT(AbortSource::MissingResult()));
+                gen.proc.ins().abort(AbortReason::NoResult);
             } else {
-                gen.code_fragment.emit_opcode(Opcode::RETURN());
+                gen.proc.ins().return_();
             }
         }
         gen.code_fragment.fix_frame_size();
 
         BodyCode {
+            proc: gen.proc.finish(),
             fragment: code_fragment,
             base_offset: 0,
         }
@@ -969,25 +574,31 @@ impl BodyCodeGenerator<'_> {
 
     fn inline_body(&mut self, body_id: hir_body::BodyId) {
         // hacky workarounds for actual hacks...
-        let mut gen = BodyCodeGenerator {
-            db: self.db,
-            package_id: self.package_id,
-            package: self.package,
-            body_id,
-            body: self.package.body(body_id),
-            code_fragment: self.code_fragment,
+        // let mut gen = BodyCodeGenerator {
+        //     db: self.db,
+        //     package_id: self.package_id,
+        //     package: self.package,
+        //     body_id,
+        //     body: self.package.body(body_id),
+        //     code_fragment: self.code_fragment,
 
-            code_blob: self.code_blob,
-            last_location: self.last_location,
-            branch_stack: vec![],
-        };
+        //     code_blob: self.code_blob,
+        //     last_location: self.last_location,
+        //     branch_stack: vec![],
+        // };
+
+        let (old_body_id, old_body) = (self.body_id, self.body);
+
+        self.body_id = body_id;
+        self.body = self.package.body(body_id);
 
         match &self.package.body(body_id).kind {
-            hir_body::BodyKind::Stmts(stmts, ..) => gen.generate_stmt_list(stmts),
-            hir_body::BodyKind::Exprs(expr) => gen.generate_expr(*expr),
+            hir_body::BodyKind::Stmts(stmts, ..) => self.generate_stmt_list(stmts),
+            hir_body::BodyKind::Exprs(expr) => self.generate_expr(*expr),
         }
 
-        self.last_location = gen.last_location;
+        self.body_id = old_body_id;
+        self.body = old_body;
     }
 
     fn bind_inputs(&mut self, param_defs: &[LocalDefId], ret_param: Option<LocalDefId>) {
@@ -1026,6 +637,7 @@ impl BodyCodeGenerator<'_> {
             if let Some(param_infos) = params.as_ref() {
                 for (local_def, param_info) in param_defs.iter().zip(param_infos) {
                     // ???: How should we deal with char(*) / string(*)?
+                    // - Need to recover ABI
                     let param_ty = param_info.param_ty.to_base_type(self.db.up());
                     let size_of = param_ty.size_of(self.db.up()).expect("must be sized");
                     let indirect = match param_info.pass_by {
@@ -1049,41 +661,52 @@ impl BodyCodeGenerator<'_> {
         let info = toc_ast_db::map_byte_index(self.db.up(), file.into_raw(), range.start().into())
             .unwrap();
 
-        // `0` is reserved for "<No File>"
-        let code_file = self.code_blob.file_map.insert_full(file).0 + 1;
+        let code_file = self
+            .cctx
+            .file_map
+            .entry(file)
+            .or_insert_with(|| {
+                // Create a dummy unit to represent the filename
+                let path = file.into_raw().raw_path(self.db.up());
+
+                let mut unit = self.cctx.blob.build_code_unit(path.as_str());
+                let id = unit.id();
+
+                let mut proc = unit.build_procedure();
+                proc.ins().return_();
+                unit.submit_procedure(proc.finish());
+                self.cctx.blob.submit_code_unit(unit.finish());
+
+                id
+            })
+            .as_usize();
+
         // `LineInfo` line is zero-based, so adjust it
         let (new_file, new_line) = (code_file as u16, info.line as u16 + 1);
 
-        let opcode = if let Some((last_file, last_line)) =
-            self.last_location.replace((code_file, info.line + 1))
+        if let Some((last_file, last_line)) = self.last_location.replace((code_file, info.line + 1))
         {
             if (last_file, last_line) == (code_file, info.line) {
                 // Same location, don't need to emit anything
-                None
             } else if last_file != code_file {
                 // Different file, file absolute location
-                Some(Opcode::SETFILENO(new_file, new_line))
+                self.proc.ins().setfileno(new_file, new_line);
             } else if info.line.checked_sub(last_line) == Some(1) {
                 // Can get away with a line relative location
-                Some(Opcode::INCLINENO())
+                self.proc.ins().inclineno();
             } else {
                 // Need a line absolute location
-                Some(Opcode::SETLINENO(new_line))
+                self.proc.ins().setlineno(new_line);
             }
         } else {
             // Start of body, need a file absolute location
-            Some(Opcode::SETFILENO(new_file, new_line))
+            self.proc.ins().setfileno(new_file, new_line);
         };
-
-        if let Some(opcode) = opcode {
-            self.code_fragment.emit_opcode(opcode);
-        }
     }
 
     fn emit_absolute_location(&mut self) {
         if let Some((file, line)) = self.last_location {
-            self.code_fragment
-                .emit_opcode(Opcode::SETFILENO(file as u16, line as u16));
+            self.proc.ins().setfileno(file as u16, line as u16);
         }
     }
 
@@ -1160,9 +783,17 @@ impl BodyCodeGenerator<'_> {
         self.coerce_expr_into(rhs_ty, coerce_to);
     }
 
+    #[allow(unused)]
+    fn generate_stmt_put(&mut self, stmt: &hir_stmt::Put) {
+        todo!()
+    }
+
+    #[cfg(no)]
     fn generate_stmt_put(&mut self, stmt: &hir_stmt::Put) {
         // Steps
         // We're only concerned with stdout emission_ty
+
+        let old_scope = self.proc.enter_temporary_scope();
 
         let stream_handle = self.generate_set_stream(
             stmt.stream_num,
@@ -1238,10 +869,10 @@ impl BodyCodeGenerator<'_> {
 
             // Deal with the put opts
             if let Some(width) = item.opts.width() {
-                self.generate_expr(width)
+                self.generate_expr(width);
             } else {
                 // width is common to non-skip items, so have it present
-                self.code_fragment.emit_opcode(Opcode::PUSHVAL0())
+                self.proc.ins().pushval0();
             }
 
             if let (Some(fract_width), true) = (item.opts.precision(), put_kind.has_fract_opt()) {
@@ -1264,8 +895,16 @@ impl BodyCodeGenerator<'_> {
             self.code_fragment.emit_locate_temp(stream_handle);
             self.code_fragment.emit_opcode(Opcode::PUT(PutKind::Skip()));
         }
+
+        self.proc.leave_temporary_scope(old_scope);
     }
 
+    #[allow(unused)]
+    fn generate_stmt_get(&mut self, stmt: &hir_stmt::Get) {
+        todo!()
+    }
+
+    #[cfg(no)]
     fn generate_stmt_get(&mut self, stmt: &hir_stmt::Get) {
         let stream_handle =
             self.generate_set_stream(stmt.stream_num, None, StdStream::Stdin(), StreamKind::Get());
@@ -1339,6 +978,18 @@ impl BodyCodeGenerator<'_> {
         }
     }
 
+    #[allow(unused)]
+    fn generate_set_stream(
+        &mut self,
+        stream_num: Option<hir_expr::ExprId>,
+        status_expr: Option<hir_expr::ExprId>,
+        default_stream: StdStream,
+        op: StreamKind,
+    ) -> TemporarySlot {
+        todo!()
+    }
+
+    #[cfg(no)]
     fn generate_set_stream(
         &mut self,
         stream_num: Option<hir_expr::ExprId>,
@@ -1347,17 +998,18 @@ impl BodyCodeGenerator<'_> {
         op: StreamKind,
     ) -> TemporarySlot {
         // Make a temporary to store the stream handle
-        let stream_handle = self.code_fragment.allocate_temporary_space(4);
+        let stream_handle = self.proc.alloc_temporary(4, 4);
 
         if let Some(stream_num) = stream_num {
             // Make temporary to store the status_var location from SETSTREAM
-            let status_var = self.code_fragment.allocate_temporary_space(4);
+            let status_var = self.proc.alloc_temporary(4, 4);
 
             // Use this stream as the target
             self.generate_expr(stream_num);
             if let Some(_status_expr) = status_expr {
                 todo!();
             } else {
+                // self.proc.ins().pushval0()
                 self.code_fragment.emit_opcode(Opcode::PUSHADDR(0)); // no place to store status
             }
 
@@ -1552,7 +1204,7 @@ impl BodyCodeGenerator<'_> {
                             Opcode::EQINT()
                         } else {
                             // Reuse normal eq selection
-                            self.select_eq_op(
+                            self.emit_eq_op(
                                 expr_ty.kind(self.db.up()),
                                 discrim_ty.kind(self.db.up()),
                             )
@@ -1592,7 +1244,7 @@ impl BodyCodeGenerator<'_> {
     }
 
     fn generate_stmt_return(&mut self, _stmt: &hir_stmt::Return) {
-        self.code_fragment.emit_opcode(Opcode::RETURN());
+        self.proc.ins().return_();
     }
 
     fn generate_stmt_result(&mut self, stmt: &hir_stmt::Result) {
@@ -1610,7 +1262,7 @@ impl BodyCodeGenerator<'_> {
         self.code_fragment.emit_opcode(Opcode::FETCHADDR());
         self.generate_assign(ret_ty, AssignOrder::Postcomputed);
 
-        self.code_fragment.emit_opcode(Opcode::RETURN());
+        self.proc.ins().return_();
     }
 
     fn generate_item(&mut self, item_id: hir_item::ItemId) {
@@ -1687,12 +1339,13 @@ impl BodyCodeGenerator<'_> {
         }
     }
 
-    fn generate_item_subprogram(&mut self, item: &hir_item::Subprogram) {
-        let reloc_body = self
-            .code_blob
-            .reloc_to_code_body(self.package_id, item.body.body);
-        self.code_fragment
-            .bind_reloc_local(DefId(self.package_id, item.def_id), reloc_body);
+    fn generate_item_subprogram(&mut self, _item: &hir_item::Subprogram) {
+        // Resolved at a later point
+        // let reloc_body = self
+        //     .code_blob
+        //     .reloc_to_code_body(self.package_id, item.body.body);
+        // self.code_fragment
+        //     .bind_reloc_local(DefId(self.package_id, item.def_id), reloc_body);
     }
 
     fn generate_coerced_expr(&mut self, expr_id: hir_expr::ExprId, coerce_to: Option<CoerceTo>) {
@@ -1770,7 +1423,7 @@ impl BodyCodeGenerator<'_> {
                     let temp_str = self.code_fragment.allocate_temporary_space(reserve_size);
                     self.code_fragment.emit_locate_temp(temp_str);
 
-                    self.code_fragment.emit_opcode(Opcode::PUSHINT(len as u32));
+                    self.proc.ins().pushint(len as i32);
                     Some(Opcode::CSTRTOSTR())
                 }
                 (CoerceTo::String, ty::TypeKind::CharN(ty::SeqSize::Any)) => {
@@ -1808,37 +1461,46 @@ impl BodyCodeGenerator<'_> {
         eprintln!("pushing value {expr:?} to operand stack");
         match expr {
             hir_expr::Literal::Integer(value) => match value {
-                0..=0xFF => self
-                    .code_fragment
-                    .emit_opcode(Opcode::PUSHINT1(*value as u8)),
-                0..=0xFFFF => self
-                    .code_fragment
-                    .emit_opcode(Opcode::PUSHINT2(*value as u16)),
-                0..=0xFFFFFFFF => self
-                    .code_fragment
-                    .emit_opcode(Opcode::PUSHINT(*value as u32)),
+                0..=0xFF => {
+                    self.proc.ins().pushint1(*value as i8);
+                }
+                0..=0xFFFF => {
+                    self.proc.ins().pushint2(*value as i16);
+                }
+                0..=0xFFFFFFFF => {
+                    self.proc.ins().pushint(*value as i32);
+                }
                 _ => unreachable!("this backend does not support values larger than u32::MAX"),
             },
             hir_expr::Literal::Real(value) => {
-                self.code_fragment.emit_opcode(Opcode::PUSHREAL(*value))
+                self.proc.ins().pushreal(*value);
             }
             hir_expr::Literal::Char(value) => {
                 if *value as u32 <= 0xFF {
-                    self.code_fragment
-                        .emit_opcode(Opcode::PUSHINT1(*value as u8))
+                    self.proc.ins().pushint1(*value as i8);
                 } else {
                     unreachable!("this backend does not support non-(extended) ascii code points")
                 }
             }
             hir_expr::Literal::CharSeq(value) | hir_expr::Literal::String(value) => {
-                let str_at = self.code_blob.add_const_str(value);
-                self.code_fragment.emit_opcode(Opcode::PUSHADDR1(str_at));
+                // Defer allocation to later
+                let reloc_point = self
+                    .proc
+                    .reloc(|ins| ins.pushaddr1(RelocatableOffset::empty()));
+
+                self.cctx
+                    .strings
+                    .entry(value.to_owned())
+                    .or_insert(vec![])
+                    .push((self.proc.id(), reloc_point));
             }
-            hir_expr::Literal::Boolean(value) => self.code_fragment.emit_opcode(
-                value
-                    .then(Opcode::PUSHVAL1)
-                    .unwrap_or_else(Opcode::PUSHVAL0),
-            ),
+            hir_expr::Literal::Boolean(value) => {
+                if *value {
+                    self.proc.ins().pushval1();
+                } else {
+                    self.proc.ins().pushval0();
+                }
+            }
         }
     }
 
@@ -1859,7 +1521,7 @@ impl BodyCodeGenerator<'_> {
 
         let opcode = match expr.op.item() {
             hir_expr::BinaryOp::Add => self
-                .dispatch_over_numbers(
+                .coerce_and_select_numbers(
                     expr,
                     lhs_ty.kind(self.db.up()),
                     rhs_ty.kind(self.db.up()),
@@ -1871,7 +1533,7 @@ impl BodyCodeGenerator<'_> {
                 )
                 .unwrap(),
             hir_expr::BinaryOp::Sub => self
-                .dispatch_over_numbers(
+                .coerce_and_select_numbers(
                     expr,
                     lhs_ty.kind(self.db.up()),
                     rhs_ty.kind(self.db.up()),
@@ -1883,7 +1545,7 @@ impl BodyCodeGenerator<'_> {
                 )
                 .unwrap(),
             hir_expr::BinaryOp::Mul => self
-                .dispatch_over_numbers(
+                .coerce_and_select_numbers(
                     expr,
                     lhs_ty.kind(self.db.up()),
                     rhs_ty.kind(self.db.up()),
@@ -1895,7 +1557,7 @@ impl BodyCodeGenerator<'_> {
                 )
                 .expect("op over unsupported type"),
             hir_expr::BinaryOp::Div => self
-                .dispatch_over_numbers(
+                .coerce_and_select_numbers(
                     expr,
                     lhs_ty.kind(self.db.up()),
                     rhs_ty.kind(self.db.up()),
@@ -1912,7 +1574,7 @@ impl BodyCodeGenerator<'_> {
                 Opcode::REALDIVIDE()
             }
             hir_expr::BinaryOp::Mod => self
-                .dispatch_over_numbers(
+                .coerce_and_select_numbers(
                     expr,
                     lhs_ty.kind(self.db.up()),
                     rhs_ty.kind(self.db.up()),
@@ -1924,7 +1586,7 @@ impl BodyCodeGenerator<'_> {
                 )
                 .expect("op over unsupported type"),
             hir_expr::BinaryOp::Rem => self
-                .dispatch_over_numbers(
+                .coerce_and_select_numbers(
                     expr,
                     lhs_ty.kind(self.db.up()),
                     rhs_ty.kind(self.db.up()),
@@ -1984,7 +1646,7 @@ impl BodyCodeGenerator<'_> {
             hir_expr::BinaryOp::Less | hir_expr::BinaryOp::GreaterEq => {
                 self.coerce_to_same(expr, lhs_ty.kind(self.db.up()), rhs_ty.kind(self.db.up()));
 
-                let cmp_op = if let Some(cmp_op) = self.select_over_numbers(
+                let cmp_op = if let Some(cmp_op) = self.select_numbers(
                     lhs_ty.kind(self.db.up()),
                     rhs_ty.kind(self.db.up()),
                     Opcode::GEREAL(),
@@ -2014,7 +1676,7 @@ impl BodyCodeGenerator<'_> {
             hir_expr::BinaryOp::Greater | hir_expr::BinaryOp::LessEq => {
                 self.coerce_to_same(expr, lhs_ty.kind(self.db.up()), rhs_ty.kind(self.db.up()));
 
-                let cmp_op = if let Some(cmp_op) = self.select_over_numbers(
+                let cmp_op = if let Some(cmp_op) = self.select_numbers(
                     lhs_ty.kind(self.db.up()),
                     rhs_ty.kind(self.db.up()),
                     Opcode::LEREAL(),
@@ -2043,8 +1705,7 @@ impl BodyCodeGenerator<'_> {
             }
             hir_expr::BinaryOp::Equal | hir_expr::BinaryOp::NotEqual => {
                 self.coerce_to_same(expr, lhs_ty.kind(self.db.up()), rhs_ty.kind(self.db.up()));
-                let cmp_op =
-                    self.select_eq_op(lhs_ty.kind(self.db.up()), rhs_ty.kind(self.db.up()));
+                let cmp_op = self.emit_eq_op(lhs_ty.kind(self.db.up()), rhs_ty.kind(self.db.up()));
 
                 if expr.op.item() == &hir_expr::BinaryOp::Equal {
                     cmp_op
@@ -2072,39 +1733,23 @@ impl BodyCodeGenerator<'_> {
         self.code_fragment.emit_opcode(opcode);
     }
 
-    #[allow(clippy::too_many_arguments)]
-    fn dispatch_over_numbers(
+    fn coerce_and_select_numbers(
         &mut self,
         expr: &hir_expr::Binary,
         lhs: &ty::TypeKind,
         rhs: &ty::TypeKind,
-        real: Opcode,
-        nat_nat: Opcode,
-        nat_int: Opcode,
-        int_nat: Opcode,
-        int_int: Opcode,
-    ) -> Option<Opcode> {
+    ) -> Option<OperandPairs> {
         self.coerce_to_same(expr, lhs, rhs);
-        self.select_over_numbers(lhs, rhs, real, nat_nat, nat_int, int_nat, int_int)
+        self.select_numbers(lhs, rhs)
     }
 
-    #[allow(clippy::too_many_arguments)]
-    fn select_over_numbers(
-        &self,
-        lhs: &ty::TypeKind,
-        rhs: &ty::TypeKind,
-        real: Opcode,
-        nat_nat: Opcode,
-        nat_int: Opcode,
-        int_nat: Opcode,
-        int_int: Opcode,
-    ) -> Option<Opcode> {
+    fn select_numbers(&self, lhs: &ty::TypeKind, rhs: &ty::TypeKind) -> Option<OperandPairs> {
         match (lhs, rhs) {
-            (ty::TypeKind::Real(_), _) | (_, ty::TypeKind::Real(_)) => Some(real),
-            (ty::TypeKind::Nat(_), ty::TypeKind::Nat(_)) => Some(nat_nat),
-            (ty::TypeKind::Nat(_), other) if other.is_integer() => Some(nat_int),
-            (other, ty::TypeKind::Nat(_)) if other.is_integer() => Some(int_nat),
-            (lhs, rhs) if lhs.is_integer() && rhs.is_integer() => Some(int_int),
+            (ty::TypeKind::Real(_), _) | (_, ty::TypeKind::Real(_)) => Some(OperandPairs::Real),
+            (ty::TypeKind::Nat(_), ty::TypeKind::Nat(_)) => Some(OperandPairs::NatNat),
+            (ty::TypeKind::Nat(_), other) if other.is_integer() => Some(OperandPairs::NatInt),
+            (other, ty::TypeKind::Nat(_)) if other.is_integer() => Some(OperandPairs::IntNat),
+            (lhs, rhs) if lhs.is_integer() && rhs.is_integer() => Some(OperandPairs::IntInt),
             _ => None,
         }
     }
@@ -2123,17 +1768,15 @@ impl BodyCodeGenerator<'_> {
         self.generate_coerced_expr(expr.rhs, coerce_to);
     }
 
-    fn select_eq_op(&self, lhs_kind: &ty::TypeKind, rhs_kind: &ty::TypeKind) -> Opcode {
-        if let Some(cmp_op) = self.select_over_numbers(
-            lhs_kind,
-            rhs_kind,
-            Opcode::EQREAL(),
-            Opcode::EQNAT(),
-            Opcode::EQINTNAT(),
-            Opcode::EQINTNAT(),
-            Opcode::EQINT(),
-        ) {
-            cmp_op
+    fn emit_eq_op(&self, lhs_kind: &ty::TypeKind, rhs_kind: &ty::TypeKind) {
+        if let Some(num_op) = self.select_numbers(lhs_kind, rhs_kind) {
+            match num_op {
+                OperandPairs::IntInt => todo!(),
+                OperandPairs::IntNat => todo!(),
+                OperandPairs::NatInt => todo!(),
+                OperandPairs::NatNat => todo!(),
+                OperandPairs::Real => todo!(),
+            }
         } else {
             match (lhs_kind, rhs_kind) {
                 (ty::TypeKind::Char, ty::TypeKind::Char) => Opcode::EQINT(),
@@ -2496,6 +2139,15 @@ enum CoerceTo {
     String,
 }
 
+#[derive(Clone, Copy)]
+enum OperandPairs {
+    IntInt,
+    IntNat,
+    NatInt,
+    NatNat,
+    Real,
+}
+
 #[derive(Debug, Clone, Copy)]
 enum LocalTarget {
     Stack(StackSlot),
@@ -2566,7 +2218,7 @@ impl CodeFragment {
         self.locals_size += size;
     }
 
-    fn allocate_temporary_space(&mut self, size: usize) -> TemporarySlot {
+    fn allocate_temporary_space(&mut self, size: usize) -> OldTemporarySlot {
         // Align to the nearest stack slot
         let size = ty::align_up_to(size, 4).try_into().unwrap();
         let offset = self.temps_current_size;
@@ -2576,7 +2228,7 @@ impl CodeFragment {
 
         self.temps_current_size += size;
         self.temps_size = self.temps_size.max(self.temps_current_size);
-        TemporarySlot(handle)
+        OldTemporarySlot(handle)
     }
 
     fn bump_temp_allocs(&mut self) {
@@ -2587,65 +2239,71 @@ impl CodeFragment {
         self.temps_current_size = self.temp_bumps.pop().expect("too many unbumps");
     }
 
-    fn emit_opcode(&mut self, opcode: Opcode) {
-        if matches!(opcode, Opcode::INCLINENO()) {
-            // Fold together INCLINENO and SETFILENO / SETLINENO
-            match self.opcodes.last_mut() {
-                Some(Opcode::SETFILENO(_, line) | Opcode::SETLINENO(line)) => *line += 1,
-                _ => self.opcodes.push(Opcode::INCLINENO()),
-            }
-        } else {
-            self.opcodes.push(opcode)
-        }
-    }
+    // TODO: kill this!
+    // fn emit_opcode(&mut self, opcode: Opcode) {
+    //     if matches!(opcode, Opcode::INCLINENO()) {
+    //         // Fold together INCLINENO and SETFILENO / SETLINENO
+    //         match self.opcodes.last_mut() {
+    //             Some(Opcode::SETFILENO(_, line) | Opcode::SETLINENO(line)) => *line += 1,
+    //             _ => self.opcodes.push(Opcode::INCLINENO()),
+    //         }
+    //     } else {
+    //         self.opcodes.push(opcode)
+    //     }
+    // }
 
     fn emit_locate_local(&mut self, def_id: DefId) {
-        let slot_info = self.locals.get(&def_id).expect("def not reserved yet");
+        let slot_info = self.locals.get(&def_id);
 
-        match slot_info {
-            LocalTarget::Stack(slot_info) => {
-                let offset = slot_info.offset + slot_info.size;
-                self.emit_opcode(Opcode::LOCATELOCAL(offset));
-            }
-            LocalTarget::Reloc(offset) => {
-                let offset = *offset; // for dealing with borrowck warning
-                self.emit_opcode(Opcode::PUSHADDR1(offset));
-            }
-            LocalTarget::Arg(offset, indirect) => {
-                // for dealing with borrowck warnings
-                let offset = *offset;
-                let indirect = *indirect;
+        // match slot_info {
+        //     Some(LocalTarget::Stack(slot_info)) => {
+        //         let offset = slot_info.offset + slot_info.size;
+        //         self.emit_opcode(Opcode::LOCATELOCAL(offset));
+        //     }
+        //     Some(LocalTarget::Reloc(_offset)) => {
+        //         todo!()
+        //         // let offset = *offset; // for dealing with borrowck warning
+        //         // self.emit_opcode(Opcode::PUSHADDR1(offset));
+        //     }
+        //     Some(LocalTarget::Arg(offset, indirect)) => {
+        //         // for dealing with borrowck warnings
+        //         let offset = *offset;
+        //         let indirect = *indirect;
 
-                self.emit_opcode(Opcode::LOCATEPARM(offset.try_into().unwrap()));
-                if indirect {
-                    self.emit_opcode(Opcode::FETCHADDR());
-                }
-            }
-        }
+        //         self.emit_opcode(Opcode::LOCATEPARM(offset.try_into().unwrap()));
+        //         if indirect {
+        //             self.emit_opcode(Opcode::FETCHADDR());
+        //         }
+        //     }
+        //     None => {
+        //         // treat as an external relocation
+        //         todo!()
+        //     }
+        // }
     }
 
-    fn emit_locate_temp(&mut self, temp: TemporarySlot) {
+    fn emit_locate_temp(&mut self, temp: OldTemporarySlot) {
         // Don't know the final size of temporaries yet, so use temporary slots.
-        self.emit_opcode(Opcode::LOCATETEMP(temp));
+        // self.emit_opcode(Opcode::LOCATETEMP(temp));
     }
 
-    fn place_branch(&mut self) -> CodeOffset {
+    fn place_branch(&mut self) -> OldCodeOffset {
         let offset = self.new_branch();
         self.anchor_branch_to(offset, self.opcodes.len());
         offset
     }
 
-    fn new_branch(&mut self) -> CodeOffset {
+    fn new_branch(&mut self) -> OldCodeOffset {
         let idx = self.code_offsets.len();
         self.code_offsets.push(OffsetTarget::Branch(None));
-        CodeOffset(idx)
+        OldCodeOffset(idx)
     }
 
-    fn anchor_branch(&mut self, offset: CodeOffset) {
+    fn anchor_branch(&mut self, offset: OldCodeOffset) {
         self.anchor_branch_to(offset, self.opcodes.len())
     }
 
-    fn anchor_branch_to(&mut self, offset: CodeOffset, to_opcode: usize) {
+    fn anchor_branch_to(&mut self, offset: OldCodeOffset, to_opcode: usize) {
         *self.code_offsets.get_mut(offset.0).unwrap() = OffsetTarget::Branch(Some(to_opcode))
     }
 
