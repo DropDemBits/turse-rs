@@ -1,7 +1,7 @@
 //! References to entities that are used within the bytecode spec.
 
 use crate::Types;
-#[allow(unused_imports)]
+#[cfg(doc)]
 use crate::{BytecodeSpec, Instruction};
 
 macro_rules! entity_impl {
