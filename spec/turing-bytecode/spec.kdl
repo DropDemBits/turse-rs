@@ -47,6 +47,20 @@ types {
     """
     repr_type "f64"
   }
+  scalar "set16" size=2 {
+    description """
+    Element of a large bitset, storing up to 16 elements.
+    Sets larger than 4 bytes (32 elements) store the backing bitset as a separate allocation of an array of `set16`s.
+    """
+    repr_type "u16"
+  }
+  scalar "set32" size=4 {
+    description """
+    Compact bitset, storing up to 32 elements.
+    Sets up to 4 bytes in size store the backing bitset inline with the value.
+    """
+    repr_type "u32"
+  }
   scalar "offset" size=4 {
     description """
     Address-sized signed integer to offset an `addrint` address with.
@@ -79,47 +93,47 @@ types {
     repr_type "u32"
 
     assert 1 {
-      description "For conditional `assert` statements"
+      description "For conditional `assert` statements."
       message "Assert condition is false"
       error_code 21
     }
     pre_invariant 2 {
-      description "For conditional `pre` statements"
+      description "For conditional `pre` statements."
       message "Pre condition is false"
       error_code 16
     }
     post_invariant 3 {
-      description "For conditional `post` statements"
+      description "For conditional `post` statements."
       message "Post condition is false"
       error_code 17
     }
     for_invariant 4 {
-      description "For conditional `invariant` statements in for-loops"
+      description "For conditional `invariant` statements in for-loops."
       message "For-loop invariant is false"
       error_code 18
     }
     loop_invariant 5 {
-      description "For conditional `invariant` statements in loops"
+      description "For conditional `invariant` statements in loops."
       message "Loop invariant is false"
       error_code 19
     }
     module_invariant 6 {
-      description "For conditional `invariant` statements in module initialization"
+      description "For conditional `invariant` statements in module initialization."
       message "Module invariant is false"
       error_code 20
     }
     class_downcast 7 {
-      description "For conditional class downcast expressions"
+      description "For conditional class downcast expressions."
       message "Cannot convert pointer to more specific class"
       error_code 10_000
     }
     case_out_of_range 8 {
-      description "For unhandled case arms in case statements without a default label"
+      description "For unhandled case arms in case statements without a default label."
       message "Case selector is out of range"
       error_code 25
     }
     no_result 9 {
-      description "For functions that return without producing a result"
+      description "For functions that return without producing a result."
       message "Function failed to give a result"
       error_code 26
     }
@@ -344,62 +358,62 @@ instructions {
     description "Performs addition on two numbers."
 
     ADDINT 0x04 "Add Integers" {
-      description "Adds `lhs` and `rhs`, producing `out`."
+      description "Adds as `int` values `lhs` and `rhs`, producing `out`."
       operands {}
       stack_before {
-        lhs "int4" { description "Left-hand side of operation" }
-        rhs "int4" { description "Right-hand side of operation" }
+        lhs "int4" { description "Left-hand side of operation." }
+        rhs "int4" { description "Right-hand side of operation." }
       }
       stack_after {
-        out "int4" { description "Result of operation" }
+        out "int4" { description "Result of operation." }
       }
     }
     
     ADDINTNAT 0x05 "Add Integer with Natural" {
-      description "Adds `lhs` and `rhs`, producing `out`."
+      description "Adds `lhs` (as an `int` value) and `rhs` (as a `nat` value), producing `out`."
       operands {}
       stack_before {
-        lhs "int4" { description "Left-hand side of operation" }
-        rhs "nat4" { description "Right-hand side of operation" }
+        lhs "int4" { description "Left-hand side of operation." }
+        rhs "nat4" { description "Right-hand side of operation." }
       }
       stack_after {
-        out "int4" { description "Result of operation" }
+        out "int4" { description "Result of operation." }
       }
     }
     
     ADDNAT 0x06 "Add Naturals" {
-      description "Adds `lhs` and `rhs`, producing `out`."
+      description "Adds as `nat` values `lhs` and `rhs`, producing `out`."
       operands {}
       stack_before {
-        lhs "nat4" { description "Left-hand side of operation" }
-        rhs "nat4" { description "Right-hand side of operation" }
+        lhs "nat4" { description "Left-hand side of operation." }
+        rhs "nat4" { description "Right-hand side of operation." }
       }
       stack_after {
-        out "nat4" { description "Result of operation" }
+        out "nat4" { description "Result of operation." }
       }
     }
     
     ADDNATINT 0x07 "Add Natural with Integer" {
-      description "Adds `lhs` and `rhs`, producing `out`."
+      description "Adds `lhs` (as a `nat` value) and `rhs` (as an `int` value), producing `out`."
       operands {}
       stack_before {
-        lhs "nat4" { description "Left-hand side of operation" }
-        rhs "int4" { description "Right-hand side of operation" }
+        lhs "nat4" { description "Left-hand side of operation." }
+        rhs "int4" { description "Right-hand side of operation." }
       }
       stack_after {
-        out "nat4" { description "Result of operation" }
+        out "nat4" { description "Result of operation." }
       }
     }
     
     ADDREAL 0x08 "Add Reals" {
-      description "Adds `lhs` and `rhs`, producing `out`."
+      description "Adds as `real` values `lhs` and `rhs`, producing `out`."
       operands {}
       stack_before {
-        lhs "real8" { description "Left-hand side of operation" }
-        rhs "real8" { description "Right-hand side of operation" }
+        lhs "real8" { description "Left-hand side of operation." }
+        rhs "real8" { description "Right-hand side of operation." }
       }
       stack_after {
-        out "real8" { description "Result of operation" }
+        out "real8" { description "Result of operation." }
       }
     }
   }
@@ -411,11 +425,11 @@ instructions {
     """
 
     operands {
-      address_offset "offset" { description "Offset to the call address in the stack" }
+      address_offset "offset" { description "Offset to the call address in the stack." }
     }
     stack_before {}
     stack_after {
-      return_addr "addrint" { description "Return address" }
+      return_addr "addrint" { description "Return address." }
     }
   }
 
@@ -448,17 +462,503 @@ instructions {
       }
     }
     stack_before {
-      selector "int4" { description "Selects which case target entry to use" }
+      selector "int4" { description "Selects which case target entry to use." }
     }
     stack_after {}
   }
 
-  INCLINENO 0x7D "Increment Line Number" {
+  group "Compare Equal" {
     description """
-    Increments the line number up by 1.
-
-    Primarily used for debugging, this has no effect on the program state.
+    Tests if `lhs` is equal to `rhs`, putting the compare result in `compare`.
     """
+
+    EQADDR 0x4E "Compare Equal Addresses" {
+      description """
+      Tests as `addrint` values if `lhs` and `rhs` are equal `addrint` values.
+      """
+      operands {}
+      stack_before {
+        lhs "addrint" { description "Left-hand side of comparison." }
+        rhs "addrint" { description "Right-hand side of comparison." }
+      }
+      stack_after {
+        compare "int4" { description "Result of operation. 1 if values are equal, 0 otherwise." }
+      }
+    }
+
+    EQCHARN 0x4F "Compare Equal Char(N)" {
+      description """
+      Tests as `char(N)` values if `lhs` and `rhs` are equal.
+      Performs a byte-by-byte comparison.
+      """
+      operands {
+        length "nat4" {
+          description """
+          Byte length of the `char(N)` type.
+          """
+        }
+      }
+      stack_before {
+        lhs "addrint" { description "Left-hand side of comparison." }
+        rhs "addrint" { description "Right-hand side of comparison." }
+      }
+      stack_after {
+        compare "int4" { description "Result of operation. 1 if values are equal, 0 otherwise." }
+      }
+    }
+
+    EQINT 0x50 "Compare Equal Integers" {
+      description """
+      Tests as `int` values if `lhs` and `rhs` are equal.
+      """
+      operands {}
+      stack_before {
+        lhs "int4" { description "Left-hand side of comparison." }
+        rhs "int4" { description "Right-hand side of comparison." }
+      }
+      stack_after {
+        compare "int4" { description "Result of operation. 1 if values are equal, 0 otherwise." }
+      }
+    }
+
+    EQINTNAT 0x51 "Compare Equal Integer with Natural" {
+      description """
+      Tests if `lhs` (as an `int` value) and `rhs` (as a `nat` value) are equal values.
+      If `rhs` is greater than `maxint` (`0x7FFFFFFF`), the comparison is always false.
+      """
+      operands {}
+      stack_before {
+        lhs "int4" { description "Left-hand side of comparison." }
+        rhs "nat4" { description "Right-hand side of comparison." }
+      }
+      stack_after {
+        compare "int4" { description "Result of operation. 1 if values are equal, 0 otherwise." }
+      }
+    }
+
+    EQNAT 0x52 "Compare Equal Nats" {
+      description """
+      Tests as `nat` values if `lhs` and `rhs` are equal.
+      """
+      operands {}
+      stack_before {
+        lhs "nat4" { description "Left-hand side of comparison." }
+        rhs "nat4" { description "Right-hand side of comparison." }
+      }
+      stack_after {
+        compare "int4" { description "Result of operation. 1 if values are equal, 0 otherwise." }
+      }
+    }
+
+    EQREAL 0x53 "Compare Equal Reals" {
+      description """
+      Tests as `real` values if `lhs` and `rhs` are equal.
+      """
+      operands {}
+      stack_before {
+        lhs "real8" { description "Left-hand side of comparison." }
+        rhs "real8" { description "Right-hand side of comparison." }
+      }
+      stack_after {
+        compare "int4" { description "Result of operation. 1 if values are equal, 0 otherwise." }
+      }
+    }
+
+    EQSET 0x54 "Compare Equal Sets" {
+      description """
+      Tests as `set` values if `lhs` and `rhs` are equal.
+      Performs a byte-by-byte comparison.
+
+      `set_length` determines the size of both sets, as well as determining the set representation.
+      Sets up to 4 bytes in size are stored in the compact format (as a `set32`), while sets larger than 4 bytes are stored as an indirect array of `set16`s.
+      """
+      operands {
+        set_length "nat4" {
+          description """
+          Length of the set, in bytes.
+          """
+        }
+      }
+      stack_before {
+        @conditional {
+          @predicate (operands).set_length "<=" 4
+
+          lhs "set32" { description "Left-hand side of comparison." }
+          rhs "set32" { description "Right-hand side of comparison." }
+        }
+        @conditional {
+          @predicate "otherwise"
+
+          lhs "addrint" { description "Left-hand side of comparison." }
+          rhs "addrint" { description "Right-hand side of comparison." }
+        }
+      }
+      stack_after {
+        compare "int4" { description "Result of operation. 1 if values are equal, 0 otherwise." }
+      }
+    }
+
+    EQSTR 0x55 "Compare Equal Strings" {
+      description """
+      Tests as `string` values if `lhs` and `rhs` are equal.
+      Performs a byte-by-byte comparison.
+      """
+      operands {}
+      stack_before {
+        lhs "addrint" { description "Left-hand side of comparison." }
+        rhs "addrint" { description "Right-hand side of comparison." }
+      }
+      stack_after {
+        compare "int4" { description "Result of operation. 1 if values are equal, 0 otherwise." }
+      }
+    }
+  }
+
+  group "Compare Greater Than or Equal" {
+    description """
+    Tests if `lhs` is greater than or equal to `rhs`, putting the compare result in `compare`.
+    """
+
+    GECHARN 0x6F "Compare Greater or Equal Char(N)" {
+      description """
+      Tests as `char(N)` values if `lhs` is greater than or equal to `rhs`.
+      Performs a byte-by-byte comparison.
+      """
+      operands {
+        length "nat4" {
+          description """
+          Byte length of the `char(N)` type.
+          """
+        }
+      }
+      stack_before {
+        lhs "addrint" { description "Left-hand side of comparison." }
+        rhs "addrint" { description "Right-hand side of comparison." }
+      }
+      stack_after {
+        compare "int4" { description "Result of operation. 1 if `lhs` is greater than or equal to `rhs`, 0 otherwise." }
+      }
+    }
+
+    GECLASS 0x70 "Compare Descendant or Same Class" {
+      descriptor """
+      Tests if `lhs` is a class that is a descendant of, or the same class as `rhs`.
+      This navigates up the class hierarchy of `lhs` to see if `rhs` is a member of the ancestor hierarchy.
+
+      If `lhs` is `nil` (`0x0`), the comparison is always true as `nil` is considered a descendant of all classes.
+      """
+
+      stack_before {
+        lhs "addrint" { description "Left-hand side of comparison." }
+        rhs "addrint" { description "Right-hand side of comparison." }
+      }
+      stack_after {
+        compare "int4" { description "Result of operation. 1 if `lhs` is a descendant of, or same class as `rhs`, 0 otherwise." }
+      }
+    }
+
+    GEINT 0x71 "Compare Greater or Equal Integers" {
+      description """
+      Tests as `int` values if `lhs` is greater than or equal to `rhs`.
+      """
+      operands {}
+      stack_before {
+        lhs "int4" { description "Left-hand side of comparison." }
+        rhs "int4" { description "Right-hand side of comparison." }
+      }
+      stack_after {
+        compare "int4" { description "Result of operation. 1 if `lhs` is greater than or equal to `rhs`, 0 otherwise." }
+      }
+    }
+
+    GEINTNAT 0x72 "Compare Greater or Equal Natural with Integer" {
+      description """
+      Tests if `lhs` (as an`nat` value) is greater than or equal to `rhs` (as a `nat` value).
+      If `rhs` is greater than `maxint` (`0x7FFFFFFF`), the comparison is always false.
+      """
+      operands {}
+      stack_before {
+        lhs "int4" { description "Left-hand side of comparison." }
+        rhs "nat4" { description "Right-hand side of comparison." }
+      }
+      stack_after {
+        compare "int4" { description "Result of operation. 1 if `lhs` is greater than or equal to `rhs`, 0 otherwise." }
+      }
+    }
+
+    GENAT 0x73 "Compare Greater or Equal Naturals" {
+      description """
+      Tests as `nat` values if `lhs` is greater than or equal to `rhs`.
+      """
+      operands {}
+      stack_before {
+        lhs "nat4" { description "Left-hand side of comparison." }
+        rhs "nat4" { description "Right-hand side of comparison." }
+      }
+      stack_after {
+        compare "int4" { "Result of operation. 1 if `lhs` is greater than or equal to `rhs`, 0 otherwise." }
+      }
+    }
+
+    GENATINT 0x74 "Compare Greater or Equal Integer with Natural" {
+      description """
+      Tests if `lhs` (as a `nat` value) is greater than or equal to `rhs` (as an `int` value).
+      If `lhs` is greater than `maxint` (`0x7FFFFFFF`), the comparison is always true.
+      """
+      operands {}
+      stack_before {
+        lhs "nat4" { description "Left-hand side of comparison." }
+        rhs "int" { description "Right-hand side of comparison." }
+      }
+      stack_after {
+        compare "int4" { description "Result of operation. 1 if `lhs` is greater than or equal to `rhs`, 0 otherwise." }
+      }
+    }
+
+    GEREAL 0x75 "Compare Greater or Equal Reals" {
+      description """
+      Tests as `real` values if `lhs` is greater than or equal to `rhs`.
+      """
+      operands {}
+      stack_before {
+        lhs "real8" { description "Left-hand side of comparison." }
+        rhs "real8" { description "Right-hand side of comparison." }
+      }
+      stack_after {
+        compare "int4" { description "Result of operation. 1 if `lhs` is greater than or equal to `rhs`, 0 otherwise." }
+      }
+    }
+
+    GESET 0x76 "Compare Greater or Equal Sets" {
+      description """
+      Tests as `set` values if `lhs` is a supeset of `rhs` (that is, all elements in `rhs` are contained in `lhs`).
+      Performs a byte-by-byte comparison.
+
+      `set_length` determines the size of both sets, as well as determining the set representation.
+      Sets up to 4 bytes in size are stored in the compact format (as a `set32`), while sets larger than 4 bytes are stored as an indirect array of `set16`s.
+      """
+      operands {
+        set_length "nat4" {
+          description """
+          Length of the set, in bytes.
+          """
+        }
+      }
+      stack_before {
+        @conditional {
+          @predicate (operands).set_length "<=" 4
+
+          lhs "set32" { description "Left-hand side of comparison." }
+          rhs "set32" { description "Right-hand side of comparison." }
+        }
+        @conditional {
+          @predicate "otherwise"
+
+          lhs "addrint" { description "Left-hand side of comparison." }
+          rhs "addrint" { description "Right-hand side of comparison." }
+        }
+      }
+      stack_after {
+        compare "int4" { description "Result of operation. 1 if `lhs` is greater than or equal to `rhs`, 0 otherwise." }
+      }
+    }
+
+    GESTR 0x77 "Compare Greater or Equal Strings" {
+      description """
+      Tests as `string` values if `lhs` is greater than or equal to `rhs`.
+      Performs a byte-by-byte comparison.
+      """
+      operands {}
+      stack_before {
+        lhs "addrint" { description "Left-hand side of comparison." }
+        rhs "addrint" { description "Right-hand side of comparison." }
+      }
+      stack_after {
+        compare "int4" { description "Result of operation. 1 if `lhs` is greater than or equal to `rhs`, 0 otherwise." }
+      }
+    }
+  }
+
+  GTCLASS 0x7A "Compare Descendant Class" {
+    descriptor """
+    Tests if `lhs` is a class that is a descendant of `rhs`.
+    This navigates up the class hierarchy of `lhs` to see if `rhs` is a member of the ancestor hierarchy.
+
+    If `lhs` is `nil` (`0x0`), the comparison is always true as `nil` is considered a descendant of all classes.
+    """
+
+    stack_before {
+      lhs "addrint" { description "Left-hand side of comparison." }
+      rhs "addrint" { description "Right-hand side of comparison." }
+    }
+    stack_after {
+      compare "int4" { description "Result of operation. 1 if `lhs` is a descendant of `rhs`, 0 otherwise." }
+    }
+  }
+
+  group "Compare Less or Equal" {
+    description """
+    Tests if `lhs` is less than or equal to `rhs`, putting the compare result in `compare`.
+    """
+
+    LECHARN 0x8B "Compare Less or Equal Char(N)" {
+      description """
+      Tests as `char(N)` values if `lhs` is less than or equal to `rhs`.
+      Performs a byte-by-byte comparison.
+      """
+      operands {
+        length "nat4" {
+          description """
+          Byte length of the `char(N)` type.
+          """
+        }
+      }
+      stack_before {
+        lhs "addrint" { description "Left-hand side of comparison." }
+        rhs "addrint" { description "Right-hand side of comparison." }
+      }
+      stack_after {
+        compare "int4" { description "Result of operation. 1 if `lhs` is less than or equal to `rhs`, 0 otherwise." }
+      }
+    }
+
+    LECLASS 0x8C "Compare Ancestor or Same Class" {
+      descriptor """
+      Tests if `lhs` is a class that is an ancestor of, or the same class as `rhs`.
+      This navigates up the class hierarchy of `lhs` to see if `rhs` is a member of the ancestor hierarchy.
+
+      If `rhs` is `nil` (`0x0`), the comparison is always true as `nil` is considered a descendant of all classes.
+      """
+
+      stack_before {
+        lhs "addrint" { description "Left-hand side of comparison." }
+        rhs "addrint" { description "Right-hand side of comparison." }
+      }
+      stack_after {
+        compare "int4" { description "Result of operation. 1 if `lhs` is a descendant of, or same class as `rhs`, 0 otherwise." }
+      }
+    }
+
+    LEINT 0x8D "Compare Less or Equal Integers" {
+      description """
+      Tests as `int` values if `lhs` is less than or equal to `rhs`.
+      """
+      operands {}
+      stack_before {
+        lhs "int4" { description "Left-hand side of comparison." }
+        rhs "int4" { description "Right-hand side of comparison." }
+      }
+      stack_after {
+        compare "int4" { description "Result of operation. 1 if `lhs` is less than or equal to `rhs`, 0 otherwise." }
+      }
+    }
+
+    LEINTNAT 0x8E "Compare Less or Equal Natural with Integer" {
+      description """
+      Tests if `lhs` (as an `int` value) is less than or equal to `rhs` (as a `nat` value).
+      If `rhs` is greater than `maxint` (`0x7FFFFFFF`), the comparison is always true.
+      """
+      operands {}
+      stack_before {
+        lhs "int4" { description "Left-hand side of comparison." }
+        rhs "nat4" { description "Right-hand side of comparison." }
+      }
+      stack_after {
+        compare "int4" { description "Result of operation. 1 if `lhs` is less than or equal to `rhs`, 0 otherwise." }
+      }
+    }
+
+    LENAT 0x8F "Compare Less or Equal Naturals" {
+      description """
+      Tests as `nat` values if `lhs` is less than or equal to `rhs`.
+      """
+      operands {}
+      stack_before {
+        lhs "nat4" { description "Left-hand side of comparison." }
+        rhs "nat4" { description "Right-hand side of comparison." }
+      }
+      stack_after {
+        compare "int4" { description "Result of operation. 1 if `lhs` is less than or equal to `rhs`, 0 otherwise." }
+      }
+    }
+
+    LENATINT 0x90 "Compare Less or Equal Integer with Natural" {
+      description """
+      Tests if `lhs` (as a `nat` value) is less than or equal to `rhs` (as an `int` value).
+      If `lhs` is greater than `maxint` (`0x7FFFFFFF`), the comparison is always false.
+      """
+      operands {}
+      stack_before {
+        lhs "nat4" { description "Left-hand side of comparison." }
+        rhs "int4" { description "Right-hand side of comparison." }
+      }
+      stack_after {
+        compare "int4" { description "Result of operation. 1 if `lhs` is less than or equal to `rhs`, 0 otherwise." }
+      }
+    }
+
+    LEREAL 0x91 "Compare Less or Equal Reals" {
+      description """
+      Tests as `real` values if `lhs` is less than or equal to `rhs`.
+      """
+      operands {}
+      stack_before {
+        lhs "real8" { description "Left-hand side of comparison." }
+        rhs "real8" { description "Right-hand side of comparison." }
+      }
+      stack_after {
+        compare "int4" { description "Result of operation. 1 if `lhs` is less than or equal to `rhs`, 0 otherwise." }
+      }
+    }
+
+    LESET 0x92 "Compare Less or Equal Sets" {
+      description """
+      Tests as `set` values if `lhs` is a subset of `rhs` (that is, all elements in `lhs` are contained in `rhs`).
+      Performs a byte-by-byte comparison.
+
+      `set_length` determines the size of both sets, as well as determining the set representation.
+      Sets up to 4 bytes in size are stored in the compact format (as a `set32`), while sets larger than 4 bytes are stored as an indirect array of `set16`s.
+      """
+      operands {
+        set_length "nat4" {
+          description """
+          Length of the set, in bytes.
+          """
+        }
+      }
+      stack_before {
+        @conditional {
+          @predicate (operands).set_length "<=" 4
+
+          lhs "set32" { description "Left-hand side of comparison." }
+          rhs "set32" { description "Right-hand side of comparison." }
+        }
+        @conditional {
+          @predicate "otherwise"
+
+          lhs "addrint" { description "Left-hand side of comparison." }
+          rhs "addrint" { description "Right-hand side of comparison." }
+        }
+      }
+      stack_after {
+        compare "int4" { description "Result of operation. 1 if `lhs` is less than or equal to `rhs`, 0 otherwise." }
+      }
+    }
+
+    LESTR 0x93 "Compare Less or Equal Strings" {
+      description """
+      Tests as `string` values if `lhs` is less than or equal to `rhs`.
+      Performs a byte-by-byte comparison.
+      """
+      operands {}
+      stack_before {
+        lhs "addrint" { description "Left-hand side of comparison." }
+        rhs "addrint" { description "Right-hand side of comparison." }
+      }
+      stack_after {
+        compare "int4" { description "Result of operation. 1 if `lhs` is less than or equal to `rhs`, 0 otherwise." }
+      }
+    }
   }
 
   group "Jump" {
@@ -473,7 +973,7 @@ instructions {
       """
 
       operands {
-        offset "offset" { description "Offset to jump forward by, in bytes" }
+        offset "offset" { description "Offset to jump forward by, in bytes." }
       }
     }
 
@@ -484,7 +984,7 @@ instructions {
       """
       
       operands {
-        offset "offset" { description "Offset to jump backwards by, in bytes" }
+        offset "offset" { description "Offset to jump backwards by, in bytes." }
       }
     }
   }
@@ -497,11 +997,11 @@ instructions {
       """
 
       operands {
-        offset "offset" { description "Offset in the locals area" }
+        offset "offset" { description "Offset in the locals area." }
       }
       stack_before {}
       stack_after {
-        address "addrint" { description "Address of the computed local slot" }
+        address "addrint" { description "Address of the computed local slot." }
       }
     }
 
@@ -515,12 +1015,29 @@ instructions {
 
       operands {
         frame_size "nat4" { description "Size of the call frame." }
-        offset "offset" { description "Offset in the temporary area" }
+        offset "offset" { description "Offset in the temporary area." }
       }
       stack_before {}
       stack_after {
-        address "addrint" { description "Address of the computed temporary slot" }
+        address "addrint" { description "Address of the computed temporary slot." }
       }
+    }
+  }
+
+  LTCLASS 0x99 "Compare Ancestor Class" {
+    descriptor """
+    Tests if `lhs` is a class that is an ancestor of `rhs`.
+    This navigates up the class hierarchy of `lhs` to see if `rhs` is a member of the ancestor hierarchy.
+
+    If `rhs` is `nil` (`0x0`), the comparison is always true as `nil` is considered a descendant of all classes.
+    """
+
+    stack_before {
+      lhs "addrint" { description "Left-hand side of comparison." }
+      rhs "addrint" { description "Right-hand side of comparison." }
+    }
+    stack_after {
+      compare "int4" { description "Result of operation. 1 if `lhs` is a descendant of `rhs`, 0 otherwise." }
     }
   }
 
@@ -586,7 +1103,7 @@ instructions {
       }
     }
 
-    PUSHINT 0xBE "Push Literal Int Value" {
+    PUSHINT 0xBE "Push Literal Integer Value" {
       description """
       Pushes a literal `int` value onto the operand stack.
       """
@@ -657,7 +1174,7 @@ instructions {
       operands {}
       stack_before {}
       stack_after {
-        zero "int4" { description "Literal 0 value" }
+        zero "int4" { description "Literal 0 value." }
       }
     }
 
@@ -668,7 +1185,7 @@ instructions {
       operands {}
       stack_before {}
       stack_after {
-        one "int4" { description "Literal 1 value" }
+        one "int4" { description "Literal 1 value." }
       }
     }
   }
@@ -784,6 +1301,14 @@ instructions {
     Primarily used for debugging, this has no effect on the program state.
     """
 
+    INCLINENO 0x7D "Increment Line Number" {
+      description """
+      Increments the line number up by 1.
+
+      Primarily used for debugging, this has no effect on the program state.
+      """
+    }
+
     SETFILENO 0xD5 "Set File & Line Number" {
       description """
       Sets the current execution file number and line number.
@@ -792,8 +1317,8 @@ instructions {
       """
       
       operands {
-        file_no "nat2" { description "File number to set location to" }
-        line_no "nat2" { description "Line number to set location to" }
+        file_no "nat2" { description "File number to set location to." }
+        line_no "nat2" { description "Line number to set location to." }
       }
     }
 
@@ -805,7 +1330,7 @@ instructions {
       """
       
       operands {
-        line_no "nat2" { description "Line number to set location to" }
+        line_no "nat2" { description "Line number to set location to." }
       }
     }
   }

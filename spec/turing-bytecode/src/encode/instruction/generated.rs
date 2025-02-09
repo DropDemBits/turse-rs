@@ -132,7 +132,7 @@ impl InstructionEncoder {
     pub fn addnatint(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::ADDNATINT)) }
     #[doc = "Encode a [**ADDREAL**](Opcode::ADDREAL) instruction."]
     pub fn addreal(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::ADDREAL)) }
-    #[doc = "Encode a [**CALL**](Opcode::CALL) instruction.\n\n## Operands\n\n- address_offset: Offset to the call address in the stack\n"]
+    #[doc = "Encode a [**CALL**](Opcode::CALL) instruction.\n\n## Operands\n\n- address_offset: Offset to the call address in the stack.\n"]
     pub fn call(&mut self, address_offset: Offset) -> InstructionRef {
         self.add(Instruction::new(Opcode::CALL).with_operand(Operand::Offset(address_offset)))
     }
@@ -140,21 +140,85 @@ impl InstructionEncoder {
     pub fn case(&mut self, descriptor: Offset) -> InstructionRef {
         self.add(Instruction::new(Opcode::CASE).with_operand(Operand::Offset(descriptor)))
     }
-    #[doc = "Encode a [**INCLINENO**](Opcode::INCLINENO) instruction."]
-    pub fn inclineno(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::INCLINENO)) }
-    #[doc = "Encode a [**JUMP**](Opcode::JUMP) instruction.\n\n## Operands\n\n- offset: Offset to jump forward by, in bytes\n"]
+    #[doc = "Encode a [**EQADDR**](Opcode::EQADDR) instruction."]
+    pub fn eqaddr(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::EQADDR)) }
+    #[doc = "Encode a [**EQCHARN**](Opcode::EQCHARN) instruction.\n\n## Operands\n\n- length: Byte length of the `char(N)` type.\n"]
+    pub fn eqcharn(&mut self, length: Nat4) -> InstructionRef {
+        self.add(Instruction::new(Opcode::EQCHARN).with_operand(Operand::Nat4(length)))
+    }
+    #[doc = "Encode a [**EQINT**](Opcode::EQINT) instruction."]
+    pub fn eqint(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::EQINT)) }
+    #[doc = "Encode a [**EQINTNAT**](Opcode::EQINTNAT) instruction."]
+    pub fn eqintnat(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::EQINTNAT)) }
+    #[doc = "Encode a [**EQNAT**](Opcode::EQNAT) instruction."]
+    pub fn eqnat(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::EQNAT)) }
+    #[doc = "Encode a [**EQREAL**](Opcode::EQREAL) instruction."]
+    pub fn eqreal(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::EQREAL)) }
+    #[doc = "Encode a [**EQSET**](Opcode::EQSET) instruction.\n\n## Operands\n\n- set_length: Length of the set, in bytes.\n"]
+    pub fn eqset(&mut self, set_length: Nat4) -> InstructionRef {
+        self.add(Instruction::new(Opcode::EQSET).with_operand(Operand::Nat4(set_length)))
+    }
+    #[doc = "Encode a [**EQSTR**](Opcode::EQSTR) instruction."]
+    pub fn eqstr(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::EQSTR)) }
+    #[doc = "Encode a [**GECHARN**](Opcode::GECHARN) instruction.\n\n## Operands\n\n- length: Byte length of the `char(N)` type.\n"]
+    pub fn gecharn(&mut self, length: Nat4) -> InstructionRef {
+        self.add(Instruction::new(Opcode::GECHARN).with_operand(Operand::Nat4(length)))
+    }
+    #[doc = "Encode a [**GECLASS**](Opcode::GECLASS) instruction."]
+    pub fn geclass(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::GECLASS)) }
+    #[doc = "Encode a [**GEINT**](Opcode::GEINT) instruction."]
+    pub fn geint(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::GEINT)) }
+    #[doc = "Encode a [**GEINTNAT**](Opcode::GEINTNAT) instruction."]
+    pub fn geintnat(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::GEINTNAT)) }
+    #[doc = "Encode a [**GENAT**](Opcode::GENAT) instruction."]
+    pub fn genat(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::GENAT)) }
+    #[doc = "Encode a [**GENATINT**](Opcode::GENATINT) instruction."]
+    pub fn genatint(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::GENATINT)) }
+    #[doc = "Encode a [**GEREAL**](Opcode::GEREAL) instruction."]
+    pub fn gereal(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::GEREAL)) }
+    #[doc = "Encode a [**GESET**](Opcode::GESET) instruction.\n\n## Operands\n\n- set_length: Length of the set, in bytes.\n"]
+    pub fn geset(&mut self, set_length: Nat4) -> InstructionRef {
+        self.add(Instruction::new(Opcode::GESET).with_operand(Operand::Nat4(set_length)))
+    }
+    #[doc = "Encode a [**GESTR**](Opcode::GESTR) instruction."]
+    pub fn gestr(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::GESTR)) }
+    #[doc = "Encode a [**GTCLASS**](Opcode::GTCLASS) instruction."]
+    pub fn gtclass(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::GTCLASS)) }
+    #[doc = "Encode a [**LECHARN**](Opcode::LECHARN) instruction.\n\n## Operands\n\n- length: Byte length of the `char(N)` type.\n"]
+    pub fn lecharn(&mut self, length: Nat4) -> InstructionRef {
+        self.add(Instruction::new(Opcode::LECHARN).with_operand(Operand::Nat4(length)))
+    }
+    #[doc = "Encode a [**LECLASS**](Opcode::LECLASS) instruction."]
+    pub fn leclass(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::LECLASS)) }
+    #[doc = "Encode a [**LEINT**](Opcode::LEINT) instruction."]
+    pub fn leint(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::LEINT)) }
+    #[doc = "Encode a [**LEINTNAT**](Opcode::LEINTNAT) instruction."]
+    pub fn leintnat(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::LEINTNAT)) }
+    #[doc = "Encode a [**LENAT**](Opcode::LENAT) instruction."]
+    pub fn lenat(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::LENAT)) }
+    #[doc = "Encode a [**LENATINT**](Opcode::LENATINT) instruction."]
+    pub fn lenatint(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::LENATINT)) }
+    #[doc = "Encode a [**LEREAL**](Opcode::LEREAL) instruction."]
+    pub fn lereal(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::LEREAL)) }
+    #[doc = "Encode a [**LESET**](Opcode::LESET) instruction.\n\n## Operands\n\n- set_length: Length of the set, in bytes.\n"]
+    pub fn leset(&mut self, set_length: Nat4) -> InstructionRef {
+        self.add(Instruction::new(Opcode::LESET).with_operand(Operand::Nat4(set_length)))
+    }
+    #[doc = "Encode a [**LESTR**](Opcode::LESTR) instruction."]
+    pub fn lestr(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::LESTR)) }
+    #[doc = "Encode a [**JUMP**](Opcode::JUMP) instruction.\n\n## Operands\n\n- offset: Offset to jump forward by, in bytes.\n"]
     pub fn jump(&mut self, offset: Offset) -> InstructionRef {
         self.add(Instruction::new(Opcode::JUMP).with_operand(Operand::Offset(offset)))
     }
-    #[doc = "Encode a [**JUMPB**](Opcode::JUMPB) instruction.\n\n## Operands\n\n- offset: Offset to jump backwards by, in bytes\n"]
+    #[doc = "Encode a [**JUMPB**](Opcode::JUMPB) instruction.\n\n## Operands\n\n- offset: Offset to jump backwards by, in bytes.\n"]
     pub fn jumpb(&mut self, offset: Offset) -> InstructionRef {
         self.add(Instruction::new(Opcode::JUMPB).with_operand(Operand::Offset(offset)))
     }
-    #[doc = "Encode a [**LOCATELOCAL**](Opcode::LOCATELOCAL) instruction.\n\n## Operands\n\n- offset: Offset in the locals area\n"]
+    #[doc = "Encode a [**LOCATELOCAL**](Opcode::LOCATELOCAL) instruction.\n\n## Operands\n\n- offset: Offset in the locals area.\n"]
     pub fn locatelocal(&mut self, offset: Offset) -> InstructionRef {
         self.add(Instruction::new(Opcode::LOCATELOCAL).with_operand(Operand::Offset(offset)))
     }
-    #[doc = "Encode a [**LOCATETEMP**](Opcode::LOCATETEMP) instruction.\n\n## Operands\n\n- frame_size: Size of the call frame.\n- offset: Offset in the temporary area\n"]
+    #[doc = "Encode a [**LOCATETEMP**](Opcode::LOCATETEMP) instruction.\n\n## Operands\n\n- frame_size: Size of the call frame.\n- offset: Offset in the temporary area.\n"]
     pub fn locatetemp(&mut self, frame_size: Nat4, offset: Offset) -> InstructionRef {
         self.add(
             Instruction::new(Opcode::LOCATETEMP)
@@ -162,6 +226,8 @@ impl InstructionEncoder {
                 .with_operand(Operand::Offset(offset)),
         )
     }
+    #[doc = "Encode a [**LTCLASS**](Opcode::LTCLASS) instruction."]
+    pub fn ltclass(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::LTCLASS)) }
     #[doc = "Encode a [**PROC**](Opcode::PROC) instruction.\n\n## Operands\n\n- frame_size: Size of the call frame to allocate for locals and temporaries.\n"]
     pub fn proc(&mut self, frame_size: Nat4) -> InstructionRef {
         self.add(Instruction::new(Opcode::PROC).with_operand(Operand::Nat4(frame_size)))
@@ -204,7 +270,9 @@ impl InstructionEncoder {
     }
     #[doc = "Encode a [**RETURN**](Opcode::RETURN) instruction."]
     pub fn return_(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::RETURN)) }
-    #[doc = "Encode a [**SETFILENO**](Opcode::SETFILENO) instruction.\n\n## Operands\n\n- file_no: File number to set location to\n- line_no: Line number to set location to\n"]
+    #[doc = "Encode a [**INCLINENO**](Opcode::INCLINENO) instruction."]
+    pub fn inclineno(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::INCLINENO)) }
+    #[doc = "Encode a [**SETFILENO**](Opcode::SETFILENO) instruction.\n\n## Operands\n\n- file_no: File number to set location to.\n- line_no: Line number to set location to.\n"]
     pub fn setfileno(&mut self, file_no: Nat2, line_no: Nat2) -> InstructionRef {
         self.add(
             Instruction::new(Opcode::SETFILENO)
@@ -212,7 +280,7 @@ impl InstructionEncoder {
                 .with_operand(Operand::Nat2(line_no)),
         )
     }
-    #[doc = "Encode a [**SETLINENO**](Opcode::SETLINENO) instruction.\n\n## Operands\n\n- line_no: Line number to set location to\n"]
+    #[doc = "Encode a [**SETLINENO**](Opcode::SETLINENO) instruction.\n\n## Operands\n\n- line_no: Line number to set location to.\n"]
     pub fn setlineno(&mut self, line_no: Nat2) -> InstructionRef {
         self.add(Instruction::new(Opcode::SETLINENO).with_operand(Operand::Nat2(line_no)))
     }
