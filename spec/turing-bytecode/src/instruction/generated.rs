@@ -18,10 +18,16 @@ pub enum Opcode {
     ADDNATINT = 0x7,
     #[doc = "Add Reals\n\nAdds as `real` values `lhs` and `rhs`, producing `out`."]
     ADDREAL = 0x8,
+    #[doc = "Bitwise And\n\nApplies a bitwise logical and operation between `lhs` and `rhs`, producing `out`."]
+    AND = 0xF,
+    #[doc = "Assign Address Value (Inverted)\n\nStores a `value` as an `addrint` value at the provided `dest` address."]
+    ASNADDRINV = 0x12,
     #[doc = "Call Procedure\n\nChanges execution to follow the procedure at the provided call address.\nStandard call ABI (that is, the call ABI of Turing/OpenTuring) requires that the call address be pushed before all of the operands."]
     CALL = 0x32,
     #[doc = "Case Of\n\nJumps to a specific branch depending on `selector`.\n`descriptor` points to a case descriptor describing the case bounds, default branch offset, and per-entry branch.\nSuccinctly, it is of the following layout:\n\n| Type     | Name           |\n|----------|----------------|\n| `int4`   | lower_bound    |\n| `int4`   | upper_bound    | \n| `offset` | default_branch |\n| `offset` | arm_0          |\n| `offset` | arm_1          |\n| ...      | ...            |\n| `offset` | arm_n          |\n\nNote that the case descriptor cannot have more than 1000 arm offsets when targeting Turing/OpenTuring interpreters.\n\nAll offsets are relative to the address of the `descriptor` operand."]
     CASE = 0x35,
+    #[doc = "Check Value in Range\n\nAsserts that the value at `stack_offset` is within the range `[min..max]` (inclusive range).     \n\nRaises an exception dependent on `check_type` if the value is outside of the range."]
+    CHKRANGE = 0x3E,
     #[doc = "Compare Equal Addresses\n\nTests as `addrint` values if `lhs` and `rhs` are equal `addrint` values."]
     EQADDR = 0x4E,
     #[doc = "Compare Equal Char(N)\n\nTests as `char(N)` values if `lhs` and `rhs` are equal.\nPerforms a byte-by-byte comparison."]
@@ -38,6 +44,42 @@ pub enum Opcode {
     EQSET = 0x54,
     #[doc = "Compare Equal Strings\n\nTests as `string` values if `lhs` and `rhs` are equal.\nPerforms a byte-by-byte comparison."]
     EQSTR = 0x55,
+    #[doc = "Fetch Address Value\n\nFetches an `addrint` value from `addr`.\nAsserts that the loaded value is not `undefaddr` (`0xFFFF_FFFF`)."]
+    FETCHADDR = 0x59,
+    #[doc = "Fetch Boolean Value\n\nFetches a `boolean` value from `addr`, performing a 1-byte load.\nAsserts that the loaded value is not `undefbool` (`0xFF`)."]
+    FETCHBOOL = 0x5A,
+    #[doc = "Fetch Integer Value\n\nFetches an `int` value from `addr`, performing a 4-byte load.\nAsserts that the loaded value is not `undefint` (`0x8000_0000`)."]
+    FETCHINT = 0x5B,
+    #[doc = "Fetch Int1 Value\n\nFetches an `int1` value from `addr`, performing a 1-byte load.\nCoerces the loaded `value` into an `int4` value."]
+    FETCHINT1 = 0x5C,
+    #[doc = "Fetch Int2 Value\n\nFetches an `int2` value from `addr`, performing a 2-byte load.\nCoerces the loaded `value` into an `int4` value."]
+    FETCHINT2 = 0x5D,
+    #[doc = "Fetch Int4 Value\n\nFetches an `int4` value from `addr`, performing a 4-byte load.\nUnlike [**FETCHINT**], this does not perform uninit checking.\n\n[**FETCHINT**]: Opcode::FETCHINT"]
+    FETCHINT4 = 0x5E,
+    #[doc = "Fetch Natural Value\n\nFetches a `nat` value from `addr`, performing a 4-byte load.\nAsserts that the loaded value is not `undefnat` (`0xFFFF_FFFF`)."]
+    FETCHNAT = 0x5F,
+    #[doc = "Fetch Nat1 Value\n\nFetches a `nat1` value from `addr`, performing a 1-byte load.\nCoerces the loaded `value` into a `nat4` value."]
+    FETCHNAT1 = 0x60,
+    #[doc = "Fetch Nat2 Value\n\nFetches a `nat2` value from `addr`, performing a 2-byte load.\nCoerces the loaded `value` into a `nat4` value."]
+    FETCHNAT2 = 0x61,
+    #[doc = "Fetch Nat4 Value\n\nFetches a `nat4` value from `addr`, performing a 4-byte load.\nUnlike [**FETCHNAT**], this does not perform uninit checking.\n\n[**FETCHNAT**]: Opcode::FETCHNAT"]
+    FETCHNAT4 = 0x62,
+    #[doc = "Fetch Checked Pointer Value\n\nFetches an `addrint` value from `addr`, performing a 4-byte load.\nAsserts that the loaded value is not `undefaddr` (`0xFFFF_FFFF`), and that the checked pointer's generation cookie matches the pointed-to allocation's generation cookie."]
+    FETCHPTR = 0x63,
+    #[doc = "Fetch Real Value\n\nFetches a `real` value from `addr`, performing an 8-byte load.\nAsserts that the loaded value is not `undefreal` (`0x8000_0000_8000_0000`)."]
+    FETCHREAL = 0x64,
+    #[doc = "Fetch Real4 Value\n\nFetches a `real4` value from `addr`, performing a 4-byte load.\nCoerces the loaded `value` into a `real8` value."]
+    FETCHREAL4 = 0x65,
+    #[doc = "Fetch Real8 Value\n\nFetches a `real8` value from `addr`, performing an 8-byte load.\nUnlike [**FETCHREAL**], this does not perform uninit checking.\n\n[**FETCHREAL**]: Opcode::FETCHREAL"]
+    FETCHREAL8 = 0x66,
+    #[doc = "Fetch Compact Set Value\n\nFetches a compact set value from `addr`, performing a `set_length`-byte load.\n\nAsserts that the loaded value is not:\n\n- `undefset8` (`0x80`) when `set_length` is 1.\n- `undefset16` (`0x8000`) when `set_length` is 2.\n- `undefset32` (`0x8000_000`) when `set_length` is 4.\n\nCoerces the loaded `value` into a `set32` value."]
+    FETCHSET = 0x67,
+    #[doc = "Fetch String Value\n\nAsserts that the string at `addr` is an initialized string, i.e. the first byte is not the end-of-string marker (`0x80`)."]
+    FETCHSTR = 0x68,
+    #[doc = "Begin For-Loop\n\n"]
+    FOR = 0x6A,
+    #[doc = "End For-Loop\n\n"]
+    ENDFOR = 0x4C,
     #[doc = "Compare Greater or Equal Char(N)\n\nTests as `char(N)` values if `lhs` is greater than or equal to `rhs`.\nPerforms a byte-by-byte comparison."]
     GECHARN = 0x6F,
     #[doc = "Compare Descendant or Same Class\n\n"]
@@ -58,6 +100,10 @@ pub enum Opcode {
     GESTR = 0x77,
     #[doc = "Compare Descendant Class\n\n"]
     GTCLASS = 0x7A,
+    #[doc = "Branch If Zero\n\nBranches execution if `test` is zero (i.e. false)."]
+    IF = 0x7B,
+    #[doc = "Increment Stack Pointer\n\nIncrements the stack pointer by `size` bytes.\nEquivalent to repeatedly popping values off of the stack."]
+    INCSP = 0x7E,
     #[doc = "Compare Less or Equal Char(N)\n\nTests as `char(N)` values if `lhs` is less than or equal to `rhs`.\nPerforms a byte-by-byte comparison."]
     LECHARN = 0x8B,
     #[doc = "Compare Ancestor or Same Class\n\n"]
@@ -82,10 +128,20 @@ pub enum Opcode {
     JUMPB = 0x8A,
     #[doc = "Locate Local Slot\n\nLocates the address of a local in the current call frame.\nOffset is computed relative to the start of the local area."]
     LOCATELOCAL = 0x96,
+    #[doc = "Locate Parameter\n\nLocates the address of a passed-in parameter in the current call frame.\nOffset is computed relative to the start of the call frame."]
+    LOCATEPARM = 0x97,
     #[doc = "Locate Temporary Slot\n\nLocates the address of a temporary in the current call frame.\nOffset is computed relative to the start of the temporaries area.\n\nAs the temporaries area is located after the locals area in the call frame, the size of the call frame must also be known."]
     LOCATETEMP = 0x98,
     #[doc = "Compare Ancestor Class\n\n"]
     LTCLASS = 0x99,
+    #[doc = "Negate Integer\n\nFlips the sign of `value` as an `int`, as if it were multiplied by -1.\n\n(throws) If `value` is less than `minint` (`-0x7FFFFFFF`) as there are no equivalent positive values."]
+    NEGINT = 0xAC,
+    #[doc = "Negate Real\n\nFlips the sign of `value` as a `real`, as if it were multiplied by -1.\n\n(throws) If `value` is less than `minint` (`-0x7FFFFFFF`) as there are no equivalent positive values."]
+    NEGREAL = 0xAD,
+    #[doc = "Boolean Not\n\nApplies a boolean not operation on `value`, by only flipping the first bit.\nFor a bitwise logical not, a [**XOR**] instruction with a 0xFFFFFFFF constant should be used. \n\n[**XOR**]: Opcode::XOR"]
+    NOT = 0xB2,
+    #[doc = "Bitwise Or\n\nApplies a bitwise logical or operation between `lhs` and `rhs`, producing `out`."]
+    OR = 0xB6,
     #[doc = "Begin Procedure\n\n"]
     PROC = 0xBA,
     #[doc = "Push Address\n\nPushes an absolute address. The address will not be relocated."]
@@ -116,16 +172,40 @@ pub enum Opcode {
     SETFILENO = 0xD5,
     #[doc = "Set Line Number\n\nSets the current execution line number, using the same file number.\n\nPrimarily used for debugging, this has no effect on the program state."]
     SETLINENO = 0xD6,
+    #[doc = "Bitwise Exclusive-Or\n\nApplies a bitwise logical xor operation between `lhs` and `rhs`, producing `out`."]
+    XOR = 0xFA,
+}
+#[doc = "All named recoverable exceptions that can be thrown during program execution."]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[repr(u32)]
+pub enum QuitException {
+    TagOutOfRange = 14u32,
+    AssignmentOutOfRange = 15u32,
+    ParameterOutOfRange = 22u32,
+    StringParameterTooLong = 23u32,
+    ResultOutOfRange = 24u32,
+    CaseSelectorOutOfRange = 25u32,
+    FunctionNoResult = 26u32,
+    PredOfFirst = 38u32,
+    SuccOfLast = 39u32,
+    UninitValue = 45u32,
+    IntegerOverflow = 50u32,
+    RealOverflow = 51u32,
+    RealUnderflow = 52u32,
+}
+impl QuitException {
+    #[doc = "Size of the type, in bytes."]
+    pub fn size(&self) -> usize { 4usize }
 }
 #[doc = "8-bit signed integer."]
 pub type Int1 = i8;
 #[doc = "16-bit signed integer."]
 pub type Int2 = i16;
-#[doc = "32-bit signed integer.\n\n`0x80000000` is used as a sentinel value in `int` to represent uninitialized `int` variables.\n`int4` values have no such sentinel values."]
+#[doc = "32-bit signed integer.\n\n`0x80000000` is used as the `undefint` sentinel value in `int` to represent uninitialized `int` variables.\n`int4` values have no such sentinel values."]
 pub type Int4 = i32;
 #[doc = "16-bit unsigned integer."]
 pub type Nat2 = u16;
-#[doc = "32-bit unsigned integer.\n\n`0xFFFFFFFF` is used as a sentinel value in `nat` to represent uninitialized `nat` variables.\n`nat4` values have no such sentinel values."]
+#[doc = "32-bit unsigned integer.\n\n`0xFFFFFFFF` is used as the `undefnat` sentinel value in `nat` to represent uninitialized `nat` variables.\n`nat4` values have no such sentinel values."]
 pub type Nat4 = u32;
 #[doc = "binary32 floating-point number."]
 pub type Real4 = f32;
@@ -286,7 +366,7 @@ impl StreamKind {
     #[doc = "Size of the type, in bytes."]
     pub fn size(&self) -> usize { 4usize }
 }
-#[doc = "Which kind of check is being performed in a **CHKRANGE**."]
+#[doc = "Which kind of check is being performed in a [**CHKRANGE**].\n\n[**CHKRANGE**]: Opcode::CHKRANGE"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(u32)]
 pub enum CheckKind {

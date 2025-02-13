@@ -492,7 +492,7 @@ fn encode_type(
 
 fn generate_instr_encode_fns(spec: &BytecodeSpec) -> TokenStream {
     fn escape_reserved(name: String) -> String {
-        if matches!(name.as_str(), "return" | "add") {
+        if matches!(name.as_str(), "return" | "add" | "for" | "if") {
             format!("{name}_")
         } else {
             name

@@ -5,6 +5,30 @@
 //   they must always be uplifted into addresses in the locals area.
 
 types {
+  enum "quit_exception" size=4 {
+    description "All named recoverable exceptions that can be thrown during program execution."
+    repr_type "u32"
+
+    tag_out_of_range 14 {}
+
+    assignment_out_of_range 15 {}
+
+    parameter_out_of_range 22 {}
+    string_parameter_too_long 23 {}
+    result_out_of_range 24 {}
+    case_selector_out_of_range 25 {}
+    function_no_result 26 {}
+
+    pred_of_first 38 {}
+    succ_of_last 39 {}
+
+    uninit_value 45 {}
+
+    integer_overflow 50 {}
+    real_overflow 51 {}
+    real_underflow 52 {}
+  }
+
   scalar "int1" size=1 {
     description """
     8-bit signed integer.
@@ -21,7 +45,7 @@ types {
     description """
     32-bit signed integer.
 
-    `0x80000000` is used as a sentinel value in `int` to represent uninitialized `int` variables.
+    `0x80000000` is used as the `undefint` sentinel value in `int` to represent uninitialized `int` variables.
     `int4` values have no such sentinel values.
     """
     repr_type "i32"
@@ -36,7 +60,7 @@ types {
     description """
     32-bit unsigned integer.
 
-    `0xFFFFFFFF` is used as a sentinel value in `nat` to represent uninitialized `nat` variables.
+    `0xFFFFFFFF` is used as the `undefnat` sentinel value in `nat` to represent uninitialized `nat` variables.
     `nat4` values have no such sentinel values.
     """
     repr_type "u32"
@@ -279,7 +303,11 @@ types {
     write 4 {}
   }
   enum "check_kind" size=4 {
-    description "Which kind of check is being performed in a **CHKRANGE**."
+    description """
+    Which kind of check is being performed in a [**CHKRANGE**].
+
+    [**CHKRANGE**]: Opcode::CHKRANGE
+    """
     repr_type "u32"
 
     assign 0 {
@@ -312,6 +340,19 @@ types {
     value_param 9 {
       description "Range check as part of range parameter passing."
     }
+  }
+}
+
+exceptions {
+  ExecutionError "@text" {
+    description """
+    An unrecoverable fatal runtime error. Contains a message on more information about the error.
+    """
+  }
+  Quit "quit_exception" {
+    description """
+    A recoverable runtime error. Code becomes the value passed into a `handler` block, if present. 
+    """
   }
 }
 
@@ -426,6 +467,37 @@ instructions {
     }
   }
 
+  AND 0x0F "Bitwise And" {
+    description """
+    Applies a bitwise logical and operation between `lhs` and `rhs`, producing `out`.
+    """
+    operands {}
+    stack_before {
+      lhs "int4" { description "Left-hand side of operation." }
+      rhs "int4" { description "Right-hand side of operation." }
+    }
+    stack_after {
+      out "int4" { description "Result of operation." }
+    }
+  }
+
+  group "Assign Value" {
+    description """
+    Stores `value` at the provided `dest` address.
+    """
+
+    ASNADDRINV 0x12 "Assign Address Value (Inverted)" {
+      description "Stores a `value` as an `addrint` value at the provided `dest` address."
+
+      operands {}
+      stack_before {
+        value "addrint" { description "Value to store." }
+        dest "addrint" { description "Address to store value at." }
+      }
+      stack_after {}
+    }
+  }
+
   CALL 0x32 "Call Procedure" {
     description """
     Changes execution to follow the procedure at the provided call address.
@@ -473,6 +545,113 @@ instructions {
       selector "int4" { description "Selects which case target entry to use." }
     }
     stack_after {}
+  }
+
+  group "Check Invariants" {
+    description """
+    Checks if any of a variety of runtime invariants are held.
+    This forms the basis of the dynamically-checked portion of the excution runtime.
+    """
+
+    CHKRANGE 0x3E "Check Value in Range" {
+      description """
+      Asserts that the value at `stack_offset` is within the range `[min..max]` (inclusive range).     
+
+      Raises an exception dependent on `check_type` if the value is outside of the range.
+      """
+
+      operands {
+        stack_offset "offset" { description "Offset to the value to check within the operand stack" }
+        min "int4" { description "Minimum bound of the accepted value range." }
+        max "int4" { description "Maximum bound of the accepted value range." }
+        check_type "check_kind" { description "What the value range check is asserting." }
+      }
+      stack_before {
+        value "int4" {
+          description "Value to check."
+          computed_offset { (operands).stack_offset }
+        }
+      }
+      stack_after {
+        value "int4" {
+          description "Value that was checked."
+          computed_offset { (operands).stack_offset }
+          preserves (stack_before).value
+        }
+      }
+      exceptions {
+        Quit (quit_code).assignment_out_of_range {
+          description """
+          Raised as the assertion when `check_type` is [CheckKind::Assign].
+
+          [CheckKind::Assign]: CheckKind::Assign
+          """
+        }
+        ExecutionError "Size of dynamic char(n) is less than 1" {
+          description """
+          Raised as the assertion when `check_type` is [CheckKind::AnyChar].
+
+          [CheckKind::AnyChar]: CheckKind::AnyChar
+          """
+        }
+        ExecutionError "Value passed to 'chr' is < 0 or > 255" {
+          description """
+          Raised as the assertion when `check_type` is [CheckKind::Chr].
+
+          [CheckKind::Chr]: CheckKind::Chr
+          """
+        }
+        Quit (quit_code).integer_overflow {
+          description """
+          Raised as the assertion when `check_type` is [CheckKind::IntOverflow].
+
+          [CheckKind::IntOverflow]: CheckKind::IntOverflow
+          """
+        }
+        Quit (quit_code).result_out_of_range {
+          description """
+          Raised as the assertion when `check_type` is [CheckKind::RangeAssign].
+
+          [CheckKind::RangeAssign]: CheckKind::RangeAssign
+          """
+        }
+        ExecutionError "Zero or negative for loop step" {
+          description """
+          Raised as the assertion when `check_type` is [CheckKind::LoopStep].
+
+          [CheckKind::LoopStep]: CheckKind::LoopStep
+          """
+        }
+        Quit (quit_code).pred_of_first {
+          description """
+          Raised as the assertion when `check_type` is [CheckKind::Pred].
+
+          [CheckKind::Pred]: CheckKind::Pred
+          """
+        }
+        Quit (quit_code).succ_of_last {
+          description """
+          Raised as the assertion when `check_type` is [CheckKind::Succ].
+
+          [CheckKind::Succ]: CheckKind::Succ
+          """
+        }
+        Quit (quit_code).tag_out_of_range {
+          description """
+          Raised as the assertion when `check_type` is [CheckKind::TagValue].
+
+          [CheckKind::TagValue]: CheckKind::TagValue
+          """
+        }
+        Quit (quit_code).parameter_out_of_range {
+          description """
+          Raised as the assertion when `check_type` is [CheckKind::ValueParam].
+
+          [CheckKind::ValueParam]: CheckKind::ValueParam
+          """
+        }
+      }
+    }
   }
 
   group "Compare Equal" {
@@ -619,6 +798,341 @@ instructions {
       stack_after {
         compare "int4" { description "Result of operation. 1 if values are equal, 0 otherwise." }
       }
+    }
+  }
+
+  group "Fetch Value from Address" {
+    description """
+    Fetches a value from the specified `addr`.
+    Individual fetch instructions may have different initialized value requirements.
+    """
+
+    FETCHADDR 0x59 "Fetch Address Value" {
+      description """
+      Fetches an `addrint` value from `addr`.
+      Asserts that the loaded value is not `undefaddr` (`0xFFFF_FFFF`).
+      """
+      operands {}
+      stack_before {
+        addr "addrint" { description "Address of the value to load." }
+      }
+      stack_after {
+        value "addrint" { description "Value loaded from `addr`" }
+      }
+      exceptions {
+        Quit (quit_exception).uninit_value {
+          description """
+          When `value` is `undefaddr` (`0xFFFF_FFFF`).
+          """
+        }
+      }
+    }
+
+    FETCHBOOL 0x5A "Fetch Boolean Value" {
+      description """
+      Fetches a `boolean` value from `addr`, performing a 1-byte load.
+      Asserts that the loaded value is not `undefbool` (`0xFF`).
+      """
+      operands {}
+      stack_before {
+        addr "addrint" { description "Address of the value to load." }
+      }
+      stack_after {
+        value "int4" { description "Value loaded from `addr`" }
+      }
+      exceptions {
+        Quit (quit_exception).uninit_value {
+          description """
+          When `value` is `uninitaddr` (`0xFFFF_FFFF`).
+          """
+        }
+      }
+    }
+
+    FETCHINT 0x5B "Fetch Integer Value" {
+      description """
+      Fetches an `int` value from `addr`, performing a 4-byte load.
+      Asserts that the loaded value is not `undefint` (`0x8000_0000`).
+      """
+      operands {}
+      stack_before {
+        addr "addrint" { description "Address of the value to load." }
+      }
+      stack_after {
+        value "int4" { description "Value loaded from `addr`" }
+      }
+      exceptions {
+        Quit (quit_exception).uninit_value {
+          description """
+          When `value` is `undefint` (`0x8000_0000`).
+          """
+        }
+      }
+    }
+
+    FETCHINT1 0x5C "Fetch Int1 Value" {
+      description """
+      Fetches an `int1` value from `addr`, performing a 1-byte load.
+      Coerces the loaded `value` into an `int4` value.
+      """
+      operands {}
+      stack_before {
+        addr "addrint" { description "Address of the value to load." }
+      }
+      stack_after {
+        value "int4" { description "Value loaded from `addr`" }
+      }
+    }
+
+    FETCHINT2 0x5D "Fetch Int2 Value" {
+      description """
+      Fetches an `int2` value from `addr`, performing a 2-byte load.
+      Coerces the loaded `value` into an `int4` value.
+      """
+      operands {}
+      stack_before {
+        addr "addrint" { description "Address of the value to load." }
+      }
+      stack_after {
+        value "int4" { description "Value loaded from `addr`" }
+      }
+    }
+
+    FETCHINT4 0x5E "Fetch Int4 Value" {
+      description """
+      Fetches an `int4` value from `addr`, performing a 4-byte load.
+      Unlike [**FETCHINT**], this does not perform uninit checking.
+
+      [**FETCHINT**]: Opcode::FETCHINT
+      """
+      operands {}
+      stack_before {
+        addr "addrint" { description "Address of the value to load." }
+      }
+      stack_after {
+        value "int4" { description "Value loaded from `addr`" }
+      }
+    }
+
+    FETCHNAT 0x5F "Fetch Natural Value" {
+      description """
+      Fetches a `nat` value from `addr`, performing a 4-byte load.
+      Asserts that the loaded value is not `undefnat` (`0xFFFF_FFFF`).
+      """
+      operands {}
+      stack_before {
+        addr "addrint" { description "Address of the value to load." }
+      }
+      stack_after {
+        value "nat4" { description "Value loaded from `addr`" }
+      }
+      exceptions {
+        Quit (quit_exception).uninit_value {
+          description """
+          When `value` is `undefnat` (`0xFFFF_FFFF`).
+          """
+        }
+      }
+    }
+
+    FETCHNAT1 0x60 "Fetch Nat1 Value" {
+      description """
+      Fetches a `nat1` value from `addr`, performing a 1-byte load.
+      Coerces the loaded `value` into a `nat4` value.
+      """
+      operands {}
+      stack_before {
+        addr "addrint" { description "Address of the value to load." }
+      }
+      stack_after {
+        value "nat4" { description "Value loaded from `addr`" }
+      }
+    }
+
+    FETCHNAT2 0x61 "Fetch Nat2 Value" {
+      description """
+      Fetches a `nat2` value from `addr`, performing a 2-byte load.
+      Coerces the loaded `value` into a `nat4` value.
+      """
+      operands {}
+      stack_before {
+        addr "addrint" { description "Address of the value to load." }
+      }
+      stack_after {
+        value "nat4" { description "Value loaded from `addr`" }
+      }
+    }
+    
+    FETCHNAT4 0x62 "Fetch Nat4 Value" {
+      description """
+      Fetches a `nat4` value from `addr`, performing a 4-byte load.
+      Unlike [**FETCHNAT**], this does not perform uninit checking.
+
+      [**FETCHNAT**]: Opcode::FETCHNAT
+      """
+      operands {}
+      stack_before {
+        addr "addrint" { description "Address of the value to load." }
+      }
+      stack_after {
+        value "nat4" { description "Value loaded from `addr`" }
+      }
+    }
+
+    FETCHPTR 0x63 "Fetch Checked Pointer Value" {
+      description """
+      Fetches an `addrint` value from `addr`, performing a 4-byte load.
+      Asserts that the loaded value is not `undefaddr` (`0xFFFF_FFFF`), and that the checked pointer's generation cookie matches the pointed-to allocation's generation cookie.
+      """
+      operands {}
+      stack_before {
+        addr "addrint" { description "Address of the value to load." }
+      }
+      stack_after {
+        value "addrint" { description "Value loaded from `addr`" }
+      }
+      exceptions {
+        Quit (quit_exception).uninit_value {
+          description """
+          When `value` is `undefaddr` (`0xFFFF_FFFF`).
+          """
+        }
+
+        ExecutionError "Reference to previously freed pointer" {
+          description """
+          When the checked pointer and the pointed-to allocation's generation cookies do not match.
+          Indicates a likely use-after-free scenario.
+          """
+        }
+      }
+    }
+
+    FETCHREAL 0x64 "Fetch Real Value" {
+      description """
+      Fetches a `real` value from `addr`, performing an 8-byte load.
+      Asserts that the loaded value is not `undefreal` (`0x8000_0000_8000_0000`).
+      """
+      operands {}
+      stack_before {
+        addr "addrint" { description "Address of the value to load." }
+      }
+      stack_after {
+        value "real8" { description "Value loaded from `addr`" }
+      }
+      exceptions {
+        Quit (quit_exception).uninit_value {
+          description """
+          When `value` is `undefreal` (`0x8000_0000_8000_0000`).
+          """
+        }
+      }
+    }
+
+    FETCHREAL4 0x65 "Fetch Real4 Value" {
+      description """
+      Fetches a `real4` value from `addr`, performing a 4-byte load.
+      Coerces the loaded `value` into a `real8` value.
+      """
+      operands {}
+      stack_before {
+        addr "addrint" { description "Address of the value to load." }
+      }
+      stack_after {
+        value "real8" { description "Value loaded from `addr`" }
+      }
+    }
+
+    FETCHREAL8 0x66 "Fetch Real8 Value" {
+      description """
+      Fetches a `real8` value from `addr`, performing an 8-byte load.
+      Unlike [**FETCHREAL**], this does not perform uninit checking.
+
+      [**FETCHREAL**]: Opcode::FETCHREAL
+      """
+      operands {}
+      stack_before {
+        addr "addrint" { description "Address of the value to load." }
+      }
+      stack_after {
+        value "real8" { description "Value loaded from `addr`" }
+      }
+    }
+
+    FETCHSET 0x67 "Fetch Compact Set Value" {
+      description """
+      Fetches a compact set value from `addr`, performing a `set_length`-byte load.
+
+      Asserts that the loaded value is not:
+
+      - `undefset8` (`0x80`) when `set_length` is 1.
+      - `undefset16` (`0x8000`) when `set_length` is 2.
+      - `undefset32` (`0x8000_000`) when `set_length` is 4.
+
+      Coerces the loaded `value` into a `set32` value.
+      """
+      operands {
+        set_length "nat4" {
+          description """
+          Length of the set, in bytes.
+          """
+        }
+      }
+      stack_before {
+        addr "addrint" { description "Address of the value to load." }
+      }
+      stack_after {
+        value "set32" { description "Value loaded from `addr`" }
+      }
+      exceptions {
+        Quit (quit_exception).uninit_value {
+          description """
+          When `value` is the corresponding `undefsetX` value.
+          """
+        }
+      }
+    }
+
+    FETCHSTR 0x68 "Fetch String Value" {
+      description """
+      Asserts that the string at `addr` is an initialized string, i.e. the first byte is not the end-of-string marker (`0x80`).
+      """
+      operands {}
+      stack_before {
+        addr "addrint" { description "Address of the string to check." }
+      }
+      stack_after {
+        addr "addrint" {
+          description "Address of the string data buffer."
+          preserves (stack_before).addr
+        }
+      }
+      exceptions {
+        Quit (quit_exception).uninit_value {
+          description """
+          When the first byte of the string is `0x80`.
+          """
+        }
+      }
+    }
+  }
+
+  group "Begin and End For-loop" {
+    // TODO: Group description
+
+    FOR 0x6A "Begin For-Loop" {
+      // TODO: Description
+      operands {
+        skip_offset "offset" { description "Offset to jump over for-loop body, in bytes." }
+      }
+      // TODO: Stack Operands
+    }
+
+    ENDFOR 0x4C "End For-Loop" {
+      // TODO: Description
+      operands {
+        offset "offset" { description "Offset to jump to the start of the for-loop body, in bytes." }
+      }
+      // TODO: Stack Operands
     }
   }
 
@@ -802,6 +1316,31 @@ instructions {
     stack_after {
       compare "int4" { description "Result of operation. 1 if `lhs` is a descendant of `rhs`, 0 otherwise." }
     }
+  }
+
+  IF 0x7B "Branch If Zero" {
+    description """
+    Branches execution if `test` is zero (i.e. false).
+    """
+
+    operands {
+      offset "offset" { description "Offset to jump forward by if `test` is zero, in bytes." }
+    }
+    stack_before {
+      test "int4" { description "Value to test if the branch should be taken." }
+    }
+    stack_after {}
+  }
+
+  INCSP 0x7E "Increment Stack Pointer" {
+    description """
+    Increments the stack pointer by `size` bytes.
+    Equivalent to repeatedly popping values off of the stack.
+    """
+    operands {
+      size "nat4" { description "Amount of bytes to pop off the stack." }
+    }
+    // TODO: stack effect of computed nat1 allocation
   }
 
   group "Compare Less or Equal" {
@@ -1013,6 +1552,21 @@ instructions {
       }
     }
 
+    LOCATEPARM 0x97 "Locate Parameter" {
+      description """
+      Locates the address of a passed-in parameter in the current call frame.
+      Offset is computed relative to the start of the call frame.
+      """
+
+      operands {
+        offset "offset" { description "Offset from the start of the call frame." }
+      }
+      stack_before {}
+      stack_after {
+        address "addrint" { description "Address of the computed parameter slot." }
+      }
+    }
+
     LOCATETEMP 0x98 "Locate Temporary Slot" {
       description """
       Locates the address of a temporary in the current call frame.
@@ -1046,6 +1600,71 @@ instructions {
     }
     stack_after {
       compare "int4" { description "Result of operation. 1 if `lhs` is a descendant of `rhs`, 0 otherwise." }
+    }
+  }
+
+  group "Negate Number" {
+    NEGINT 0xAC "Negate Integer" {
+      description """
+      Flips the sign of `value` as an `int`, as if it were multiplied by -1.
+
+      (throws) If `value` is less than `minint` (`-0x7FFFFFFF`) as there are no equivalent positive values.
+      """
+
+      operands {}
+      stack_before {
+        value "int4" { description "Value to apply operation on." }
+      }
+      stack_after {
+        out "int4" { description "Result of operation." }
+      }
+    }
+
+    NEGREAL 0xAD "Negate Real" {
+      description """
+      Flips the sign of `value` as a `real`, as if it were multiplied by -1.
+
+      (throws) If `value` is less than `minint` (`-0x7FFFFFFF`) as there are no equivalent positive values.
+      """
+
+      operands {}
+      stack_before {
+        value "real8" { description "Value to apply operation on." }
+      }
+      stack_after {
+        out "real8" { description "Result of operation." }
+      }
+    }
+  }
+
+  NOT 0xB2 "Boolean Not" {
+    description """
+    Applies a boolean not operation on `value`, by only flipping the first bit.
+    For a bitwise logical not, a [**XOR**] instruction with a 0xFFFFFFFF constant should be used. 
+
+    [**XOR**]: Opcode::XOR
+    """
+
+    operands {}
+    stack_before {
+      value "int4" { description "The boolean value to invert." }
+    }
+    stack_before {
+      out "int4" { description "The inverted boolean value." }
+    }
+  }
+
+  OR 0xB6 "Bitwise Or" {
+    description """
+    Applies a bitwise logical or operation between `lhs` and `rhs`, producing `out`.
+    """
+    operands {}
+    stack_before {
+      lhs "int4" { description "Left-hand side of operation." }
+      rhs "int4" { description "Right-hand side of operation." }
+    }
+    stack_after {
+      out "int4" { description "Result of operation." }
     }
   }
 
@@ -1340,6 +1959,20 @@ instructions {
       operands {
         line_no "nat2" { description "Line number to set location to." }
       }
+    }
+  }
+
+  XOR 0xFA "Bitwise Exclusive-Or" {
+    description """
+    Applies a bitwise logical xor operation between `lhs` and `rhs`, producing `out`.
+    """
+    operands {}
+    stack_before {
+      lhs "int4" { description "Left-hand side of operation." }
+      rhs "int4" { description "Right-hand side of operation." }
+    }
+    stack_after {
+      out "int4" { description "Result of operation." }
     }
   }
 }

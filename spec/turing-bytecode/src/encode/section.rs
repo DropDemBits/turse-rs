@@ -130,9 +130,9 @@ impl<S: SectionInfo> Section<S> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Global {}
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Manifest {}
 
 pub trait SectionInfo: sealed::Sealed {}
