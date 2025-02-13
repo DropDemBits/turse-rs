@@ -1,9 +1,6 @@
 //! Code generation backend based on the HIR tree
 
-use std::io;
-
-use byteorder::{LittleEndian as LE, WriteBytesExt};
-use indexmap::{IndexMap, IndexSet};
+use indexmap::IndexMap;
 use toc_analysis::{db::HirAnalysis, ty};
 use toc_hir::{
     body as hir_body, expr as hir_expr, item as hir_item, package as hir_package,
@@ -15,33 +12,20 @@ use toc_reporting::CompileResult;
 use toc_span::{FileId, Span};
 use turing_bytecode::{
     encode::{
-        section::ManifestAllocator, BytecodeBlob, BytecodeBuilder, CodeUnitRef, Procedure,
+        section::{ManifestAllocator, ManifestSlot, SectionData},
+        BytecodeBlob, BytecodeBuilder, CodeOffset, CodeUnitRef, LocalSlot, Procedure,
         ProcedureBuilder, ProcedureRef, RelocHandle, RelocTarget, TemporarySlot,
     },
-    instruction::{AbortReason, RelocatableOffset},
+    instruction::{AbortReason, CheckKind, RelocatableOffset},
 };
 
-use crate::instruction::{
-    CheckKind, ForDescriptor, GetKind, OldCodeOffset, OldTemporarySlot, Opcode, PutKind, StdStream,
-    StreamKind,
-};
+use crate::instruction::{ForDescriptor, Opcode, StdStream, StreamKind};
 
 mod instruction;
 
 pub trait CodeGenDB: HirAnalysis {}
 
 impl<T> CodeGenDB for T where T: HirAnalysis {}
-
-#[derive(Default)]
-pub struct CodeBlob {
-    file_map: IndexSet<FileId>,
-
-    reloc_table: Vec<RelocInfo>,
-    const_bytes: Vec<u8>,
-
-    main_body: Option<(hir_package::PackageId, hir_body::BodyId)>,
-    body_fragments: IndexMap<(hir_package::PackageId, hir_body::BodyId), BodyCode>,
-}
 
 #[derive(Debug, Default)]
 struct CodeGenCtx {
@@ -50,240 +34,8 @@ struct CodeGenCtx {
     manifest_allocator: ManifestAllocator,
     // deduplicated strings list
     strings: IndexMap<String, Vec<(ProcedureRef, RelocHandle)>>,
-    procedure_bodies:
-        IndexMap<(hir_package::PackageId, hir_body::BodyId), (CodeUnitRef, ProcedureRef)>,
-}
-
-impl CodeBlob {
-    pub fn encode_to(&self, db: &dyn CodeGenDB, out: &mut impl io::Write) -> io::Result<()> {
-        const HEADER_SIG: &[u8] = b"TWEST\0";
-        const MAIN_MAGIC: &[u8] = b"***MAIN PROGRAM***\0";
-        // Write out bytecode header
-        // Signature //
-        out.write_all(HEADER_SIG)?;
-
-        // TProlog Section //
-        // close_window_on_terminate
-        out.write_u32::<LE>(0)?;
-        // run_with_args
-        out.write_u32::<LE>(0)?;
-        // center_window
-        out.write_u32::<LE>(0)?;
-        // dont_terminate
-        out.write_u32::<LE>(0)?;
-
-        // Main header //
-        out.write_all(&[0; 0x1010 - 4 * 4 - HEADER_SIG.len() * 2])?;
-        // Header tail //
-        out.write_all(HEADER_SIG)?;
-
-        // Write out file info
-        assert!(self.file_map.len() < (u16::MAX - 1).into());
-
-        for (idx, file_id) in self.file_map.iter().enumerate() {
-            // Guaranteed to have less than u16::MAX files per the assert above
-            let blob_id = u16::try_from(idx).unwrap() + 1;
-
-            // file_id
-            out.write_u16::<LE>(blob_id)?;
-            // filename
-            let filename = file_id.into_raw().raw_path(db.up()).as_str();
-            let mut encoded_filename = [0; 255];
-            // trunc to 256 bytes
-            let filename_len = filename.len().min(encoded_filename.len());
-            encoded_filename[..filename_len].copy_from_slice(&filename.as_bytes()[..filename_len]);
-            out.write_all(&encoded_filename)?;
-            // body_unit
-            out.write_u16::<LE>(0)?;
-            // stub_unit
-            out.write_u16::<LE>(0)?;
-
-            // code_table
-            // can't use an empty table since TProlog & tulip-vm assumes that
-            // a code table of at least 4 bytes is present
-            out.write_u32::<LE>(4)?;
-            out.write_u32::<LE>(0xAAAAAAAA)?;
-            // manifest_table
-            out.write_u32::<LE>(0)?;
-            // globals_size
-            out.write_u32::<LE>(0)?;
-
-            // manifest_patches
-            out.write_u32::<LE>(0xFFFFFFFF)?;
-
-            // local_code_patch_head
-            out.write_u32::<LE>(0)?;
-            // local_manifest_patch_head
-            out.write_u32::<LE>(0)?;
-            // local_globals_patch_head
-            out.write_u32::<LE>(0)?;
-
-            // external_code_patches
-            out.write_u16::<LE>(0xFFFF)?;
-            // external_manifest_patches
-            out.write_u16::<LE>(0xFFFF)?;
-            // external_global_patches
-            out.write_u16::<LE>(0xFFFF)?;
-        }
-
-        // Write out main bytecode file
-        // Always occupies file section 0
-        let main_id = 0;
-
-        // file_id
-        out.write_u16::<LE>(main_id)?;
-        // filename
-        {
-            const MAIN_FILE_NAME: &[u8] = b"<MAIN FILE>";
-            let mut encoded_filename = [0; 255];
-            encoded_filename[..MAIN_FILE_NAME.len()].copy_from_slice(MAIN_FILE_NAME);
-            out.write_all(&encoded_filename)?;
-        }
-        // body_unit
-        out.write_u16::<LE>(0)?;
-        // stub_unit
-        out.write_u16::<LE>(0)?;
-
-        // code_table
-        let reloc_tracker = RelocationTracker {
-            last_location: [None; 3],
-            code_blob: self,
-        };
-        let mut code_table = vec![0xAA; 4]; // (initial bytes overwritten later)
-
-        // Emit trampoline
-        if let Some(main_body) = self.main_body {
-            let main_body = self
-                .body_fragments
-                .get(&main_body)
-                .expect("missing main body offset");
-            let target: u32 = main_body
-                .base_offset
-                .try_into()
-                .expect("code table is too large");
-            // Account for location fixup
-            let offset = target - (4 + 4);
-            eprintln!("main body at {offset:x}");
-
-            code_table.write_u32::<LE>(Opcode::JUMP(OldCodeOffset(0)).encoding_kind().into())?;
-            code_table.write_u32::<LE>(offset)?;
-        } else {
-            // FIXME: This is very reachable once we lower unit modules
-            unreachable!("trying to run a unit body");
-        }
-
-        // Emit bodies
-        for body_code in self.body_fragments.values() {}
-
-        out.write_u32::<LE>(
-            code_table
-                .len()
-                .try_into()
-                .expect("code table is too large"),
-        )?;
-        out.write_all(&code_table)?;
-        // manifest_table
-        out.write_u32::<LE>(
-            self.const_bytes
-                .len()
-                .try_into()
-                .expect("manifest table is too large"),
-        )?;
-        out.write_all(&self.const_bytes)?;
-        // globals_size
-        out.write_u32::<LE>(0)?;
-
-        // manifest_patches
-        out.write_u32::<LE>(0xFFFFFFFF)?;
-
-        // local_code_patch_head, local_manifest_patch_head, local_globals_patch_head
-        for offset in &reloc_tracker.last_location {
-            let starting_at: u32 = offset.unwrap_or(0).try_into().unwrap();
-            out.write_u32::<LE>(starting_at)?;
-        }
-
-        // external_code_patches
-        out.write_u16::<LE>(0xFFFF)?;
-        // external_manifest_patches
-        out.write_u16::<LE>(0xFFFF)?;
-        // external_global_patches
-        out.write_u16::<LE>(0xFFFF)?;
-
-        // Write out main footer
-        out.write_u16::<LE>(main_id)?;
-        let mut encoded_magic = [0; 255];
-        encoded_magic[..MAIN_MAGIC.len()].copy_from_slice(MAIN_MAGIC);
-        out.write_all(&encoded_magic)?;
-
-        Ok(())
-    }
-
-    // fn add_const_str(&mut self, str: &str) -> RelocatableOffset {
-    //     // reserve space for str bytes & null terminator
-    //     let storage_len = str.len() + 1;
-    //     let reloc_at = self.reserve_const_bytes(storage_len);
-
-    //     // str data + null terminator
-    //     self.const_bytes.extend_from_slice(str.as_bytes());
-    //     self.const_bytes.push(0);
-
-    //     reloc_at
-    // }
-
-    // fn reserve_const_bytes(&mut self, len: usize) -> RelocatableOffset {
-    //     let start_at = self.const_bytes.len();
-    //     self.const_bytes.reserve(len);
-
-    //     let reloc_id = self.reloc_table.len();
-    //     self.reloc_table.push(RelocInfo {
-    //         section: RelocSection::Manifest,
-    //         target: RelocTarget::Offset(start_at),
-    //     });
-
-    //     RelocatableOffset(reloc_id)
-    // }
-
-    // fn reloc_to_code_body(
-    //     &mut self,
-    //     package_id: hir_package::PackageId,
-    //     body_id: hir_body::BodyId,
-    // ) -> RelocatableOffset {
-    //     let reloc_id = self.reloc_table.len();
-    //     self.reloc_table.push(RelocInfo {
-    //         section: RelocSection::Code,
-    //         target: RelocTarget::Body(package_id, body_id),
-    //     });
-
-    //     RelocatableOffset(reloc_id)
-    // }
-
-    // fn freeze_body_offsets(&mut self) {
-    //     // Initial 4 bytes are for the `CALLIMPLEMENTBY` opcode
-    //     // Next bytes are for the trampoline to the main body
-    //     let mut next_offset = 4 + Opcode::JUMP(CodeOffset(0)).size();
-
-    //     for (_, body) in &mut self.body_fragments {
-    //         body.base_offset = next_offset;
-    //         next_offset += body.size();
-    //     }
-    // }
-}
-
-struct RelocInfo {
-    section: RelocSection,
-    target: RelocTarget,
-}
-
-// enum RelocTarget {
-//     Offset(usize),
-//     Body(hir_package::PackageId, hir_body::BodyId),
-// }
-
-#[derive(Clone, Copy, PartialEq, Eq)]
-enum RelocSection {
-    Code,
-    Manifest,
-    _Global,
+    procedure_bodies: IndexMap<(hir_package::PackageId, hir_body::BodyId), ProcedureRef>,
+    procedure_relocs: IndexMap<ProcedureRef, Vec<(DefId, Vec<RelocHandle>)>>,
 }
 
 /// Generates code from the given HIR database,
@@ -360,26 +112,16 @@ pub fn generate_code(db: &dyn CodeGenDB) -> CompileResult<Option<BytecodeBlob>> 
                         *ret_param,
                     );
 
-                    // println!("gen code:");
-                    // for (idx, opc) in body_code.fragment.opcodes.iter().enumerate() {
-                    //     println!("{idx:4}    {opc:?}");
-                    // }
-                    // println!("\noffsets:");
-                    // for (idx, off) in body_code.fragment.code_offsets.iter().enumerate() {
-                    //     println!("{idx:4}    {off:?}");
-                    // }
-                    // println!("\nlocals ({} bytes):", body_code.fragment.locals_size);
-                    // for (idx, (def_id, target)) in body_code.fragment.locals.iter().enumerate() {
-                    //     println!("{idx:4}    ({def_id:?})> {target:?}");
-                    // }
-                    // println!("\ntemporaries ({} bytes):", body_code.fragment.temps_size);
-                    // for (idx, off) in body_code.fragment.temps.iter().enumerate() {
-                    //     println!("{idx:4}    {off:?}");
-                    // }
+                    println!("gen code:");
+                    for (idx, instr) in body_code.proc.instrs().iter().enumerate() {
+                        println!("{idx:4}    {instr:?}");
+                    }
 
-                    cctx.procedure_bodies.insert(
-                        (package_id.into(), body_id),
-                        (main_unit.id(), body_code.proc.id()),
+                    cctx.procedure_bodies
+                        .insert((package_id.into(), body_id), body_code.proc.id());
+                    cctx.procedure_relocs.insert(
+                        body_code.proc.id(),
+                        body_code.external_relocs.into_iter().collect(),
                     );
 
                     main_unit.submit_procedure(body_code.proc);
@@ -388,6 +130,67 @@ pub fn generate_code(db: &dyn CodeGenDB) -> CompileResult<Option<BytecodeBlob>> 
                     // We don't start code generation from expr bodies
                     // (those are associated with `const` and `var`s)
                     continue;
+                }
+            }
+        }
+
+        #[derive(Debug)]
+        enum DeferredTarget {
+            Manifest(ManifestSlot),
+            Procedure(ProcedureRef),
+        }
+
+        let mut deferred_targets = vec![];
+
+        // Allocate interned strings
+        for (text, proc_relocs) in std::mem::take(&mut cctx.strings) {
+            // Convert to nul-terminated raw bytes
+            let mut bytes = text.into_bytes();
+            bytes.push(0);
+
+            let slot = cctx
+                .manifest_allocator
+                .alloc(SectionData::Data(bytes.into_boxed_slice()), 4);
+
+            deferred_targets.extend(
+                proc_relocs
+                    .into_iter()
+                    .map(|(proc, handle)| (proc, handle, DeferredTarget::Manifest(slot))),
+            );
+        }
+
+        // Indirectly resolve externals
+        for (proc, relocs) in std::mem::take(&mut cctx.procedure_relocs) {
+            for (external_def, proc_relocs) in relocs {
+                let Some(item) = db.item_of(external_def) else {
+                    panic!("not an item {external_def:?}");
+                };
+
+                assert_eq!(item.package(), package_id.into());
+                let package = db.package(item.package());
+                let item = package.item(item.item());
+
+                match &item.kind {
+                    hir_item::ItemKind::ConstVar(_) => unimplemented!(),
+                    hir_item::ItemKind::Subprogram(subprogram) => {
+                        let Some(other_proc_ref) = cctx
+                            .procedure_bodies
+                            .get(&(package_id.into(), subprogram.body.body))
+                        else {
+                            panic!(
+                                "no code generated for {:?} in {package_id:?}",
+                                subprogram.body.body
+                            );
+                        };
+
+                        deferred_targets.extend(proc_relocs.into_iter().map(|handle| {
+                            (proc, handle, DeferredTarget::Procedure(*other_proc_ref))
+                        }));
+                    }
+                    hir_item::ItemKind::Type(_)
+                    | hir_item::ItemKind::Binding(_)
+                    | hir_item::ItemKind::Module(_)
+                    | hir_item::ItemKind::Import(_) => unreachable!(),
                 }
             }
         }
@@ -408,17 +211,35 @@ pub fn generate_code(db: &dyn CodeGenDB) -> CompileResult<Option<BytecodeBlob>> 
 
         let main_unit_id = main_unit.id();
         cctx.blob.submit_code_unit(main_unit.finish());
-        let (entry_unit, entry_proc) = &cctx
+        let entry_proc = cctx
             .procedure_bodies
             .get(&(package_id.into(), main_body))
+            .copied()
             .expect("main body should have code");
-        let entry_proc = cctx.blob[*entry_unit].procedure_offset(*entry_proc);
+        let entry_proc = cctx.blob[main_unit_id].procedure_offset(entry_proc);
 
         cctx.blob[main_unit_id].add_code_relocs([(
             entry_point_id,
             entry_point_reloc,
-            RelocTarget::External(*entry_unit, entry_proc),
+            RelocTarget::Local(entry_proc),
         )]);
+
+        // Add resolutions for the rest of the relocs
+        let reloc_targets: Vec<_> = deferred_targets
+            .into_iter()
+            .map(|(proc, handle, target)| {
+                let target = match target {
+                    DeferredTarget::Manifest(slot) => cctx.blob[main_unit_id].manifest_offset(slot),
+                    DeferredTarget::Procedure(procedure) => {
+                        cctx.blob[main_unit_id].procedure_offset(procedure)
+                    }
+                };
+
+                (proc, handle, RelocTarget::Local(target))
+            })
+            .collect();
+
+        cctx.blob[main_unit_id].add_code_relocs(reloc_targets.into_iter());
     } else {
         unreachable!()
     }
@@ -428,58 +249,19 @@ pub fn generate_code(db: &dyn CodeGenDB) -> CompileResult<Option<BytecodeBlob>> 
 
 #[derive(Debug, Clone, Copy)]
 enum BlockBranches {
-    Loop(OldCodeOffset, OldCodeOffset),
-    For(ForDescriptorSlot, OldCodeOffset, OldCodeOffset),
-}
-
-#[derive(Debug, Clone, Copy)]
-enum ForDescriptorSlot {
-    Local(DefId),
-    Temporary(OldTemporarySlot),
-}
-
-impl ForDescriptorSlot {
-    fn emit_locate_descriptor(&self, code_fragment: &mut CodeFragment) {
-        match self {
-            ForDescriptorSlot::Local(def_id) => code_fragment.emit_locate_local(*def_id),
-            ForDescriptorSlot::Temporary(slot) => code_fragment.emit_locate_temp(*slot),
-        }
-    }
-}
-
-struct RelocationTracker<'a> {
-    last_location: [Option<usize>; 3],
-    code_blob: &'a CodeBlob,
-}
-
-struct OffsetTable {
-    instruction_offsets: Vec<u32>,
+    Loop {
+        _loop_start: CodeOffset,
+        after_loop: CodeOffset,
+    },
+    For {
+        _loop_start: CodeOffset,
+        after_loop: CodeOffset,
+    },
 }
 
 struct BodyCode {
-    fragment: CodeFragment,
-    base_offset: usize,
     proc: Procedure,
-}
-
-impl BodyCode {
-    /// Gets the size of the body code, in bytes
-    fn size(&self) -> usize {
-        self.fragment.opcodes.iter().map(Opcode::size).sum()
-    }
-
-    fn resolve_backward_target(
-        &self,
-        from: usize,
-        to: OldCodeOffset,
-        offsets: &OffsetTable,
-    ) -> u32 {
-        0
-    }
-
-    fn resolve_forward_target(&self, from: usize, to: OldCodeOffset, offsets: &OffsetTable) -> u32 {
-        0
-    }
+    external_relocs: indexmap::IndexMap<DefId, Vec<RelocHandle>>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -494,12 +276,12 @@ struct BodyCodeGenerator<'a> {
     package: &'a hir_package::Package,
     body_id: hir_body::BodyId,
     body: &'a hir_body::Body,
-    code_fragment: &'a mut CodeFragment,
 
     cctx: &'a mut CodeGenCtx,
+    def_bindings: DefBindings,
     proc: ProcedureBuilder,
     last_location: Option<(usize, usize)>,
-    branch_stack: Vec<BlockBranches>,
+    block_stack: Vec<BlockBranches>,
 }
 
 impl BodyCodeGenerator<'_> {
@@ -513,26 +295,22 @@ impl BodyCodeGenerator<'_> {
         param_defs: &[LocalDefId],
         ret_param: Option<LocalDefId>,
     ) -> BodyCode {
-        let mut code_fragment = CodeFragment::default();
-
         let mut gen = BodyCodeGenerator {
             db,
             package_id,
             package,
             body_id,
             body: package.body(body_id),
-            code_fragment: &mut code_fragment,
-
+            // code_fragment: &mut code_fragment,
             cctx: codegen_ctx,
+            def_bindings: DefBindings::default(),
             proc,
             last_location: None,
-            branch_stack: vec![],
+            block_stack: vec![],
         };
 
         // FIXME: Bind imported defs
         gen.bind_inputs(param_defs, ret_param);
-
-        // gen.code_fragment.emit_opcode(Opcode::PROC(0));
 
         match &package.body(body_id).kind {
             hir_body::BodyKind::Stmts(stmts, ..) => gen.generate_stmt_list(stmts),
@@ -544,7 +322,7 @@ impl BodyCodeGenerator<'_> {
             let item_owner = match gen
                 .db
                 .body_owner(InPackage(gen.package_id, gen.body_id))
-                .expect("from stmt thing")
+                .expect("from stmt body")
             {
                 hir_body::BodyOwner::Item(item_id) => item_id,
                 hir_body::BodyOwner::Type(_) | hir_body::BodyOwner::Expr(_) => unreachable!(),
@@ -563,30 +341,15 @@ impl BodyCodeGenerator<'_> {
                 gen.proc.ins().return_();
             }
         }
-        gen.code_fragment.fix_frame_size();
 
         BodyCode {
             proc: gen.proc.finish(),
-            fragment: code_fragment,
-            base_offset: 0,
+            external_relocs: gen.def_bindings.external_defs,
         }
     }
 
     fn inline_body(&mut self, body_id: hir_body::BodyId) {
-        // hacky workarounds for actual hacks...
-        // let mut gen = BodyCodeGenerator {
-        //     db: self.db,
-        //     package_id: self.package_id,
-        //     package: self.package,
-        //     body_id,
-        //     body: self.package.body(body_id),
-        //     code_fragment: self.code_fragment,
-
-        //     code_blob: self.code_blob,
-        //     last_location: self.last_location,
-        //     branch_stack: vec![],
-        // };
-
+        // Temporarily switch to lowering the inline body
         let (old_body_id, old_body) = (self.body_id, self.body);
 
         self.body_id = body_id;
@@ -623,9 +386,9 @@ impl BodyCodeGenerator<'_> {
 
             if !matches!(ret_ty.kind(self.db.up()), ty::TypeKind::Void) {
                 if let Some(local_def) = ret_param {
-                    self.code_fragment.bind_argument(
+                    self.def_bindings.bind_parameter(
                         DefId(self.package_id, local_def),
-                        arg_offset,
+                        arg_offset as u32,
                         true,
                     );
                 }
@@ -645,9 +408,9 @@ impl BodyCodeGenerator<'_> {
                         ty::PassBy::Reference(_) => true,
                     };
 
-                    self.code_fragment.bind_argument(
+                    self.def_bindings.bind_parameter(
                         DefId(self.package_id, *local_def),
-                        arg_offset,
+                        arg_offset as u32,
                         indirect,
                     );
                     arg_offset += if indirect { 4 } else { size_of };
@@ -715,7 +478,8 @@ impl BodyCodeGenerator<'_> {
         let span = stmt.span.lookup_in(self.package);
         self.emit_location(span);
 
-        self.code_fragment.bump_temp_allocs();
+        // Ensure that temporaries don't leak between statements
+        let old_scope = self.proc.enter_temporary_scope();
         match &stmt.kind {
             hir_stmt::StmtKind::Item(item_id) => self.generate_item(*item_id),
             hir_stmt::StmtKind::Assign(stmt) => self.generate_stmt_assign(stmt),
@@ -731,7 +495,7 @@ impl BodyCodeGenerator<'_> {
             hir_stmt::StmtKind::Return(stmt) => self.generate_stmt_return(stmt),
             hir_stmt::StmtKind::Result(stmt) => self.generate_stmt_result(stmt),
         }
-        self.code_fragment.unbump_temp_allocs();
+        self.proc.leave_temporary_scope(old_scope);
     }
 
     fn generate_stmt_list(&mut self, stmts: &[hir_stmt::StmtId]) {
@@ -759,7 +523,7 @@ impl BodyCodeGenerator<'_> {
         self.generate_ref_expr(stmt.lhs);
         self.generate_expr(stmt.rhs);
         self.generate_coerced_op(lhs_ty, rhs_ty);
-        self.generate_assign(lhs_ty, AssignOrder::Precomputed);
+        self.emit_assign_op(lhs_ty, AssignOrder::Precomputed);
 
         eprintln!("assigning reference (first operand) to value (second operand)");
     }
@@ -788,7 +552,7 @@ impl BodyCodeGenerator<'_> {
         todo!()
     }
 
-    #[cfg(no)]
+    #[cfg(any())]
     fn generate_stmt_put(&mut self, stmt: &hir_stmt::Put) {
         // Steps
         // We're only concerned with stdout emission_ty
@@ -904,7 +668,7 @@ impl BodyCodeGenerator<'_> {
         todo!()
     }
 
-    #[cfg(no)]
+    #[cfg(any())]
     fn generate_stmt_get(&mut self, stmt: &hir_stmt::Get) {
         let stream_handle =
             self.generate_set_stream(stmt.stream_num, None, StdStream::Stdin(), StreamKind::Get());
@@ -989,7 +753,7 @@ impl BodyCodeGenerator<'_> {
         todo!()
     }
 
-    #[cfg(no)]
+    #[cfg(any())]
     fn generate_set_stream(
         &mut self,
         stream_num: Option<hir_expr::ExprId>,
@@ -1032,16 +796,12 @@ impl BodyCodeGenerator<'_> {
     fn generate_stmt_for(&mut self, stmt: &hir_stmt::For) {
         let descriptor_size = std::mem::size_of::<ForDescriptor>();
 
-        let descriptor_slot = if let Some(counter_def) = stmt.counter_def {
-            let local = DefId(self.package_id, counter_def);
-            self.code_fragment
-                .allocate_local_space(local, descriptor_size);
-            ForDescriptorSlot::Local(DefId(self.package_id, counter_def))
-        } else {
-            // Reserve temporary space for the descriptor
-            let temporary = self.code_fragment.allocate_temporary_space(descriptor_size);
-            ForDescriptorSlot::Temporary(temporary)
-        };
+        let descriptor_slot = self.proc.alloc_temporary(descriptor_size as u32, 4);
+        if let Some(counter_def) = stmt.counter_def {
+            // Type-pun the descriptor address to be the storage for the counter
+            self.def_bindings
+                .bind_temporary_slot(DefId(self.package_id, counter_def), descriptor_slot);
+        }
 
         // Emit bounds
         match stmt.bounds {
@@ -1055,42 +815,41 @@ impl BodyCodeGenerator<'_> {
         // ... and the step by
         if let Some(step_by) = stmt.step_by {
             self.generate_expr(step_by);
-            self.code_fragment
-                .emit_opcode(Opcode::CHKRANGE(0, 0, i32::MAX, CheckKind::LoopStep()));
+            self.proc
+                .ins()
+                .chkrange(0, 0, i32::MAX, CheckKind::LoopStep);
         } else {
-            self.code_fragment.emit_opcode(Opcode::PUSHVAL1());
+            self.proc.ins().pushval1();
         }
 
         // Negate if decreasing
         if stmt.is_decreasing {
-            self.code_fragment.emit_opcode(Opcode::NEGINT());
+            self.proc.ins().negint();
         }
 
         // Emit loop body
-        let loop_start = self.code_fragment.new_branch();
-        let after_loop = self.code_fragment.new_branch();
+        let after_loop = self.proc.make_unanchored_label();
 
-        match descriptor_slot {
-            ForDescriptorSlot::Local(def_id) => self.code_fragment.emit_locate_local(def_id),
-            ForDescriptorSlot::Temporary(slot) => self.code_fragment.emit_locate_temp(slot),
-        }
-        self.code_fragment.emit_opcode(Opcode::FOR(after_loop));
+        self.proc.locate_temporary(descriptor_slot);
+        self.proc.branch(|ins| ins.for_(0), after_loop);
 
-        self.code_fragment.anchor_branch(loop_start);
+        let loop_start = self.proc.make_unanchored_label();
         {
             // Have a fixed location for the branch to go to
             self.emit_absolute_location();
 
-            self.branch_stack
-                .push(BlockBranches::For(descriptor_slot, loop_start, after_loop));
-
+            self.block_stack.push(BlockBranches::For {
+                _loop_start: loop_start,
+                after_loop,
+            });
             self.generate_stmt_list(&stmt.stmts);
+            self.block_stack.pop();
 
-            descriptor_slot.emit_locate_descriptor(self.code_fragment);
-            self.code_fragment.emit_opcode(Opcode::ENDFOR(loop_start));
-            self.branch_stack.pop();
+            self.proc.locate_temporary(descriptor_slot);
+            self.proc.branch(|ins| ins.endfor(0), loop_start);
         }
-        self.code_fragment.anchor_branch(after_loop);
+        self.proc.anchor_label(after_loop, None);
+        self.emit_absolute_location();
     }
 
     fn generate_stmt_loop(&mut self, stmt: &hir_stmt::Loop) {
@@ -1098,34 +857,46 @@ impl BodyCodeGenerator<'_> {
         // - Create a new branch, anchored to next instruction
         // - Create a forward branch for after the loop
         // - Anchor floating branch to instruction after the backward jump
-        let loop_start = self.code_fragment.place_branch();
-        let after_loop = self.code_fragment.new_branch();
+        let after_loop = self.proc.make_unanchored_label();
 
         // Have a fixed location for the branch to go to
+        let loop_start = self.proc.make_label();
         self.emit_absolute_location();
+        {
+            self.block_stack.push(BlockBranches::Loop {
+                _loop_start: loop_start,
+                after_loop,
+            });
+            self.generate_stmt_list(&stmt.stmts);
+            self.block_stack.pop();
+        }
+        self.proc.branch(|ins| ins.jumpb(0), loop_start);
 
-        self.branch_stack
-            .push(BlockBranches::Loop(loop_start, after_loop));
-        self.generate_stmt_list(&stmt.stmts);
-        self.code_fragment.emit_opcode(Opcode::JUMPB(loop_start));
-        self.branch_stack.pop();
-        self.code_fragment.anchor_branch(after_loop);
+        self.proc.anchor_label(after_loop, None);
+        self.emit_absolute_location();
     }
 
     fn generate_stmt_exit(&mut self, stmt: &hir_stmt::Exit) {
         // Branch to after the loop
-        let block_branches = self.branch_stack.last().unwrap();
+        let block_branches = self.block_stack.last().unwrap();
         let branch_to = match block_branches {
-            BlockBranches::Loop(_, after_block) => *after_block,
-            BlockBranches::For(_, _, after_block) => *after_block,
+            BlockBranches::Loop {
+                _loop_start: _,
+                after_loop: after_block,
+            } => *after_block,
+            BlockBranches::For {
+                _loop_start: _,
+                after_loop: after_block,
+            } => *after_block,
         };
 
         if let Some(condition) = stmt.when_condition {
-            // Use INFIXOR as an alias of "branch if true"
+            // TODO: Use infix or as a branch if true?
             self.generate_expr(condition);
-            self.code_fragment.emit_opcode(Opcode::INFIXOR(branch_to));
+            self.proc.ins().not();
+            self.proc.branch(|ins| ins.if_(0), branch_to);
         } else {
-            self.code_fragment.emit_opcode(Opcode::JUMP(branch_to));
+            self.proc.branch(|ins| ins.jump(0), branch_to);
         }
     }
 
@@ -1136,21 +907,24 @@ impl BodyCodeGenerator<'_> {
         // - Otherwise, proceed through true block and branch to after if statement
         self.generate_expr(stmt.condition);
 
-        let after_true = self.code_fragment.new_branch();
-        let after_false = self.code_fragment.new_branch();
+        let after_true = self.proc.make_unanchored_label();
+        let after_false = self.proc.make_unanchored_label();
 
         // Emit true branch
-        self.code_fragment.emit_opcode(Opcode::IF(after_true));
-        self.generate_stmt(stmt.true_branch);
-        self.code_fragment.emit_opcode(Opcode::JUMP(after_false));
-        self.code_fragment.anchor_branch(after_true);
-        self.emit_absolute_location();
+        self.proc.branch(|ins| ins.if_(0), after_true);
+        {
+            self.generate_stmt(stmt.true_branch);
+            self.proc.branch(|ins| ins.jump(0), after_false);
+        }
+        self.proc.anchor_label(after_true, None);
 
         // Then false branch
         if let Some(false_branch) = stmt.false_branch.stmt() {
+            self.emit_absolute_location();
             self.generate_stmt(false_branch);
         }
-        self.code_fragment.anchor_branch(after_false);
+
+        self.proc.anchor_label(after_false, None);
         self.emit_absolute_location();
     }
 
@@ -1174,17 +948,18 @@ impl BodyCodeGenerator<'_> {
             _ => None,
         };
 
-        let discrim_value = self
-            .code_fragment
-            .allocate_temporary_space(discrim_ty.size_of(self.db.up()).expect("is concrete"));
-        self.code_fragment.emit_locate_temp(discrim_value);
-        self.generate_assign(discrim_ty, AssignOrder::Postcomputed);
+        let discrim_slot = self.proc.alloc_temporary(
+            discrim_ty.size_of(self.db.up()).expect("is concrete") as u32,
+            4,
+        );
+        self.proc.locate_temporary(discrim_slot);
+        self.emit_assign_op(discrim_ty, AssignOrder::Postcomputed);
 
         let mut arm_targets = vec![];
         let mut has_default = false;
 
         for arm in &stmt.arms {
-            let target = self.code_fragment.new_branch();
+            let target = self.proc.make_unanchored_label();
             arm_targets.push(target);
 
             match &arm.selectors {
@@ -1196,46 +971,48 @@ impl BodyCodeGenerator<'_> {
                             .to_base_type(self.db.up());
 
                         self.generate_coerced_expr(*expr, coerce_to);
-                        self.code_fragment.emit_locate_temp(discrim_value);
+                        self.proc.locate_temporary(discrim_slot);
                         self.generate_fetch_value(discrim_ty);
 
-                        let eq_op = if matches!(coerce_to, Some(CoerceTo::Char)) {
+                        if matches!(coerce_to, Some(CoerceTo::Char)) {
                             // Always keep coerced char type as an EQINT
-                            Opcode::EQINT()
+                            self.proc.ins().eqint();
                         } else {
                             // Reuse normal eq selection
                             self.emit_eq_op(
                                 expr_ty.kind(self.db.up()),
                                 discrim_ty.kind(self.db.up()),
-                            )
+                            );
                         };
-                        self.code_fragment.emit_opcode(eq_op);
 
                         // Branch if any are true
-                        self.code_fragment.emit_opcode(Opcode::INFIXOR(target));
+                        self.proc.ins().not();
+                        self.proc.branch(|ins| ins.if_(0), target);
                     }
                 }
                 hir_stmt::CaseSelector::Default => {
                     has_default = true;
-                    self.code_fragment.emit_opcode(Opcode::JUMP(target));
+                    self.proc.branch(|ins| ins.jump(0), target);
                     break;
                 }
             }
         }
 
-        let after_case = self.code_fragment.new_branch();
+        let after_case = self.proc.make_unanchored_label();
         if !has_default {
-            self.code_fragment.emit_opcode(Opcode::JUMP(after_case));
+            self.proc.branch(|ins| ins.jump(0), after_case);
         }
 
         for (arm, target) in stmt.arms.iter().zip(arm_targets.iter()) {
-            self.code_fragment.anchor_branch(*target);
+            self.proc.anchor_label(*target, None);
             self.emit_absolute_location();
+
             self.generate_stmt_list(&arm.stmts);
-            self.code_fragment.emit_opcode(Opcode::JUMP(after_case));
+
+            self.proc.branch(|ins| ins.jump(0), after_case);
         }
 
-        self.code_fragment.anchor_branch(after_case);
+        self.proc.anchor_label(after_case, None);
         self.emit_absolute_location();
     }
 
@@ -1258,9 +1035,9 @@ impl BodyCodeGenerator<'_> {
         self.generate_coerced_op(ret_ty, expr_ty);
 
         // Perform assignment
-        self.code_fragment.emit_opcode(Opcode::LOCATEPARM(0));
-        self.code_fragment.emit_opcode(Opcode::FETCHADDR());
-        self.generate_assign(ret_ty, AssignOrder::Postcomputed);
+        self.proc.ins().locateparm(0);
+        self.proc.ins().fetchaddr();
+        self.emit_assign_op(ret_ty, AssignOrder::Postcomputed);
 
         self.proc.ins().return_();
     }
@@ -1274,9 +1051,11 @@ impl BodyCodeGenerator<'_> {
             hir_item::ItemKind::ConstVar(item) => self.generate_item_constvar(item),
             hir_item::ItemKind::Binding(item) => self.generate_item_binding(item),
             hir_item::ItemKind::Type(_) => {}
-            hir_item::ItemKind::Subprogram(item) => self.generate_item_subprogram(item),
+            hir_item::ItemKind::Subprogram(_) => {
+                // We visit every subprogram body eventually
+            }
             hir_item::ItemKind::Module(_) => {
-                // We already generate code for module bodies as part of walking
+                // We already generate code for module init bodies as part of walking
                 // over all of the bodies in a package
             }
             hir_item::ItemKind::Import(_) => {
@@ -1295,12 +1074,17 @@ impl BodyCodeGenerator<'_> {
         //   - initialize the variable with the corresponding uninit pattern for the type
         eprintln!("reserving space for def {:?}", item.def_id);
 
+        let constvar_def = DefId(self.package_id, item.def_id);
         let def_ty = self
             .db
-            .type_of(DefId(self.package_id, item.def_id).into())
+            .type_of(constvar_def.into())
             .to_base_type(self.db.up());
-        self.code_fragment
-            .allocate_local(self.db, DefId(self.package_id, item.def_id), def_ty);
+        let local_slot = self.proc.alloc_local(
+            None,
+            def_ty.size_of(self.db.up()).expect("must be sized") as u32,
+            4,
+        );
+        self.def_bindings.bind_local_slot(constvar_def, local_slot);
 
         if let Some(init_body) = item.init_expr {
             eprintln!("inlining init body {init_body:?}");
@@ -1310,17 +1094,15 @@ impl BodyCodeGenerator<'_> {
             self.generate_coerced_op(def_ty, body_ty);
 
             eprintln!("assigning def {init_body:?} to previously produced value");
-            self.code_fragment
-                .emit_locate_local(DefId(self.package_id, item.def_id));
-            self.generate_assign(def_ty, AssignOrder::Postcomputed);
+            self.proc.locate_local(local_slot);
+            self.emit_assign_op(def_ty, AssignOrder::Postcomputed);
         } else if def_ty.has_uninit(self.db.up()) {
             eprintln!(
                 "assigning def {:?} to uninit pattern for type `{}`",
                 item.def_id,
                 def_ty.display(self.db.up())
             );
-            self.code_fragment
-                .emit_locate_local(DefId(self.package_id, item.def_id));
+            self.proc.locate_local(local_slot);
             self.generate_assign_uninit(def_ty);
         }
     }
@@ -1331,21 +1113,21 @@ impl BodyCodeGenerator<'_> {
         // it should be treated as introducing a new var that is specially handled
         // (it's like an addr, though we need to pierce through indirections)
 
+        let bind_def = DefId(self.package_id, item.def_id);
         if let Some(aliased_def) = self.db.binding_def((self.package_id, item.bind_to).into()) {
-            self.code_fragment
-                .alias_local(aliased_def, DefId(self.package_id, item.def_id))
+            self.def_bindings.bind_aliasd_def(bind_def, aliased_def);
         } else {
-            todo!("indirection binding not handled yet");
-        }
-    }
+            // Indirection binding, compute address and store it.
+            // TODO: Replace with machine width?
+            let alias_slot = self.proc.alloc_local(Some("alias"), 4, 4);
+            self.def_bindings.bind_aliased_local(bind_def, alias_slot);
 
-    fn generate_item_subprogram(&mut self, _item: &hir_item::Subprogram) {
-        // Resolved at a later point
-        // let reloc_body = self
-        //     .code_blob
-        //     .reloc_to_code_body(self.package_id, item.body.body);
-        // self.code_fragment
-        //     .bind_reloc_local(DefId(self.package_id, item.def_id), reloc_body);
+            self.inline_body(item.bind_to);
+            self.proc.locate_local(alias_slot);
+            self.proc.ins().asnaddrinv();
+
+            panic!("???: do we always generate places from binding targets?");
+        }
     }
 
     fn generate_coerced_expr(&mut self, expr_id: hir_expr::ExprId, coerce_to: Option<CoerceTo>) {
@@ -1380,7 +1162,7 @@ impl BodyCodeGenerator<'_> {
                     Some(Opcode::FETCHNAT1())
                 }
                 (CoerceTo::Char, ty::TypeKind::CharN(ty::SeqSize::Any)) => {
-                    todo!()
+                    unimplemented!()
                 }
 
                 // To `char(N)`
@@ -1392,10 +1174,8 @@ impl BodyCodeGenerator<'_> {
                     // Note: This is size is rounded up to char_n's alignment size.
                     let reserve_size = len + 1;
 
-                    let temp_str = self
-                        .code_fragment
-                        .allocate_temporary_space(reserve_size as usize);
-                    self.code_fragment.emit_locate_temp(temp_str);
+                    let temp_str = self.proc.alloc_temporary(reserve_size as u32, 4);
+                    self.proc.locate_temporary(temp_str);
 
                     Some(Opcode::CHARTOCSTR())
                 }
@@ -1406,9 +1186,9 @@ impl BodyCodeGenerator<'_> {
 
                 // To `string`
                 (CoerceTo::String, ty::TypeKind::Char) => {
-                    // Reserve enough space for a `string(1)`
-                    let temp_str = self.code_fragment.allocate_temporary_space(2);
-                    self.code_fragment.emit_locate_temp(temp_str);
+                    // Reserve enough space for a `string(1)` (2 bytes)
+                    let temp_str = self.proc.alloc_temporary(2, 4);
+                    self.proc.locate_temporary(temp_str);
 
                     Some(Opcode::CHARTOSTR())
                 }
@@ -1420,8 +1200,8 @@ impl BodyCodeGenerator<'_> {
                     // Never let it exceed the maximum length of a string
                     let reserve_size = (len + 1).min(256);
 
-                    let temp_str = self.code_fragment.allocate_temporary_space(reserve_size);
-                    self.code_fragment.emit_locate_temp(temp_str);
+                    let temp_str = self.proc.alloc_temporary(reserve_size as u32, 4);
+                    self.proc.locate_temporary(temp_str);
 
                     self.proc.ins().pushint(len as i32);
                     Some(Opcode::CSTRTOSTR())
@@ -1432,9 +1212,10 @@ impl BodyCodeGenerator<'_> {
                 _ => None,
             });
 
-        if let Some(opcode) = coerce_op {
+        if let Some(_) = coerce_op {
             eprintln!("coercing into {coerce_op:?}");
-            self.code_fragment.emit_opcode(opcode);
+            // self.code_fragment.emit_opcode(opcode);
+            todo!()
         }
     }
 
@@ -1519,199 +1300,199 @@ impl BodyCodeGenerator<'_> {
             .type_of((self.package_id, self.body_id, expr.rhs).into())
             .to_base_type(self.db.up());
 
-        let opcode = match expr.op.item() {
-            hir_expr::BinaryOp::Add => self
-                .coerce_and_select_numbers(
-                    expr,
-                    lhs_ty.kind(self.db.up()),
-                    rhs_ty.kind(self.db.up()),
-                    Opcode::ADDREAL(),
-                    Opcode::ADDNAT(),
-                    Opcode::ADDNATINT(),
-                    Opcode::ADDINTNAT(),
-                    Opcode::ADDINT(),
-                )
-                .unwrap(),
-            hir_expr::BinaryOp::Sub => self
-                .coerce_and_select_numbers(
-                    expr,
-                    lhs_ty.kind(self.db.up()),
-                    rhs_ty.kind(self.db.up()),
-                    Opcode::SUBREAL(),
-                    Opcode::SUBNAT(),
-                    Opcode::SUBNATINT(),
-                    Opcode::SUBINTNAT(),
-                    Opcode::SUBINT(),
-                )
-                .unwrap(),
-            hir_expr::BinaryOp::Mul => self
-                .coerce_and_select_numbers(
-                    expr,
-                    lhs_ty.kind(self.db.up()),
-                    rhs_ty.kind(self.db.up()),
-                    Opcode::MULREAL(),
-                    Opcode::MULNAT(),
-                    Opcode::MULINT(),
-                    Opcode::MULINT(),
-                    Opcode::MULINT(),
-                )
-                .expect("op over unsupported type"),
-            hir_expr::BinaryOp::Div => self
-                .coerce_and_select_numbers(
-                    expr,
-                    lhs_ty.kind(self.db.up()),
-                    rhs_ty.kind(self.db.up()),
-                    Opcode::DIVREAL(),
-                    Opcode::DIVNAT(),
-                    Opcode::DIVINT(),
-                    Opcode::DIVINT(),
-                    Opcode::DIVINT(),
-                )
-                .expect("op over unsupported type"),
-            hir_expr::BinaryOp::RealDiv => {
-                self.generate_coerced_expr(expr.lhs, Some(CoerceTo::Real));
-                self.generate_coerced_expr(expr.rhs, Some(CoerceTo::Real));
-                Opcode::REALDIVIDE()
+        match expr.op.item() {
+            hir_expr::BinaryOp::Add => {
+                match self
+                    .coerce_and_select_numbers(
+                        expr,
+                        lhs_ty.kind(self.db.up()),
+                        rhs_ty.kind(self.db.up()),
+                    )
+                    .unwrap()
+                {
+                    OperandPairs::IntInt => self.proc.ins().addint(),
+                    OperandPairs::IntNat => self.proc.ins().addintnat(),
+                    OperandPairs::NatInt => self.proc.ins().addnatint(),
+                    OperandPairs::NatNat => self.proc.ins().addnat(),
+                    OperandPairs::Real => self.proc.ins().addreal(),
+                };
             }
-            hir_expr::BinaryOp::Mod => self
-                .coerce_and_select_numbers(
-                    expr,
-                    lhs_ty.kind(self.db.up()),
-                    rhs_ty.kind(self.db.up()),
-                    Opcode::MODREAL(),
-                    Opcode::MODNAT(),
-                    Opcode::MODINT(),
-                    Opcode::MODINT(),
-                    Opcode::MODINT(),
-                )
-                .expect("op over unsupported type"),
-            hir_expr::BinaryOp::Rem => self
-                .coerce_and_select_numbers(
-                    expr,
-                    lhs_ty.kind(self.db.up()),
-                    rhs_ty.kind(self.db.up()),
-                    Opcode::REMREAL(),
-                    Opcode::MODNAT(),
-                    Opcode::MODINT(),
-                    Opcode::MODINT(),
-                    Opcode::MODINT(),
-                )
-                .expect("op over unsupported type"),
-            hir_expr::BinaryOp::Exp => match (lhs_ty.kind(self.db.up()), rhs_ty.kind(self.db.up()))
-            {
-                (lhs, rhs) if lhs.is_integer() && rhs.is_integer() => {
-                    self.generate_expr(expr.lhs);
-                    self.generate_expr(expr.rhs);
-                    Opcode::EXPINTINT()
-                }
-                (ty::TypeKind::Real(_), rhs) if rhs.is_integer() => {
-                    self.generate_expr(expr.lhs);
-                    self.generate_expr(expr.rhs);
-                    Opcode::EXPREALINT()
-                }
-                (ty::TypeKind::Real(_), ty::TypeKind::Real(_)) => {
-                    self.generate_coerced_expr(expr.lhs, Some(CoerceTo::Real));
-                    self.generate_coerced_expr(expr.rhs, Some(CoerceTo::Real));
-                    Opcode::EXPREALREAL()
-                }
-                _ => unreachable!(),
-            },
+            // hir_expr::BinaryOp::Sub => self
+            //     .coerce_and_select_numbers(
+            //         expr,
+            //         lhs_ty.kind(self.db.up()),
+            //         rhs_ty.kind(self.db.up()),
+            //         Opcode::SUBREAL(),
+            //         Opcode::SUBNAT(),
+            //         Opcode::SUBNATINT(),
+            //         Opcode::SUBINTNAT(),
+            //         Opcode::SUBINT(),
+            //     )
+            //     .unwrap(),
+            // hir_expr::BinaryOp::Mul => self
+            //     .coerce_and_select_numbers(
+            //         expr,
+            //         lhs_ty.kind(self.db.up()),
+            //         rhs_ty.kind(self.db.up()),
+            //         Opcode::MULREAL(),
+            //         Opcode::MULNAT(),
+            //         Opcode::MULINT(),
+            //         Opcode::MULINT(),
+            //         Opcode::MULINT(),
+            //     )
+            //     .expect("op over unsupported type"),
+            // hir_expr::BinaryOp::Div => self
+            //     .coerce_and_select_numbers(
+            //         expr,
+            //         lhs_ty.kind(self.db.up()),
+            //         rhs_ty.kind(self.db.up()),
+            //         Opcode::DIVREAL(),
+            //         Opcode::DIVNAT(),
+            //         Opcode::DIVINT(),
+            //         Opcode::DIVINT(),
+            //         Opcode::DIVINT(),
+            //     )
+            //     .expect("op over unsupported type"),
+            // hir_expr::BinaryOp::RealDiv => {
+            //     self.generate_coerced_expr(expr.lhs, Some(CoerceTo::Real));
+            //     self.generate_coerced_expr(expr.rhs, Some(CoerceTo::Real));
+            //     Opcode::REALDIVIDE()
+            // }
+            // hir_expr::BinaryOp::Mod => self
+            //     .coerce_and_select_numbers(
+            //         expr,
+            //         lhs_ty.kind(self.db.up()),
+            //         rhs_ty.kind(self.db.up()),
+            //         Opcode::MODREAL(),
+            //         Opcode::MODNAT(),
+            //         Opcode::MODINT(),
+            //         Opcode::MODINT(),
+            //         Opcode::MODINT(),
+            //     )
+            //     .expect("op over unsupported type"),
+            // hir_expr::BinaryOp::Rem => self
+            //     .coerce_and_select_numbers(
+            //         expr,
+            //         lhs_ty.kind(self.db.up()),
+            //         rhs_ty.kind(self.db.up()),
+            //         Opcode::REMREAL(),
+            //         Opcode::MODNAT(),
+            //         Opcode::MODINT(),
+            //         Opcode::MODINT(),
+            //         Opcode::MODINT(),
+            //     )
+            //     .expect("op over unsupported type"),
+            // hir_expr::BinaryOp::Exp => match (lhs_ty.kind(self.db.up()), rhs_ty.kind(self.db.up()))
+            // {
+            //     (lhs, rhs) if lhs.is_integer() && rhs.is_integer() => {
+            //         self.generate_expr(expr.lhs);
+            //         self.generate_expr(expr.rhs);
+            //         Opcode::EXPINTINT()
+            //     }
+            //     (ty::TypeKind::Real(_), rhs) if rhs.is_integer() => {
+            //         self.generate_expr(expr.lhs);
+            //         self.generate_expr(expr.rhs);
+            //         Opcode::EXPREALINT()
+            //     }
+            //     (ty::TypeKind::Real(_), ty::TypeKind::Real(_)) => {
+            //         self.generate_coerced_expr(expr.lhs, Some(CoerceTo::Real));
+            //         self.generate_coerced_expr(expr.rhs, Some(CoerceTo::Real));
+            //         Opcode::EXPREALREAL()
+            //     }
+            //     _ => unreachable!(),
+            // },
             hir_expr::BinaryOp::And => {
                 // TODO: This does not implement short-circuiting for booleans
                 self.generate_expr(expr.lhs);
                 self.generate_expr(expr.rhs);
-                Opcode::AND()
+                self.proc.ins().and();
             }
             hir_expr::BinaryOp::Or => {
                 // TODO: This does not implement short-circuiting for booleans
                 self.generate_expr(expr.lhs);
                 self.generate_expr(expr.rhs);
-                Opcode::OR()
+                self.proc.ins().or();
             }
             hir_expr::BinaryOp::Xor => {
                 self.generate_expr(expr.lhs);
                 self.generate_expr(expr.rhs);
-                Opcode::XOR()
+                self.proc.ins().xor();
             }
-            hir_expr::BinaryOp::Shl => {
-                self.generate_expr(expr.lhs);
-                self.generate_expr(expr.rhs);
-                Opcode::SHL()
-            }
-            hir_expr::BinaryOp::Shr => {
-                self.generate_expr(expr.lhs);
-                self.generate_expr(expr.rhs);
-                Opcode::SHR()
-            }
+            // hir_expr::BinaryOp::Shl => {
+            //     self.generate_expr(expr.lhs);
+            //     self.generate_expr(expr.rhs);
+            //     Opcode::SHL()
+            // }
+            // hir_expr::BinaryOp::Shr => {
+            //     self.generate_expr(expr.lhs);
+            //     self.generate_expr(expr.rhs);
+            //     Opcode::SHR()
+            // }
             hir_expr::BinaryOp::Less | hir_expr::BinaryOp::GreaterEq => {
                 self.coerce_to_same(expr, lhs_ty.kind(self.db.up()), rhs_ty.kind(self.db.up()));
 
-                let cmp_op = if let Some(cmp_op) = self.select_numbers(
-                    lhs_ty.kind(self.db.up()),
-                    rhs_ty.kind(self.db.up()),
-                    Opcode::GEREAL(),
-                    Opcode::GENAT(),
-                    Opcode::GENATINT(),
-                    Opcode::GEINTNAT(),
-                    Opcode::GEINT(),
-                ) {
-                    cmp_op
+                if let Some(num_cmp) =
+                    self.select_numbers(lhs_ty.kind(self.db.up()), rhs_ty.kind(self.db.up()))
+                {
+                    match num_cmp {
+                        OperandPairs::IntInt => _ = self.proc.ins().geint(),
+                        OperandPairs::IntNat => _ = self.proc.ins().geintnat(),
+                        OperandPairs::NatInt => _ = self.proc.ins().genatint(),
+                        OperandPairs::NatNat => _ = self.proc.ins().genat(),
+                        OperandPairs::Real => _ = self.proc.ins().gereal(),
+                    }
                 } else {
                     match (lhs_ty.kind(self.db.up()), rhs_ty.kind(self.db.up())) {
-                        (ty::TypeKind::Char, ty::TypeKind::Char) => Opcode::GENAT(),
+                        (ty::TypeKind::Char, ty::TypeKind::Char) => _ = self.proc.ins().genat(),
                         (lhs, rhs) if lhs.is_cmp_charseq() && rhs.is_cmp_charseq() => {
-                            Opcode::GESTR()
+                            _ = self.proc.ins().gestr()
                         }
                         _ => unreachable!(),
                     }
                 };
 
-                if expr.op.item() == &hir_expr::BinaryOp::GreaterEq {
-                    cmp_op
-                } else {
-                    self.code_fragment.emit_opcode(cmp_op);
-                    Opcode::NOT()
+                if matches!(expr.op.item(), &hir_expr::BinaryOp::Less) {
+                    // Emit not to convert to less-than
+                    self.proc.ins().not();
                 }
             }
             hir_expr::BinaryOp::Greater | hir_expr::BinaryOp::LessEq => {
                 self.coerce_to_same(expr, lhs_ty.kind(self.db.up()), rhs_ty.kind(self.db.up()));
 
-                let cmp_op = if let Some(cmp_op) = self.select_numbers(
-                    lhs_ty.kind(self.db.up()),
-                    rhs_ty.kind(self.db.up()),
-                    Opcode::LEREAL(),
-                    Opcode::LENAT(),
-                    Opcode::LENATINT(),
-                    Opcode::LEINTNAT(),
-                    Opcode::LEINT(),
-                ) {
-                    cmp_op
+                if let Some(num_cmp) =
+                    self.select_numbers(lhs_ty.kind(self.db.up()), rhs_ty.kind(self.db.up()))
+                {
+                    match num_cmp {
+                        OperandPairs::IntInt => self.proc.ins().leint(),
+                        OperandPairs::IntNat => self.proc.ins().leintnat(),
+                        OperandPairs::NatInt => self.proc.ins().lenatint(),
+                        OperandPairs::NatNat => self.proc.ins().lenat(),
+                        OperandPairs::Real => self.proc.ins().lereal(),
+                    };
                 } else {
                     match (lhs_ty.kind(self.db.up()), rhs_ty.kind(self.db.up())) {
-                        (ty::TypeKind::Char, ty::TypeKind::Char) => Opcode::LENAT(),
+                        (ty::TypeKind::Char, ty::TypeKind::Char) => {
+                            self.proc.ins().lenat();
+                        }
                         (lhs, rhs) if lhs.is_cmp_charseq() && rhs.is_cmp_charseq() => {
-                            Opcode::LESTR()
+                            self.proc.ins().lestr();
                         }
                         _ => unreachable!(),
                     }
                 };
 
-                if expr.op.item() == &hir_expr::BinaryOp::LessEq {
-                    cmp_op
-                } else {
-                    self.code_fragment.emit_opcode(cmp_op);
-                    Opcode::NOT()
+                if matches!(expr.op.item(), &hir_expr::BinaryOp::Greater) {
+                    // Emit not to convert to greater-than
+                    self.proc.ins().not();
                 }
             }
             hir_expr::BinaryOp::Equal | hir_expr::BinaryOp::NotEqual => {
                 self.coerce_to_same(expr, lhs_ty.kind(self.db.up()), rhs_ty.kind(self.db.up()));
-                let cmp_op = self.emit_eq_op(lhs_ty.kind(self.db.up()), rhs_ty.kind(self.db.up()));
+                self.emit_eq_op(lhs_ty.kind(self.db.up()), rhs_ty.kind(self.db.up()));
 
-                if expr.op.item() == &hir_expr::BinaryOp::Equal {
-                    cmp_op
-                } else {
-                    self.code_fragment.emit_opcode(cmp_op);
-                    Opcode::NOT()
+                if matches!(expr.op.item(), &hir_expr::BinaryOp::NotEqual) {
+                    // Emit not to convert to not-equal
+                    self.proc.ins().not();
                 }
             }
             hir_expr::BinaryOp::In => todo!(),
@@ -1719,18 +1500,12 @@ impl BodyCodeGenerator<'_> {
             hir_expr::BinaryOp::Imply => {
                 // TODO: This does not implement short-circuiting for booleans
                 self.generate_expr(expr.lhs);
-                self.code_fragment.emit_opcode(Opcode::NOT());
+                self.proc.ins().not();
                 self.generate_expr(expr.rhs);
-                Opcode::OR()
+                self.proc.ins().or();
             }
+            _ => unimplemented!(),
         };
-
-        eprintln!(
-            "applying operation {:?} to previous two operand",
-            expr.op.item()
-        );
-
-        self.code_fragment.emit_opcode(opcode);
     }
 
     fn coerce_and_select_numbers(
@@ -1768,20 +1543,25 @@ impl BodyCodeGenerator<'_> {
         self.generate_coerced_expr(expr.rhs, coerce_to);
     }
 
-    fn emit_eq_op(&self, lhs_kind: &ty::TypeKind, rhs_kind: &ty::TypeKind) {
+    fn emit_eq_op(&mut self, lhs_kind: &ty::TypeKind, rhs_kind: &ty::TypeKind) {
         if let Some(num_op) = self.select_numbers(lhs_kind, rhs_kind) {
             match num_op {
-                OperandPairs::IntInt => todo!(),
-                OperandPairs::IntNat => todo!(),
-                OperandPairs::NatInt => todo!(),
-                OperandPairs::NatNat => todo!(),
-                OperandPairs::Real => todo!(),
-            }
+                OperandPairs::IntInt => self.proc.ins().eqint(),
+                OperandPairs::IntNat => self.proc.ins().eqintnat(),
+                OperandPairs::NatInt => self.proc.ins().eqint(),
+                // Note: We use EQINT instead of EQNAT since Turing doesn't support EQNAT.
+                OperandPairs::NatNat => self.proc.ins().eqint(),
+                OperandPairs::Real => self.proc.ins().eqreal(),
+            };
         } else {
             match (lhs_kind, rhs_kind) {
-                (ty::TypeKind::Char, ty::TypeKind::Char) => Opcode::EQINT(),
+                (ty::TypeKind::Char, ty::TypeKind::Char) => {
+                    self.proc.ins().eqint();
+                }
                 // All other comparable charseqs are converted into string
-                (lhs, rhs) if lhs.is_cmp_charseq() && rhs.is_cmp_charseq() => Opcode::EQSTR(),
+                (lhs, rhs) if lhs.is_cmp_charseq() && rhs.is_cmp_charseq() => {
+                    self.proc.ins().eqstr();
+                }
                 _ => unreachable!(),
             }
         }
@@ -1809,18 +1589,22 @@ impl BodyCodeGenerator<'_> {
             hir_expr::UnaryOp::Not => {
                 if rhs_ty.kind(self.db.up()).is_integer() {
                     // Composite
-                    self.code_fragment.emit_opcode(Opcode::PUSHINT(!0));
-                    self.code_fragment.emit_opcode(Opcode::XOR());
+                    self.proc.ins().pushint(u32::MAX as i32);
+                    self.proc.ins().xor();
+                } else if rhs_ty.kind(self.db.up()).is_boolean() {
+                    self.proc.ins().not();
                 } else {
-                    self.code_fragment.emit_opcode(Opcode::NOT())
+                    unreachable!()
                 }
             }
             hir_expr::UnaryOp::Negate => match rhs_ty.kind(self.db.up()) {
                 ty::TypeKind::Integer | ty::TypeKind::Int(_) | ty::TypeKind::Nat(_) => {
                     // should already be dealing with promoted types
-                    self.code_fragment.emit_opcode(Opcode::NEGINT())
+                    self.proc.ins().negint();
                 }
-                ty::TypeKind::Real(_) => self.code_fragment.emit_opcode(Opcode::NEGREAL()),
+                ty::TypeKind::Real(_) => {
+                    self.proc.ins().negreal();
+                }
                 _ => unreachable!(),
             },
         }
@@ -1845,8 +1629,8 @@ impl BodyCodeGenerator<'_> {
                     self.generate_call(expr_id, None, false);
                 } else {
                     // As normal fetch
-                    self.code_fragment
-                        .emit_locate_local(DefId(self.package_id, def_id));
+                    self.def_bindings
+                        .emit_locate_def(&mut self.proc, DefId(self.package_id, def_id));
                     self.generate_fetch_value(def_ty);
                 }
             }
@@ -1881,35 +1665,37 @@ impl BodyCodeGenerator<'_> {
                 unreachable!()
             };
 
+        // Note: Temporary must live longer than the call, so it is outside of the call temporary scope.
         let ret_ty_ref = ret_ty.to_base_type(db.up());
         let ret_val = if !matches!(ret_ty_ref.kind(db.up()), ty::TypeKind::Void) {
             let size_of = ret_ty_ref.size_of(db.up()).expect("must be sized");
-            Some(self.code_fragment.allocate_temporary_space(size_of))
+            Some(self.proc.alloc_temporary(size_of as u32, 4))
         } else {
             None
         };
 
-        self.code_fragment.bump_temp_allocs();
+        let old_scope = self.proc.enter_temporary_scope();
         {
             // Fetch lhs first
             self.generate_ref_expr(lhs);
             // TODO: Replace with the size of the target arch's ptr
-            let call_to = self.code_fragment.allocate_temporary_space(4);
-            self.code_fragment.emit_locate_temp(call_to);
-            self.generate_assign(lhs_ty, AssignOrder::Postcomputed);
+            let call_to = self.proc.alloc_temporary(4, 4);
+            self.proc.locate_temporary(call_to);
+            self.emit_assign_op(lhs_ty, AssignOrder::Postcomputed);
 
             let mut arg_frame_size = 0;
             let mut arg_temps = vec![];
 
             if let Some(ret_val) = ret_val {
                 // Treat return argument as a pass by ref
-                let ret_arg = self
-                    .code_fragment
-                    .allocate_temporary_space(ret_ty_ref.size_of(db.up()).expect("must be sized"));
+                let ret_arg = self.proc.alloc_temporary(
+                    ret_ty_ref.size_of(db.up()).expect("must be sized") as u32,
+                    4,
+                );
 
-                self.code_fragment.emit_locate_temp(ret_val);
-                self.code_fragment.emit_locate_temp(ret_arg);
-                self.code_fragment.emit_opcode(Opcode::ASNADDRINV());
+                self.proc.locate_temporary(ret_val);
+                self.proc.locate_temporary(ret_arg);
+                self.proc.ins().asnaddrinv();
                 arg_temps.push((ret_arg, None));
                 arg_frame_size += 4;
             }
@@ -1924,22 +1710,22 @@ impl BodyCodeGenerator<'_> {
                         ty::PassBy::Value => {
                             let param_ty = param.param_ty;
                             let size_of = param_ty.size_of(db.up()).expect("must be sized");
-                            let nth_arg = self.code_fragment.allocate_temporary_space(size_of);
+                            let nth_arg = self.proc.alloc_temporary(size_of as u32, 4);
                             self.generate_expr(arg_expr);
                             self.generate_coerced_op(param_ty, arg_ty);
 
-                            self.code_fragment.emit_locate_temp(nth_arg);
-                            self.generate_assign(param_ty, AssignOrder::Postcomputed);
+                            self.proc.locate_temporary(nth_arg);
+                            self.emit_assign_op(param_ty, AssignOrder::Postcomputed);
                             arg_temps.push((nth_arg, Some(param_ty)));
                             arg_frame_size += size_of;
                         }
                         ty::PassBy::Reference(_) => {
                             // TODO: Replace with the size of the target arch's ptr
-                            let nth_arg = self.code_fragment.allocate_temporary_space(4);
+                            let nth_arg = self.proc.alloc_temporary(4, 4);
                             self.generate_ref_expr(arg_expr);
 
-                            self.code_fragment.emit_locate_temp(nth_arg);
-                            self.code_fragment.emit_opcode(Opcode::ASNADDRINV());
+                            self.proc.locate_temporary(nth_arg);
+                            self.proc.ins().asnaddrinv();
                             arg_temps.push((nth_arg, None));
                             arg_frame_size += 4;
                         }
@@ -1948,30 +1734,30 @@ impl BodyCodeGenerator<'_> {
             }
 
             // Emit call for later
-            self.code_fragment.emit_locate_temp(call_to);
-            self.code_fragment.emit_opcode(Opcode::FETCHADDR());
+            self.proc.locate_temporary(call_to);
+            self.proc.ins().fetchaddr();
 
             // Move args into reverse order
             // ( ... arg0 arg1 arg2 -- arg2 arg1 arg0 ... )
             for (arg, ty) in arg_temps.into_iter().rev() {
-                self.code_fragment.emit_locate_temp(arg);
+                self.proc.locate_temporary(arg);
+
                 if let Some(ty) = ty {
                     self.generate_fetch_value(ty);
                 } else {
-                    self.code_fragment.emit_opcode(Opcode::FETCHADDR());
+                    self.proc.ins().fetchaddr();
                 }
             }
 
             // Do the call
             let arg_frame_size = arg_frame_size.try_into().unwrap();
-            self.code_fragment.emit_opcode(Opcode::CALL(arg_frame_size));
-            self.code_fragment
-                .emit_opcode(Opcode::INCSP(arg_frame_size + 4));
+            self.proc.ins().call(arg_frame_size);
+            self.proc.ins().incsp(arg_frame_size + 4);
         }
-        self.code_fragment.unbump_temp_allocs();
+        self.proc.leave_temporary_scope(old_scope);
 
         if let Some(slot_at) = ret_val.filter(|_| !drop_ret_val) {
-            self.code_fragment.emit_locate_temp(slot_at);
+            self.proc.locate_temporary(slot_at);
             self.generate_fetch_value(ret_ty);
         }
     }
@@ -1994,23 +1780,29 @@ impl BodyCodeGenerator<'_> {
     }
 
     fn generate_ref_expr_name(&mut self, expr: &hir_expr::Name) {
-        // Steps
-        // - Produce pointer to referenced def (may need to perform canonical name resolution)
-        //   - If it's a stack var, it should be to the locals space
-        //   - If it's a global var, it should be from a relocatable patch to the globals space
         match expr {
             hir_expr::Name::Name(binding) => {
+                // Steps
+                // - Produce pointer to referenced def (may need to perform canonical name resolution)
+                //   - If it's a bound def, it should be to within the call frame.
+                //   - If it's an unbound def, it should be from a relocatable patch to the globals space
                 let def_id = self.package.binding_resolve(*binding).unwrap_def();
                 let info = self.package.local_def(def_id);
                 eprintln!("locating value from def {info:?} ({def_id:?})");
 
-                self.code_fragment
-                    .emit_locate_local(DefId(self.package_id, def_id))
+                self.def_bindings
+                    .emit_locate_def(&mut self.proc, DefId(self.package_id, def_id))
             }
             hir_expr::Name::Self_ => todo!(),
         }
     }
 
+    #[allow(unused)]
+    fn emit_assign_op(&mut self, into_ty: ty::TypeId, order: AssignOrder) {
+        todo!()
+    }
+
+    #[cfg(any())]
     fn generate_assign(&mut self, into_ty: ty::TypeId, order: AssignOrder) {
         let into_tyref = into_ty;
 
@@ -2069,7 +1861,12 @@ impl BodyCodeGenerator<'_> {
         self.code_fragment.emit_opcode(opcode);
     }
 
+    fn generate_assign_uninit(&mut self, _uninit_ty: ty::TypeId) {
+        todo!()
+    }
+
     // Expects a destination address to be present
+    #[cfg(any())]
     fn generate_assign_uninit(&mut self, uninit_ty: ty::TypeId) {
         let opcode = match uninit_ty.kind(self.db.up()) {
             ty::TypeKind::Nat(ty::NatSize::AddressInt) => Opcode::UNINITADDR(),
@@ -2085,49 +1882,51 @@ impl BodyCodeGenerator<'_> {
     }
 
     fn generate_fetch_value(&mut self, fetch_ty: ty::TypeId) {
-        let opcode = match self.pick_fetch_op(fetch_ty) {
-            Some(value) => value,
-            None => return,
-        };
-
-        self.code_fragment.emit_opcode(opcode);
+        self.emit_fetch_ins(fetch_ty);
     }
 
-    fn pick_fetch_op(&mut self, fetch_ty: ty::TypeId) -> Option<Opcode> {
-        let opcode = match fetch_ty.kind(self.db.up()) {
-            ty::TypeKind::Boolean => Opcode::FETCHBOOL(),
-            ty::TypeKind::Int(ty::IntSize::Int1) => Opcode::FETCHINT1(),
-            ty::TypeKind::Int(ty::IntSize::Int2) => Opcode::FETCHINT2(),
-            ty::TypeKind::Int(ty::IntSize::Int4) => Opcode::FETCHINT4(),
-            ty::TypeKind::Int(ty::IntSize::Int) => Opcode::FETCHINT(),
-            ty::TypeKind::Nat(ty::NatSize::Nat1) => Opcode::FETCHNAT1(),
-            ty::TypeKind::Nat(ty::NatSize::Nat2) => Opcode::FETCHNAT2(),
-            ty::TypeKind::Nat(ty::NatSize::Nat4) => Opcode::FETCHNAT4(),
-            ty::TypeKind::Nat(ty::NatSize::Nat) => Opcode::FETCHNAT(),
-            ty::TypeKind::Nat(ty::NatSize::AddressInt) => Opcode::FETCHADDR(),
-            ty::TypeKind::Real(ty::RealSize::Real4) => Opcode::FETCHREAL4(),
-            ty::TypeKind::Real(ty::RealSize::Real8) => Opcode::FETCHREAL8(),
-            ty::TypeKind::Real(ty::RealSize::Real) => Opcode::FETCHREAL(),
+    /// Emits a fetch operation for the type
+    fn emit_fetch_ins(&mut self, fetch_ty: ty::TypeId) {
+        match fetch_ty.kind(self.db.up()) {
+            ty::TypeKind::Boolean => _ = self.proc.ins().fetchbool(),
+            ty::TypeKind::Int(ty::IntSize::Int1) => _ = self.proc.ins().fetchint1(),
+            ty::TypeKind::Int(ty::IntSize::Int2) => _ = self.proc.ins().fetchint2(),
+            ty::TypeKind::Int(ty::IntSize::Int4) => _ = self.proc.ins().fetchint4(),
+            ty::TypeKind::Int(ty::IntSize::Int) => _ = self.proc.ins().fetchint(),
+            ty::TypeKind::Nat(ty::NatSize::Nat1) => _ = self.proc.ins().fetchnat1(),
+            ty::TypeKind::Nat(ty::NatSize::Nat2) => _ = self.proc.ins().fetchnat2(),
+            ty::TypeKind::Nat(ty::NatSize::Nat4) => _ = self.proc.ins().fetchnat4(),
+            ty::TypeKind::Nat(ty::NatSize::Nat) => _ = self.proc.ins().fetchnat(),
+            ty::TypeKind::Nat(ty::NatSize::AddressInt) => _ = self.proc.ins().fetchaddr(),
+            ty::TypeKind::Real(ty::RealSize::Real4) => _ = self.proc.ins().fetchreal4(),
+            ty::TypeKind::Real(ty::RealSize::Real8) => _ = self.proc.ins().fetchreal8(),
+            ty::TypeKind::Real(ty::RealSize::Real) => _ = self.proc.ins().fetchreal(),
             ty::TypeKind::Integer => unreachable!("type should be concrete"),
-            ty::TypeKind::Char => Opcode::FETCHNAT1(), // chars are equivalent to nat1 on regular Turing backend
-            ty::TypeKind::String | ty::TypeKind::StringN(_) => Opcode::FETCHSTR(),
-            ty::TypeKind::CharN(_) => return None, // don't need to dereference the pointer to storage
-            ty::TypeKind::Opaque(_, ty) => return self.pick_fetch_op(*ty), // defer to the opaque type
+            ty::TypeKind::Char => {
+                // chars are equivalent to nat1 on regular Turing backend
+                self.proc.ins().fetchnat1();
+            }
+            ty::TypeKind::String | ty::TypeKind::StringN(_) => _ = self.proc.ins().fetchstr(),
+            ty::TypeKind::CharN(_) => {
+                // already is a pointer, don't need to dereference the pointer to storage
+            }
+            ty::TypeKind::Opaque(_, ty) => {
+                // defer to the opaque type
+                self.emit_fetch_ins(*ty);
+            }
             ty::TypeKind::Constrained(..) => unimplemented!(),
             ty::TypeKind::Array(..) => unimplemented!(),
             ty::TypeKind::Enum(..) => unimplemented!(),
             ty::TypeKind::Set(..) => unimplemented!(),
             ty::TypeKind::Pointer(..) => unimplemented!(),
-            ty::TypeKind::Subprogram(..) => Opcode::FETCHADDR(),
+            ty::TypeKind::Subprogram(..) => _ = self.proc.ins().fetchaddr(),
             ty::TypeKind::Error
             | ty::TypeKind::Forward
             | ty::TypeKind::Alias(_, _)
             | ty::TypeKind::Void => {
                 unreachable!()
             }
-        };
-
-        Some(opcode)
+        }
     }
 }
 
@@ -2141,182 +1940,92 @@ enum CoerceTo {
 
 #[derive(Clone, Copy)]
 enum OperandPairs {
+    /// Lhs = Int, Rhs = Int
     IntInt,
+    /// Lhs = Int, Rhs = Nat
     IntNat,
+    // Lhs = Nat, Rhs = Int
     NatInt,
+    /// Lhs = Nat, Rhs = Nat
     NatNat,
+    /// Lhs = Real, Rhs = Real
     Real,
 }
 
-#[derive(Debug, Clone, Copy)]
-enum LocalTarget {
-    Stack(StackSlot),
-    Reloc(RelocatableOffset),
-    Arg(usize, bool),
+#[derive(Clone, Copy)]
+enum DefTarget {
+    // Bound to a locals area slot (e.g. `const`, `var`).
+    Local(LocalSlot),
+    // Bound to a locals area slot, pointing to an aliased address (e.g. `bind`).
+    AliasLocal(LocalSlot),
+    // Bound to a temporaries area slot (e.g. for-descriptor).
+    Temp(TemporarySlot),
+    // Bound to a procedure argument.
+    Param(u32, bool),
 }
 
-#[derive(Debug, Clone, Copy)]
-struct StackSlot {
-    offset: u32,
-    size: u32,
-}
-
-#[derive(Debug)]
-enum OffsetTarget {
-    Branch(Option<usize>),
-}
-
+// Per-procedure definition bindings
 #[derive(Default)]
-struct CodeFragment {
-    locals: indexmap::IndexMap<DefId, LocalTarget>,
-    locals_size: u32,
-    temps: Vec<StackSlot>,
-    temp_bumps: Vec<u32>,
-    temps_current_size: u32,
-    temps_size: u32,
-
-    opcodes: Vec<Opcode>,
-    code_offsets: Vec<OffsetTarget>,
+struct DefBindings {
+    // Intra-procedure definitions
+    local_defs: indexmap::IndexMap<DefId, DefTarget>,
+    // Definitions outside of the procedure, typically reserved for defs that aren't already bound yet
+    external_defs: indexmap::IndexMap<DefId, Vec<RelocHandle>>,
 }
 
-impl CodeFragment {
-    fn bind_reloc_local(&mut self, from: DefId, to: RelocatableOffset) {
-        self.locals.insert(from, LocalTarget::Reloc(to));
+impl DefBindings {
+    fn bind_local_slot(&mut self, from: DefId, to: LocalSlot) {
+        self.local_defs.insert(from, DefTarget::Local(to));
     }
 
-    fn bind_argument(&mut self, def_id: DefId, offset: usize, indirect: bool) {
-        self.locals
-            .insert(def_id, LocalTarget::Arg(offset, indirect));
+    fn bind_aliasd_def(&mut self, from: DefId, to: DefId) {
+        // Bind to an existing local
+        let Some(def) = self.local_defs.get(&to) else {
+            panic!("aliasing {from:?} to {to:?} but latter is not bound to a def target");
+        };
+
+        self.local_defs.insert(from, *def);
     }
 
-    fn alias_local(&mut self, source: DefId, target: DefId) {
-        let slot_info = self
-            .locals
-            .get(&source)
-            .copied()
-            .expect("def not reserved yet");
-        self.locals.insert(target, slot_info);
+    fn bind_aliased_local(&mut self, from: DefId, to: LocalSlot) {
+        self.local_defs.insert(from, DefTarget::AliasLocal(to));
     }
 
-    fn allocate_local(&mut self, db: &dyn CodeGenDB, def_id: DefId, def_ty: ty::TypeId) {
-        self.allocate_local_space(
-            def_id,
-            def_ty
-                .to_base_type(db.up())
-                .size_of(db.up())
-                .expect("is concrete"),
-        );
+    fn bind_temporary_slot(&mut self, from: DefId, to: TemporarySlot) {
+        self.local_defs.insert(from, DefTarget::Temp(to));
     }
 
-    fn allocate_local_space(&mut self, def_id: DefId, size: usize) {
-        // Align to the nearest stack slot
-        let size = ty::align_up_to(size, 4).try_into().unwrap();
-        let offset = self.locals_size;
-
-        self.locals
-            .insert(def_id, LocalTarget::Stack(StackSlot { offset, size }));
-        self.locals_size += size;
+    fn bind_parameter(&mut self, from: DefId, to_offset: u32, as_indirect: bool) {
+        self.local_defs
+            .insert(from, DefTarget::Param(to_offset, as_indirect));
     }
 
-    fn allocate_temporary_space(&mut self, size: usize) -> OldTemporarySlot {
-        // Align to the nearest stack slot
-        let size = ty::align_up_to(size, 4).try_into().unwrap();
-        let offset = self.temps_current_size;
-        let handle = self.temps.len();
+    fn emit_locate_def(&mut self, proc: &mut ProcedureBuilder, def_id: DefId) {
+        if let Some(local_target) = self.local_defs.get(&def_id) {
+            // Local definition
+            match local_target {
+                DefTarget::Local(local_slot) => proc.locate_local(*local_slot),
+                DefTarget::AliasLocal(local_slot) => {
+                    proc.locate_local(*local_slot);
+                    // slot stores the aliased address, need to load it to retrieve the target address.
+                    proc.ins().fetchaddr();
+                }
+                DefTarget::Temp(temporary_slot) => proc.locate_temporary(*temporary_slot),
+                DefTarget::Param(offset, indirect) => {
+                    proc.ins().locateparm(*offset);
 
-        self.temps.push(StackSlot { offset, size });
+                    if *indirect {
+                        proc.ins().fetchaddr();
+                    }
+                }
+            }
+        } else {
+            // Procedure-external definition
+            let reloc_entries = self.external_defs.entry(def_id).or_insert(vec![]);
 
-        self.temps_current_size += size;
-        self.temps_size = self.temps_size.max(self.temps_current_size);
-        OldTemporarySlot(handle)
-    }
-
-    fn bump_temp_allocs(&mut self) {
-        self.temp_bumps.push(self.temps_current_size);
-    }
-
-    fn unbump_temp_allocs(&mut self) {
-        self.temps_current_size = self.temp_bumps.pop().expect("too many unbumps");
-    }
-
-    // TODO: kill this!
-    // fn emit_opcode(&mut self, opcode: Opcode) {
-    //     if matches!(opcode, Opcode::INCLINENO()) {
-    //         // Fold together INCLINENO and SETFILENO / SETLINENO
-    //         match self.opcodes.last_mut() {
-    //             Some(Opcode::SETFILENO(_, line) | Opcode::SETLINENO(line)) => *line += 1,
-    //             _ => self.opcodes.push(Opcode::INCLINENO()),
-    //         }
-    //     } else {
-    //         self.opcodes.push(opcode)
-    //     }
-    // }
-
-    fn emit_locate_local(&mut self, def_id: DefId) {
-        let slot_info = self.locals.get(&def_id);
-
-        // match slot_info {
-        //     Some(LocalTarget::Stack(slot_info)) => {
-        //         let offset = slot_info.offset + slot_info.size;
-        //         self.emit_opcode(Opcode::LOCATELOCAL(offset));
-        //     }
-        //     Some(LocalTarget::Reloc(_offset)) => {
-        //         todo!()
-        //         // let offset = *offset; // for dealing with borrowck warning
-        //         // self.emit_opcode(Opcode::PUSHADDR1(offset));
-        //     }
-        //     Some(LocalTarget::Arg(offset, indirect)) => {
-        //         // for dealing with borrowck warnings
-        //         let offset = *offset;
-        //         let indirect = *indirect;
-
-        //         self.emit_opcode(Opcode::LOCATEPARM(offset.try_into().unwrap()));
-        //         if indirect {
-        //             self.emit_opcode(Opcode::FETCHADDR());
-        //         }
-        //     }
-        //     None => {
-        //         // treat as an external relocation
-        //         todo!()
-        //     }
-        // }
-    }
-
-    fn emit_locate_temp(&mut self, temp: OldTemporarySlot) {
-        // Don't know the final size of temporaries yet, so use temporary slots.
-        // self.emit_opcode(Opcode::LOCATETEMP(temp));
-    }
-
-    fn place_branch(&mut self) -> OldCodeOffset {
-        let offset = self.new_branch();
-        self.anchor_branch_to(offset, self.opcodes.len());
-        offset
-    }
-
-    fn new_branch(&mut self) -> OldCodeOffset {
-        let idx = self.code_offsets.len();
-        self.code_offsets.push(OffsetTarget::Branch(None));
-        OldCodeOffset(idx)
-    }
-
-    fn anchor_branch(&mut self, offset: OldCodeOffset) {
-        self.anchor_branch_to(offset, self.opcodes.len())
-    }
-
-    fn anchor_branch_to(&mut self, offset: OldCodeOffset, to_opcode: usize) {
-        *self.code_offsets.get_mut(offset.0).unwrap() = OffsetTarget::Branch(Some(to_opcode))
-    }
-
-    fn fix_frame_size(&mut self) {
-        let frame_size = self.frame_size();
-        let first_opcode = self.opcodes.first_mut();
-        assert!(matches!(first_opcode, Some(Opcode::PROC(0))));
-        let first_opcode = first_opcode.unwrap();
-
-        *first_opcode = Opcode::PROC(frame_size);
-    }
-
-    fn frame_size(&self) -> u32 {
-        self.locals_size + self.temps_size
+            // Add a relocation to resolve later.
+            let reloc = proc.reloc(|ins| ins.pushaddr1(RelocatableOffset::empty()));
+            reloc_entries.push(reloc);
+        }
     }
 }

@@ -111,7 +111,7 @@ fn main() {
 
     if let Some(blob) = codegen_res.result() {
         let mut encoded = vec![];
-        blob.encode_to(&db, &mut encoded)
+        blob.encode(&mut encoded)
             .expect("failed to encode bytecode");
         std::fs::write(output_path, encoded).expect("failed to write bytecode");
     }
