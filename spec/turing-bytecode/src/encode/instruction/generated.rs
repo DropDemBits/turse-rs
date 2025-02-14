@@ -17,6 +17,8 @@ pub enum Operand {
     Addrint(Addrint),
     AbortReason(AbortReason),
     PutKind(PutKind),
+    StdStreamKind(StdStreamKind),
+    StreamKind(StreamKind),
     CheckKind(CheckKind),
 }
 impl Operand {
@@ -34,6 +36,8 @@ impl Operand {
             Self::Addrint(_) => 4usize,
             Self::AbortReason(_) => 4usize,
             Self::PutKind(_) => 4usize,
+            Self::StdStreamKind(_) => 4usize,
+            Self::StreamKind(_) => 4usize,
             Self::CheckKind(_) => 4usize,
         }
     }
@@ -67,6 +71,8 @@ impl Operand {
             Self::Addrint(value) => out.write_u32::<LE>(*value),
             Self::AbortReason(value) => value.encode(out),
             Self::PutKind(value) => value.encode(out),
+            Self::StdStreamKind(value) => value.encode(out),
+            Self::StreamKind(value) => value.encode(out),
             Self::CheckKind(value) => value.encode(out),
         }
     }
@@ -104,7 +110,7 @@ impl GetKind {
         out.write_u32::<LE>(*self as u32)
     }
 }
-impl StdStream {
+impl StdStreamKind {
     #[doc = "Encodes the type into the equivalent byte representation."]
     pub fn encode(&self, out: &mut impl std::io::Write) -> std::io::Result<()> {
         out.write_u32::<LE>(*self as u32)
@@ -143,10 +149,90 @@ impl InstructionEncoder {
     pub fn addreal(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::ADDREAL)) }
     #[doc = "Encode a [**AND**](Opcode::AND) instruction."]
     pub fn and(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::AND)) }
+    #[doc = "Encode a [**ASNADDR**](Opcode::ASNADDR) instruction."]
+    pub fn asnaddr(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::ASNADDR)) }
     #[doc = "Encode a [**ASNADDRINV**](Opcode::ASNADDRINV) instruction."]
     pub fn asnaddrinv(&mut self) -> InstructionRef {
         self.add(Instruction::new(Opcode::ASNADDRINV))
     }
+    #[doc = "Encode a [**ASNINT**](Opcode::ASNINT) instruction."]
+    pub fn asnint(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::ASNINT)) }
+    #[doc = "Encode a [**ASNINTINV**](Opcode::ASNINTINV) instruction."]
+    pub fn asnintinv(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::ASNINTINV)) }
+    #[doc = "Encode a [**ASNINT1**](Opcode::ASNINT1) instruction."]
+    pub fn asnint1(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::ASNINT1)) }
+    #[doc = "Encode a [**ASNINT1INV**](Opcode::ASNINT1INV) instruction."]
+    pub fn asnint1inv(&mut self) -> InstructionRef {
+        self.add(Instruction::new(Opcode::ASNINT1INV))
+    }
+    #[doc = "Encode a [**ASNINT2**](Opcode::ASNINT2) instruction."]
+    pub fn asnint2(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::ASNINT2)) }
+    #[doc = "Encode a [**ASNINT2INV**](Opcode::ASNINT2INV) instruction."]
+    pub fn asnint2inv(&mut self) -> InstructionRef {
+        self.add(Instruction::new(Opcode::ASNINT2INV))
+    }
+    #[doc = "Encode a [**ASNINT4**](Opcode::ASNINT4) instruction."]
+    pub fn asnint4(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::ASNINT4)) }
+    #[doc = "Encode a [**ASNINT4INV**](Opcode::ASNINT4INV) instruction."]
+    pub fn asnint4inv(&mut self) -> InstructionRef {
+        self.add(Instruction::new(Opcode::ASNINT4INV))
+    }
+    #[doc = "Encode a [**ASNNAT**](Opcode::ASNNAT) instruction."]
+    pub fn asnnat(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::ASNNAT)) }
+    #[doc = "Encode a [**ASNNATINV**](Opcode::ASNNATINV) instruction."]
+    pub fn asnnatinv(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::ASNNATINV)) }
+    #[doc = "Encode a [**ASNNAT1**](Opcode::ASNNAT1) instruction."]
+    pub fn asnnat1(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::ASNNAT1)) }
+    #[doc = "Encode a [**ASNNAT1INV**](Opcode::ASNNAT1INV) instruction."]
+    pub fn asnnat1inv(&mut self) -> InstructionRef {
+        self.add(Instruction::new(Opcode::ASNNAT1INV))
+    }
+    #[doc = "Encode a [**ASNNAT2**](Opcode::ASNNAT2) instruction."]
+    pub fn asnnat2(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::ASNNAT2)) }
+    #[doc = "Encode a [**ASNNAT2INV**](Opcode::ASNNAT2INV) instruction."]
+    pub fn asnnat2inv(&mut self) -> InstructionRef {
+        self.add(Instruction::new(Opcode::ASNNAT2INV))
+    }
+    #[doc = "Encode a [**ASNNAT4**](Opcode::ASNNAT4) instruction."]
+    pub fn asnnat4(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::ASNNAT4)) }
+    #[doc = "Encode a [**ASNNAT4INV**](Opcode::ASNNAT4INV) instruction."]
+    pub fn asnnat4inv(&mut self) -> InstructionRef {
+        self.add(Instruction::new(Opcode::ASNNAT4INV))
+    }
+    #[doc = "Encode a [**ASNNONSCALAR**](Opcode::ASNNONSCALAR) instruction.\n\n## Operands\n\n- length: Number of bytes to copy.\n"]
+    pub fn asnnonscalar(&mut self, length: Nat4) -> InstructionRef {
+        self.add(Instruction::new(Opcode::ASNNONSCALAR).with_operand(Operand::Nat4(length)))
+    }
+    #[doc = "Encode a [**ASNNONSCALARINV**](Opcode::ASNNONSCALARINV) instruction.\n\n## Operands\n\n- length: Number of bytes to copy.\n"]
+    pub fn asnnonscalarinv(&mut self, length: Nat4) -> InstructionRef {
+        self.add(Instruction::new(Opcode::ASNNONSCALARINV).with_operand(Operand::Nat4(length)))
+    }
+    #[doc = "Encode a [**ASNPTR**](Opcode::ASNPTR) instruction."]
+    pub fn asnptr(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::ASNPTR)) }
+    #[doc = "Encode a [**ASNPTRINV**](Opcode::ASNPTRINV) instruction."]
+    pub fn asnptrinv(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::ASNPTRINV)) }
+    #[doc = "Encode a [**ASNREAL**](Opcode::ASNREAL) instruction."]
+    pub fn asnreal(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::ASNREAL)) }
+    #[doc = "Encode a [**ASNREALINV**](Opcode::ASNREALINV) instruction."]
+    pub fn asnrealinv(&mut self) -> InstructionRef {
+        self.add(Instruction::new(Opcode::ASNREALINV))
+    }
+    #[doc = "Encode a [**ASNREAL4**](Opcode::ASNREAL4) instruction."]
+    pub fn asnreal4(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::ASNREAL4)) }
+    #[doc = "Encode a [**ASNREAL4INV**](Opcode::ASNREAL4INV) instruction."]
+    pub fn asnreal4inv(&mut self) -> InstructionRef {
+        self.add(Instruction::new(Opcode::ASNREAL4INV))
+    }
+    #[doc = "Encode a [**ASNREAL8**](Opcode::ASNREAL8) instruction."]
+    pub fn asnreal8(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::ASNREAL8)) }
+    #[doc = "Encode a [**ASNREAL8INV**](Opcode::ASNREAL8INV) instruction."]
+    pub fn asnreal8inv(&mut self) -> InstructionRef {
+        self.add(Instruction::new(Opcode::ASNREAL8INV))
+    }
+    #[doc = "Encode a [**ASNSTR**](Opcode::ASNSTR) instruction."]
+    pub fn asnstr(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::ASNSTR)) }
+    #[doc = "Encode a [**ASNSTRINV**](Opcode::ASNSTRINV) instruction."]
+    pub fn asnstrinv(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::ASNSTRINV)) }
     #[doc = "Encode a [**CALL**](Opcode::CALL) instruction.\n\n## Operands\n\n- address_offset: Offset to the call address in the stack.\n"]
     pub fn call(&mut self, address_offset: Offset) -> InstructionRef {
         self.add(Instruction::new(Opcode::CALL).with_operand(Operand::Offset(address_offset)))
@@ -269,6 +355,14 @@ impl InstructionEncoder {
     pub fn incsp(&mut self, size: Nat4) -> InstructionRef {
         self.add(Instruction::new(Opcode::INCSP).with_operand(Operand::Nat4(size)))
     }
+    #[doc = "Encode a [**INFIXAND**](Opcode::INFIXAND) instruction.\n\n## Operands\n\n- offset: Offset to jump forward by if `test` is zero, in bytes.\n"]
+    pub fn infixand(&mut self, offset: Offset) -> InstructionRef {
+        self.add(Instruction::new(Opcode::INFIXAND).with_operand(Operand::Offset(offset)))
+    }
+    #[doc = "Encode a [**INFIXOR**](Opcode::INFIXOR) instruction.\n\n## Operands\n\n- offset: Offset to jump forward by if `test` is non-zero, in bytes.\n"]
+    pub fn infixor(&mut self, offset: Offset) -> InstructionRef {
+        self.add(Instruction::new(Opcode::INFIXOR).with_operand(Operand::Offset(offset)))
+    }
     #[doc = "Encode a [**LECHARN**](Opcode::LECHARN) instruction.\n\n## Operands\n\n- length: Byte length of the `char(N)` type.\n"]
     pub fn lecharn(&mut self, length: Nat4) -> InstructionRef {
         self.add(Instruction::new(Opcode::LECHARN).with_operand(Operand::Nat4(length)))
@@ -381,6 +475,36 @@ impl InstructionEncoder {
     pub fn setlineno(&mut self, line_no: Nat2) -> InstructionRef {
         self.add(Instruction::new(Opcode::SETLINENO).with_operand(Operand::Nat2(line_no)))
     }
+    #[doc = "Encode a [**SETSTDSTREAM**](Opcode::SETSTDSTREAM) instruction.\n\n## Operands\n\n- kind: Which standard stream handle to retrieve.\n"]
+    pub fn setstdstream(&mut self, kind: StdStreamKind) -> InstructionRef {
+        self.add(Instruction::new(Opcode::SETSTDSTREAM).with_operand(Operand::StdStreamKind(kind)))
+    }
+    #[doc = "Encode a [**SETSTREAM**](Opcode::SETSTREAM) instruction.\n\n## Operands\n\n- kind: Which operation to prepare the stream for.\n"]
+    pub fn setstream(&mut self, kind: StreamKind) -> InstructionRef {
+        self.add(Instruction::new(Opcode::SETSTREAM).with_operand(Operand::StreamKind(kind)))
+    }
+    #[doc = "Encode a [**SHL**](Opcode::SHL) instruction."]
+    pub fn shl(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::SHL)) }
+    #[doc = "Encode a [**SHR**](Opcode::SHR) instruction."]
+    pub fn shr(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::SHR)) }
+    #[doc = "Encode a [**UNINITADDR**](Opcode::UNINITADDR) instruction."]
+    pub fn uninitaddr(&mut self) -> InstructionRef {
+        self.add(Instruction::new(Opcode::UNINITADDR))
+    }
+    #[doc = "Encode a [**UNINITBOOLEAN**](Opcode::UNINITBOOLEAN) instruction."]
+    pub fn uninitboolean(&mut self) -> InstructionRef {
+        self.add(Instruction::new(Opcode::UNINITBOOLEAN))
+    }
+    #[doc = "Encode a [**UNINITINT**](Opcode::UNINITINT) instruction."]
+    pub fn uninitint(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::UNINITINT)) }
+    #[doc = "Encode a [**UNINITNAT**](Opcode::UNINITNAT) instruction."]
+    pub fn uninitnat(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::UNINITNAT)) }
+    #[doc = "Encode a [**UNINITREAL**](Opcode::UNINITREAL) instruction."]
+    pub fn uninitreal(&mut self) -> InstructionRef {
+        self.add(Instruction::new(Opcode::UNINITREAL))
+    }
+    #[doc = "Encode a [**UNINITSTR**](Opcode::UNINITSTR) instruction."]
+    pub fn uninitstr(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::UNINITSTR)) }
     #[doc = "Encode a [**XOR**](Opcode::XOR) instruction."]
     pub fn xor(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::XOR)) }
 }

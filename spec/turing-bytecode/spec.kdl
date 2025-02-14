@@ -18,6 +18,7 @@ types {
     result_out_of_range 24 {}
     case_selector_out_of_range 25 {}
     function_no_result 26 {}
+    string_value_too_long 35 {}
 
     pred_of_first 38 {}
     succ_of_last 39 {}
@@ -267,40 +268,48 @@ types {
 
     skip 14
   }
-  enum "std_stream" size=4 {
+  enum "std_stream_kind" size=4 {
     description """
-    Standard streams selectable from [**SETSTDSTREAM**].
+    Which stream to get the handle for in [**SETSTDSTREAM**].
 
     [**SETSTDSTREAM**](Opcode::SETSTDSTREAM)
     """
     repr_type "u32"
 
-    stdin 1 {
+    get 1 {
       description """
-      Standard in stream.
+      Stream handle for a `get`, which uses the standard in stream.
       """
       default_handle -2
     }
-    stdout 2 {
+    put 2 {
       description """
-      Standard out stream.
+      Stream handle for a `put`, which uses the standard out stream.
       """
       default_handle -1
     }
   }
   enum "stream_kind" size=4 {
     description """
-    Stream operations that can be used from [**SETSTREAM**].
-
-    [**SETSTREAM**](Opcode::SETSTREAM)
+    How to prepare the stream handle for the specified stream operation.
     """
     repr_type "u32"
 
-    seek 0 {}
-    get 1 {}
-    put 2 {}
-    read 3 {}
-    write 4 {}
+    default 0 {
+      description "Default stream operation, which is assumed to be a `put` operation."
+    }
+    get 1 {
+      description "Prepare stream for a `get` operation."
+    }
+    put 2 {
+      description "Prepare stream for a `put` operation."
+    }
+    read 3 {
+      description "Prepare stream for a `read` operation."
+    }
+    write 4 {
+      description "Prepare stream for a `write` operation."
+    }
   }
   enum "check_kind" size=4 {
     description """
@@ -416,6 +425,11 @@ instructions {
       stack_after {
         out "int4" { description "Result of operation." }
       }
+      Quit (quit_code).integer_overflow {
+        description """
+        When the computed value is greater than can what be represented by `out`.
+        """
+      }
     }
     
     ADDINTNAT 0x05 "Add Integer with Natural" {
@@ -427,6 +441,11 @@ instructions {
       }
       stack_after {
         out "int4" { description "Result of operation." }
+      }
+      Quit (quit_code).integer_overflow {
+        description """
+        When the computed value is greater than can what be represented by `out`.
+        """
       }
     }
     
@@ -440,6 +459,11 @@ instructions {
       stack_after {
         out "nat4" { description "Result of operation." }
       }
+      Quit (quit_code).integer_overflow {
+        description """
+        When the computed value is greater than can what be represented by `out`.
+        """
+      }
     }
     
     ADDNATINT 0x07 "Add Natural with Integer" {
@@ -452,6 +476,11 @@ instructions {
       stack_after {
         out "nat4" { description "Result of operation." }
       }
+      Quit (quit_code).integer_overflow {
+        description """
+        When the computed value is greater than can what be represented by `out`.
+        """
+      }
     }
     
     ADDREAL 0x08 "Add Reals" {
@@ -463,6 +492,11 @@ instructions {
       }
       stack_after {
         out "real8" { description "Result of operation." }
+      }
+      Quit (quit_code).real_overflow {
+        description """
+        When the computed value is greater than can what be represented by `out`.
+        """
       }
     }
   }
@@ -484,10 +518,15 @@ instructions {
   group "Assign Value" {
     description """
     Stores `value` at the provided `dest` address.
+    Individual assignment instructions may have different initialized value requirements.
+
+    The *INV variants swap the stack operand order to match post-computing the destination address after the value to store.
     """
 
-    ASNADDRINV 0x12 "Assign Address Value (Inverted)" {
-      description "Stores a `value` as an `addrint` value at the provided `dest` address."
+    ASNADDR 0x11 "Assign Address Value" {
+      description """
+      Stores a `value` as an `addrint` value at the provided `dest` address.
+      """
 
       operands {}
       stack_before {
@@ -495,6 +534,547 @@ instructions {
         dest "addrint" { description "Address to store value at." }
       }
       stack_after {}
+    }
+
+    ASNADDRINV 0x12 "Assign Address Value (Inverted)" {
+      description """
+      Stores a `value` as an `addrint` value at the provided `dest` address.
+
+      Stack operand order corresponds to post-computing the `dest` address.
+      """
+
+      operands {}
+      stack_before {
+        dest "addrint" { description "Address to store value at." }
+        value "addrint" { description "Value to store." }
+      }
+      stack_after {}
+    }
+
+    ASNINT 0x13 "Assign Integer Value" {
+      description """
+      Stores a `value` as an `int` value at the provided `dest` address.
+      Asserts that `value` is not `undefint` (`0x8000_0000`).
+      """
+
+      operands {}
+      stack_before {
+        value "int4" { description "Value to store." }
+        dest "addrint" { description "Address to store value at." }
+      }
+      stack_after {}
+      exceptions {
+        Quit (quit_exception).uninit_value {
+          description """
+          When `value` is `undefint` (`0x8000_0000`).
+          """
+        }
+      }
+    }
+
+    ASNINTINV 0x14 "Assign Integer Value (Inverted)" {
+      description """
+      Stores a `value` as an `int` value at the provided `dest` address.
+      Asserts that `value` is not `undefint` (`0x8000_0000`).
+
+      Stack operand order corresponds to post-computing the `dest` address.
+      """
+
+      operands {}
+      stack_before {
+        dest "addrint" { description "Address to store value at." }
+        value "int4" { description "Value to store." }
+      }
+      stack_after {}
+      exceptions {
+        Quit (quit_exception).uninit_value {
+          description """
+          When `value` is `undefint` (`0x8000_0000`).
+          """
+        }
+      }
+    }
+
+    ASNINT1 0x15 "Assign Int1 Value" {
+      description """
+      Stores a `value` as an `int1` value at the provided `dest` address.
+      Asserts that `value` is representable as an `int1` (i.e. it is within the range `[-128..127]`).
+      """
+
+      operands {}
+      stack_before {
+        value "int4" { description "Value to store." }
+        dest "addrint" { description "Address to store value at." }
+      }
+      stack_after {}
+      exceptions {
+        Quit (quit_exception).assignment_out_of_range {
+          description """
+          When `value` is outside of the range of `[-128..127]`.
+          """
+        }
+      }
+    }
+
+    ASNINT1INV 0x16 "Assign Int1 Value (Inverted)" {
+      description """
+      Stores a `value` as an `int1` value at the provided `dest` address.
+      Asserts that `value` is representable as an `int1` (i.e. it is within the range `[-128..127]`).
+
+      Stack operand order corresponds to post-computing the `dest` address.
+      """
+
+      operands {}
+      stack_before {
+        dest "addrint" { description "Address to store value at." }
+        value "int4" { description "Value to store." }
+      }
+      stack_after {}
+      exceptions {
+        Quit (quit_exception).assignment_out_of_range {
+          description """
+          When `value` is outside of the range of `[-128..127]`.
+          """
+        }
+      }
+    }
+
+    ASNINT2 0x17 "Assign Int2 Value" {
+      description """
+      Stores a `value` as an `int2` value at the provided `dest` address.
+      Asserts that `value` is representable as an `int2` (i.e. it is within the range `[-32768..32767]`).
+      """
+
+      operands {}
+      stack_before {
+        value "int4" { description "Value to store." }
+        dest "addrint" { description "Address to store value at." }
+      }
+      stack_after {}
+      exceptions {
+        Quit (quit_exception).assignment_out_of_range {
+          description """
+          When `value` is outside of the range of `[-32768..32767]`.
+          """
+        }
+      }
+    }
+
+    ASNINT2INV 0x18 "Assign Int2 Value (Inverted)" {
+      description """
+      Stores a `value` as an `int2` value at the provided `dest` address.
+      Asserts that `value` is representable as an `int2` (i.e. it is within the range `[-32768..32767]`).
+
+      Stack operand order corresponds to post-computing the `dest` address.
+      """
+
+      operands {}
+      stack_before {
+        dest "addrint" { description "Address to store value at." }
+        value "int4" { description "Value to store." }
+      }
+      stack_after {}
+      exceptions {
+        Quit (quit_exception).assignment_out_of_range {
+          description """
+          When `value` is outside of the range of `[-32768..32767]`.
+          """
+        }
+      }
+    }
+
+    ASNINT4 0x19 "Assign Int4 Value" {
+      description """
+      Stores a `value` as an `int4` value at the provided `dest` address.
+      Unlike [**ASNINT**], this does not perform uninit checking.
+
+      [**ASNINT**]: Opcode::ASNINT
+      """
+
+      operands {}
+      stack_before {
+        value "int4" { description "Value to store." }
+        dest "addrint" { description "Address to store value at." }
+      }
+      stack_after {}
+    }
+
+    ASNINT4INV 0x1A "Assign Int4 Value (Inverted)" {
+      description """
+      Stores a `value` as an `int4` value at the provided `dest` address.
+      Unlike [**ASNINTINV**], this does not perform uninit checking.
+
+      Stack operand order corresponds to post-computing the `dest` address.
+
+      [**ASNINTINV**]: Opcode::ASNINTINV
+      """
+
+      operands {}
+      stack_before {
+        dest "addrint" { description "address to store value at." }
+        value "int4" { description "Value to store." }
+      }
+      stack_after {}
+    }
+
+    ASNNAT 0x1B "Assign Natural Value" {
+      description """
+      Stores a `value` as a `nat` value at the provided `dest` address.
+      Asserts that `value` is not `undefnat` (`0xFFFF_FFFF`).
+      """
+
+      operands {}
+      stack_before {
+        value "nat4" { description "Value to store." }
+        dest "addrint" { description "Address to store value at." }
+      }
+      stack_after {}
+      exceptions {
+        Quit (quit_exception).uninit_value {
+          description """
+          When `value` is `undefnat` (`0xFFFF_FFFF`).
+          """
+        }
+      }
+    }
+
+    ASNNATINV 0x1C "Assign Natural Value (Inverted)" {
+      description """
+      Stores a `value` as an `int` value at the provided `dest` address.
+      Asserts that `value` is not `undefnat` (`0xFFFF_FFFF`).
+
+      Stack operand order corresponds to post-computing the `dest` address.
+      """
+
+      operands {}
+      stack_before {
+        dest "addrint" { description "Address to store value at." }
+        value "nat4" { description "Value to store." }
+      }
+      stack_after {}
+      exceptions {
+        Quit (quit_exception).uninit_value {
+          description """
+          When `value` is `undefnat` (`0xFFFF_FFFF`).
+          """
+        }
+      }
+    }
+
+    ASNNAT1 0x1D "Assign Nat1 Value" {
+      description """
+      Stores a `value` as a `nat1` value at the provided `dest` address.
+      Asserts that `value` is representable as a `nat1` (i.e. it is within the range `[0..255]`).
+      """
+
+      operands {}
+      stack_before {
+        value "nat4" { description "Value to store." }
+        dest "addrint" { description "Address to store value at." }
+      }
+      stack_after {}
+      exceptions {
+        Quit (quit_exception).assignment_out_of_range {
+          description """
+          When `value` is outside of the range of `[0..255]`.
+          """
+        }
+      }
+    }
+
+    ASNNAT1INV 0x1E "Assign Nat1 Value (Inverted)" {
+      description """
+      Stores a `value` as a `nat1` value at the provided `dest` address.
+      Asserts that `value` is representable as a `nat1` (i.e. it is within the range `[0..255]`).
+
+      Stack operand order corresponds to post-computing the `dest` address.
+      """
+
+      operands {}
+      stack_before {
+        dest "addrint" { description "Address to store value at." }
+        value "nat4" { description "Value to store." }
+      }
+      stack_after {}
+      exceptions {
+        Quit (quit_exception).assignment_out_of_range {
+          description """
+          When `value` is outside of the range of `[0..255]`.
+          """
+        }
+      }
+    }
+
+    ASNNAT2 0x1F "Assign Int2 Value" {
+      description """
+      Stores a `value` as a `nat2` value at the provided `dest` address.
+      Asserts that `value` is representable as a `nat2` (i.e. it is within the range `[0..65535]`).
+      """
+
+      operands {}
+      stack_before {
+        value "nat4" { description "Value to store." }
+        dest "addrint" { description "Address to store value at." }
+      }
+      stack_after {}
+      exceptions {
+        Quit (quit_exception).assignment_out_of_range {
+          description """
+          When `value` is outside of the range of `[-32768..32767]`.
+          """
+        }
+      }
+    }
+
+    ASNNAT2INV 0x20 "Assign Int2 Value (Inverted)" {
+      description """
+      Stores a `value` as an `nat2` value at the provided `dest` address.
+      Asserts that `value` is representable as an `nat2` (i.e. it is within the range `[0..65535]`).
+
+      Stack operand order corresponds to post-computing the `dest` address.
+      """
+
+      operands {}
+      stack_before {
+        dest "addrint" { description "Address to store value at." }
+        value "nat4" { description "Value to store." }
+      }
+      stack_after {}
+      exceptions {
+        Quit (quit_exception).assignment_out_of_range {
+          description """
+          When `value` is outside of the range of `[0..65535]`.
+          """
+        }
+      }
+    }
+
+    ASNNAT4 0x21 "Assign Nat4 Value" {
+      description """
+      Stores a `value` as a `nat4` value at the provided `dest` address.
+      Unlike [**ASNNAT**], this does not perform uninit checking.
+
+      [**ASNNAT**]: Opcode::ASNNAT
+      """
+
+      operands {}
+      stack_before {
+        value "nat4" { description "Value to store." }
+        dest "addrint" { description "Address to store value at." }
+      }
+      stack_after {}
+    }
+
+    ASNNAT4INV 0x22 "Assign Nat4 Value (Inverted)" {
+      description """
+      Stores a `value` as an `nat4` value at the provided `dest` address.
+      Unlike [**ASNNATINV**], this does not perform uninit checking.
+
+      Stack operand order corresponds to post-computing the `dest` address.
+
+      [**ASNNATINV**]: Opcode::ASNNATINV
+      """
+
+      operands {}
+      stack_before {
+        dest "addrint" { description "address to store value at." }
+        value "nat4" { description "Value to store." }
+      }
+      stack_after {}
+    }
+
+    ASNNONSCALAR 0x23 "Assign Non-Scalar Value" {
+      description """
+      Copies `length` bytes from `src` to `dest`.
+      """
+
+      operands {
+        length "nat4" { description "Number of bytes to copy." }
+      }
+      stack_before {
+        src "addrint" { description "Address to copy bytes from." }
+        dest "addrint" { description "Address to store bytes to." }
+      }
+      stack_after {}
+    }
+
+    ASNNONSCALARINV 0x24 "Assign Non-Scalar Value (Inverted)" {
+      description """
+      Copies `length` bytes from `src` to `dest`.
+
+      Stack operand order corresponds to post-computing the `dest` address.
+      """
+
+      operands {
+        length "nat4" { description "Number of bytes to copy." }
+      }
+      stack_before {
+        dest "addrint" { description "Address to store bytes to." }
+        src "addrint" { description "Address to copy bytes from." }
+      }
+      stack_after {}
+    }
+
+    ASNPTR 0x25 "Assign Checked Pointer Value" {
+      description """
+      Copies the address stored in pointer descriptor information from `src` to `dest`'s pointer descriptor.
+      If `src` does not point to a `nil` (`0x0`) address, additional metadata is copied to `dest` from the pointed-to heap allocation (e.g. the generation cookie).
+      """
+
+      stack_before {
+        src "addrint" { description "Address to copy pointer descriptor from." }
+        dest "addrint" { description "Address to store pointer descriptor to." }
+      }
+      stack_after {}
+    }
+
+    ASNPTRINV 0x26 "Assign Checked Pointer Value (Inverted)" {
+      description """
+      Copies the address stored in pointer descriptor information from `src` to `dest`'s pointer descriptor.
+      If `src` does not point to a `nil` (`0x0`) address, additional metadata is copied to `dest` from the pointed-to heap allocation (e.g. the generation cookie).
+      """
+
+      stack_before {
+        src "addrint" { description "Address to copy pointer descriptor from." }
+        dest "addrint" { description "Address to store pointer descriptor to." }
+      }
+      stack_after {}
+    }
+    
+    ASNREAL 0x27 "Assign Real Value" {
+      description """
+      Stores a `value` as a `real` value at the provided `dest` address.
+      Does not perform uninit checking.
+      """
+
+      operands {}
+      stack_before {
+        value "real8" { description "Value to store." }
+        dest "addrint" { description "Address to store value at." }
+      }
+      stack_after {}
+    }
+
+    ASNREALINV 0x28 "Assign Real Value (Inverted)" {
+      description """
+      Stores a `value` as a `real` value at the provided `dest` address.
+      Does not perform uninit checking.
+
+      Stack operand order corresponds to post-computing the `dest` address.
+      """
+
+      operands {}
+      stack_before {
+        dest "addrint" { description "Address to store value at." }
+        value "real8" { description "Value to store." }
+      }
+      stack_after {}
+    }
+
+    ASNREAL4 0x29 "Assign Real4 Value" {
+      description """
+      Stores a `value` as a `real4` value at the provided `dest` address.
+      Applies a narrowing cast to `real8` to convert the value into the equivalent `real4` representation.
+      """
+
+      operands {}
+      stack_before {
+        value "real8" { description "Value to store." }
+        dest "addrint" { description "Address to store value at." }
+      }
+      stack_after {}
+    }
+
+    ASNREAL4INV 0x2A "Assign Real4 Value (Inverted)" {
+      description """
+      Stores a `value` as a `real4` value at the provided `dest` address.
+      Applies a narrowing cast to `real8` to convert the value into the equivalent `real4` representation.
+
+      Stack operand order corresponds to post-computing the `dest` address.
+      """
+
+      operands {}
+      stack_before {
+        dest "addrint" { description "Address to store value at." }
+        value "real8" { description "Value to store." }
+      }
+      stack_after {}
+    }
+
+    ASNREAL8 0x2B "Assign Real8 Value" {
+      description """
+      Stores a `value` as a `real8` value at the provided `dest` address.
+      Does not perform uninit checking.
+      """
+
+      operands {}
+      stack_before {
+        value "real8" { description "Value to store." }
+        dest "addrint" { description "Address to store value at." }
+      }
+      stack_after {}
+    }
+    
+    ASNREAL8INV 0x2C "Assign Real8 Value (Inverted)" {
+      description """
+      Stores a `value` as a `real8` value at the provided `dest` address.
+      Does not perform uninit checking.
+
+      Stack operand order corresponds to post-computing the `dest` address.
+      """
+
+      operands {}
+      stack_before {
+        dest "addrint" { description "Address to store value at." }
+        value "real8" { description "Value to store." }
+      }
+      stack_after {}
+    }
+
+    ASNSTR 0x2D "Assign String Value" {
+      description """
+      Copies up to `max_length` string bytes from `src` to `dest`.
+      Asserts that the string byte length of `src` is less than or equal to `max_length`.
+      Does not perform uninit checking.
+      """
+
+      stack_before {
+        max_length "nat4" { description "Maximum string bytes that can be stored in `dest`." }
+        src "addrint" { description "Address to copy string bytes from." }
+        dest "addrint" { description "Address to store string bytes to." }
+      }
+      stack_after {}
+      exceptions {
+        Quit (quit_exception).string_value_too_long {
+          description """
+          When the string byte length of `src` is greater than `max_length`.
+          """
+        }
+      }
+    }
+
+    ASNSTRINV 0x2E "Assign String Value (Inverted)" {
+      description """
+      Copies up to `max_length` string bytes from `src` to `dest`.
+      Asserts that the string byte length of `src` is less than or equal to `max_length`.
+      Does not perform uninit checking.
+
+      Stack operand order corresponds to post-computing the `dest` address.
+      """
+
+      stack_before {
+        max_length "nat4" { description "Maximum string bytes that can be stored in `dest`." }
+        dest "addrint" { description "Address to store string bytes to." }
+        src "addrint" { description "Address to copy string bytes from." }
+      }
+      stack_after {}
+      exceptions {
+        Quit (quit_exception).string_value_too_long {
+          description """
+          When the string byte length of `src` is greater than `max_length`.
+          """
+        }
+      }
     }
   }
 
@@ -510,6 +1090,14 @@ instructions {
     stack_before {}
     stack_after {
       return_addr "addrint" { description "Return address." }
+    }
+    exceptions {
+      Quit (quit_exception).uninit_value {
+        description "When the call address is `undefaddr` (`0xFFFF_FFFF`)."
+      }
+      ExecutionError "Deferred subroutine has not been resolved" {
+        description "When the call address is `nil` (`0x0`)."
+      }
     }
   }
 
@@ -1343,6 +1931,62 @@ instructions {
     // TODO: stack effect of computed nat1 allocation
   }
 
+  INFIXAND 0x7F "Infix And" {
+    description """
+    Branches execution if `value` is zero (i.e. false), otherwise leaves `value` on the stack.
+    This is equivalent to the short-circuiting infix boolean `and` operator.
+    """
+
+    operands {
+      offset "offset" { description "Offset to jump forward by if `test` is zero, in bytes." }
+    }
+    stack_before {
+      value "int4" {
+        description """
+        Value to test if the branch should be taken.
+        """
+      }
+    }
+    stack_after {
+      value "int4" {
+        description """
+        Preserved value to test if the branch was not taken.
+        """
+        preserves-if (stack_before).value {
+          "==" (stack_before).value 0
+        }
+      }
+    }
+  }
+
+  INFIXOR 0x80 "Infix Or" {
+    description """
+    Branches execution if `value` is non-zero (i.e. true), otherwise leaves `value` on the stack.
+    This is equivalent to the short-circuiting infix boolean `or` operator.
+    """
+
+    operands {
+      offset "offset" { description "Offset to jump forward by if `test` is non-zero, in bytes." }
+    }
+    stack_before {
+      value "int4" {
+        description """
+        Value to test if the branch should be taken.
+        """
+      }
+    }
+    stack_after {
+      value "int4" {
+        description """
+        Preserved value to test if the branch was not taken.
+        """
+        preserves-if (stack_before).value {
+          "!=" (stack_before).value 0
+        }
+      }
+    }
+  }
+
   group "Compare Less or Equal" {
     description """
     Tests if `lhs` is less than or equal to `rhs`, putting the compare result in `compare`.
@@ -1959,6 +2603,162 @@ instructions {
       operands {
         line_no "nat2" { description "Line number to set location to." }
       }
+    }
+  }
+
+  SETSTDSTREAM 0xD8 "Set Standard I/O Stream" {
+    description """
+    Retrieves the standard I/O handle for `kind` and stores it in `dest`.
+    Depending on the I/O redirection settings, this may differ from the standard stream handle numbers.
+    """
+
+    operands {
+      kind "std_stream_kind" { description "Which standard stream handle to retrieve." }
+    }
+    stack_before {
+      dest "addrint" { description "Address to store the stream handle to." }
+    }
+    stack_after {}
+  }
+
+  SETSTREAM 0xD9 "Set Stream Information" {
+    description """
+    Prepares for future stream operations on `stream_handle`, setting up the `stream_status` and opening the stream if necessary.
+    `kind` indicates what stream operation to open the stream for if the stream is not open yet.
+
+    Asserts that `stream_handle` is less than or equal to `maxstreamno` and greater than or equal to `stdoutstream` (`-2`).
+    """
+
+    operands {
+      kind "stream_kind" { description "Which operation to prepare the stream for." }
+    }
+    stack_before {
+      save_status "addrint" { description "Address to save the new stream status address to." }
+      save_handle "addrint" { description "Address to save the new stream handle to." }
+      stream_status "addrint" { description "Where to store the status of future stream operations." }
+      stream_handle "int4" { description "Which stream to perform future operations on." }
+    }
+    stack_after {}
+    exceptions {
+      ExecutionError "I/O attempted on illegal stream number {stream_handle}" {
+        description "When `stream_handle` is outside the range of `[-2..maxstreamno]`."
+      }
+    }
+  }
+
+  SHL 0xDA "Arithmetic Shift Left" {
+    description """
+    Applies an arithmetic left bit-shift on `value`.
+    Asserts that the computed value is representable as a `nat4`.
+    """
+
+    operands {}
+    stack_before {
+      shift "nat4" { description "How many bits to shift by." }
+      value "nat4" { description "The value to apply the bit-shift to." }
+    }
+    stack_after {
+      out "nat4" { description "The result of the bit-shift operation." }
+    }
+    exceptions {
+      Quit (quit_code).integer_overflow {
+        description """
+        When the computed value is greater than can what be represented by a `nat4`.
+        """
+      }
+    }
+  }
+
+  SHR 0xDB "Arithmetic Shift Right" {
+    description """
+    Applies an arithmetic right bit-shift on `value` by copying empty positions with the sign bit.
+    """
+
+    operands {}
+    stack_before {
+      shift "nat4" { description "How many bits to shift by." }
+      value "nat4" { description "The value to apply the bit-shift to." }
+    }
+    stack_after {
+      out "nat4" { description "The result of the bit-shift operation." }
+    }
+  }
+
+  group "Mark as Uninitialized" {
+    description """
+    Marks an address as containing an uninitialized value, either storing a single value or following an uninitialization pattern.
+    """
+
+    UNINITADDR 0xF0 "Mark Uninitialized Address" {
+      description """
+      Stores `undefaddr` (`0xFFFF_FFFF`) to `dest`.
+      """
+
+      operands {}
+      stack_before {
+        dest "addrint" { description "Address to mark as having an uninitialized value." }
+      }
+      stack_after {}
+    }
+
+    UNINITBOOLEAN 0xF1 "Mark Uninitialized Boolean" {
+      description """
+      Stores `undefbool` (`0xFF`) to `dest`.
+      """
+
+      operands {}
+      stack_before {
+        dest "addrint" { description "Address to mark as having an uninitialized value." }
+      }
+      stack_after {}
+    }
+
+    UNINITINT 0xF2 "Mark Uninitialized Integer" {
+      description """
+      Stores `undefint` (`0x8000_0000`) to `dest`.
+      """
+
+      operands {}
+      stack_before {
+        dest "addrint" { description "Address to mark as having an uninitialized value." }
+      }
+      stack_after {}
+    }
+
+    UNINITNAT 0xF3 "Mark Uninitialized Natural" {
+      description """
+      Stores `undefnat` (`0xFFFF_FFFF`) to `dest`.
+      """
+
+      operands {}
+      stack_before {
+        dest "addrint" { description "Address to mark as having an uninitialized value." }
+      }
+      stack_after {}
+    }
+
+    UNINITREAL 0xF4 "Mark Uninitialized Real" {
+      description """
+      Stores `undefreal` (`0x8000_0000_8000_0000`) to `dest`.
+      """
+
+      operands {}
+      stack_before {
+        dest "addrint" { description "Address to mark as having an uninitialized value." }
+      }
+      stack_after {}
+    }
+
+    UNINITSTR 0xF5 "Mark Uninitialized String" {
+      description """
+      Stores an end-of-string marker (`0x80`) followed by a nul terminator byte (`0x00`) to `dest`.
+      """
+
+      operands {}
+      stack_before {
+        dest "addrint" { description "Address to mark as having an uninitialized value." }
+      }
+      stack_after {}
     }
   }
 

@@ -16,10 +16,10 @@ use turing_bytecode::{
         BytecodeBlob, BytecodeBuilder, CodeOffset, CodeUnitRef, LocalSlot, Procedure,
         ProcedureBuilder, ProcedureRef, RelocHandle, RelocTarget, TemporarySlot,
     },
-    instruction::{AbortReason, CheckKind, RelocatableOffset},
+    instruction::{AbortReason, CheckKind, PutKind, RelocatableOffset, StdStreamKind, StreamKind},
 };
 
-use crate::instruction::{ForDescriptor, Opcode, StdStream, StreamKind};
+use crate::instruction::{ForDescriptor, Opcode};
 
 mod instruction;
 
@@ -159,6 +159,8 @@ pub fn generate_code(db: &dyn CodeGenDB) -> CompileResult<Option<BytecodeBlob>> 
             );
         }
 
+        main_unit.submit_manifest_section(std::mem::take(&mut cctx.manifest_allocator).finish());
+
         // Indirectly resolve externals
         for (proc, relocs) in std::mem::take(&mut cctx.procedure_relocs) {
             for (external_def, proc_relocs) in relocs {
@@ -203,6 +205,7 @@ pub fn generate_code(db: &dyn CodeGenDB) -> CompileResult<Option<BytecodeBlob>> 
             let id = proc.id();
 
             let reloc = proc.reloc(|ins| ins.pushaddr1(RelocatableOffset::empty()));
+            proc.ins().call(0);
             proc.ins().return_();
             main_unit.submit_procedure(entry_point_proc.finish());
 
@@ -244,7 +247,11 @@ pub fn generate_code(db: &dyn CodeGenDB) -> CompileResult<Option<BytecodeBlob>> 
         unreachable!()
     }
 
-    res.map(|_| Some(cctx.blob.finish()))
+    let blob = cctx.blob.finish();
+
+    eprintln!("generated blob: {blob:#x?}");
+
+    res.map(|_| Some(blob))
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -547,31 +554,20 @@ impl BodyCodeGenerator<'_> {
         self.coerce_expr_into(rhs_ty, coerce_to);
     }
 
-    #[allow(unused)]
-    fn generate_stmt_put(&mut self, stmt: &hir_stmt::Put) {
-        todo!()
-    }
-
-    #[cfg(any())]
     fn generate_stmt_put(&mut self, stmt: &hir_stmt::Put) {
         // Steps
         // We're only concerned with stdout emission_ty
 
         let old_scope = self.proc.enter_temporary_scope();
 
-        let stream_handle = self.generate_set_stream(
-            stmt.stream_num,
-            None,
-            StdStream::Stdout(),
-            StreamKind::Put(),
-        );
+        let stream_handle = self.generate_set_stream(stmt.stream_num, None, StreamKind::Put);
 
         for item in &stmt.items {
             let item = match item {
                 hir_stmt::Skippable::Skip => {
                     // Emit stream handle reference
-                    self.code_fragment.emit_locate_temp(stream_handle);
-                    self.code_fragment.emit_opcode(Opcode::PUT(PutKind::Skip()));
+                    self.proc.locate_temporary(stream_handle);
+                    self.proc.ins().put(PutKind::Skip);
                     continue;
                 }
                 hir_stmt::Skippable::Item(put_item) => put_item,
@@ -583,37 +579,25 @@ impl BodyCodeGenerator<'_> {
                 .to_base_type(self.db.up());
 
             let put_kind = match put_ty.kind(self.db.up()) {
-                ty::TypeKind::Boolean => PutKind::Boolean(),
-                ty::TypeKind::Integer | ty::TypeKind::Int(_) => {
-                    if item.opts.exponent_width().is_some() {
-                        PutKind::IntExp()
-                    } else if item.opts.precision().is_some() {
-                        PutKind::IntFract()
-                    } else {
-                        PutKind::Int()
-                    }
+                ty::TypeKind::Boolean => PutKind::Boolean,
+                ty::TypeKind::Integer | ty::TypeKind::Int(_)
+                    if item.opts.exponent_width().is_some() =>
+                {
+                    PutKind::IntExp
                 }
-                ty::TypeKind::Nat(_) => {
-                    if item.opts.exponent_width().is_some() {
-                        PutKind::NatExp()
-                    } else if item.opts.precision().is_some() {
-                        PutKind::NatFract()
-                    } else {
-                        PutKind::Nat()
-                    }
+                ty::TypeKind::Integer | ty::TypeKind::Int(_) if item.opts.precision().is_some() => {
+                    PutKind::IntFract
                 }
-                ty::TypeKind::Real(_) => {
-                    if item.opts.exponent_width().is_some() {
-                        PutKind::RealExp()
-                    } else if item.opts.precision().is_some() {
-                        PutKind::RealFract()
-                    } else {
-                        PutKind::Real()
-                    }
-                }
-                ty::TypeKind::Char => PutKind::Char(),
-                ty::TypeKind::String | ty::TypeKind::StringN(_) => PutKind::String(),
-                ty::TypeKind::CharN(_) => PutKind::CharN(),
+                ty::TypeKind::Integer | ty::TypeKind::Int(_) => PutKind::Int,
+                ty::TypeKind::Nat(_) if item.opts.exponent_width().is_some() => PutKind::NatExp,
+                ty::TypeKind::Nat(_) if item.opts.precision().is_some() => PutKind::NatFract,
+                ty::TypeKind::Nat(_) => PutKind::Nat,
+                ty::TypeKind::Real(_) if item.opts.exponent_width().is_some() => PutKind::RealExp,
+                ty::TypeKind::Real(_) if item.opts.precision().is_some() => PutKind::RealFract,
+                ty::TypeKind::Real(_) => PutKind::Real,
+                ty::TypeKind::Char => PutKind::Char,
+                ty::TypeKind::String | ty::TypeKind::StringN(_) => PutKind::String,
+                ty::TypeKind::CharN(_) => PutKind::CharN,
                 // TODO: Add case for enums
                 _ => unreachable!(),
             };
@@ -628,7 +612,7 @@ impl BodyCodeGenerator<'_> {
                     .expect("const should succeed and not be dyn");
                 let length = length.into_u32().expect("should be int representable");
 
-                self.code_fragment.emit_opcode(Opcode::PUSHINT(length));
+                self.proc.ins().pushint(length as i32);
             }
 
             // Deal with the put opts
@@ -639,25 +623,27 @@ impl BodyCodeGenerator<'_> {
                 self.proc.ins().pushval0();
             }
 
-            if let (Some(fract_width), true) = (item.opts.precision(), put_kind.has_fract_opt()) {
+            if let (Some(fract_width), true) =
+                (item.opts.precision(), put_kind.has_fractional_width())
+            {
                 self.generate_expr(fract_width);
             }
 
             if let (Some(exp_width), true) =
-                (item.opts.exponent_width(), put_kind.has_exp_width_opt())
+                (item.opts.exponent_width(), put_kind.has_fractional_width())
             {
                 self.generate_expr(exp_width);
             }
 
             // Emit stream handle reference
-            self.code_fragment.emit_locate_temp(stream_handle);
-            self.code_fragment.emit_opcode(Opcode::PUT(put_kind));
+            self.proc.locate_temporary(stream_handle);
+            self.proc.ins().put(put_kind);
         }
 
         if stmt.append_newline {
             // Emit newline
-            self.code_fragment.emit_locate_temp(stream_handle);
-            self.code_fragment.emit_opcode(Opcode::PUT(PutKind::Skip()));
+            self.proc.locate_temporary(stream_handle);
+            self.proc.ins().put(PutKind::Skip);
         }
 
         self.proc.leave_temporary_scope(old_scope);
@@ -742,23 +728,10 @@ impl BodyCodeGenerator<'_> {
         }
     }
 
-    #[allow(unused)]
     fn generate_set_stream(
         &mut self,
         stream_num: Option<hir_expr::ExprId>,
         status_expr: Option<hir_expr::ExprId>,
-        default_stream: StdStream,
-        op: StreamKind,
-    ) -> TemporarySlot {
-        todo!()
-    }
-
-    #[cfg(any())]
-    fn generate_set_stream(
-        &mut self,
-        stream_num: Option<hir_expr::ExprId>,
-        status_expr: Option<hir_expr::ExprId>,
-        default_stream: StdStream,
         op: StreamKind,
     ) -> TemporarySlot {
         // Make a temporary to store the stream handle
@@ -771,23 +744,25 @@ impl BodyCodeGenerator<'_> {
             // Use this stream as the target
             self.generate_expr(stream_num);
             if let Some(_status_expr) = status_expr {
-                todo!();
+                unimplemented!("need to guarantee we generate a place expression");
             } else {
-                // self.proc.ins().pushval0()
-                self.code_fragment.emit_opcode(Opcode::PUSHADDR(0)); // no place to store status
+                // No place to store status
+                self.proc.ins().pushval0();
             }
 
             // References to the temporary store
-            self.code_fragment.emit_locate_temp(stream_handle);
-            self.code_fragment.emit_locate_temp(status_var);
+            self.proc.locate_temporary(stream_handle);
+            self.proc.locate_temporary(status_var);
 
-            self.code_fragment.emit_opcode(Opcode::SETSTREAM(op));
+            self.proc.ins().setstream(op);
         } else {
-            self.code_fragment.emit_locate_temp(stream_handle);
+            let kind: StdStreamKind = op
+                .try_into()
+                .expect("operation does not have a matching standard stream");
+            self.proc.locate_temporary(stream_handle);
 
             // Use stdout as the target stream
-            self.code_fragment
-                .emit_opcode(Opcode::SETSTDSTREAM(default_stream));
+            self.proc.ins().setstdstream(kind);
         }
 
         stream_handle
@@ -833,7 +808,7 @@ impl BodyCodeGenerator<'_> {
         self.proc.locate_temporary(descriptor_slot);
         self.proc.branch(|ins| ins.for_(0), after_loop);
 
-        let loop_start = self.proc.make_unanchored_label();
+        let loop_start = self.proc.make_label();
         {
             // Have a fixed location for the branch to go to
             self.emit_absolute_location();
@@ -1103,7 +1078,7 @@ impl BodyCodeGenerator<'_> {
                 def_ty.display(self.db.up())
             );
             self.proc.locate_local(local_slot);
-            self.generate_assign_uninit(def_ty);
+            self.emit_assign_uninit(def_ty);
         }
     }
 
@@ -1418,16 +1393,16 @@ impl BodyCodeGenerator<'_> {
                 self.generate_expr(expr.rhs);
                 self.proc.ins().xor();
             }
-            // hir_expr::BinaryOp::Shl => {
-            //     self.generate_expr(expr.lhs);
-            //     self.generate_expr(expr.rhs);
-            //     Opcode::SHL()
-            // }
-            // hir_expr::BinaryOp::Shr => {
-            //     self.generate_expr(expr.lhs);
-            //     self.generate_expr(expr.rhs);
-            //     Opcode::SHR()
-            // }
+            hir_expr::BinaryOp::Shl => {
+                self.generate_expr(expr.lhs);
+                self.generate_expr(expr.rhs);
+                self.proc.ins().shl();
+            }
+            hir_expr::BinaryOp::Shr => {
+                self.generate_expr(expr.lhs);
+                self.generate_expr(expr.rhs);
+                self.proc.ins().shr();
+            }
             hir_expr::BinaryOp::Less | hir_expr::BinaryOp::GreaterEq => {
                 self.coerce_to_same(expr, lhs_ty.kind(self.db.up()), rhs_ty.kind(self.db.up()));
 
@@ -1797,54 +1772,67 @@ impl BodyCodeGenerator<'_> {
         }
     }
 
-    #[allow(unused)]
     fn emit_assign_op(&mut self, into_ty: ty::TypeId, order: AssignOrder) {
-        todo!()
-    }
-
-    #[cfg(any())]
-    fn generate_assign(&mut self, into_ty: ty::TypeId, order: AssignOrder) {
         let into_tyref = into_ty;
 
-        let (pre, post) = match into_tyref.kind(self.db.up()) {
-            ty::TypeKind::Boolean => (Opcode::ASNINT1(), Opcode::ASNINT1INV()),
-            ty::TypeKind::Int(ty::IntSize::Int1) => (Opcode::ASNINT1(), Opcode::ASNINT1INV()),
-            ty::TypeKind::Int(ty::IntSize::Int2) => (Opcode::ASNINT2(), Opcode::ASNINT2INV()),
-            ty::TypeKind::Int(ty::IntSize::Int4) => (Opcode::ASNINT4(), Opcode::ASNINT4INV()),
-            ty::TypeKind::Int(ty::IntSize::Int) => (Opcode::ASNINT(), Opcode::ASNINTINV()),
-            ty::TypeKind::Nat(ty::NatSize::Nat1) => (Opcode::ASNNAT1(), Opcode::ASNNAT1INV()),
-            ty::TypeKind::Nat(ty::NatSize::Nat2) => (Opcode::ASNNAT2(), Opcode::ASNNAT2INV()),
-            ty::TypeKind::Nat(ty::NatSize::Nat4) => (Opcode::ASNNAT4(), Opcode::ASNNAT4INV()),
-            ty::TypeKind::Nat(ty::NatSize::Nat) => (Opcode::ASNNAT(), Opcode::ASNNATINV()),
-            ty::TypeKind::Nat(ty::NatSize::AddressInt) => (Opcode::ASNADDR(), Opcode::ASNADDRINV()),
-            ty::TypeKind::Real(ty::RealSize::Real4) => (Opcode::ASNREAL4(), Opcode::ASNREAL4INV()),
-            ty::TypeKind::Real(ty::RealSize::Real8) => (Opcode::ASNREAL8(), Opcode::ASNREAL8INV()),
-            ty::TypeKind::Real(ty::RealSize::Real) => (Opcode::ASNREAL(), Opcode::ASNREALINV()),
+        enum AssignKind {
+            Addr,
+            Int,
+            Int1,
+            Int2,
+            Int4,
+            Nat,
+            Nat1,
+            Nat2,
+            Nat4,
+            Real,
+            Real4,
+            Real8,
+            NonScalar(u32),
+            Str,
+        }
+
+        let kind = match into_tyref.kind(self.db.up()) {
+            ty::TypeKind::Boolean => AssignKind::Int1,
+            ty::TypeKind::Int(ty::IntSize::Int1) => AssignKind::Int1,
+            ty::TypeKind::Int(ty::IntSize::Int2) => AssignKind::Int2,
+            ty::TypeKind::Int(ty::IntSize::Int4) => AssignKind::Int4,
+            ty::TypeKind::Int(ty::IntSize::Int) => AssignKind::Int,
+            ty::TypeKind::Nat(ty::NatSize::Nat1) => AssignKind::Nat1,
+            ty::TypeKind::Nat(ty::NatSize::Nat2) => AssignKind::Nat2,
+            ty::TypeKind::Nat(ty::NatSize::Nat4) => AssignKind::Nat4,
+            ty::TypeKind::Nat(ty::NatSize::Nat) => AssignKind::Nat,
+            ty::TypeKind::Nat(ty::NatSize::AddressInt) => AssignKind::Addr,
+            ty::TypeKind::Real(ty::RealSize::Real4) => AssignKind::Real4,
+            ty::TypeKind::Real(ty::RealSize::Real8) => AssignKind::Real8,
+            ty::TypeKind::Real(ty::RealSize::Real) => AssignKind::Real,
             ty::TypeKind::Integer => unreachable!("type should be concrete"),
-            ty::TypeKind::Char => (Opcode::ASNINT1(), Opcode::ASNINT1INV()),
+            ty::TypeKind::Char => AssignKind::Int1,
             ty::TypeKind::CharN(_) => {
                 let storage_size = into_tyref.size_of(self.db.up()).expect("not dyn") as u32;
-                (
-                    Opcode::ASNNONSCALAR(storage_size),
-                    Opcode::ASNNONSCALARINV(storage_size),
-                )
+                AssignKind::NonScalar(storage_size)
             }
             ty::TypeKind::String | ty::TypeKind::StringN(_) => {
-                // Push corresponding storage size
-                let char_len = into_tyref
+                // Push storage size (is always the first stack operand for asnstr)
+                let char_len: u32 = into_tyref
                     .length_of(self.db.up())
-                    .expect("should not be dyn");
-                self.code_fragment
-                    .emit_opcode(Opcode::PUSHINT(char_len.try_into().expect("not a u32")));
-                (Opcode::ASNSTR(), Opcode::ASNSTRINV())
+                    .expect("should not be dyn")
+                    .try_into()
+                    .expect("length too large");
+                self.proc.ins().pushint(char_len as i32);
+
+                AssignKind::Str
             }
-            ty::TypeKind::Opaque(_, ty) => return self.generate_assign(*ty, order), // defer to the opaque type
+            ty::TypeKind::Opaque(_, ty) => {
+                // defer to the opaque type
+                return self.emit_assign_op(*ty, order);
+            }
             ty::TypeKind::Constrained(..) => unimplemented!(),
             ty::TypeKind::Array(..) => unimplemented!(),
             ty::TypeKind::Enum(..) => unimplemented!(),
             ty::TypeKind::Set(..) => unimplemented!(),
             ty::TypeKind::Pointer(..) => unimplemented!(),
-            ty::TypeKind::Subprogram(..) => (Opcode::ASNADDR(), Opcode::ASNADDRINV()),
+            ty::TypeKind::Subprogram(..) => AssignKind::Addr,
             ty::TypeKind::Error
             | ty::TypeKind::Forward
             | ty::TypeKind::Alias(_, _)
@@ -1853,32 +1841,72 @@ impl BodyCodeGenerator<'_> {
             }
         };
 
-        let opcode = match order {
-            AssignOrder::Precomputed => pre,
-            AssignOrder::Postcomputed => post,
-        };
-
-        self.code_fragment.emit_opcode(opcode);
-    }
-
-    fn generate_assign_uninit(&mut self, _uninit_ty: ty::TypeId) {
-        todo!()
+        match order {
+            AssignOrder::Precomputed => match kind {
+                AssignKind::Addr => _ = self.proc.ins().asnaddr(),
+                AssignKind::Int => _ = self.proc.ins().asnint(),
+                AssignKind::Int1 => _ = self.proc.ins().asnint1(),
+                AssignKind::Int2 => _ = self.proc.ins().asnint2(),
+                AssignKind::Int4 => _ = self.proc.ins().asnint4(),
+                AssignKind::Nat => _ = self.proc.ins().asnnat(),
+                AssignKind::Nat1 => _ = self.proc.ins().asnnat1(),
+                AssignKind::Nat2 => _ = self.proc.ins().asnnat2(),
+                AssignKind::Nat4 => _ = self.proc.ins().asnnat4(),
+                AssignKind::Real => _ = self.proc.ins().asnreal(),
+                AssignKind::Real4 => _ = self.proc.ins().asnreal4(),
+                AssignKind::Real8 => _ = self.proc.ins().asnreal8(),
+                AssignKind::NonScalar(size) => _ = self.proc.ins().asnnonscalar(size),
+                AssignKind::Str => _ = self.proc.ins().asnstr(),
+            },
+            AssignOrder::Postcomputed => match kind {
+                AssignKind::Addr => _ = self.proc.ins().asnaddrinv(),
+                AssignKind::Int => _ = self.proc.ins().asnintinv(),
+                AssignKind::Int1 => _ = self.proc.ins().asnint1inv(),
+                AssignKind::Int2 => _ = self.proc.ins().asnint2inv(),
+                AssignKind::Int4 => _ = self.proc.ins().asnint4inv(),
+                AssignKind::Nat => _ = self.proc.ins().asnnatinv(),
+                AssignKind::Nat1 => _ = self.proc.ins().asnnat1inv(),
+                AssignKind::Nat2 => _ = self.proc.ins().asnnat2inv(),
+                AssignKind::Nat4 => _ = self.proc.ins().asnnat4inv(),
+                AssignKind::Real => _ = self.proc.ins().asnrealinv(),
+                AssignKind::Real4 => _ = self.proc.ins().asnreal4inv(),
+                AssignKind::Real8 => _ = self.proc.ins().asnreal8inv(),
+                AssignKind::NonScalar(size) => _ = self.proc.ins().asnnonscalarinv(size),
+                AssignKind::Str => _ = self.proc.ins().asnstrinv(),
+            },
+        }
     }
 
     // Expects a destination address to be present
-    #[cfg(any())]
-    fn generate_assign_uninit(&mut self, uninit_ty: ty::TypeId) {
-        let opcode = match uninit_ty.kind(self.db.up()) {
-            ty::TypeKind::Nat(ty::NatSize::AddressInt) => Opcode::UNINITADDR(),
-            ty::TypeKind::Boolean => Opcode::UNINITBOOLEAN(),
-            ty::TypeKind::Int(ty::IntSize::Int) => Opcode::UNINITINT(),
-            ty::TypeKind::Nat(ty::NatSize::Nat) => Opcode::UNINITNAT(),
-            ty::TypeKind::Real(ty::RealSize::Real) => Opcode::UNINITREAL(),
-            ty::TypeKind::String => Opcode::UNINITSTR(),
-            _ => unreachable!(),
+    fn emit_assign_uninit(&mut self, uninit_ty: ty::TypeId) {
+        enum ScalarUninit {
+            Addr,
+            Boolean,
+            Int,
+            Nat,
+            Real,
+            Str,
+        }
+
+        let kind = match uninit_ty.kind(self.db.up()) {
+            ty::TypeKind::Nat(ty::NatSize::AddressInt) => ScalarUninit::Addr,
+            ty::TypeKind::Boolean => ScalarUninit::Boolean,
+            ty::TypeKind::Int(ty::IntSize::Int) => ScalarUninit::Int,
+            ty::TypeKind::Nat(ty::NatSize::Nat) => ScalarUninit::Nat,
+            ty::TypeKind::Real(ty::RealSize::Real) => ScalarUninit::Real,
+            ty::TypeKind::String => ScalarUninit::Str,
+            ty::TypeKind::Subprogram(..) => ScalarUninit::Addr,
+            _ => unimplemented!(),
         };
 
-        self.code_fragment.emit_opcode(opcode);
+        match kind {
+            ScalarUninit::Addr => _ = self.proc.ins().uninitaddr(),
+            ScalarUninit::Boolean => _ = self.proc.ins().uninitboolean(),
+            ScalarUninit::Int => _ = self.proc.ins().uninitint(),
+            ScalarUninit::Nat => _ = self.proc.ins().uninitnat(),
+            ScalarUninit::Real => _ = self.proc.ins().uninitreal(),
+            ScalarUninit::Str => _ = self.proc.ins().uninitstr(),
+        }
     }
 
     fn generate_fetch_value(&mut self, fetch_ty: ty::TypeId) {

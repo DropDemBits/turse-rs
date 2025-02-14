@@ -20,8 +20,66 @@ pub enum Opcode {
     ADDREAL = 0x8,
     #[doc = "Bitwise And\n\nApplies a bitwise logical and operation between `lhs` and `rhs`, producing `out`."]
     AND = 0xF,
-    #[doc = "Assign Address Value (Inverted)\n\nStores a `value` as an `addrint` value at the provided `dest` address."]
+    #[doc = "Assign Address Value\n\nStores a `value` as an `addrint` value at the provided `dest` address."]
+    ASNADDR = 0x11,
+    #[doc = "Assign Address Value (Inverted)\n\nStores a `value` as an `addrint` value at the provided `dest` address.\n\nStack operand order corresponds to post-computing the `dest` address."]
     ASNADDRINV = 0x12,
+    #[doc = "Assign Integer Value\n\nStores a `value` as an `int` value at the provided `dest` address.\nAsserts that `value` is not `undefint` (`0x8000_0000`)."]
+    ASNINT = 0x13,
+    #[doc = "Assign Integer Value (Inverted)\n\nStores a `value` as an `int` value at the provided `dest` address.\nAsserts that `value` is not `undefint` (`0x8000_0000`).\n\nStack operand order corresponds to post-computing the `dest` address."]
+    ASNINTINV = 0x14,
+    #[doc = "Assign Int1 Value\n\nStores a `value` as an `int1` value at the provided `dest` address.\nAsserts that `value` is representable as an `int1` (i.e. it is within the range `[-128..127]`)."]
+    ASNINT1 = 0x15,
+    #[doc = "Assign Int1 Value (Inverted)\n\nStores a `value` as an `int1` value at the provided `dest` address.\nAsserts that `value` is representable as an `int1` (i.e. it is within the range `[-128..127]`).\n\nStack operand order corresponds to post-computing the `dest` address."]
+    ASNINT1INV = 0x16,
+    #[doc = "Assign Int2 Value\n\nStores a `value` as an `int2` value at the provided `dest` address.\nAsserts that `value` is representable as an `int2` (i.e. it is within the range `[-32768..32767]`)."]
+    ASNINT2 = 0x17,
+    #[doc = "Assign Int2 Value (Inverted)\n\nStores a `value` as an `int2` value at the provided `dest` address.\nAsserts that `value` is representable as an `int2` (i.e. it is within the range `[-32768..32767]`).\n\nStack operand order corresponds to post-computing the `dest` address."]
+    ASNINT2INV = 0x18,
+    #[doc = "Assign Int4 Value\n\nStores a `value` as an `int4` value at the provided `dest` address.\nUnlike [**ASNINT**], this does not perform uninit checking.\n\n[**ASNINT**]: Opcode::ASNINT"]
+    ASNINT4 = 0x19,
+    #[doc = "Assign Int4 Value (Inverted)\n\nStores a `value` as an `int4` value at the provided `dest` address.\nUnlike [**ASNINTINV**], this does not perform uninit checking.\n\nStack operand order corresponds to post-computing the `dest` address.\n\n[**ASNINTINV**]: Opcode::ASNINTINV"]
+    ASNINT4INV = 0x1A,
+    #[doc = "Assign Natural Value\n\nStores a `value` as a `nat` value at the provided `dest` address.\nAsserts that `value` is not `undefnat` (`0xFFFF_FFFF`)."]
+    ASNNAT = 0x1B,
+    #[doc = "Assign Natural Value (Inverted)\n\nStores a `value` as an `int` value at the provided `dest` address.\nAsserts that `value` is not `undefnat` (`0xFFFF_FFFF`).\n\nStack operand order corresponds to post-computing the `dest` address."]
+    ASNNATINV = 0x1C,
+    #[doc = "Assign Nat1 Value\n\nStores a `value` as a `nat1` value at the provided `dest` address.\nAsserts that `value` is representable as a `nat1` (i.e. it is within the range `[0..255]`)."]
+    ASNNAT1 = 0x1D,
+    #[doc = "Assign Nat1 Value (Inverted)\n\nStores a `value` as a `nat1` value at the provided `dest` address.\nAsserts that `value` is representable as a `nat1` (i.e. it is within the range `[0..255]`).\n\nStack operand order corresponds to post-computing the `dest` address."]
+    ASNNAT1INV = 0x1E,
+    #[doc = "Assign Int2 Value\n\nStores a `value` as a `nat2` value at the provided `dest` address.\nAsserts that `value` is representable as a `nat2` (i.e. it is within the range `[0..65535]`)."]
+    ASNNAT2 = 0x1F,
+    #[doc = "Assign Int2 Value (Inverted)\n\nStores a `value` as an `nat2` value at the provided `dest` address.\nAsserts that `value` is representable as an `nat2` (i.e. it is within the range `[0..65535]`).\n\nStack operand order corresponds to post-computing the `dest` address."]
+    ASNNAT2INV = 0x20,
+    #[doc = "Assign Nat4 Value\n\nStores a `value` as a `nat4` value at the provided `dest` address.\nUnlike [**ASNNAT**], this does not perform uninit checking.\n\n[**ASNNAT**]: Opcode::ASNNAT"]
+    ASNNAT4 = 0x21,
+    #[doc = "Assign Nat4 Value (Inverted)\n\nStores a `value` as an `nat4` value at the provided `dest` address.\nUnlike [**ASNNATINV**], this does not perform uninit checking.\n\nStack operand order corresponds to post-computing the `dest` address.\n\n[**ASNNATINV**]: Opcode::ASNNATINV"]
+    ASNNAT4INV = 0x22,
+    #[doc = "Assign Non-Scalar Value\n\nCopies `length` bytes from `src` to `dest`."]
+    ASNNONSCALAR = 0x23,
+    #[doc = "Assign Non-Scalar Value (Inverted)\n\nCopies `length` bytes from `src` to `dest`.\n\nStack operand order corresponds to post-computing the `dest` address."]
+    ASNNONSCALARINV = 0x24,
+    #[doc = "Assign Checked Pointer Value\n\nCopies the address stored in pointer descriptor information from `src` to `dest`'s pointer descriptor.\nIf `src` does not point to a `nil` (`0x0`) address, additional metadata is copied to `dest` from the pointed-to heap allocation (e.g. the generation cookie)."]
+    ASNPTR = 0x25,
+    #[doc = "Assign Checked Pointer Value (Inverted)\n\nCopies the address stored in pointer descriptor information from `src` to `dest`'s pointer descriptor.\nIf `src` does not point to a `nil` (`0x0`) address, additional metadata is copied to `dest` from the pointed-to heap allocation (e.g. the generation cookie)."]
+    ASNPTRINV = 0x26,
+    #[doc = "Assign Real Value\n\nStores a `value` as a `real` value at the provided `dest` address.\nDoes not perform uninit checking."]
+    ASNREAL = 0x27,
+    #[doc = "Assign Real Value (Inverted)\n\nStores a `value` as a `real` value at the provided `dest` address.\nDoes not perform uninit checking.\n\nStack operand order corresponds to post-computing the `dest` address."]
+    ASNREALINV = 0x28,
+    #[doc = "Assign Real4 Value\n\nStores a `value` as a `real4` value at the provided `dest` address.\nApplies a narrowing cast to `real8` to convert the value into the equivalent `real4` representation."]
+    ASNREAL4 = 0x29,
+    #[doc = "Assign Real4 Value (Inverted)\n\nStores a `value` as a `real4` value at the provided `dest` address.\nApplies a narrowing cast to `real8` to convert the value into the equivalent `real4` representation.\n\nStack operand order corresponds to post-computing the `dest` address."]
+    ASNREAL4INV = 0x2A,
+    #[doc = "Assign Real8 Value\n\nStores a `value` as a `real8` value at the provided `dest` address.\nDoes not perform uninit checking."]
+    ASNREAL8 = 0x2B,
+    #[doc = "Assign Real8 Value (Inverted)\n\nStores a `value` as a `real8` value at the provided `dest` address.\nDoes not perform uninit checking.\n\nStack operand order corresponds to post-computing the `dest` address."]
+    ASNREAL8INV = 0x2C,
+    #[doc = "Assign String Value\n\nCopies up to `max_length` string bytes from `src` to `dest`.\nAsserts that the string byte length of `src` is less than or equal to `max_length`.\nDoes not perform uninit checking."]
+    ASNSTR = 0x2D,
+    #[doc = "Assign String Value (Inverted)\n\nCopies up to `max_length` string bytes from `src` to `dest`.\nAsserts that the string byte length of `src` is less than or equal to `max_length`.\nDoes not perform uninit checking.\n\nStack operand order corresponds to post-computing the `dest` address."]
+    ASNSTRINV = 0x2E,
     #[doc = "Call Procedure\n\nChanges execution to follow the procedure at the provided call address.\nStandard call ABI (that is, the call ABI of Turing/OpenTuring) requires that the call address be pushed before all of the operands."]
     CALL = 0x32,
     #[doc = "Case Of\n\nJumps to a specific branch depending on `selector`.\n`descriptor` points to a case descriptor describing the case bounds, default branch offset, and per-entry branch.\nSuccinctly, it is of the following layout:\n\n| Type     | Name           |\n|----------|----------------|\n| `int4`   | lower_bound    |\n| `int4`   | upper_bound    | \n| `offset` | default_branch |\n| `offset` | arm_0          |\n| `offset` | arm_1          |\n| ...      | ...            |\n| `offset` | arm_n          |\n\nNote that the case descriptor cannot have more than 1000 arm offsets when targeting Turing/OpenTuring interpreters.\n\nAll offsets are relative to the address of the `descriptor` operand."]
@@ -104,6 +162,10 @@ pub enum Opcode {
     IF = 0x7B,
     #[doc = "Increment Stack Pointer\n\nIncrements the stack pointer by `size` bytes.\nEquivalent to repeatedly popping values off of the stack."]
     INCSP = 0x7E,
+    #[doc = "Infix And\n\nBranches execution if `value` is zero (i.e. false), otherwise leaves `value` on the stack.\nThis is equivalent to the short-circuiting infix boolean `and` operator."]
+    INFIXAND = 0x7F,
+    #[doc = "Infix Or\n\nBranches execution if `value` is non-zero (i.e. true), otherwise leaves `value` on the stack.\nThis is equivalent to the short-circuiting infix boolean `or` operator."]
+    INFIXOR = 0x80,
     #[doc = "Compare Less or Equal Char(N)\n\nTests as `char(N)` values if `lhs` is less than or equal to `rhs`.\nPerforms a byte-by-byte comparison."]
     LECHARN = 0x8B,
     #[doc = "Compare Ancestor or Same Class\n\n"]
@@ -172,6 +234,26 @@ pub enum Opcode {
     SETFILENO = 0xD5,
     #[doc = "Set Line Number\n\nSets the current execution line number, using the same file number.\n\nPrimarily used for debugging, this has no effect on the program state."]
     SETLINENO = 0xD6,
+    #[doc = "Set Standard I/O Stream\n\nRetrieves the standard I/O handle for `kind` and stores it in `dest`.\nDepending on the I/O redirection settings, this may differ from the standard stream handle numbers."]
+    SETSTDSTREAM = 0xD8,
+    #[doc = "Set Stream Information\n\nPrepares for future stream operations on `stream_handle`, setting up the `stream_status` and opening the stream if necessary.\n`kind` indicates what stream operation to open the stream for if the stream is not open yet.\n\nAsserts that `stream_handle` is less than or equal to `maxstreamno` and greater than or equal to `stdoutstream` (`-2`)."]
+    SETSTREAM = 0xD9,
+    #[doc = "Arithmetic Shift Left\n\nApplies an arithmetic left bit-shift on `value`.\nAsserts that the computed value is representable as a `nat4`."]
+    SHL = 0xDA,
+    #[doc = "Arithmetic Shift Right\n\nApplies an arithmetic right bit-shift on `value` by copying empty positions with the sign bit."]
+    SHR = 0xDB,
+    #[doc = "Mark Uninitialized Address\n\nStores `undefaddr` (`0xFFFF_FFFF`) to `dest`."]
+    UNINITADDR = 0xF0,
+    #[doc = "Mark Uninitialized Boolean\n\nStores `undefbool` (`0xFF`) to `dest`."]
+    UNINITBOOLEAN = 0xF1,
+    #[doc = "Mark Uninitialized Integer\n\nStores `undefint` (`0x8000_0000`) to `dest`."]
+    UNINITINT = 0xF2,
+    #[doc = "Mark Uninitialized Natural\n\nStores `undefnat` (`0xFFFF_FFFF`) to `dest`."]
+    UNINITNAT = 0xF3,
+    #[doc = "Mark Uninitialized Real\n\nStores `undefreal` (`0x8000_0000_8000_0000`) to `dest`."]
+    UNINITREAL = 0xF4,
+    #[doc = "Mark Uninitialized String\n\nStores an end-of-string marker (`0x80`) followed by a nul terminator byte (`0x00`) to `dest`."]
+    UNINITSTR = 0xF5,
     #[doc = "Bitwise Exclusive-Or\n\nApplies a bitwise logical xor operation between `lhs` and `rhs`, producing `out`."]
     XOR = 0xFA,
 }
@@ -186,6 +268,7 @@ pub enum QuitException {
     ResultOutOfRange = 24u32,
     CaseSelectorOutOfRange = 25u32,
     FunctionNoResult = 26u32,
+    StringValueTooLong = 35u32,
     PredOfFirst = 38u32,
     SuccOfLast = 39u32,
     UninitValue = 45u32,
@@ -333,33 +416,38 @@ impl GetKind {
     #[doc = "Size of the type, in bytes."]
     pub fn size(&self) -> usize { 4usize }
 }
-#[doc = "Standard streams selectable from [**SETSTDSTREAM**].\n\n[**SETSTDSTREAM**](Opcode::SETSTDSTREAM)"]
+#[doc = "Which stream to get the handle for in [**SETSTDSTREAM**].\n\n[**SETSTDSTREAM**](Opcode::SETSTDSTREAM)"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(u32)]
-pub enum StdStream {
-    #[doc = "Standard in stream."]
-    Stdin = 1u32,
-    #[doc = "Standard out stream."]
-    Stdout = 2u32,
+pub enum StdStreamKind {
+    #[doc = "Stream handle for a `get`, which uses the standard in stream."]
+    Get = 1u32,
+    #[doc = "Stream handle for a `put`, which uses the standard out stream."]
+    Put = 2u32,
 }
-impl StdStream {
+impl StdStreamKind {
     #[doc = "Size of the type, in bytes."]
     pub fn size(&self) -> usize { 4usize }
     pub fn default_handle(&self) -> isize {
         match self {
-            Self::Stdin => -2isize,
-            Self::Stdout => -1isize,
+            Self::Get => -2isize,
+            Self::Put => -1isize,
         }
     }
 }
-#[doc = "Stream operations that can be used from [**SETSTREAM**].\n\n[**SETSTREAM**](Opcode::SETSTREAM)"]
+#[doc = "How to prepare the stream handle for the specified stream operation."]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(u32)]
 pub enum StreamKind {
-    Seek = 0u32,
+    #[doc = "Default stream operation, which is assumed to be a `put` operation."]
+    Default = 0u32,
+    #[doc = "Prepare stream for a `get` operation."]
     Get = 1u32,
+    #[doc = "Prepare stream for a `put` operation."]
     Put = 2u32,
+    #[doc = "Prepare stream for a `read` operation."]
     Read = 3u32,
+    #[doc = "Prepare stream for a `write` operation."]
     Write = 4u32,
 }
 impl StreamKind {
