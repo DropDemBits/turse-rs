@@ -99,7 +99,7 @@ pub struct SectionSlot<S: SectionInfo>(NonZeroU32, PhantomData<S>);
 
 impl<S: SectionInfo> SectionSlot<S> {
     fn from_usize(idx: usize) -> Self {
-        NonZeroU32::new(idx as u32)
+        NonZeroU32::new((idx + 1) as u32)
             .map(|it| Self(it, PhantomData))
             .unwrap()
     }
