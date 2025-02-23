@@ -79,7 +79,7 @@ impl BytecodeSpec {
                 }
             }
 
-            return Some(InstructionEntry::Instruction(instr));
+            Some(InstructionEntry::Instruction(instr))
         })
     }
 }
@@ -362,6 +362,7 @@ impl Group {
 }
 
 #[derive(Debug)]
+#[allow(dead_code)] // figuring out stack opcode decode predicates, is complicated!
 pub struct Instruction {
     mnemonic: Str,
     opcode: u32,

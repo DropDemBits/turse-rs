@@ -45,7 +45,7 @@ impl<S: SectionInfo> SectionAllocator<S> {
 
             match &alloc.data {
                 SectionData::Zeroed(size) => bytes.extend(std::iter::repeat_n(0x00, *size)),
-                SectionData::Data(data) => bytes.extend_from_slice(&*data),
+                SectionData::Data(data) => bytes.extend_from_slice(data),
             }
 
             current_offset = padding_offset + alloc.size();

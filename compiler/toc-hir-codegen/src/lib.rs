@@ -241,7 +241,7 @@ pub fn generate_code(db: &dyn CodeGenDB) -> CompileResult<Option<BytecodeBlob>> 
             })
             .collect();
 
-        cctx.blob[main_unit_id].add_code_relocs(reloc_targets.into_iter());
+        cctx.blob[main_unit_id].add_code_relocs(reloc_targets);
     } else {
         unreachable!()
     }
@@ -291,6 +291,7 @@ struct BodyCodeGenerator<'a> {
 }
 
 impl BodyCodeGenerator<'_> {
+    #[allow(clippy::too_many_arguments)] // artifact of mixing salsa versions, will simplify once on salsa +0.18
     fn generate_body(
         db: &dyn CodeGenDB,
         codegen_ctx: &mut CodeGenCtx,
@@ -762,7 +763,7 @@ impl BodyCodeGenerator<'_> {
     fn generate_stmt_for(&mut self, stmt: &hir_stmt::For) {
         let descriptor_size = ForDescriptor::fixed_size() as u32;
 
-        let descriptor_slot = self.proc.alloc_temporary(descriptor_size as u32, 4);
+        let descriptor_slot = self.proc.alloc_temporary(descriptor_size, 4);
         if let Some(counter_def) = stmt.counter_def {
             // Type-pun the descriptor address to be the storage for the counter
             self.def_bindings
@@ -1141,7 +1142,7 @@ impl BodyCodeGenerator<'_> {
                 // Note: This is size is rounded up to char_n's alignment size.
                 let reserve_size = len + 1;
 
-                let temp_str = self.proc.alloc_temporary(reserve_size as u32, 4);
+                let temp_str = self.proc.alloc_temporary(reserve_size, 4);
                 self.proc.locate_temporary(temp_str);
 
                 self.proc.ins().chartocstr();
@@ -1233,7 +1234,7 @@ impl BodyCodeGenerator<'_> {
                 self.cctx
                     .strings
                     .entry(value.to_owned())
-                    .or_insert(vec![])
+                    .or_default()
                     .push((self.proc.id(), reloc_point));
             }
             hir_expr::Literal::Boolean(value) => {
@@ -2046,7 +2047,7 @@ impl DefBindings {
             }
         } else {
             // Procedure-external definition
-            let reloc_entries = self.external_defs.entry(def_id).or_insert(vec![]);
+            let reloc_entries = self.external_defs.entry(def_id).or_default();
 
             // Add a relocation to resolve later.
             let reloc = proc.reloc(|ins| ins.pushaddr1(RelocatableOffset::empty()));
