@@ -194,6 +194,14 @@ impl CheckKind {
         out.write_u32::<LE>(*self as u32)
     }
 }
+impl Location {
+    #[doc = "Encodes the type into the equivalent byte representation."]
+    pub fn encode(&self, out: &mut impl std::io::Write) -> std::io::Result<()> {
+        out.write_u16::<LE>(self.file_no)?;
+        out.write_u16::<LE>(self.line_no)?;
+        Ok(())
+    }
+}
 impl ForDescriptor {
     #[doc = "Encodes the type into the equivalent byte representation."]
     pub fn encode(&self, out: &mut impl std::io::Write) -> std::io::Result<()> {
@@ -223,6 +231,10 @@ impl InstructionEncoder {
     pub fn addnatint(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::ADDNATINT)) }
     #[doc = "Encode a [**ADDREAL**](Opcode::ADDREAL) instruction."]
     pub fn addreal(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::ADDREAL)) }
+    #[doc = "Encode a [**ADDSET**](Opcode::ADDSET) instruction.\n\n## Operands\n\n- set_length: Length of the set, in bytes.\n"]
+    pub fn addset(&mut self, set_length: Nat4) -> InstructionRef {
+        self.add(Instruction::new(Opcode::ADDSET).with_operand(Operand::Nat4(set_length)))
+    }
     #[doc = "Encode a [**AND**](Opcode::AND) instruction."]
     pub fn and(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::AND)) }
     #[doc = "Encode a [**ASNADDR**](Opcode::ASNADDR) instruction."]
@@ -333,6 +345,10 @@ impl InstructionEncoder {
             Instruction::new(Opcode::CHKCHRSTRSIZE).with_operand(Operand::Nat4(expected_length)),
         )
     }
+    #[doc = "Encode a [**CHKCSTRRANGE**](Opcode::CHKCSTRRANGE) instruction.\n\n## Operands\n\n- max_length: Maximum string byte length of the `char(N)` value.\n"]
+    pub fn chkcstrrange(&mut self, max_length: Nat4) -> InstructionRef {
+        self.add(Instruction::new(Opcode::CHKCSTRRANGE).with_operand(Operand::Nat4(max_length)))
+    }
     #[doc = "Encode a [**CHKRANGE**](Opcode::CHKRANGE) instruction.\n\n## Operands\n\n- stack_offset: Offset to the value to check within the operand stack\n- min: Minimum bound of the accepted value range.\n- max: Maximum bound of the accepted value range.\n- check_type: What the value range check is asserting.\n"]
     pub fn chkrange(
         &mut self,
@@ -349,6 +365,10 @@ impl InstructionEncoder {
                 .with_operand(Operand::CheckKind(check_type)),
         )
     }
+    #[doc = "Encode a [**CHKSTRRANGE**](Opcode::CHKSTRRANGE) instruction.\n\n## Operands\n\n- max_length: Maximum string byte length of the `string` value.\n"]
+    pub fn chkstrrange(&mut self, max_length: Nat4) -> InstructionRef {
+        self.add(Instruction::new(Opcode::CHKSTRRANGE).with_operand(Operand::Nat4(max_length)))
+    }
     #[doc = "Encode a [**CHKSTRSIZE**](Opcode::CHKSTRSIZE) instruction.\n\n## Operands\n\n- expected_length: Expected length of the `string` value.\n"]
     pub fn chkstrsize(&mut self, expected_length: Nat4) -> InstructionRef {
         self.add(Instruction::new(Opcode::CHKSTRSIZE).with_operand(Operand::Nat4(expected_length)))
@@ -362,6 +382,10 @@ impl InstructionEncoder {
     #[doc = "Encode a [**CSTRTOSTRLEFT**](Opcode::CSTRTOSTRLEFT) instruction."]
     pub fn cstrtostrleft(&mut self) -> InstructionRef {
         self.add(Instruction::new(Opcode::CSTRTOSTRLEFT))
+    }
+    #[doc = "Encode a [**DECSP**](Opcode::DECSP) instruction.\n\n## Operands\n\n- size: Amount of bytes to push onto the operand stack.\n"]
+    pub fn decsp(&mut self, size: Nat4) -> InstructionRef {
+        self.add(Instruction::new(Opcode::DECSP).with_operand(Operand::Nat4(size)))
     }
     #[doc = "Encode a [**DIVINT**](Opcode::DIVINT) instruction."]
     pub fn divint(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::DIVINT)) }
@@ -477,7 +501,7 @@ impl InstructionEncoder {
     pub fn if_(&mut self, offset: Offset) -> InstructionRef {
         self.add(Instruction::new(Opcode::IF).with_operand(Operand::Offset(offset)))
     }
-    #[doc = "Encode a [**INCSP**](Opcode::INCSP) instruction.\n\n## Operands\n\n- size: Amount of bytes to pop off the stack.\n"]
+    #[doc = "Encode a [**INCSP**](Opcode::INCSP) instruction.\n\n## Operands\n\n- size: Amount of bytes to pop off the operand stack.\n"]
     pub fn incsp(&mut self, size: Nat4) -> InstructionRef {
         self.add(Instruction::new(Opcode::INCSP).with_operand(Operand::Nat4(size)))
     }
@@ -524,6 +548,10 @@ impl InstructionEncoder {
     #[doc = "Encode a [**JUMPB**](Opcode::JUMPB) instruction.\n\n## Operands\n\n- offset: Offset to jump backwards by, in bytes.\n"]
     pub fn jumpb(&mut self, offset: Offset) -> InstructionRef {
         self.add(Instruction::new(Opcode::JUMPB).with_operand(Operand::Offset(offset)))
+    }
+    #[doc = "Encode a [**LOCATEARG**](Opcode::LOCATEARG) instruction.\n\n## Operands\n\n- offset: Offset in the operand stack.\n"]
+    pub fn locatearg(&mut self, offset: Offset) -> InstructionRef {
+        self.add(Instruction::new(Opcode::LOCATEARG).with_operand(Operand::Offset(offset)))
     }
     #[doc = "Encode a [**LOCATELOCAL**](Opcode::LOCATELOCAL) instruction.\n\n## Operands\n\n- offset: Offset in the locals area.\n"]
     pub fn locatelocal(&mut self, offset: Offset) -> InstructionRef {
@@ -661,6 +689,10 @@ impl InstructionEncoder {
     pub fn subnatint(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::SUBNATINT)) }
     #[doc = "Encode a [**SUBREAL**](Opcode::SUBREAL) instruction."]
     pub fn subreal(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::SUBREAL)) }
+    #[doc = "Encode a [**SUBSET**](Opcode::SUBSET) instruction.\n\n## Operands\n\n- set_length: Length of the set, in bytes.\n"]
+    pub fn subset(&mut self, set_length: Nat4) -> InstructionRef {
+        self.add(Instruction::new(Opcode::SUBSET).with_operand(Operand::Nat4(set_length)))
+    }
     #[doc = "Encode a [**UNINITADDR**](Opcode::UNINITADDR) instruction."]
     pub fn uninitaddr(&mut self) -> InstructionRef {
         self.add(Instruction::new(Opcode::UNINITADDR))
@@ -681,4 +713,14 @@ impl InstructionEncoder {
     pub fn uninitstr(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::UNINITSTR)) }
     #[doc = "Encode a [**XOR**](Opcode::XOR) instruction."]
     pub fn xor(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::XOR)) }
+    #[doc = "Encode a [**XORSET**](Opcode::XORSET) instruction.\n\n## Operands\n\n- set_length: Length of the set, in bytes.\n"]
+    pub fn xorset(&mut self, set_length: Nat4) -> InstructionRef {
+        self.add(Instruction::new(Opcode::XORSET).with_operand(Operand::Nat4(set_length)))
+    }
+    #[doc = "Encode a [**BREAK**](Opcode::BREAK) instruction."]
+    pub fn break_(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::BREAK)) }
+    #[doc = "Encode a [**SYSEXIT**](Opcode::SYSEXIT) instruction."]
+    pub fn sysexit(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::SYSEXIT)) }
+    #[doc = "Encode a [**ILLEGAL**](Opcode::ILLEGAL) instruction."]
+    pub fn illegal(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::ILLEGAL)) }
 }
