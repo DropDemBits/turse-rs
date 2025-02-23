@@ -567,6 +567,23 @@ types {
       description "Range check as part of range parameter passing."
     }
   }
+  struct "location" size=4 {
+    description """
+    Describes an absolute source location in a program.
+    """
+
+    file_no "nat2" {
+      description """
+      File number in file descriptor table.
+      """
+    }
+    line_no "nat2" {
+      description """
+      Line number within the file.
+      Line numbers are 1-indexed.
+      """
+    }
+  }
   // Normative descriptors
   struct "for_descriptor" size=16 {
     description """
@@ -749,6 +766,53 @@ instructions {
           description """
           When the computed value is greater than can what be represented by `out`.
           """
+        }
+      }
+    }
+
+    ADDSET 0x09 "Union of Sets" {
+      description """
+      Computes as `set` values the set union of `lhs` and `rhs`, producing `out`.
+
+      `set_length` determines the size of both sets, as well as determining the set representation.
+      Sets up to 4 bytes in size are stored in the compact format (as a `set32`), while sets larger than 4 bytes are stored as an indirect array of `set16`s.
+      """
+      
+      operands {
+        set_length "nat4" {
+          description """
+          Length of the set, in bytes.
+          """
+        }
+      }
+      stack_before {
+        @conditional {
+          @predicate (operands).set_length "<=" 4 
+
+          lhs "set32" { description "Left-hand side of operation." }
+          rhs "set32" { description "Right-hand side of operation." }
+        }
+        @conditional {
+          @predicate "otherwise"
+
+          lhs "addrint" { description "Left-hand side of operation." }
+          rhs "addrint" { description "Right-hand side of operation." }
+          out "addrint" { description "Stores the result of the operation." }
+        }
+      }
+      stack_after {
+        @conditional {
+          @predicate (operands).set_length "<=" 4 
+
+          out "set32" { description "Result of operation." }
+        }
+        @conditional {
+          @predicate "otherwise"
+
+          out "addrint" {
+            description "Result of operation."
+            preserves (stack_before).out
+          }
         }
       }
     }
@@ -1390,7 +1454,7 @@ instructions {
 
   CHARTOCSTR 0x39 "Convert Char to Char(N)" {
     description """
-    Converts `value` as a `char` into a `char(N)` stored at `out`.
+    Converts `value` as a `char` into a `char(N)` value stored at `out` (`value` followed by a nul terminator).
     """
 
     operands {}
@@ -1482,6 +1546,32 @@ instructions {
 
           If `length` does not match `expected_length`.
           """
+        }
+      }
+    }
+
+    CHKCSTRRANGE 0x3D "Check Char(N) Byte Length" {
+      description """
+      Asserts that the string byte length (the number of bytes up until the nul terminator) of `value` is less than or equal to `max_length`.
+      """
+
+      operands {
+        max_length "nat4" { description "Maximum string byte length of the `char(N)` value." }
+      }
+      stack_before {
+        value "addrint" {
+          description "`char(N)` value to check."
+        }
+      }
+      stack_after {
+        value "addrint" {
+          description "Checked `char(N)` value."
+          preserves (stack_before).value
+        }
+      }
+      exceptions {
+        ExecutionError "Length of char(n) parameter is not `max_length`" {
+          description "When the string byte length of `value` exceeds `max_length`."
         }
       }
     }
@@ -1582,6 +1672,32 @@ instructions {
 
           [CheckKind::ValueParam]: CheckKind::ValueParam
           """
+        }
+      }
+    }
+
+    CHKSTRRANGE 0x3F "Check String Byte Length" {
+      description """
+      Asserts that the string byte length (the number of bytes up until the nul terminator) of `value` is less than or equal to `max_length`.
+      """
+
+      operands {
+        max_length "nat4" { description "Maximum string byte length of the `string` value." }
+      }
+      stack_before {
+        value "addrint" {
+          description "`string` value to check."
+        }
+      }
+      stack_after {
+        value "addrint" {
+          description "Checked `string` value."
+          preserves (stack_before).value
+        }
+      }
+      exceptions {
+        Quit (quit_code).string_parameter_too_long {
+          description "When the string byte length of `value` exceeds `max_length`."
         }
       }
     }
@@ -1708,6 +1824,28 @@ instructions {
     }
   }
 
+  DECSP 0x47 "Decrement Stack Pointer" {
+    description """
+    Decrements the operand stack pointer by `size` bytes.
+    Equivalent to repeatedly pushing values onto the operand stack.
+    """
+    operands {
+      size "nat4" { description "Amount of bytes to push onto the operand stack." }
+    }
+    stack_before {}
+    stack_after {
+      bytes "nat1" {
+        description """
+        Bytes that were pushed onto the operand stack.
+        Assumed to be and should be treated as uninitialized memory.
+        """
+        computed {
+          (operands).size
+        }
+      }
+    }
+  }
+
   group "Divide Values as Integers" {
     description "Performs division on two values, with values being expected to be representable as an `int` or `nat` value."
 
@@ -1753,6 +1891,10 @@ instructions {
       description """
       Integer divides as `real` values `lhs` and `rhs`, producing `out` after truncating to an `int` value.
       Asserts that `out` when converted to an `int` is still representable (that is, it is not outside of the range of possible `int` values).
+
+      For floating-point division, use [**REALDIVIDE**] instead.
+
+      [**REALDIVIDE**]: Opcode::REALDIVIDE
       """
       operands {}
       stack_before {
@@ -1849,6 +1991,13 @@ instructions {
     EQNAT 0x52 "Compare Equal Nats" {
       description """
       Tests as `nat` values if `lhs` and `rhs` are equal.
+
+      ## Note
+      
+      In Turing/OpenTuring, this instruction is not implemented and will immediately cause an abort of program execution.
+      For these interpreter variants, the instruction description is inferred from the the equivalent [**EQINT**] instruction.
+
+      [**EQINT**]: Opcode::EQINT
       """
       operands {}
       stack_before {
@@ -2334,22 +2483,71 @@ instructions {
   }
 
   group "Begin and End For-loop" {
-    // TODO: Group description
+    description "Handles management of for-loop iteration responsibilities."
 
     FOR 0x6A "Begin For-Loop" {
-      // TODO: Description
+      description """
+      Initializes `for_descriptor` to keep track of for-loop iteration state.
+
+      `counter` is initialized with `start`, with `end` and `step` being initialized to the corresponding stack operands.
+      `save_sp` is set to the operand stack pointer after all stack operands have been pushed in order to cleanup any left-over stack operands.
+
+      If `start` is already equal to `end`, no iteration is performed and `skip_offset` is used to jump over the for-loop body.
+      """
+
       operands {
         skip_offset "offset" { description "Offset to jump over for-loop body, in bytes." }
       }
-      // TODO: Stack Operands
+      stack_before {
+        start "int4" {
+          description """
+          Initial value of iteration `counter` in the for-loop state.
+          """
+        }
+        end "int4" {
+          description """
+          Termination value of the for-loop.
+          Once `counter` is equal to `end`, the for-loop is considered to have finished execution.
+          """
+        }
+        step "int4" {
+          description """
+          Value to adjust `counter` by after every iteration.
+          """
+        }
+        for_descriptor "addrint" {
+          description """
+          Place to store for-descriptor state. See [`ForDescriptor`] for the example layout of the for-loop state.
+
+          [`ForDescriptor`]: ForDescriptor
+          """
+        }
+      }
+      stack_after {}
     }
 
     ENDFOR 0x4C "End For-Loop" {
-      // TODO: Description
+      description """
+      Completes an iteration of a for-loop.
+
+      If `counter` (in `for_descriptor`) is not equal to `step` (also in `for_descriptor`), and the next `counter` adjustment will not exceed either `minint` (`0x8000_0001`) or `maxint` (`0x7FFF_FFFF`), `offset` will be used to jump back to the start of the for-loop body.
+
+      Restores the operand stack pointer according to `save_sp` in `for_descriptor` to cleanup any left-over stack operands.
+      """
+
       operands {
         offset "offset" { description "Offset to jump to the start of the for-loop body, in bytes." }
       }
-      // TODO: Stack Operands
+      stack_before {
+        for_descriptor "addrint" {
+          description """
+          Place to store for-descriptor state. See [`ForDescriptor`] for the example layout of the for-loop state.
+
+          [`ForDescriptor`]: ForDescriptor
+          """
+        }
+      }
+      stack_after {}
     }
   }
 
@@ -2625,13 +2823,19 @@ instructions {
 
   INCSP 0x7E "Increment Stack Pointer" {
     description """
-    Increments the stack pointer by `size` bytes.
-    Equivalent to repeatedly popping values off of the stack.
+    Increments the operand stack pointer by `size` bytes.
+    Equivalent to repeatedly popping values off of the operand stack.
     """
     operands {
-      size "nat4" { description "Amount of bytes to pop off the stack." }
+      size "nat4" { description "Amount of bytes to pop off the operand stack." }
     }
-    // TODO: stack effect of computed nat1 allocation
+    stack_before {
+      bytes "nat1" {
+        description "Bytes that will be popped off of the operand stack."
+        computed { (operands).size }
+      }
+    }
+    stack_after {}
   }
 
   INFIXAND 0x7F "Infix And" {
@@ -2917,6 +3121,25 @@ instructions {
   }
 
   group "Locate Address" {
+    description """
+    Computes the effective address of the entity of interest.
+    """
+
+    LOCATEARG 0x94 "Locate Operand Argument" {
+      description """
+      Locates the address of an operand on the operand stack.
+      Offset is computed relative to the start of the current operand stack pointer.
+      """
+
+      operands {
+        offset "offset" { description "Offset in the operand stack." }
+      }
+      stack_before {}
+      stack_after {
+        address "addrint" { description "Address of the computed operand stack argument." }
+      }
+    }
+
     LOCATELOCAL 0x96 "Locate Local Slot" {
       description """
       Locates the address of a local in the current call frame.
@@ -3007,7 +3230,11 @@ instructions {
     }
 
     MODNAT 0xA1 "Modulus of Naturals" {
-      description "Computes the modulus (with floored division) of `lhs` and `rhs` as `nat` values, producing `out`."
+      description """
+      Computes the modulus (with floored division) of `lhs` and `rhs` as `nat` values, producing `out`.
+
+      This is equivalent to both the `mod` and `rem` operators for `nat` values, as `mod` and `rem` are equivalent when neither `lhs` nor `rhs` is negative.
+      """
 
       operands {}
       stack_before {
@@ -3203,8 +3430,6 @@ instructions {
     NEGINT 0xAC "Negate Integer" {
       description """
       Flips the sign of `value` as an `int`, as if it were multiplied by -1.
-
-      (throws) If `value` is less than `minint` (`-0x7FFFFFFF`) as there are no equivalent positive values.
       """
 
       operands {}
@@ -3214,13 +3439,16 @@ instructions {
       stack_after {
         out "int4" { description "Result of operation." }
       }
+      exceptions {
+        Quit (quit_code).integer_overflow {
+          description "When `value` is less than `minint` (`-0x7FFFFFFF`) as there are no equivalent positive values."
+        }
+      }
     }
 
     NEGREAL 0xAD "Negate Real" {
       description """
       Flips the sign of `value` as a `real`, as if it were multiplied by -1.
-
-      (throws) If `value` is less than `minint` (`-0x7FFFFFFF`) as there are no equivalent positive values.
       """
 
       operands {}
@@ -3236,7 +3464,8 @@ instructions {
   NOT 0xB2 "Boolean Not" {
     description """
     Applies a boolean not operation on `value`, by only flipping the first bit.
-    For a bitwise logical not, a [**XOR**] instruction with a 0xFFFFFFFF constant should be used. 
+
+    For a bitwise logical not, a [**XOR**] instruction with a `0xFFFF_FFFF` constant operand should be used. 
 
     [**XOR**]: Opcode::XOR
     """
@@ -3265,13 +3494,50 @@ instructions {
   }
 
   PROC 0xBA "Begin Procedure" {
-    // TODO: Description
+    description """
+    Initializes the call frame for the procedure to execute.  
+
+    The location and frame pointer are saved before from the prior call frame to restore later with the [**RETURN**] instruction.
+    Afterwards, the frame pointer is initialized to point to the bottom of the call frame data.
+
+    [**RETURN**]: Opcode::RETURN
+    """
+    
     operands {
       frame_size "nat4" {
         description "Size of the call frame to allocate for locals and temporaries."
       }
     }
-    // TODO: Stack effect (needs computed for frame size)
+    stack_before {}
+    stack_after {
+      frame_data "nat1" {
+        description """
+        Call frame locals and temporaries.
+
+        In the normal Turing ABI, the call frame area is split into two parts: the locals area, and the temporaries area.
+        The locals area is anchored at the split point of the call frame data and "grows up" (i.e. grows to higher addresses in the normal stack discipline).
+        The temporaries area is anchored at the end of the call frame data and "grows down" (i.e. grows to lower addresses in the normal stack discipline).
+        """
+        computed {
+          (operands).frame_size
+        }
+      }
+      old_fp "addrint" {
+        description """
+        Address of the old frame pointer from the prior call frame.
+        """
+      }
+      old_location "location" {
+        description """
+        Old source location prior to entering the procedure.
+        """
+      }
+    }
+    exceptions {
+      ExecutionError "Stack overflow! Attempted to allocate `frame_size` bytes of local variables with `remaining` bytes left of stack space. (Original stack size: `stack_allocated` bytes)" {
+        description "When allocation of the call frame will result in a stack overflow."
+      }
+    }
   }
 
   group "Push Value Onto Stack" {
@@ -3593,8 +3859,26 @@ instructions {
   }
 
   RETURN 0xCD "Return From Procedure" {
-    // TODO: Description
-    // TODO: Stack Effect
+    description """
+    Ends the current call frame, restoring execution state to the prior call frame.
+
+    Prior to execution of this instruction, the stack operands at the frame pointer should be as follows:
+
+    | Name                        | Pushed by?                     |
+    |-----------------------------|--------------------------------|
+    | `return_addr` (`addrint`)   | **CALL** / **CALLIMPLEMENTBY** |
+    | `old_location` (`location`) | **PROC**                       |
+    | `old_fp` (`addrint`)        | **PROC**                       |
+
+    The operand stack pointer is set to the current frame pointer in order to pop off the frame data (if any) and to easily access the necessary stack operands.
+    The old source location information and frame pointer are restored from `old_location` and `old_fp` respectively, and program execution resumes from `return_addr`.
+    """
+
+    operands {}
+    stack_before {
+      // cannot describe stack effect due to requiring observation of the frame pointer, unless we allow observing after restoring sp from the frame pointer.
+    }
+    stack_after {}
   }
 
   group "Set Location" {
@@ -3830,6 +4114,54 @@ instructions {
         }
       }
     }
+
+    SUBSET 0xE8 "Subtraction of Sets" {
+      description """
+      Computes as `set` values the subtraction of `lhs` and `rhs`, producing `out`.
+      Equivalent to inverting the elements of `rhs` and then performing a set intersection.
+
+      `set_length` determines the size of both sets, as well as determining the set representation.
+      Sets up to 4 bytes in size are stored in the compact format (as a `set32`), while sets larger than 4 bytes are stored as an indirect array of `set16`s.
+      """
+      
+      operands {
+        set_length "nat4" {
+          description """
+          Length of the set, in bytes.
+          """
+        }
+      }
+      stack_before {
+        @conditional {
+          @predicate (operands).set_length "<=" 4 
+
+          lhs "set32" { description "Left-hand side of operation." }
+          rhs "set32" { description "Right-hand side of operation." }
+        }
+        @conditional {
+          @predicate "otherwise"
+
+          lhs "addrint" { description "Left-hand side of operation." }
+          rhs "addrint" { description "Right-hand side of operation." }
+          out "addrint" { description "Stores the result of the operation." }
+        }
+      }
+      stack_after {
+        @conditional {
+          @predicate (operands).set_length "<=" 4 
+
+          out "set32" { description "Result of operation." }
+        }
+        @conditional {
+          @predicate "otherwise"
+
+          out "addrint" {
+            description "Result of operation."
+            preserves (stack_before).out
+          }
+        }
+      }
+    }
   }
 
   group "Mark as Uninitialized" {
@@ -3921,6 +4253,88 @@ instructions {
     }
     stack_after {
       out "int4" { description "Result of operation." }
+    }
+  }
+
+  XORSET 0xFB "Exclusive-Or of Sets" {
+    description """
+    Computes as `set` values the exclusive-or of `lhs` and `rhs`, producing `out`.
+
+    `set_length` determines the size of both sets, as well as determining the set representation.
+    Sets up to 4 bytes in size are stored in the compact format (as a `set32`), while sets larger than 4 bytes are stored as an indirect array of `set16`s.
+    """
+    
+    operands {
+      set_length "nat4" {
+        description """
+        Length of the set, in bytes.
+        """
+      }
+    }
+    stack_before {
+      @conditional {
+        @predicate (operands).set_length "<=" 4 
+
+        lhs "set32" { description "Left-hand side of operation." }
+        rhs "set32" { description "Right-hand side of operation." }
+      }
+      @conditional {
+        @predicate "otherwise"
+
+        lhs "addrint" { description "Left-hand side of operation." }
+        rhs "addrint" { description "Right-hand side of operation." }
+        out "addrint" { description "Stores the result of the operation." }
+      }
+    }
+    stack_after {
+      @conditional {
+        @predicate (operands).set_length "<=" 4 
+
+        out "set32" { description "Result of operation." }
+      }
+      @conditional {
+        @predicate "otherwise"
+
+        out "addrint" {
+          description "Result of operation."
+          preserves (stack_before).out
+        }
+      }
+    }
+  }
+
+  BREAK 0xFC "Debugger Breakpoint" {
+    description """
+    Inline debugger breakpoint, pauses execution and hands off execution control to the attached debugger.
+    """
+    operands {}
+  }
+
+  SYSEXIT 0xFD "Quit Program" {
+    description """
+    Stops all program execution, exiting with the specified `exit_code`.
+
+    If `exit_code` is non-zero, the program exit is treated as an abnormal exit and handled appropriately.
+    """
+
+    operands {}
+    stack_before {
+      exit_code "nat4" {
+        description "Exit code to exit the program with."
+      }
+    }
+  }
+
+  ILLEGAL 0xFE "Illegal Instruction (0xFE)" {
+    description """
+    Raises an `ExecutionError` indicating that an illegal opcode was encountered.
+    """
+
+    opcodes {}
+    exceptions {
+      ExecutionError "Undecodable opcode #254" {
+        description "When executing this opcode."
+      }
     }
   }
 }

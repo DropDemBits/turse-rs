@@ -18,6 +18,8 @@ pub enum Opcode {
     ADDNATINT = 0x7,
     #[doc = "Add Reals\n\nAdds as `real` values `lhs` and `rhs`, producing `out`."]
     ADDREAL = 0x8,
+    #[doc = "Union of Sets\n\nComputes as `set` values the set union of `lhs` and `rhs`, producing `out`.\n\n`set_length` determines the size of both sets, as well as determining the set representation.\nSets up to 4 bytes in size are stored in the compact format (as a `set32`), while sets larger than 4 bytes are stored as an indirect array of `set16`s."]
+    ADDSET = 0x9,
     #[doc = "Bitwise And\n\nApplies a bitwise logical and operation between `lhs` and `rhs`, producing `out`."]
     AND = 0xF,
     #[doc = "Assign Address Value\n\nStores a `value` as an `addrint` value at the provided `dest` address."]
@@ -84,7 +86,7 @@ pub enum Opcode {
     CALL = 0x32,
     #[doc = "Case Of\n\nJumps to a specific branch depending on `selector`.\n`descriptor` points to a case descriptor describing the case bounds, default branch offset, and per-entry branch.\nSuccinctly, it is of the following layout:\n\n| Type     | Name           |\n|----------|----------------|\n| `int4`   | lower_bound    |\n| `int4`   | upper_bound    | \n| `offset` | default_branch |\n| `offset` | arm_0          |\n| `offset` | arm_1          |\n| ...      | ...            |\n| `offset` | arm_n          |\n\nNote that the case descriptor cannot have more than 1000 arm offsets when targeting Turing/OpenTuring interpreters.\n\nAll offsets are relative to the address of the `descriptor` operand."]
     CASE = 0x35,
-    #[doc = "Convert Char to Char(N)\n\nConverts `value` as a `char` into a `char(N)` stored at `out`."]
+    #[doc = "Convert Char to Char(N)\n\nConverts `value` as a `char` into a `char(N)` value stored at `out` (`value` followed by a nul terminator)."]
     CHARTOCSTR = 0x39,
     #[doc = "Converts a `char` value into a `string` value (`value` followed by a nul terminator)."]
     CHARTOSTR = 0x3A,
@@ -92,8 +94,12 @@ pub enum Opcode {
     CHARTOSTRLEFT = 0x3B,
     #[doc = "Check Char(N) Length\n\nAsserts that `length` is equal to `expected_length`."]
     CHKCHRSTRSIZE = 0x3C,
+    #[doc = "Check Char(N) Byte Length\n\nAsserts that the string byte length (the number of bytes up until the nul terminator) of `value` is less than or equal to `max_length`."]
+    CHKCSTRRANGE = 0x3D,
     #[doc = "Check Value in Range\n\nAsserts that the value at `stack_offset` is within the range `[min..max]` (inclusive range).     \n\nRaises an exception dependent on `check_type` if the value is outside of the range."]
     CHKRANGE = 0x3E,
+    #[doc = "Check String Byte Length\n\nAsserts that the string byte length (the number of bytes up until the nul terminator) of `value` is less than or equal to `max_length`."]
+    CHKSTRRANGE = 0x3F,
     #[doc = "Check String Length\n\nAsserts that the byte length of `value` is equal to `expected_length`."]
     CHKSTRSIZE = 0x40,
     #[doc = "Convert Char(N) to Char\n\nConverts a `char(N)` value of byte length `length` into a `char` value by extracting the first `char`.\nAsserts that `length` is 1."]
@@ -102,11 +108,13 @@ pub enum Opcode {
     CSTRTOSTR = 0x44,
     #[doc = "Convert Left-Hand Side Char(N) to String\n\nConverts a `char(N)` value into the equivalent `string` value, preserving the existing right-hand side `string` value.\nAssumes that `dest` is large enough to store the resultant `string` value."]
     CSTRTOSTRLEFT = 0x45,
+    #[doc = "Decrement Stack Pointer\n\nDecrements the operand stack pointer by `size` bytes.\nEquivalent to repeatedly pushing values onto the operand stack."]
+    DECSP = 0x47,
     #[doc = "Divide Integers\n\nDivides as `int` values `lhs` and `rhs`, producing `out`."]
     DIVINT = 0x48,
     #[doc = "Divide Naturals\n\nDivides as `nat` values `lhs` and `rhs`, producing `out`."]
     DIVNAT = 0x49,
-    #[doc = "Integer Divide Reals\n\nInteger divides as `real` values `lhs` and `rhs`, producing `out` after truncating to an `int` value.\nAsserts that `out` when converted to an `int` is still representable (that is, it is not outside of the range of possible `int` values)."]
+    #[doc = "Integer Divide Reals\n\nInteger divides as `real` values `lhs` and `rhs`, producing `out` after truncating to an `int` value.\nAsserts that `out` when converted to an `int` is still representable (that is, it is not outside of the range of possible `int` values).\n\nFor floating-point division, use [**REALDIVIDE**] instead.\n\n[**REALDIVIDE**]: Opcode::REALDIVIDE"]
     DIVREAL = 0x4A,
     #[doc = "Compare Equal Addresses\n\nTests as `addrint` values if `lhs` and `rhs` are equal `addrint` values."]
     EQADDR = 0x4E,
@@ -116,7 +124,7 @@ pub enum Opcode {
     EQINT = 0x50,
     #[doc = "Compare Equal Integer with Natural\n\nTests if `lhs` (as an `int` value) and `rhs` (as a `nat` value) are equal values.\nIf `rhs` is greater than `maxint` (`0x7FFF_FFFF`), the comparison is always false."]
     EQINTNAT = 0x51,
-    #[doc = "Compare Equal Nats\n\nTests as `nat` values if `lhs` and `rhs` are equal."]
+    #[doc = "Compare Equal Nats\n\nTests as `nat` values if `lhs` and `rhs` are equal.\n\n## Note\n\nIn Turing/OpenTuring, this instruction is not implemented and will immediately cause an abort of program execution.\nFor these interpreter variants, the instruction description is inferred from the the equivalent [**EQINT**] instruction.\n\n[**EQINT**]: Opcode::EQINT"]
     EQNAT = 0x52,
     #[doc = "Compare Equal Reals\n\nTests as `real` values if `lhs` and `rhs` are equal."]
     EQREAL = 0x53,
@@ -162,9 +170,9 @@ pub enum Opcode {
     FETCHSET = 0x67,
     #[doc = "Fetch String Value\n\nAsserts that the string at `addr` is an initialized string, i.e. the first byte is not `undefchar` (`0x80`)."]
     FETCHSTR = 0x68,
-    #[doc = "Begin For-Loop\n\n"]
+    #[doc = "Begin For-Loop\n\nInitializes `for_descriptor` to keep track of for-loop iteration state.\n\n`counter` is initialized with `start`, with `end` and `step` being initialized to the corresponding stack operands.\n`save_sp` is set to the operand stack pointer after all stack operands have been pushed in order to cleanup any left-over stack operands.\n\nIf `start` is already equal to `end`, no iteration is performed and `skip_offset` is used to jump over the for-loop body."]
     FOR = 0x6A,
-    #[doc = "End For-Loop\n\n"]
+    #[doc = "End For-Loop\n\nCompletes an iteration of a for-loop.\n\nIf `counter` (in `for_descriptor`) is not equal to `step` (also in `for_descriptor`), and the next `counter` adjustment will not exceed either `minint` (`0x8000_0001`) or `maxint` (`0x7FFF_FFFF`), `offset` will be used to jump back to the start of the for-loop body.\n\nRestores the operand stack pointer according to `save_sp` in `for_descriptor` to cleanup any left-over stack operands."]
     ENDFOR = 0x4C,
     #[doc = "Compare Greater or Equal Char(N)\n\nTests as `char(N)` values if `lhs` is greater than or equal to `rhs`.\nPerforms a byte-by-byte comparison."]
     GECHARN = 0x6F,
@@ -190,7 +198,7 @@ pub enum Opcode {
     GTCLASS = 0x7A,
     #[doc = "Branch If Zero\n\nBranches execution if `test` is zero (i.e. false)."]
     IF = 0x7B,
-    #[doc = "Increment Stack Pointer\n\nIncrements the stack pointer by `size` bytes.\nEquivalent to repeatedly popping values off of the stack."]
+    #[doc = "Increment Stack Pointer\n\nIncrements the operand stack pointer by `size` bytes.\nEquivalent to repeatedly popping values off of the operand stack."]
     INCSP = 0x7E,
     #[doc = "Infix And\n\nBranches execution if `value` is zero (i.e. false), otherwise leaves `value` on the stack.\nThis is equivalent to the short-circuiting infix boolean `and` operator."]
     INFIXAND = 0x7F,
@@ -222,6 +230,8 @@ pub enum Opcode {
     JUMP = 0x89,
     #[doc = "Jump Backward\n\nRetreats program counter backwards by `offset` bytes.\nOffset is relative to the address of the offset operand."]
     JUMPB = 0x8A,
+    #[doc = "Locate Operand Argument\n\nLocates the address of an operand on the operand stack.\nOffset is computed relative to the start of the current operand stack pointer."]
+    LOCATEARG = 0x94,
     #[doc = "Locate Local Slot\n\nLocates the address of a local in the current call frame.\nOffset is computed relative to the start of the local area."]
     LOCATELOCAL = 0x96,
     #[doc = "Locate Parameter\n\nLocates the address of a passed-in parameter in the current call frame.\nOffset is computed relative to the start of the call frame."]
@@ -232,7 +242,7 @@ pub enum Opcode {
     LTCLASS = 0x99,
     #[doc = "Modulus of Integers\n\nComputes the modulus (with floored division) of `lhs` and `rhs` as `int` values, producing `out`."]
     MODINT = 0xA0,
-    #[doc = "Modulus of Naturals\n\nComputes the modulus (with floored division) of `lhs` and `rhs` as `nat` values, producing `out`."]
+    #[doc = "Modulus of Naturals\n\nComputes the modulus (with floored division) of `lhs` and `rhs` as `nat` values, producing `out`.\n\nThis is equivalent to both the `mod` and `rem` operators for `nat` values, as `mod` and `rem` are equivalent when neither `lhs` nor `rhs` is negative."]
     MODNAT = 0xA1,
     #[doc = "Integer Modulus of Reals\n\nComputes the modulus (with floored division) of `lhs` and `rhs` as `real` values, producing `out`.\nAsserts that the division of `lhs` and `rhs`, when converted to an `int`, is still representable (that is, it is not outside of the range of possible `int` values)."]
     MODREAL = 0xA2,
@@ -248,15 +258,15 @@ pub enum Opcode {
     NATREAL = 0xA9,
     #[doc = "Convert Left-Hand Side Natural to Real\n\nConverts a `nat` value into a `real` value, preserving the existing right-hand side value."]
     NATREALLEFT = 0xAA,
-    #[doc = "Negate Integer\n\nFlips the sign of `value` as an `int`, as if it were multiplied by -1.\n\n(throws) If `value` is less than `minint` (`-0x7FFFFFFF`) as there are no equivalent positive values."]
+    #[doc = "Negate Integer\n\nFlips the sign of `value` as an `int`, as if it were multiplied by -1."]
     NEGINT = 0xAC,
-    #[doc = "Negate Real\n\nFlips the sign of `value` as a `real`, as if it were multiplied by -1.\n\n(throws) If `value` is less than `minint` (`-0x7FFFFFFF`) as there are no equivalent positive values."]
+    #[doc = "Negate Real\n\nFlips the sign of `value` as a `real`, as if it were multiplied by -1."]
     NEGREAL = 0xAD,
-    #[doc = "Boolean Not\n\nApplies a boolean not operation on `value`, by only flipping the first bit.\nFor a bitwise logical not, a [**XOR**] instruction with a 0xFFFFFFFF constant should be used. \n\n[**XOR**]: Opcode::XOR"]
+    #[doc = "Boolean Not\n\nApplies a boolean not operation on `value`, by only flipping the first bit.\n\nFor a bitwise logical not, a [**XOR**] instruction with a `0xFFFF_FFFF` constant operand should be used. \n\n[**XOR**]: Opcode::XOR"]
     NOT = 0xB2,
     #[doc = "Bitwise Or\n\nApplies a bitwise logical or operation between `lhs` and `rhs`, producing `out`."]
     OR = 0xB6,
-    #[doc = "Begin Procedure\n\n"]
+    #[doc = "Begin Procedure\n\nInitializes the call frame for the procedure to execute.  \n\nThe location and frame pointer are saved before from the prior call frame to restore later with the [**RETURN**] instruction.\nAfterwards, the frame pointer is initialized to point to the bottom of the call frame data.\n\n[**RETURN**]: Opcode::RETURN"]
     PROC = 0xBA,
     #[doc = "Push Address\n\nPushes an absolute address. The address will not be relocated."]
     PUSHADDR = 0xBB,
@@ -284,7 +294,7 @@ pub enum Opcode {
     REMINT = 0xC8,
     #[doc = "Integer Remainder of Reals\n\nComputes the integer remainder of dividing `lhs` and `rhs` as `real` values.\nAsserts that the division of `lhs` and `rhs`, when converted to an `int`, is still representable (that is, it is not outside of the range of possible `int` values)."]
     REMREAL = 0xC9,
-    #[doc = "Return From Procedure\n\n"]
+    #[doc = "Return From Procedure\n\nEnds the current call frame, restoring execution state to the prior call frame.\n\nPrior to execution of this instruction, the stack operands at the frame pointer should be as follows:\n\n| Name                        | Pushed by?                     |\n|-----------------------------|--------------------------------|\n| `return_addr` (`addrint`)   | **CALL** / **CALLIMPLEMENTBY** |\n| `old_location` (`location`) | **PROC**                       |\n| `old_fp` (`addrint`)        | **PROC**                       |\n\nThe operand stack pointer is set to the current frame pointer in order to pop off the frame data (if any) and to easily access the necessary stack operands.\nThe old source location information and frame pointer are restored from `old_location` and `old_fp` respectively, and program execution resumes from `return_addr`."]
     RETURN = 0xCD,
     #[doc = "Increment Line Number\n\nIncrements the line number up by 1.\n\nPrimarily used for debugging, this has no effect on the program state."]
     INCLINENO = 0x7D,
@@ -312,6 +322,8 @@ pub enum Opcode {
     SUBNATINT = 0xE5,
     #[doc = "Subtract Reals\n\nSubtracts as `real` values `lhs` and `rhs`, producing `out`."]
     SUBREAL = 0xE6,
+    #[doc = "Subtraction of Sets\n\nComputes as `set` values the subtraction of `lhs` and `rhs`, producing `out`.\nEquivalent to inverting the elements of `rhs` and then performing a set intersection.\n\n`set_length` determines the size of both sets, as well as determining the set representation.\nSets up to 4 bytes in size are stored in the compact format (as a `set32`), while sets larger than 4 bytes are stored as an indirect array of `set16`s."]
+    SUBSET = 0xE8,
     #[doc = "Mark Uninitialized Address\n\nStores `undefaddr` (`0xFFFF_FFFF`) to `dest`."]
     UNINITADDR = 0xF0,
     #[doc = "Mark Uninitialized Boolean\n\nStores `undefbool` (`0xFF`) to `dest`."]
@@ -326,6 +338,14 @@ pub enum Opcode {
     UNINITSTR = 0xF5,
     #[doc = "Bitwise Exclusive-Or\n\nApplies a bitwise logical xor operation between `lhs` and `rhs`, producing `out`."]
     XOR = 0xFA,
+    #[doc = "Exclusive-Or of Sets\n\nComputes as `set` values the exclusive-or of `lhs` and `rhs`, producing `out`.\n\n`set_length` determines the size of both sets, as well as determining the set representation.\nSets up to 4 bytes in size are stored in the compact format (as a `set32`), while sets larger than 4 bytes are stored as an indirect array of `set16`s."]
+    XORSET = 0xFB,
+    #[doc = "Debugger Breakpoint\n\nInline debugger breakpoint, pauses execution and hands off execution control to the attached debugger."]
+    BREAK = 0xFC,
+    #[doc = "Quit Program\n\nStops all program execution, exiting with the specified `exit_code`.\n\nIf `exit_code` is non-zero, the program exit is treated as an abnormal exit and handled appropriately."]
+    SYSEXIT = 0xFD,
+    #[doc = "Illegal Instruction (0xFE)\n\nRaises an `ExecutionError` indicating that an illegal opcode was encountered."]
+    ILLEGAL = 0xFE,
 }
 #[doc = "All named recoverable exceptions that can be thrown during program execution."]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -663,6 +683,20 @@ pub enum CheckKind {
     ValueParam = 9u32,
 }
 impl CheckKind {
+    #[doc = "Fixed (i.e. non-dynamic) size of the type, in bytes."]
+    pub const fn fixed_size() -> usize { 4usize }
+    #[doc = "Size of the type, in bytes."]
+    pub fn size(&self) -> usize { 4usize }
+}
+#[doc = "Describes an absolute source location in a program."]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Location {
+    #[doc = "File number in file descriptor table."]
+    pub file_no: Nat2,
+    #[doc = "Line number within the file.\nLine numbers are 1-indexed."]
+    pub line_no: Nat2,
+}
+impl Location {
     #[doc = "Fixed (i.e. non-dynamic) size of the type, in bytes."]
     pub const fn fixed_size() -> usize { 4usize }
     #[doc = "Size of the type, in bytes."]
