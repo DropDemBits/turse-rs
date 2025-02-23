@@ -325,6 +325,13 @@ impl InstructionEncoder {
     pub fn call(&mut self, address_offset: Offset) -> InstructionRef {
         self.add(Instruction::new(Opcode::CALL).with_operand(Operand::Offset(address_offset)))
     }
+    #[doc = "Encode a [**CALLIMPLEMENTBY**](Opcode::CALLIMPLEMENTBY) instruction.\n\n## Operands\n\n- address_offset: Offset to the patched-in implement-by call address in the code section.\n"]
+    pub fn callimplementby(&mut self, address_offset: RelocatableOffset) -> InstructionRef {
+        self.add(
+            Instruction::new(Opcode::CALLIMPLEMENTBY)
+                .with_operand(Operand::RelocatableOffset(address_offset)),
+        )
+    }
     #[doc = "Encode a [**CASE**](Opcode::CASE) instruction.\n\n## Operands\n\n- descriptor: Offset to the case descriptor table describing the jump targets\n"]
     pub fn case(&mut self, descriptor: Offset) -> InstructionRef {
         self.add(Instruction::new(Opcode::CASE).with_operand(Operand::Offset(descriptor)))

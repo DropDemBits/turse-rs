@@ -1418,6 +1418,26 @@ instructions {
     }
   }
 
+  // TODO: CALLEXTERNAL
+
+  CALLIMPLEMENTBY 0x34 "Call Implement-By Initializer" {
+    description """
+    Calls the next initialization procedure in the `implement by` module chain.
+    `address_offset` points to an `addrint` storead at start of the code section, which is patched in by the interpreter to point to the next initializer in the `implement by` chain.
+    """
+    operands {
+      address_offset "relocatable_offset" {
+        description """
+        Offset to the patched-in implement-by call address in the code section.
+        """
+      }
+    }
+    stack_before {}
+    stack_after {
+      return_addr "addrint" { description "Return address." }
+    }
+  }
+
   CASE 0x35 "Case Of" {
     description """
     Jumps to a specific branch depending on `selector`.
@@ -3864,14 +3884,18 @@ instructions {
 
     Prior to execution of this instruction, the stack operands at the frame pointer should be as follows:
 
-    | Name                        | Pushed by?                     |
-    |-----------------------------|--------------------------------|
-    | `return_addr` (`addrint`)   | **CALL** / **CALLIMPLEMENTBY** |
-    | `old_location` (`location`) | **PROC**                       |
-    | `old_fp` (`addrint`)        | **PROC**                       |
+    | Name                        | Pushed by?                         |
+    |-----------------------------|------------------------------------|
+    | `return_addr` (`addrint`)   | [**CALL**] / [**CALLIMPLEMENTBY**] |
+    | `old_location` (`location`) | [**PROC**]                         |
+    | `old_fp` (`addrint`)        | [**PROC**]                         |
 
     The operand stack pointer is set to the current frame pointer in order to pop off the frame data (if any) and to easily access the necessary stack operands.
     The old source location information and frame pointer are restored from `old_location` and `old_fp` respectively, and program execution resumes from `return_addr`.
+
+    [**CALL**]: Opcode::CALL
+    [**CALLIMPLEMENTBY**]: Opcode::CALLIMPLEMENTBY
+    [**PROC**]: Opcode::PROC
     """
 
     operands {}
