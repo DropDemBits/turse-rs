@@ -22,8 +22,6 @@ use turing_bytecode::{
     },
 };
 
-mod instruction;
-
 pub trait CodeGenDB: HirAnalysis {}
 
 impl<T> CodeGenDB for T where T: HirAnalysis {}
