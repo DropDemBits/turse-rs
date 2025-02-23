@@ -7,6 +7,7 @@ use std::{
 
 use crate::instruction::Opcode;
 
+#[rustfmt::skip]
 mod generated;
 
 pub use generated::*;

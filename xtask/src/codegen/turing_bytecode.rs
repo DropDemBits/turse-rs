@@ -321,7 +321,7 @@ fn generate_types(spec: &BytecodeSpec) -> TokenStream {
                         let field_group = if !fields.is_empty() {
                             quote!{ { #(#fields),* } }
                         } else {
-                           quote!{} 
+                           quote!{}
                         };
 
                         quote! {
@@ -337,7 +337,7 @@ fn generate_types(spec: &BytecodeSpec) -> TokenStream {
                     let field_group = if !variant.fields().is_empty() {
                         quote!{ { .. } }
                     } else {
-                       quote!{} 
+                       quote!{}
                     };
 
                     quote!{ Self::#ident #field_group => #variant_size }
@@ -561,55 +561,57 @@ fn generate_encode_impls(spec: &BytecodeSpec) -> TokenStream {
                     quote! {LE}
                 };
 
-                let variant_encodes: Vec<_> = ty.variants().iter().map(|variant| {
-                    let ident = format_ident!("{}", variant.name().to_pascal_case());
-                    let ordinal = proc_macro2::Literal::from_str(&format!(
-                        "{}{tag_type}",
-                        variant.ordinal()
-                    ))
-                    .expect("should be a valid literal");
+                let variant_encodes: Vec<_> = ty
+                    .variants()
+                    .iter()
+                    .map(|variant| {
+                        let ident = format_ident!("{}", variant.name().to_pascal_case());
+                        let ordinal = proc_macro2::Literal::from_str(&format!(
+                            "{}{tag_type}",
+                            variant.ordinal()
+                        ))
+                        .expect("should be a valid literal");
 
-                    let field_names: Vec<_> = variant
-                        .fields()
-                        .iter()
-                        .map(|field| {
-                            format_ident!("{}", field.name().to_snek_case())
-                        })
-                        .collect();
-                    let field_pattern = if !field_names.is_empty() {
-                        quote! { { #(#field_names),*} }
-                    } else {
-                        quote!{ }
-                    };
+                        let field_names: Vec<_> = variant
+                            .fields()
+                            .iter()
+                            .map(|field| format_ident!("{}", field.name().to_snek_case()))
+                            .collect();
+                        let field_pattern = if !field_names.is_empty() {
+                            quote! { { #(#field_names),*} }
+                        } else {
+                            quote! {}
+                        };
 
-                    let field_encodes: Vec<_> = variant
-                        .fields()
-                        .iter()
-                        .map(|field| {
-                            let ty = spec
-                                .types
-                                .get(field.ty())
-                                .expect("union variant field should have valid type");
-                            let ty = &spec.types[ty];
-                            let field_ident = format_ident!("{}", field.name());
-                            let encode = encode_type(
-                                ty,
-                                quote! { #field_ident },
-                                format_ident!("out"),
-                                true,
-                            );
+                        let field_encodes: Vec<_> = variant
+                            .fields()
+                            .iter()
+                            .map(|field| {
+                                let ty = spec
+                                    .types
+                                    .get(field.ty())
+                                    .expect("union variant field should have valid type");
+                                let ty = &spec.types[ty];
+                                let field_ident = format_ident!("{}", field.name());
+                                let encode = encode_type(
+                                    ty,
+                                    quote! { #field_ident },
+                                    format_ident!("out"),
+                                    true,
+                                );
 
-                            quote! { #encode?; }
-                        })
-                        .collect();
+                                quote! { #encode?; }
+                            })
+                            .collect();
 
-                    quote! {
-                        Self::#ident #field_pattern => {
-                            out.#write_tag_ident::<#tag_as_le>(#ordinal)?;
-                            #(#field_encodes)*
+                        quote! {
+                            Self::#ident #field_pattern => {
+                                out.#write_tag_ident::<#tag_as_le>(#ordinal)?;
+                                #(#field_encodes)*
+                            }
                         }
-                    }
-                }).collect();
+                    })
+                    .collect();
 
                 quote! {
                     impl #ident {
