@@ -17,6 +17,7 @@ pub enum Operand {
     Addrint(Addrint),
     AbortReason(AbortReason),
     PutKind(PutKind),
+    GetKind(GetKind),
     StdStreamKind(StdStreamKind),
     StreamKind(StreamKind),
     CheckKind(CheckKind),
@@ -36,6 +37,7 @@ impl Operand {
             Self::Addrint(_) => 4usize,
             Self::AbortReason(_) => 4usize,
             Self::PutKind(_) => 4usize,
+            Self::GetKind(_) => 16usize,
             Self::StdStreamKind(_) => 4usize,
             Self::StreamKind(_) => 4usize,
             Self::CheckKind(_) => 4usize,
@@ -71,6 +73,7 @@ impl Operand {
             Self::Addrint(value) => out.write_u32::<LE>(*value),
             Self::AbortReason(value) => value.encode(out),
             Self::PutKind(value) => value.encode(out),
+            Self::GetKind(value) => value.encode(out),
             Self::StdStreamKind(value) => value.encode(out),
             Self::StreamKind(value) => value.encode(out),
             Self::CheckKind(value) => value.encode(out),
@@ -107,7 +110,70 @@ impl PutKind {
 impl GetKind {
     #[doc = "Encodes the type into the equivalent byte representation."]
     pub fn encode(&self, out: &mut impl std::io::Write) -> std::io::Result<()> {
-        out.write_u32::<LE>(*self as u32)
+        match self {
+            Self::Boolean { size } => {
+                out.write_u32::<LE>(0u32)?;
+                out.write_u32::<LE>(*size)?;
+            }
+            Self::Char { size } => {
+                out.write_u32::<LE>(1u32)?;
+                out.write_u32::<LE>(*size)?;
+            }
+            Self::CharRange { size, min, max } => {
+                out.write_u32::<LE>(2u32)?;
+                out.write_u32::<LE>(*size)?;
+                out.write_u32::<LE>(*min)?;
+                out.write_u32::<LE>(*max)?;
+            }
+            Self::CharN { size } => {
+                out.write_u32::<LE>(3u32)?;
+                out.write_u32::<LE>(*size)?;
+            }
+            Self::Enum { size } => {
+                out.write_u32::<LE>(4u32)?;
+                out.write_u32::<LE>(*size)?;
+            }
+            Self::EnumRange { size, min, max } => {
+                out.write_u32::<LE>(5u32)?;
+                out.write_u32::<LE>(*size)?;
+                out.write_u32::<LE>(*min)?;
+                out.write_u32::<LE>(*max)?;
+            }
+            Self::Int { size } => {
+                out.write_u32::<LE>(6u32)?;
+                out.write_u32::<LE>(*size)?;
+            }
+            Self::IntRange { size, min, max } => {
+                out.write_u32::<LE>(7u32)?;
+                out.write_u32::<LE>(*size)?;
+                out.write_i32::<LE>(*min)?;
+                out.write_i32::<LE>(*max)?;
+            }
+            Self::Nat { size } => {
+                out.write_u32::<LE>(8u32)?;
+                out.write_u32::<LE>(*size)?;
+            }
+            Self::Real { size } => {
+                out.write_u32::<LE>(9u32)?;
+                out.write_u32::<LE>(*size)?;
+            }
+            Self::StringExact { size } => {
+                out.write_u32::<LE>(10u32)?;
+                out.write_u32::<LE>(*size)?;
+            }
+            Self::StringLine { size } => {
+                out.write_u32::<LE>(11u32)?;
+                out.write_u32::<LE>(*size)?;
+            }
+            Self::StringToken { size } => {
+                out.write_u32::<LE>(12u32)?;
+                out.write_u32::<LE>(*size)?;
+            }
+            Self::Skip => {
+                out.write_u32::<LE>(13u32)?;
+            }
+        }
+        Ok(())
     }
 }
 impl StdStreamKind {
@@ -391,6 +457,10 @@ impl InstructionEncoder {
     }
     #[doc = "Encode a [**GESTR**](Opcode::GESTR) instruction."]
     pub fn gestr(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::GESTR)) }
+    #[doc = "Encode a [**GET**](Opcode::GET) instruction.\n\n## Operands\n\n- get_kind: Which kind of item to get.\n"]
+    pub fn get(&mut self, get_kind: GetKind) -> InstructionRef {
+        self.add(Instruction::new(Opcode::GET).with_operand(Operand::GetKind(get_kind)))
+    }
     #[doc = "Encode a [**GTCLASS**](Opcode::GTCLASS) instruction."]
     pub fn gtclass(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::GTCLASS)) }
     #[doc = "Encode a [**IF**](Opcode::IF) instruction.\n\n## Operands\n\n- offset: Offset to jump forward by if `test` is zero, in bytes.\n"]

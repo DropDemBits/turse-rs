@@ -184,6 +184,8 @@ pub enum Opcode {
     GESET = 0x76,
     #[doc = "Compare Greater or Equal Strings\n\nTests as `string` values if `lhs` is greater than or equal to `rhs`.\nPerforms a byte-by-byte comparison."]
     GESTR = 0x77,
+    #[doc = "Get Characters from Stream\n\nGets the given value from the provided `stream` based on interpreting the stream data as characters.\n\nThe actual number of stack arguments is based on `get_kind`, as different get items have different uses for the arguments.\n`get_kind` is also a variably encoded operand, based on interpreting the first `int4` as the tag value."]
+    GET = 0x78,
     #[doc = "Compare Descendant Class\n\n"]
     GTCLASS = 0x7A,
     #[doc = "Branch If Zero\n\nBranches execution if `test` is zero (i.e. false)."]
@@ -351,6 +353,8 @@ pub enum QuitException {
     ZeroPowZero = 99u32,
 }
 impl QuitException {
+    #[doc = "Fixed (i.e. non-dynamic) size of the type, in bytes."]
+    pub const fn fixed_size() -> usize { 4usize }
     #[doc = "Size of the type, in bytes."]
     pub fn size(&self) -> usize { 4usize }
 }
@@ -368,13 +372,13 @@ pub type Nat4 = u32;
 pub type Real4 = f32;
 #[doc = "binary64 floating-point number."]
 pub type Real8 = f64;
-#[doc = "Element of a large bitset, storing up to 16 elements.\nSets larger than 4 bytes (32 elements) store the backing bitset as a separate allocation of an array of `set16`s."]
+#[doc = "Element of a large bitset, storing up to 16 elements.\n\nSets larger than 4 bytes (32 elements) store the backing bitset as a separate allocation of an array of `set16`s."]
 pub type Set16 = u16;
-#[doc = "Compact bitset, storing up to 32 elements.\nSets up to 4 bytes in size store the backing bitset inline with the value."]
+#[doc = "Compact bitset, storing up to 32 elements.\n\nSets up to 4 bytes in size store the backing bitset inline with the value."]
 pub type Set32 = u32;
-#[doc = "Address-sized signed integer to offset an `addrint` address with.\nAlways a 32-bit integer, and is always less than or equal to 2^31 - 1 and greater than or equal to -2^31.\nAllocations can never exceed the size of an offset, and are thus limited to a maximum of 2^31 - 1 bytes.\n\n`0xFFFFFFFF` is used as a sentinel value to represent uninitialized `addrint` variables."]
+#[doc = "Address-sized signed integer to offset an `addrint` address with.\n\nAlways a 32-bit integer, and is always less than or equal to 2^31 - 1 and greater than or equal to -2^31.\nAllocations can never exceed the size of an offset, and are thus limited to a maximum of 2^31 - 1 bytes.\n\n`0xFFFFFFFF` is used as a sentinel value to represent uninitialized `addrint` variables."]
 pub type Offset = u32;
-#[doc = "Relocatable address that is resolved at runtime.\nThis is an entry within a relocatable patch list, with `link` pointing to the next entry in the list.\nEach distinct relocatable patch list refers to the local code unit sections (code, manifest, and global), as well as to other code units's sections."]
+#[doc = "Relocatable address that is resolved at runtime.\n\nThis is an entry within a relocatable patch list, with `link` pointing to the next entry in the list.\nEach distinct relocatable patch list refers to the local code unit sections (code, manifest, and global), as well as to other code units's sections."]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct RelocatableOffset {
     #[doc = "Offset to the next relocatable patch entry to fixup."]
@@ -383,10 +387,12 @@ pub struct RelocatableOffset {
     pub offset: Offset,
 }
 impl RelocatableOffset {
+    #[doc = "Fixed (i.e. non-dynamic) size of the type, in bytes."]
+    pub const fn fixed_size() -> usize { 8usize }
     #[doc = "Size of the type, in bytes."]
     pub fn size(&self) -> usize { 8usize }
 }
-#[doc = "Pointer-sized unsigned integer referring to a specific location in the execution address space.\nThis is always a 32-bit integer as 64-bit execution address spaces are unsupported."]
+#[doc = "Pointer-sized unsigned integer referring to a specific location in the execution address space.\n\nThis is always a 32-bit integer as 64-bit execution address spaces are unsupported."]
 pub type Addrint = u32;
 #[doc = "The reason for aborting program execution"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -412,6 +418,8 @@ pub enum AbortReason {
     NoResult = 9u32,
 }
 impl AbortReason {
+    #[doc = "Fixed (i.e. non-dynamic) size of the type, in bytes."]
+    pub const fn fixed_size() -> usize { 4usize }
     #[doc = "Size of the type, in bytes."]
     pub fn size(&self) -> usize { 4usize }
     pub fn error_code(&self) -> usize {
@@ -441,7 +449,7 @@ impl AbortReason {
         }
     }
 }
-#[doc = "Valid put items for **PUT**."]
+#[doc = "Valid put items for [**PUT**].\n\n[**PUT**]: Opcode::PUT"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(u32)]
 pub enum PutKind {
@@ -477,18 +485,115 @@ pub enum PutKind {
     Skip = 14u32,
 }
 impl PutKind {
+    #[doc = "Fixed (i.e. non-dynamic) size of the type, in bytes."]
+    pub const fn fixed_size() -> usize { 4usize }
     #[doc = "Size of the type, in bytes."]
     pub fn size(&self) -> usize { 4usize }
 }
-#[doc = "Valid get items for **GET**."]
+#[doc = "Valid get items for [**GET**].\n\nIn Turing/OpenTuring, only Basic Latin (the non-extended ASCII range) characters are accepted in text streams, but this is only an implementation restriction.\n\n## Tokens\n\nFor some get items, characters are in groups of tokens.\nTokens may have leading whitespace (`\\x20`, `\\t`, `\\n`, `\\f`), followed by either unquoted text, or quoted text potentially containing the standard Turing backslash and caret escape characters, and potentially followed by trailing whitespace (`\\x20`, `\\t`, `\\f`).\nFor [`GetKind::Skip`], the whitespace groups are collapsed together as it does not consume any non-whitespace characters.\n\n[**GET**]: Opcode::GET\n[`GetKind::Skip`]: GetKind::Skip"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(u32)]
 pub enum GetKind {
-    Skip = 14u32,
+    #[doc = "`boolean` item, only accepting a `true` or `false` token."]
+    Boolean {
+        #[doc = "Size of the value to store.\nAlways 1 for `boolean` items."]
+        size: Nat4,
+    } = 0u32,
+    #[doc = "`char` item, accepting a literal `char` value."]
+    Char {
+        #[doc = "Size of the value to store.\nAlways 1 for `char` items."]
+        size: Nat4,
+    } = 1u32,
+    #[doc = "`char` item, accepting a literal `char` value within the accepted value range.\n`min` and `max` form an inclusive range of `[min..max]`.\n\n## Note\n\nTuring/OpenTuring do not validate that the `char` value is within the specified range. "]
+    CharRange {
+        #[doc = "Size of the value to store.\nAlways 1 for `char` items."]
+        size: Nat4,
+        #[doc = "Minimum accepted `char` value."]
+        min: Nat4,
+        #[doc = "Maximum accepted `char` value."]
+        max: Nat4,
+    } = 2u32,
+    #[doc = "`char(N)` item, accepting a literal `char(N)` value of the specified byte length `size`."]
+    CharN {
+        #[doc = "Size of the value to store.\nIgnored for `char(N)` items."]
+        size: Nat4,
+    } = 3u32,
+    #[doc = "`enum` item, accepting a token corresponding to one of the possible variant names."]
+    Enum {
+        #[doc = "Size of the value to store.\nCorresponds to the size of the backing `enum` type."]
+        size: Nat4,
+    } = 4u32,
+    #[doc = "`enum` item, accepting a token corresponding to one of the possible variant names within the accepted ordinal range.\n`min` and `max` form an inclusive range of `[min..max]`."]
+    EnumRange {
+        #[doc = "Size of the value to store.\nCorresponds to the size of the backing `enum` type."]
+        size: Nat4,
+        #[doc = "Minimum accepted `enum` ordinal value."]
+        min: Nat4,
+        #[doc = "Maximum accepted `enum` ordinal value."]
+        max: Nat4,
+    } = 5u32,
+    #[doc = "`int` item, accepting an `int` token value (in base 10) within the accepted range.\n`min` and `max` form an inclusive range of `[min..max]`."]
+    Int {
+        #[doc = "Size of the value to store.\nMay be one of 1, 2, or 4 (corresponding to `int1`, `int2`, or `int4`)."]
+        size: Nat4,
+    } = 6u32,
+    #[doc = "`int` item, accepting an `int` token value (in base 10)."]
+    IntRange {
+        #[doc = "Size of the value to store.\nMay be one of 1, 2, or 4 (corresponding to `int1`, `int2`, or `int4`)."]
+        size: Nat4,
+        #[doc = "Minimum accepted `int` value."]
+        min: Int4,
+        #[doc = "Maximum accepted `int` value."]
+        max: Int4,
+    } = 7u32,
+    #[doc = "`nat` item, accepting a `nat` token value (in base 10)."]
+    Nat {
+        #[doc = "Size of the value to store.\nMay be one of 1, 2, or 4 (corresponding to `nat1`, `nat2`, or `nat4`)."]
+        size: Nat4,
+    } = 8u32,
+    #[doc = "`real` item, accepting a `real` token value."]
+    Real {
+        #[doc = "Size of the value to store.\nMay be either 4 or 8 (corresponding to `real4`, or `real8`)."]
+        size: Nat4,
+    } = 9u32,
+    #[doc = "`string` item, accepting exactly `width` literal `string` characters."]
+    StringExact {
+        #[doc = "Size of the value to store.\nIgnored for `string` items."]
+        size: Nat4,
+    } = 10u32,
+    #[doc = "`string` item, accepting literal `string` characters up to the first found newline (`\n`) character."]
+    StringLine {
+        #[doc = "Size of the value to store.\nIgnored for `string` items."]
+        size: Nat4,
+    } = 11u32,
+    #[doc = "`string` item, accepting a token of `string` characters."]
+    StringToken {
+        #[doc = "Size of the value to store.\nIgnored for `string` items."]
+        size: Nat4,
+    } = 12u32,
+    #[doc = "Skips the stream to the first non-whitespace character."]
+    Skip = 13u32,
 }
 impl GetKind {
-    #[doc = "Size of the type, in bytes."]
-    pub fn size(&self) -> usize { 4usize }
+    #[doc = "Size of the type, in bytes.\nIncludes the size of the tag, and may vary in size depending on the variant."]
+    pub fn size(&self) -> usize {
+        match self {
+            Self::Boolean { .. } => 8,
+            Self::Char { .. } => 8,
+            Self::CharRange { .. } => 16,
+            Self::CharN { .. } => 8,
+            Self::Enum { .. } => 8,
+            Self::EnumRange { .. } => 16,
+            Self::Int { .. } => 8,
+            Self::IntRange { .. } => 8,
+            Self::Nat { .. } => 8,
+            Self::Real { .. } => 8,
+            Self::StringExact { .. } => 8,
+            Self::StringLine { .. } => 8,
+            Self::StringToken { .. } => 8,
+            Self::Skip => 4,
+        }
+    }
 }
 #[doc = "Which stream to get the handle for in [**SETSTDSTREAM**].\n\n[**SETSTDSTREAM**]: Opcode::SETSTDSTREAM"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -500,6 +605,8 @@ pub enum StdStreamKind {
     Put = 2u32,
 }
 impl StdStreamKind {
+    #[doc = "Fixed (i.e. non-dynamic) size of the type, in bytes."]
+    pub const fn fixed_size() -> usize { 4usize }
     #[doc = "Size of the type, in bytes."]
     pub fn size(&self) -> usize { 4usize }
     pub fn default_handle(&self) -> isize {
@@ -525,6 +632,8 @@ pub enum StreamKind {
     Write = 4u32,
 }
 impl StreamKind {
+    #[doc = "Fixed (i.e. non-dynamic) size of the type, in bytes."]
+    pub const fn fixed_size() -> usize { 4usize }
     #[doc = "Size of the type, in bytes."]
     pub fn size(&self) -> usize { 4usize }
 }
@@ -554,6 +663,8 @@ pub enum CheckKind {
     ValueParam = 9u32,
 }
 impl CheckKind {
+    #[doc = "Fixed (i.e. non-dynamic) size of the type, in bytes."]
+    pub const fn fixed_size() -> usize { 4usize }
     #[doc = "Size of the type, in bytes."]
     pub fn size(&self) -> usize { 4usize }
 }

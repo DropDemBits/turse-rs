@@ -88,6 +88,7 @@ types {
   scalar "set16" size=2 {
     description """
     Element of a large bitset, storing up to 16 elements.
+    
     Sets larger than 4 bytes (32 elements) store the backing bitset as a separate allocation of an array of `set16`s.
     """
     repr_type "u16"
@@ -95,6 +96,7 @@ types {
   scalar "set32" size=4 {
     description """
     Compact bitset, storing up to 32 elements.
+
     Sets up to 4 bytes in size store the backing bitset inline with the value.
     """
     repr_type "u32"
@@ -102,6 +104,7 @@ types {
   scalar "offset" size=4 {
     description """
     Address-sized signed integer to offset an `addrint` address with.
+
     Always a 32-bit integer, and is always less than or equal to 2^31 - 1 and greater than or equal to -2^31.
     Allocations can never exceed the size of an offset, and are thus limited to a maximum of 2^31 - 1 bytes.
 
@@ -112,6 +115,7 @@ types {
   struct "relocatable_offset" size=8 {
     description """
     Relocatable address that is resolved at runtime.
+
     This is an entry within a relocatable patch list, with `link` pointing to the next entry in the list.
     Each distinct relocatable patch list refers to the local code unit sections (code, manifest, and global), as well as to other code units's sections.
     """
@@ -122,6 +126,7 @@ types {
   scalar "addrint" size=4 {
     description """
     Pointer-sized unsigned integer referring to a specific location in the execution address space.
+
     This is always a 32-bit integer as 64-bit execution address spaces are unsupported.
     """
     repr_type "u32"
@@ -180,7 +185,9 @@ types {
   }
   enum "put_kind" size=4 {
     description """
-    Valid put items for **PUT**.
+    Valid put items for [**PUT**].
+
+    [**PUT**]: Opcode::PUT
     """
     repr_type "u32"
 
@@ -266,13 +273,217 @@ types {
       """
     }
   }
-  enum "get_kind" size=4 {
+  union "get_kind" tag_size=4 {
     description """
-    Valid get items for **GET**.
+    Valid get items for [**GET**].
+
+    In Turing/OpenTuring, only Basic Latin (the non-extended ASCII range) characters are accepted in text streams, but this is only an implementation restriction.
+
+    ## Tokens
+
+    For some get items, characters are in groups of tokens.
+    Tokens may have leading whitespace (`\\x20`, `\\t`, `\\n`, `\\f`), followed by either unquoted text, or quoted text potentially containing the standard Turing backslash and caret escape characters, and potentially followed by trailing whitespace (`\\x20`, `\\t`, `\\f`).
+    For [`GetKind::Skip`], the whitespace groups are collapsed together as it does not consume any non-whitespace characters.
+        
+    [**GET**]: Opcode::GET
+    [`GetKind::Skip`]: GetKind::Skip
     """
     repr_type "u32"
 
-    skip 14
+    boolean 0 size=4 {
+      description """
+      `boolean` item, only accepting a `true` or `false` token.
+      """
+
+      size "nat4" {
+        description """
+        Size of the value to store.
+        Always 1 for `boolean` items.
+        """
+      }
+    }
+    char 1 size=4 {
+      description """
+      `char` item, accepting a literal `char` value.
+      """
+
+      size "nat4" {
+        description """
+        Size of the value to store.
+        Always 1 for `char` items.
+        """
+      }
+    }
+    char_range 2 size=12 {
+      description """
+      `char` item, accepting a literal `char` value within the accepted value range.
+      `min` and `max` form an inclusive range of `[min..max]`.
+
+      ## Note
+
+      Turing/OpenTuring do not validate that the `char` value is within the specified range. 
+      """
+
+      size "nat4" {
+        description """
+        Size of the value to store.
+        Always 1 for `char` items.
+        """
+      }
+      min "nat4" {
+        description """
+        Minimum accepted `char` value.
+        """
+      }
+      max "nat4" {
+        description """
+        Maximum accepted `char` value.
+        """
+      }
+    }
+    char_n 3 size=4 {
+      description """
+      `char(N)` item, accepting a literal `char(N)` value of the specified byte length `size`.
+      """
+
+      size "nat4" {
+        description """
+        Size of the value to store.
+        Ignored for `char(N)` items.
+        """
+      }
+    }
+    enum 4 size=4 {
+      description """
+      `enum` item, accepting a token corresponding to one of the possible variant names.
+      """
+
+      size "nat4" {
+        description """
+        Size of the value to store.
+        Corresponds to the size of the backing `enum` type.
+        """
+      }
+    }
+    enum_range 5 size=12 {
+      description """
+      `enum` item, accepting a token corresponding to one of the possible variant names within the accepted ordinal range.
+      `min` and `max` form an inclusive range of `[min..max]`.
+      """
+
+      size "nat4" {
+        description """
+        Size of the value to store.
+        Corresponds to the size of the backing `enum` type.
+        """
+      }
+      min "nat4" {
+        description """
+        Minimum accepted `enum` ordinal value.
+        """
+      }
+      max "nat4" {
+        description """
+        Maximum accepted `enum` ordinal value.
+        """
+      }
+    }
+    int 6 size=4 {
+      description """
+      `int` item, accepting an `int` token value (in base 10) within the accepted range.
+      `min` and `max` form an inclusive range of `[min..max]`.
+      """
+      size "nat4" {
+        description """
+        Size of the value to store.
+        May be one of 1, 2, or 4 (corresponding to `int1`, `int2`, or `int4`).
+        """
+      }
+    }
+    int_range 7 size=4 {
+      description """
+      `int` item, accepting an `int` token value (in base 10).
+      """
+      size "nat4" {
+        description """
+        Size of the value to store.
+        May be one of 1, 2, or 4 (corresponding to `int1`, `int2`, or `int4`).
+        """
+      }
+      min "int4" {
+        description """
+        Minimum accepted `int` value.
+        """
+      }
+      max "int4" {
+        description """
+        Maximum accepted `int` value.
+        """
+      }
+    }
+    nat 8 size=4 {
+      description """
+      `nat` item, accepting a `nat` token value (in base 10).
+      """
+      size "nat4" {
+        description """
+        Size of the value to store.
+        May be one of 1, 2, or 4 (corresponding to `nat1`, `nat2`, or `nat4`).
+        """
+      }
+    }
+    real 9 size=4 {
+      description """
+      `real` item, accepting a `real` token value.
+      """
+      size "nat4" {
+        description """
+        Size of the value to store.
+        May be either 4 or 8 (corresponding to `real4`, or `real8`).
+        """
+      }
+    }
+    string_exact 10 size=4 {
+      description """
+      `string` item, accepting exactly `width` literal `string` characters.
+      """
+      
+      size "nat4" {
+        description """
+        Size of the value to store.
+        Ignored for `string` items.
+        """
+      }
+    }
+    string_line 11 size=4 {
+      description """
+      `string` item, accepting literal `string` characters up to the first found newline (`\n`) character.
+      """
+      
+      size "nat4" {
+        description """
+        Size of the value to store.
+        Ignored for `string` items.
+        """
+      }
+    }
+    string_token 12 size=4 {
+      description """
+      `string` item, accepting a token of `string` characters.
+      """
+      
+      size "nat4" {
+        description """
+        Size of the value to store.
+        Ignored for `string` items.
+        """
+      }
+    }
+    skip 13 size=0 {
+      description """
+      Skips the stream to the first non-whitespace character.
+      """
+    }
   }
   enum "std_stream_kind" size=4 {
     description """
@@ -2278,6 +2489,80 @@ instructions {
       stack_after {
         compare "int4" { description "Result of operation. 1 if `lhs` is greater than or equal to `rhs`, 0 otherwise." }
       }
+    }
+  }
+
+  GET 0x78 "Get Characters from Stream" {
+    description """
+    Gets the given value from the provided `stream` based on interpreting the stream data as characters.
+    
+    The actual number of stack arguments is based on `get_kind`, as different get items have different uses for the arguments.
+    `get_kind` is also a variably encoded operand, based on interpreting the first `int4` as the tag value.
+    """
+
+    operands {
+      get_kind "get_kind" {
+        description """
+        Which kind of item to get.
+        """
+      }
+    }
+    stack_before {
+      @conditional {
+        @predicate (operands).get_kind "!=" (get_kind).skip
+
+        dest "addrint" {
+          description """
+          Place to store the parsed value.
+          `get_kind` determines which type of value that this address refers to.
+          """
+        }
+      }
+      @conditional {
+        @predicate (operands).get_kind "==" (get_kind).char_n
+        @predicate (operands).get_kind "==" (get_kind).string_exact
+
+        width "int4" {
+          description "Exact number of characters to extract from the stream."
+        }
+      }
+      @conditional {
+        @predicate (operands).get_kind "==" (get_kind).string_exact
+
+        length "nat4" {
+          description "Byte length of the destination `char(N)` value."
+        }
+      }
+      @conditional {
+        @predicate (operands).get_kind "==" (put_kind).enum
+        @predicate (operands).get_kind "==" (put_kind).enum_range
+
+        variant_names "addrint" {
+          description """
+          Array of names of the enum variants.
+          Any unknown variant names are rejected.
+          """
+        }
+      }
+      @conditional {
+        @predicate (operands).get_kind "==" (get_kind).string_exact
+        @predicate (operands).get_kind "==" (get_kind).string_line
+        @predicate (operands).get_kind "==" (get_kind).string_token
+
+        max_length "nat4" {
+          description "Maximum accepted byte length that can be stored by the destination `string` value."
+        }
+      }
+      stream "addrint" {
+        description """
+        Stream to put characters to.
+        """
+      }
+    }
+    stack_after {}
+    exceptions {
+      // TODO: Exceptions
+      // see execute#Language_Execute_Get for details
     }
   }
 
