@@ -668,3 +668,21 @@ impl CheckKind {
     #[doc = "Size of the type, in bytes."]
     pub fn size(&self) -> usize { 4usize }
 }
+#[doc = "Keeps track of for-loop state, as well as enough state to restart iterations of a for-loop."]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct ForDescriptor {
+    #[doc = "Current for-loop counter variable, may be exposed via naming the counter variable."]
+    pub counter: Int4,
+    #[doc = "Termination value of the for-loop.\nOnce `counter` is equal to `end`, the for-loop will no longer proceed to further iterations."]
+    pub end: Int4,
+    #[doc = "Value to adjust `counter` by after each iteration."]
+    pub step: Int4,
+    #[doc = "Stack pointer address before the for-loop body was entered."]
+    pub save_sp: Addrint,
+}
+impl ForDescriptor {
+    #[doc = "Fixed (i.e. non-dynamic) size of the type, in bytes."]
+    pub const fn fixed_size() -> usize { 16usize }
+    #[doc = "Size of the type, in bytes."]
+    pub fn size(&self) -> usize { 16usize }
+}
