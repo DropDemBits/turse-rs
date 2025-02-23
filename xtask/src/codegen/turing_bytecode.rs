@@ -36,6 +36,15 @@ pub(crate) fn codegen(check: bool) -> miette::Result<()> {
         check,
     );
 
+    // Print operator coverage for progress tracking, but only while we're under the known opcode limit
+    let opcode_count = spec.instructions.len();
+    let max_opcodes = 255usize;
+
+    if opcode_count < max_opcodes {
+        let coverage = (opcode_count as f64) / (max_opcodes as f64) * 100.0;
+        eprintln!("operator coverage: {coverage:.2}% ({opcode_count}/{max_opcodes})")
+    }
+
     Ok(())
 }
 
