@@ -18,16 +18,23 @@ types {
     result_out_of_range 24 {}
     case_selector_out_of_range 25 {}
     function_no_result 26 {}
+    divmod_by_zero 33 {}
     string_value_too_long 35 {}
 
     pred_of_first 38 {}
     succ_of_last 39 {}
 
+    char_assigned_to_dyn_char 42 {}
     uninit_value 45 {}
 
     integer_overflow 50 {}
     real_overflow 51 {}
     real_underflow 52 {}
+
+    integer_pow_negative 96 {}
+    negative_pow_real 97 {}
+    zero_pow_negative 98 {}
+    zero_pow_zero 99 {}
   }
 
   scalar "int1" size=1 {
@@ -218,7 +225,6 @@ types {
       Int item for putting `int` types, with the width, fractional width, and exponent width arguments.
       """
     }
-    // note: some of these nat ones crash the intepreter?
     nat 7 {
       description """
       Nat item for putting `nat` types, with only the width argument.
@@ -272,7 +278,7 @@ types {
     description """
     Which stream to get the handle for in [**SETSTDSTREAM**].
 
-    [**SETSTDSTREAM**](Opcode::SETSTDSTREAM)
+    [**SETSTDSTREAM**]: Opcode::SETSTDSTREAM
     """
     repr_type "u32"
 
@@ -412,8 +418,8 @@ instructions {
     }
   }
 
-  group "Add Numbers" {
-    description "Performs addition on two numbers."
+  group "Add Values" {
+    description "Performs addition on two values."
 
     ADDINT 0x04 "Add Integers" {
       description "Adds as `int` values `lhs` and `rhs`, producing `out`."
@@ -425,10 +431,12 @@ instructions {
       stack_after {
         out "int4" { description "Result of operation." }
       }
-      Quit (quit_code).integer_overflow {
-        description """
-        When the computed value is greater than can what be represented by `out`.
-        """
+      exceptions {
+        Quit (quit_code).integer_overflow {
+          description """
+          When the computed value is greater than can what be represented by `out`.
+          """
+        }
       }
     }
     
@@ -442,10 +450,12 @@ instructions {
       stack_after {
         out "int4" { description "Result of operation." }
       }
-      Quit (quit_code).integer_overflow {
-        description """
-        When the computed value is greater than can what be represented by `out`.
-        """
+      exceptions {
+        Quit (quit_code).integer_overflow {
+          description """
+          When the computed value is greater than can what be represented by `out`.
+          """
+        }
       }
     }
     
@@ -459,10 +469,12 @@ instructions {
       stack_after {
         out "nat4" { description "Result of operation." }
       }
-      Quit (quit_code).integer_overflow {
-        description """
-        When the computed value is greater than can what be represented by `out`.
-        """
+      exceptions {
+        Quit (quit_code).integer_overflow {
+          description """
+          When the computed value is greater than can what be represented by `out`.
+          """
+        }
       }
     }
     
@@ -476,10 +488,12 @@ instructions {
       stack_after {
         out "nat4" { description "Result of operation." }
       }
-      Quit (quit_code).integer_overflow {
-        description """
-        When the computed value is greater than can what be represented by `out`.
-        """
+      exceptions {
+        Quit (quit_code).integer_overflow {
+          description """
+          When the computed value is greater than can what be represented by `out`.
+          """
+        }
       }
     }
     
@@ -493,10 +507,12 @@ instructions {
       stack_after {
         out "real8" { description "Result of operation." }
       }
-      Quit (quit_code).real_overflow {
-        description """
-        When the computed value is greater than can what be represented by `out`.
-        """
+      exceptions {
+        Quit (quit_code).real_overflow {
+          description """
+          When the computed value is greater than can what be represented by `out`.
+          """
+        }
       }
     }
   }
@@ -1135,11 +1151,103 @@ instructions {
     stack_after {}
   }
 
+  CHARTOCSTR 0x39 "Convert Char to Char(N)" {
+    description """
+    Converts `value` as a `char` into a `char(N)` stored at `out`.
+    """
+
+    operands {}
+    stack_before {
+      value "int4" { description "`char` to convert into a `char(N)` value" }
+      out "addrint" { description "Place to store the converted `char(N)` value." }
+    }
+    stack_after {
+      out "addrint" {
+        description "Converted `char(N)` value."
+        preserves (stack_before).out
+      }
+    }
+  }
+
+  group "Converte Char to String" {
+    description """
+    Converts `value` as a `char` into a `string` storead at `out`.
+    """
+
+    CHARTOSTR 0x3A {
+      description "Converts a `char` value into a `string` value (`value` followed by a nul terminator)."
+
+      operands {}
+      stack_before {
+        value "int4" { description "`char` to convert into a `string` value" }
+        out "addrint" { description "Place to store the converted `string` value." }
+      }
+      stack_after {
+        out "addrint" {
+          description "Converted `string` value."
+          preserves (stack_before).out
+        }
+      }
+      exceptions {
+        ExecutionError "char converted to string is EOS or uninitchar" {
+          description "When `value` is either the nul terminator (`0x00`) or `undefchar` (`0x80`)."
+        }
+      }
+    }
+
+    CHARTOSTRLEFT 0x3B {
+      description """
+      Converts a `char` value into a `string` value (`value` followed by a nul terminator).
+      Preserves the existing right-hand side `char` value.
+      """
+
+      operands {}
+      stack_before {
+        value "int4" { description "`char` to convert into a `string` value" }
+        out "addrint" { description "Place to store the converted `string` value." }
+      }
+      stack_after {
+        out "addrint" {
+          description "Converted `string` value."
+          preserves (stack_before).out
+        }
+      }
+      exceptions {
+        ExecutionError "char converted to string is EOS or uninitchar" {
+          description "When `value` is either the nul terminator (`0x00`) or `undefchar` (`0x80`)."
+        }
+      }
+    }
+  }
+
   group "Check Invariants" {
     description """
     Checks if any of a variety of runtime invariants are held.
     This forms the basis of the dynamically-checked portion of the excution runtime.
     """
+
+    CHKCHRSTRSIZE 0x3C "Check Char(N) Length" {
+      description """
+      Asserts that `length` is equal to `expected_length`.
+      """
+
+      operands {
+        expected_length "nat4" { description "Expected length of the `char(N)` value." }
+      }
+      stack_before {
+        length "nat4" { description "Byte length of the `char(N)` to check." }
+      }
+      stack_after {}
+      exceptions {
+        Quit (quit_code).char_assigned_to_dyn_char {
+          description """
+          `right side of assignment to char(n) is not length 'n'`.
+
+          If `length` does not match `expected_length`.
+          """
+        }
+      }
+    }
 
     CHKRANGE 0x3E "Check Value in Range" {
       description """
@@ -1240,6 +1348,196 @@ instructions {
         }
       }
     }
+
+    CHKSTRSIZE 0x40 "Check String Length" {
+      description """
+      Asserts that the byte length of `value` is equal to `expected_length`.
+      """
+
+      operands {
+        expected_length "nat4" { description "Expected length of the `string` value." }
+      }
+      stack_before {
+        value "addrint" { description "`string` value to check." }
+      }
+      stack_after {
+        value "addrint" {
+          description "Checked `string` value."
+          preserves (stack_before).value
+        }
+      }
+      exceptions {
+        Quit (quit_code).char_assigned_to_dyn_char {
+          description """
+          `right side of assignment to char(n) is not length 'n'`.
+
+          If the byte length of `value` does not match `expected_length`.
+          """
+        }
+      }
+    }
+
+  }
+
+  CSTRTOCHAR 0x43 "Convert Char(N) to Char" {
+    description """
+    Converts a `char(N)` value of byte length `length` into a `char` value by extracting the first `char`.
+    Asserts that `length` is 1.
+    """
+
+    operands {}
+    stack_before {
+      char_str "addrint" { description "The `char(N)` value to convert." }
+      length "nat4" { description "The length of the `char(N)` value."}
+    }
+    stack_after {
+      value "nat1" { description "Extracted `char` value." }
+      length "nat4" {
+        description "The length of the `char(N)` value."
+        preserves (stack_before).length
+      }
+    }
+    exceptions {
+      ExecutionError "char(n) coerced to char is not length 1" {
+        description "If `length` is not 1."
+      }
+    }
+  }
+
+  group "Convert Char(N) to String" {
+    description """
+    Converts a `char(N)` value into the equivalent `string` value.
+    """
+
+    CSTRTOSTR 0x44 "Convert Char(N) to String" {
+      description """
+      Converts a `char(N)` value into the equivalent `string` value.
+      Assumes that `dest` is large enough to store the resultant `string` value.
+      """
+
+      operands {}
+      stack_before {
+        source "addrint" { description "`char(N)` value to convert." }
+        length "nat4" { description "Byte length of `source`." }
+        dest "addrint" { description "Place to store the converted `string` value." }
+      }
+      stack_after {
+        dest "addrint" {
+          description "Converted `string` value."
+          preserves (stack_before).dest
+        }
+      }
+      exceptions {
+        ExecutionError "char(n) converted to string is EOS or uninitchar" {
+          description "When `source` contains either the nul terminator (`0x00`) or `undefchar` (`0x80`)."
+        }
+        ExecutionError "char(n) size of `length` is too large to convert to string" {
+          description "When length is greater than the maximum storage size of a `string` (255 bytes)."
+        }
+      }
+    }
+
+    CSTRTOSTRLEFT 0x45 "Convert Left-Hand Side Char(N) to String" {
+      description """
+      Converts a `char(N)` value into the equivalent `string` value, preserving the existing right-hand side `string` value.
+      Assumes that `dest` is large enough to store the resultant `string` value.
+      """
+
+      operands {}
+      stack_before {
+        source "addrint" { description "`char(N)` value to convert." }
+        preserve "addrint" { description "Right-hand side of a future operation."}
+        length "nat4" { description "Byte length of `source`." }
+        dest "addrint" { description "Place to store the converted `string` value." }
+      }
+      stack_after {
+        dest "addrint" {
+          description "Converted `string` value."
+          preserves (stack_before).dest
+        }
+        preserve "real8" {
+          description "Right-hand side of a future operation."
+          preserves (stack_before).preserve
+        }
+      }
+      exceptions {
+        ExecutionError "char(n) converted to string is EOS or uninitchar" {
+          description "When `source` contains either the nul terminator (`0x00`) or `undefchar` (`0x80`)."
+        }
+        ExecutionError "char(n) size of `length` is too large to convert to string" {
+          description "When length is greater than the maximum storage size of a `string` (255 bytes)."
+        }
+      }
+    }
+  }
+
+  group "Divide Values as Integers" {
+    description "Performs division on two values, with values being expected to be representable as an `int` or `nat` value."
+
+    DIVINT 0x48 "Divide Integers" {
+      description "Divides as `int` values `lhs` and `rhs`, producing `out`."
+      operands {}
+      stack_before {
+        lhs "int4" { description "Left-hand side of operation." }
+        rhs "int4" { description "Right-hand side of operation." }
+      }
+      stack_after {
+        out "int4" { description "Result of operation." }
+      }
+      exceptions {
+        Quit (quit_code).divmod_by_zero {
+          description """
+          When `rhs` is `0`.
+          """
+        }
+      }
+    }
+    
+    DIVNAT 0x49 "Divide Naturals" {
+      description "Divides as `nat` values `lhs` and `rhs`, producing `out`."
+      operands {}
+      stack_before {
+        lhs "nat4" { description "Left-hand side of operation." }
+        rhs "nat4" { description "Right-hand side of operation." }
+      }
+      stack_after {
+        out "nat4" { description "Result of operation." }
+      }
+      exceptions {
+        Quit (quit_code).divmod_by_zero {
+          description """
+          When `rhs` is `0`.
+          """
+        }
+      }
+    }
+    
+    DIVREAL 0x4A "Integer Divide Reals" {
+      description """
+      Integer divides as `real` values `lhs` and `rhs`, producing `out` after truncating to an `int` value.
+      Asserts that `out` when converted to an `int` is still representable (that is, it is not outside of the range of possible `int` values).
+      """
+      operands {}
+      stack_before {
+        lhs "real8" { description "Left-hand side of operation." }
+        rhs "real8" { description "Right-hand side of operation." }
+      }
+      stack_after {
+        out "int4" { description "Result of operation." }
+      }
+      exceptions {
+        Quit (quit_code).divmod_by_zero {
+          description """
+          When `rhs` is `0`.
+          """
+        }
+        Quit (quit_code).real_overflow {
+          description """
+          When `out` is outside the range of possible `int` values.
+          """
+        }
+      }
+    }
   }
 
   group "Compare Equal" {
@@ -1299,7 +1597,7 @@ instructions {
     EQINTNAT 0x51 "Compare Equal Integer with Natural" {
       description """
       Tests if `lhs` (as an `int` value) and `rhs` (as a `nat` value) are equal values.
-      If `rhs` is greater than `maxint` (`0x7FFFFFFF`), the comparison is always false.
+      If `rhs` is greater than `maxint` (`0x7FFF_FFFF`), the comparison is always false.
       """
       operands {}
       stack_before {
@@ -1385,6 +1683,100 @@ instructions {
       }
       stack_after {
         compare "int4" { description "Result of operation. 1 if values are equal, 0 otherwise." }
+      }
+    }
+  }
+
+  group "Exponentiate Values" {
+    description "Raises `lhs` to the power of `rhs`."
+
+    EXPINTINT 0x56 "Exponentiate Integers" {
+      description "Raises `lhs` to the power of `rhs` as `int` values, producing `out`."
+
+      operands {}
+      stack_before {
+        lhs "int4" { description "Left-hand side of operation." }
+        rhs "int4" { description "Right-hand side of operation." }
+      }
+      stack_after {
+        out "int4" { description "Result of operation." }
+      }
+      exceptions {
+        Quit (quit_code).zero_pow_zero {
+          description """
+          When `lhs` and `rhs` are both `0`.
+          """
+        }
+        Quit (quit_code).integer_pow_negative {
+          description """
+          When `rhs` is negative.
+          """
+        }
+        Quit (quit_code).integer_overflow {
+          description """
+          When the computed value is greater than can what be represented by `out`.
+          """
+        }
+      }
+    }
+
+    EXPREALINT 0x57 "Exponentiate Real with Integer" {
+      description "Raises `lhs` (as a `real` value) to the power of `rhs` (as an `int` value), producing `out`."
+
+      operands {}
+      stack_before {
+        lhs "real8" { description "Left-hand side of operation." }
+        rhs "int4" { description "Right-hand side of operation." }
+      }
+      stack_after {
+        out "real8" { description "Result of operation." }
+      }
+      exceptions {
+        Quit (quit_code).zero_pow_zero {
+          description """
+          When `lhs` and `rhs` are both `0`.
+          """
+        }
+        Quit (quit_code).real_overflow {
+          description """
+          When `out` is not a finite value (i.e. either infinite or NaN).
+          """
+        }
+      }
+    }
+
+    EXPREALREAL 0x58 "Exponentiate Reals" {
+      description "Raises `lhs` to the power of `rhs` as `real` values, producing `out`."
+
+      operands {}
+      stack_before {
+        lhs "real8" { description "Left-hand side of operation." }
+        rhs "real8" { description "Right-hand side of operation." }
+      }
+      stack_after {
+        out "real8" { description "Result of operation." }
+      }
+      exceptions {
+        Quit (quit_code).zero_pow_zero {
+          description """
+          When `lhs` and `rhs` are both `0`.
+          """
+        }
+        Quit (quit_code).zero_pow_negative {
+          description """
+          When `lhs` is `0` and `rhs` is negative.
+          """
+        }
+        Quit (quit_code).negative_pow_real {
+          description """
+          When `lhs` is `0`.
+          """
+        }
+        Quit (quit_code).real_overflow {
+          description """
+          When the computed value is greater than can what be represented by `out`.
+          """
+        }
       }
     }
   }
@@ -1682,7 +2074,7 @@ instructions {
 
     FETCHSTR 0x68 "Fetch String Value" {
       description """
-      Asserts that the string at `addr` is an initialized string, i.e. the first byte is not the end-of-string marker (`0x80`).
+      Asserts that the string at `addr` is an initialized string, i.e. the first byte is not `undefchar` (`0x80`).
       """
       operands {}
       stack_before {
@@ -1784,7 +2176,7 @@ instructions {
     GEINTNAT 0x72 "Compare Greater or Equal Natural with Integer" {
       description """
       Tests if `lhs` (as an`nat` value) is greater than or equal to `rhs` (as a `nat` value).
-      If `rhs` is greater than `maxint` (`0x7FFFFFFF`), the comparison is always false.
+      If `rhs` is greater than `maxint` (`0x7FFF_FFFF`), the comparison is always false.
       """
       operands {}
       stack_before {
@@ -1813,7 +2205,7 @@ instructions {
     GENATINT 0x74 "Compare Greater or Equal Integer with Natural" {
       description """
       Tests if `lhs` (as a `nat` value) is greater than or equal to `rhs` (as an `int` value).
-      If `lhs` is greater than `maxint` (`0x7FFFFFFF`), the comparison is always true.
+      If `lhs` is greater than `maxint` (`0x7FFF_FFFF`), the comparison is always true.
       """
       operands {}
       stack_before {
@@ -1987,6 +2379,39 @@ instructions {
     }
   }
 
+  group "Convert Integer to Real" {
+    description "Converts an `int` value into a `real` value."
+
+    INTREAL 0x85 "Convert Integer to Real" {
+      description "Converts an `int` value into a `real` value."
+
+      operands {}
+      stack_before {
+        value "int4" { description "Value to convert to a `real`." }
+      }
+      stack_after {
+        value "real8" { description "Equivalent `real` value." }
+      }
+    }
+
+    INTREALLEFT 0x86 "Convert Left-Hand Side Integer to Real" {
+      description "Converts an `int` value into a `real` value, preserving the existing right-hand side value."
+
+      operands {}
+      stack_before {
+        value "int4" { description "Value to convert to a `real`." }
+        preserve "real8" { description "Right-hand side of a future operation." }
+      }
+      stack_after {
+        value "real8" { description "Equivalent `real` value." }
+        preserve "real8" {
+          description "Right-hand side of a future operation."
+          preserves (stack_before).preserve
+        }
+      }
+    }
+  }
+
   group "Compare Less or Equal" {
     description """
     Tests if `lhs` is less than or equal to `rhs`, putting the compare result in `compare`.
@@ -2047,7 +2472,7 @@ instructions {
     LEINTNAT 0x8E "Compare Less or Equal Natural with Integer" {
       description """
       Tests if `lhs` (as an `int` value) is less than or equal to `rhs` (as a `nat` value).
-      If `rhs` is greater than `maxint` (`0x7FFFFFFF`), the comparison is always true.
+      If `rhs` is greater than `maxint` (`0x7FFF_FFFF`), the comparison is always true.
       """
       operands {}
       stack_before {
@@ -2076,7 +2501,7 @@ instructions {
     LENATINT 0x90 "Compare Less or Equal Integer with Natural" {
       description """
       Tests if `lhs` (as a `nat` value) is less than or equal to `rhs` (as an `int` value).
-      If `lhs` is greater than `maxint` (`0x7FFFFFFF`), the comparison is always false.
+      If `lhs` is greater than `maxint` (`0x7FFF_FFFF`), the comparison is always false.
       """
       operands {}
       stack_before {
@@ -2244,6 +2669,222 @@ instructions {
     }
     stack_after {
       compare "int4" { description "Result of operation. 1 if `lhs` is a descendant of `rhs`, 0 otherwise." }
+    }
+  }
+
+  group "Modulus of Values" {
+    description "Computes the modulus (with floored division) of two values."
+
+    MODINT 0xA0 "Modulus of Integers" {
+      description "Computes the modulus (with floored division) of `lhs` and `rhs` as `int` values, producing `out`."
+
+      operands {}
+      stack_before {
+        lhs "int4" { description "Left-hand side of operation." }
+        rhs "int4" { description "Right-hand side of operation." }
+      }
+      stack_after {
+        out "int4" { description "Result of operation." }
+      }
+      exceptions {
+        Quit (quit_code).divmod_by_zero {
+          description """
+          When `rhs` is `0`.
+          """
+        }
+      }
+    }
+
+    MODNAT 0xA1 "Modulus of Naturals" {
+      description "Computes the modulus (with floored division) of `lhs` and `rhs` as `nat` values, producing `out`."
+
+      operands {}
+      stack_before {
+        lhs "nat4" { description "Left-hand side of operation." }
+        rhs "nat4" { description "Right-hand side of operation." }
+      }
+      stack_after {
+        out "nat4" { description "Result of operation." }
+      }
+      exceptions {
+        Quit (quit_code).divmod_by_zero {
+          description """
+          When `rhs` is `0`.
+          """
+        }
+      }
+    }
+
+    MODREAL 0xA2 "Integer Modulus of Reals" {
+      description """
+      Computes the modulus (with floored division) of `lhs` and `rhs` as `real` values, producing `out`.
+      Asserts that the division of `lhs` and `rhs`, when converted to an `int`, is still representable (that is, it is not outside of the range of possible `int` values).
+      """
+
+      operands {}
+      stack_before {
+        lhs "real8" { description "Left-hand side of operation." }
+        rhs "real8" { description "Right-hand side of operation." }
+      }
+      stack_after {
+        out "real8" { description "Result of operation." }
+      }
+      exceptions {
+        Quit (quit_code).divmod_by_zero {
+          description """
+          When `rhs` is `0`.
+          """
+        }
+        Quit (quit_code).real_overflow {
+          description """
+          When the division is outside the range of possible `int` values.
+          """
+        }
+      }
+    }
+  }
+
+  group "Multiply Values" {
+    description "Performs multiplication on two values."
+
+    MULINT 0xA5 "Multiply Integers" {
+      description "Multiplies as `int` values `lhs` and `rhs`, producing `out`."
+
+      operands {}
+      stack_before {
+        lhs "int4" { description "Left-hand side of operation." }
+        rhs "int4" { description "Right-hand side of operation." }
+      }
+      stack_after {
+        out "int4" { description "Result of operation." }
+      }
+      exceptions {
+        Quit (quit_code).integer_overflow {
+          description """
+          When the computed value is greater than can what be represented by `out`.
+          """
+        }
+      }
+    }
+    
+    MULNAT 0xA6 "Multiply Naturals" {
+      description "Multiplies as `nat` values `lhs` and `rhs`, producing `out`."
+
+      operands {}
+      stack_before {
+        lhs "nat4" { description "Left-hand side of operation." }
+        rhs "nat4" { description "Right-hand side of operation." }
+      }
+      stack_after {
+        out "nat4" { description "Result of operation." }
+      }
+      exceptions {
+        Quit (quit_code).integer_overflow {
+          description """
+          When the computed value is greater than can what be represented by `out`.
+          """
+        }
+      }
+    }
+    
+    MULREAL 0xA7 "Multiply Reals" {
+      description "Multiplies as `real` values `lhs` and `rhs`, producing `out`."
+
+      operands {}
+      stack_before {
+        lhs "real8" { description "Left-hand side of operation." }
+        rhs "real8" { description "Right-hand side of operation." }
+      }
+      stack_after {
+        out "real8" { description "Result of operation." }
+      }
+      exceptions {
+        Quit (quit_code).real_overflow {
+          description """
+          When the computed value is greater than can what be represented by `out`.
+          """
+        }
+      }
+    }
+
+    MULSET 0xA8 "Intersection of Sets" {
+      description """
+      Computes as `set` values the set intersection of `lhs` and `rhs`, producing `out`.
+
+      `set_length` determines the size of both sets, as well as determining the set representation.
+      Sets up to 4 bytes in size are stored in the compact format (as a `set32`), while sets larger than 4 bytes are stored as an indirect array of `set16`s.
+      """
+      
+      operands {
+        set_length "nat4" {
+          description """
+          Length of the set, in bytes.
+          """
+        }
+      }
+      stack_before {
+        @conditional {
+          @predicate (operands).set_length "<=" 4 
+
+          lhs "set32" { description "Left-hand side of operation." }
+          rhs "set32" { description "Right-hand side of operation." }
+        }
+        @conditional {
+          @predicate "otherwise"
+
+          lhs "addrint" { description "Left-hand side of operation." }
+          rhs "addrint" { description "Right-hand side of operation." }
+          out "addrint" { description "Stores the result of the operation." }
+        }
+      }
+      stack_after {
+        @conditional {
+          @predicate (operands).set_length "<=" 4 
+
+          out "set32" { description "Result of operation." }
+        }
+        @conditional {
+          @predicate "otherwise"
+
+          out "addrint" {
+            description "Result of operation."
+            preserves (stack_before).out
+          }
+        }
+      }
+    }
+  }
+
+  group "Convert Natural to Real" {
+    description "Converts a `nat` value into a `real` value."
+
+    NATREAL 0xA9 "Convert Natural to Real" {
+      description "Converts a `nat` value into a `real` value."
+
+      operands {}
+      stack_before {
+        value "nat4" { description "Value to convert to a `real`." }
+      }
+      stack_after {
+        value "real8" { description "Equivalent `real` value." }
+      }
+    }
+
+    NATREALLEFT 0xAA "Convert Left-Hand Side Natural to Real" {
+      description "Converts a `nat` value into a `real` value, preserving the existing right-hand side value."
+
+      operands {}
+      stack_before {
+        value "nat4" { description "Value to convert to a `real`." }
+        preserve "real8" { description "Right-hand side of a future operation." }
+      }
+      stack_after {
+        value "real8" { description "Equivalent `real` value." }
+        preserve "real8" {
+          description "Right-hand side of a future operation."
+          preserves (stack_before).preserve
+        }
+      }
     }
   }
 
@@ -2560,6 +3201,86 @@ instructions {
     stack_after {}
   }
 
+  REALDIVIDE 0xC7 "Divide Reals" {
+    description """
+    Divides as `real` values `lhs` and `rhs`, producing `out`.
+    """
+    operands {}
+    stack_before {
+      lhs "real8" { description "Left-hand side of operation." }
+      rhs "real8" { description "Right-hand side of operation." }
+    }
+    stack_after {
+      out "real8" { description "Result of operation." }
+    }
+    exceptions {
+      Quit (quit_code).divmod_by_zero {
+        description """
+        When `rhs` is `0`.
+        """
+      }
+      Quit (quit_code).real_overflow {
+        description """
+        When `out` is not a finite value (i.e. either infinite or NaN).
+        """
+      }
+    }
+  }
+
+  group "Remainder of Values" {
+    description "Computes the remainder of two values."
+
+    REMINT 0xC8 "Remainder of Integers" {
+      description """
+      Computes the remainder of dividing `lhs` and `rhs` as `int` values.
+      """
+
+      operands {}
+      stack_before {
+        lhs "int4" { description "Left-hand side of operation." }
+        rhs "int4" { description "Right-hand side of operation." }
+      }
+      stack_after {
+        out "int4" { description "Result of operation." }
+      }
+      exceptions {
+        Quit (quit_code).divmod_by_zero {
+          description """
+          When `rhs` is `0`.
+          """
+        }
+      }
+    }
+    
+    REMREAL 0xC9 "Integer Remainder of Reals" {
+      description """
+      Computes the integer remainder of dividing `lhs` and `rhs` as `real` values.
+      Asserts that the division of `lhs` and `rhs`, when converted to an `int`, is still representable (that is, it is not outside of the range of possible `int` values).
+      """
+
+      operands {}
+      stack_before {
+        lhs "real8" { description "Left-hand side of operation." }
+        rhs "real8" { description "Right-hand side of operation." }
+      }
+      stack_after {
+        out "real8" { description "Result of operation." }
+      }
+      exceptions {
+        Quit (quit_code).divmod_by_zero {
+          description """
+          When `rhs` is `0`.
+          """
+        }
+        Quit (quit_code).real_overflow {
+          description """
+          When the division is outside the range of possible `int` values.
+          """
+        }
+      }
+    }
+  }
+
   RETURN 0xCD "Return From Procedure" {
     // TODO: Description
     // TODO: Stack Effect
@@ -2684,6 +3405,122 @@ instructions {
     }
   }
 
+  STRTOCHAR 0xE1 "Convert String to Char" {
+    description "Extracts a single `char` value from the beginning of the `string` at `value`."
+
+    operands {}
+    stack_before {
+      value "addrint" { description "`string` value to convert." }
+    }
+    stack_after {
+      value "nat1" { description "Extracted `char` value." }
+    }
+    exceptions {
+      ExecutionError "String coerced to char is not length 1" {
+        description "If the string at `value` has a byte length that is not 1."
+      }
+    }
+  }
+
+  group "Subtract Values" {
+    description "Performs subtraction on two values."
+
+    SUBINT 0xE2 "Subtract Integers" {
+      description "Subtracts as `int` values `lhs` and `rhs`, producing `out`."
+      operands {}
+      stack_before {
+        lhs "int4" { description "Left-hand side of operation." }
+        rhs "int4" { description "Right-hand side of operation." }
+      }
+      stack_after {
+        out "int4" { description "Result of operation." }
+      }
+      exceptions {
+        Quit (quit_code).integer_overflow {
+          description """
+          When the computed value is greater than can what be represented by `out`.
+          """
+        }
+      }
+    }
+    
+    SUBINTNAT 0xE3 "Subtract Integer with Natural" {
+      description "Subtracts `lhs` (as an `int` value) and `rhs` (as a `nat` value), producing `out`."
+      operands {}
+      stack_before {
+        lhs "int4" { description "Left-hand side of operation." }
+        rhs "nat4" { description "Right-hand side of operation." }
+      }
+      stack_after {
+        out "int4" { description "Result of operation." }
+      }
+      exceptions {
+        Quit (quit_code).integer_overflow {
+          description """
+          When the computed value is greater than can what be represented by `out`.
+          """
+        }
+      }
+    }
+    
+    SUBNAT 0xE4 "Subtract Naturals" {
+      description "Subtracts as `nat` values `lhs` and `rhs`, producing `out`."
+      operands {}
+      stack_before {
+        lhs "nat4" { description "Left-hand side of operation." }
+        rhs "nat4" { description "Right-hand side of operation." }
+      }
+      stack_after {
+        out "nat4" { description "Result of operation." }
+      }
+      exceptions {
+        Quit (quit_code).integer_overflow {
+          description """
+          When the computed value is greater than can what be represented by `out`.
+          """
+        }
+      }
+    }
+    
+    SUBNATINT 0xE5 "Subtract Natural with Integer" {
+      description "Subtracts `lhs` (as a `nat` value) and `rhs` (as an `int` value), producing `out`."
+      operands {}
+      stack_before {
+        lhs "nat4" { description "Left-hand side of operation." }
+        rhs "int4" { description "Right-hand side of operation." }
+      }
+      stack_after {
+        out "nat4" { description "Result of operation." }
+      }
+      exceptions {
+        Quit (quit_code).integer_overflow {
+          description """
+          When the computed value is greater than can what be represented by `out`.
+          """
+        }
+      }
+    }
+    
+    SUBREAL 0xE6 "Subtract Reals" {
+      description "Subtracts as `real` values `lhs` and `rhs`, producing `out`."
+      operands {}
+      stack_before {
+        lhs "real8" { description "Left-hand side of operation." }
+        rhs "real8" { description "Right-hand side of operation." }
+      }
+      stack_after {
+        out "real8" { description "Result of operation." }
+      }
+      exceptions {
+        Quit (quit_code).real_overflow {
+          description """
+          When the computed value is greater than can what be represented by `out`.
+          """
+        }
+      }
+    }
+  }
+
   group "Mark as Uninitialized" {
     description """
     Marks an address as containing an uninitialized value, either storing a single value or following an uninitialization pattern.
@@ -2751,7 +3588,7 @@ instructions {
 
     UNINITSTR 0xF5 "Mark Uninitialized String" {
       description """
-      Stores an end-of-string marker (`0x80`) followed by a nul terminator byte (`0x00`) to `dest`.
+      Stores an `undefchar` (`0x80`) followed by a nul terminator byte (`0x00`) to `dest`.
       """
 
       operands {}

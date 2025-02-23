@@ -1118,80 +1118,75 @@ impl BodyCodeGenerator<'_> {
     fn coerce_expr_into(&mut self, from_ty: ty::TypeId, coerce_to: Option<CoerceTo>) {
         let expr_ty = from_ty.to_base_type(self.db.up());
 
-        let coerce_op =
-            coerce_to.and_then(|coerce_to| match (coerce_to, expr_ty.kind(self.db.up())) {
-                // To `real`
-                (CoerceTo::Real, ty::TypeKind::Nat(_)) => Some(Opcode::NATREAL()),
-                (CoerceTo::Real, int) if int.is_integer() => Some(Opcode::INTREAL()),
+        let Some(coerce_to) = coerce_to else { return };
 
-                // To `char`
-                (CoerceTo::Char, ty::TypeKind::String | ty::TypeKind::StringN(_)) => {
-                    Some(Opcode::STRTOCHAR())
-                }
-                (CoerceTo::Char, ty::TypeKind::CharN(ty::SeqSize::Fixed(_))) => {
-                    // Compile-time checked to always fit
-                    let len = expr_ty.length_of(self.db.up());
-                    assert_eq!(len, Some(1), "never dyn or not 1");
+        match (coerce_to, expr_ty.kind(self.db.up())) {
+            // To `real`
+            (CoerceTo::Real, ty::TypeKind::Nat(_)) => _ = self.proc.ins().natreal(),
+            (CoerceTo::Real, int) if int.is_integer() => _ = self.proc.ins().intreal(),
 
-                    // Fetch the first char
-                    Some(Opcode::FETCHNAT1())
-                }
-                (CoerceTo::Char, ty::TypeKind::CharN(ty::SeqSize::Any)) => {
-                    unimplemented!()
-                }
+            // To `char`
+            (CoerceTo::Char, ty::TypeKind::String | ty::TypeKind::StringN(_)) => {
+                self.proc.ins().strtochar();
+            }
+            (CoerceTo::Char, ty::TypeKind::CharN(ty::SeqSize::Fixed(_))) => {
+                // Compile-time checked to always fit
+                let len = expr_ty.length_of(self.db.up());
+                assert_eq!(len, Some(1), "never dyn or not 1");
 
-                // To `char(N)`
-                (CoerceTo::CharN(len), ty::TypeKind::Char) => {
-                    // Compile-time checked to always fit
-                    assert_eq!(len, 1, "never dyn or not 1");
+                // Fetch the first char
+                self.proc.ins().fetchnat1();
+            }
+            (CoerceTo::Char, ty::TypeKind::CharN(ty::SeqSize::Any)) => {
+                unimplemented!()
+            }
 
-                    // Reserve enough space for the temporary char_n
-                    // Note: This is size is rounded up to char_n's alignment size.
-                    let reserve_size = len + 1;
+            // To `char(N)`
+            (CoerceTo::CharN(len), ty::TypeKind::Char) => {
+                // Compile-time checked to always fit
+                assert_eq!(len, 1, "never dyn or not 1");
 
-                    let temp_str = self.proc.alloc_temporary(reserve_size as u32, 4);
-                    self.proc.locate_temporary(temp_str);
+                // Reserve enough space for the temporary char_n
+                // Note: This is size is rounded up to char_n's alignment size.
+                let reserve_size = len + 1;
 
-                    Some(Opcode::CHARTOCSTR())
-                }
-                (CoerceTo::CharN(len), ty::TypeKind::String | ty::TypeKind::StringN(_)) => {
-                    // Only need to verify that rhs is of the required length
-                    Some(Opcode::CHKSTRSIZE(len))
-                }
+                let temp_str = self.proc.alloc_temporary(reserve_size as u32, 4);
+                self.proc.locate_temporary(temp_str);
 
-                // To `string`
-                (CoerceTo::String, ty::TypeKind::Char) => {
-                    // Reserve enough space for a `string(1)` (2 bytes)
-                    let temp_str = self.proc.alloc_temporary(2, 4);
-                    self.proc.locate_temporary(temp_str);
+                self.proc.ins().chartocstr();
+            }
+            (CoerceTo::CharN(len), ty::TypeKind::String | ty::TypeKind::StringN(_)) => {
+                // Only need to verify that rhs is of the required length
+                self.proc.ins().chkstrsize(len);
+            }
 
-                    Some(Opcode::CHARTOSTR())
-                }
-                (CoerceTo::String, ty::TypeKind::CharN(ty::SeqSize::Fixed(_))) => {
-                    // Reserve enough space for the given char_n
-                    let len = expr_ty.length_of(self.db.up()).expect("never dyn");
+            // To `string`
+            (CoerceTo::String, ty::TypeKind::Char) => {
+                // Reserve enough space for a `string(1)` (2 bytes)
+                let temp_str = self.proc.alloc_temporary(2, 4);
+                self.proc.locate_temporary(temp_str);
 
-                    // Include the null terminator in the reservation size
-                    // Never let it exceed the maximum length of a string
-                    let reserve_size = (len + 1).min(256);
+                self.proc.ins().chartostr();
+            }
+            (CoerceTo::String, ty::TypeKind::CharN(ty::SeqSize::Fixed(_))) => {
+                // Reserve enough space for the given char_n
+                let len = expr_ty.length_of(self.db.up()).expect("never dyn");
 
-                    let temp_str = self.proc.alloc_temporary(reserve_size as u32, 4);
-                    self.proc.locate_temporary(temp_str);
+                // Include the null terminator in the reservation size
+                // Never let it exceed the maximum length of a string
+                let reserve_size = (len + 1).min(256);
 
-                    self.proc.ins().pushint(len as i32);
-                    Some(Opcode::CSTRTOSTR())
-                }
-                (CoerceTo::String, ty::TypeKind::CharN(ty::SeqSize::Any)) => {
-                    todo!()
-                }
-                _ => None,
-            });
+                let temp_str = self.proc.alloc_temporary(reserve_size as u32, 4);
+                self.proc.locate_temporary(temp_str);
 
-        if let Some(_) = coerce_op {
-            eprintln!("coercing into {coerce_op:?}");
-            // self.code_fragment.emit_opcode(opcode);
-            todo!()
-        }
+                self.proc.ins().pushint(len as i32);
+                self.proc.ins().cstrtostr();
+            }
+            (CoerceTo::String, ty::TypeKind::CharN(ty::SeqSize::Any)) => {
+                todo!()
+            }
+            _ => {}
+        };
     }
 
     fn generate_expr(&mut self, expr_id: hir_expr::ExprId) {
@@ -1283,99 +1278,111 @@ impl BodyCodeGenerator<'_> {
                         lhs_ty.kind(self.db.up()),
                         rhs_ty.kind(self.db.up()),
                     )
-                    .unwrap()
+                    .expect("op over unsupported type")
                 {
-                    OperandPairs::IntInt => self.proc.ins().addint(),
-                    OperandPairs::IntNat => self.proc.ins().addintnat(),
-                    OperandPairs::NatInt => self.proc.ins().addnatint(),
-                    OperandPairs::NatNat => self.proc.ins().addnat(),
-                    OperandPairs::Real => self.proc.ins().addreal(),
-                };
+                    OperandPairs::IntInt => _ = self.proc.ins().addint(),
+                    OperandPairs::IntNat => _ = self.proc.ins().addintnat(),
+                    OperandPairs::NatInt => _ = self.proc.ins().addnatint(),
+                    OperandPairs::NatNat => _ = self.proc.ins().addnat(),
+                    OperandPairs::Real => _ = self.proc.ins().addreal(),
+                }
             }
-            // hir_expr::BinaryOp::Sub => self
-            //     .coerce_and_select_numbers(
-            //         expr,
-            //         lhs_ty.kind(self.db.up()),
-            //         rhs_ty.kind(self.db.up()),
-            //         Opcode::SUBREAL(),
-            //         Opcode::SUBNAT(),
-            //         Opcode::SUBNATINT(),
-            //         Opcode::SUBINTNAT(),
-            //         Opcode::SUBINT(),
-            //     )
-            //     .unwrap(),
-            // hir_expr::BinaryOp::Mul => self
-            //     .coerce_and_select_numbers(
-            //         expr,
-            //         lhs_ty.kind(self.db.up()),
-            //         rhs_ty.kind(self.db.up()),
-            //         Opcode::MULREAL(),
-            //         Opcode::MULNAT(),
-            //         Opcode::MULINT(),
-            //         Opcode::MULINT(),
-            //         Opcode::MULINT(),
-            //     )
-            //     .expect("op over unsupported type"),
-            // hir_expr::BinaryOp::Div => self
-            //     .coerce_and_select_numbers(
-            //         expr,
-            //         lhs_ty.kind(self.db.up()),
-            //         rhs_ty.kind(self.db.up()),
-            //         Opcode::DIVREAL(),
-            //         Opcode::DIVNAT(),
-            //         Opcode::DIVINT(),
-            //         Opcode::DIVINT(),
-            //         Opcode::DIVINT(),
-            //     )
-            //     .expect("op over unsupported type"),
-            // hir_expr::BinaryOp::RealDiv => {
-            //     self.generate_coerced_expr(expr.lhs, Some(CoerceTo::Real));
-            //     self.generate_coerced_expr(expr.rhs, Some(CoerceTo::Real));
-            //     Opcode::REALDIVIDE()
-            // }
-            // hir_expr::BinaryOp::Mod => self
-            //     .coerce_and_select_numbers(
-            //         expr,
-            //         lhs_ty.kind(self.db.up()),
-            //         rhs_ty.kind(self.db.up()),
-            //         Opcode::MODREAL(),
-            //         Opcode::MODNAT(),
-            //         Opcode::MODINT(),
-            //         Opcode::MODINT(),
-            //         Opcode::MODINT(),
-            //     )
-            //     .expect("op over unsupported type"),
-            // hir_expr::BinaryOp::Rem => self
-            //     .coerce_and_select_numbers(
-            //         expr,
-            //         lhs_ty.kind(self.db.up()),
-            //         rhs_ty.kind(self.db.up()),
-            //         Opcode::REMREAL(),
-            //         Opcode::MODNAT(),
-            //         Opcode::MODINT(),
-            //         Opcode::MODINT(),
-            //         Opcode::MODINT(),
-            //     )
-            //     .expect("op over unsupported type"),
-            // hir_expr::BinaryOp::Exp => match (lhs_ty.kind(self.db.up()), rhs_ty.kind(self.db.up()))
-            // {
-            //     (lhs, rhs) if lhs.is_integer() && rhs.is_integer() => {
-            //         self.generate_expr(expr.lhs);
-            //         self.generate_expr(expr.rhs);
-            //         Opcode::EXPINTINT()
-            //     }
-            //     (ty::TypeKind::Real(_), rhs) if rhs.is_integer() => {
-            //         self.generate_expr(expr.lhs);
-            //         self.generate_expr(expr.rhs);
-            //         Opcode::EXPREALINT()
-            //     }
-            //     (ty::TypeKind::Real(_), ty::TypeKind::Real(_)) => {
-            //         self.generate_coerced_expr(expr.lhs, Some(CoerceTo::Real));
-            //         self.generate_coerced_expr(expr.rhs, Some(CoerceTo::Real));
-            //         Opcode::EXPREALREAL()
-            //     }
-            //     _ => unreachable!(),
-            // },
+            hir_expr::BinaryOp::Sub => {
+                match self
+                    .coerce_and_select_numbers(
+                        expr,
+                        lhs_ty.kind(self.db.up()),
+                        rhs_ty.kind(self.db.up()),
+                    )
+                    .expect("op over unsupported type")
+                {
+                    OperandPairs::IntInt => _ = self.proc.ins().subint(),
+                    OperandPairs::IntNat => _ = self.proc.ins().subintnat(),
+                    OperandPairs::NatInt => _ = self.proc.ins().subnatint(),
+                    OperandPairs::NatNat => _ = self.proc.ins().subnat(),
+                    OperandPairs::Real => _ = self.proc.ins().subreal(),
+                }
+            }
+            hir_expr::BinaryOp::Mul => match self
+                .coerce_and_select_numbers(
+                    expr,
+                    lhs_ty.kind(self.db.up()),
+                    rhs_ty.kind(self.db.up()),
+                )
+                .expect("op over unsupported type")
+            {
+                OperandPairs::IntInt => _ = self.proc.ins().mulint(),
+                OperandPairs::IntNat => _ = self.proc.ins().mulint(),
+                OperandPairs::NatInt => _ = self.proc.ins().mulint(),
+                OperandPairs::NatNat => _ = self.proc.ins().mulnat(),
+                OperandPairs::Real => _ = self.proc.ins().mulreal(),
+            },
+            hir_expr::BinaryOp::Div => match self
+                .coerce_and_select_numbers(
+                    expr,
+                    lhs_ty.kind(self.db.up()),
+                    rhs_ty.kind(self.db.up()),
+                )
+                .expect("op over unsupported type")
+            {
+                OperandPairs::IntInt => _ = self.proc.ins().divint(),
+                OperandPairs::IntNat => _ = self.proc.ins().divint(),
+                OperandPairs::NatInt => _ = self.proc.ins().divint(),
+                OperandPairs::NatNat => _ = self.proc.ins().divnat(),
+                OperandPairs::Real => _ = self.proc.ins().divreal(),
+            },
+            hir_expr::BinaryOp::RealDiv => {
+                self.generate_coerced_expr(expr.lhs, Some(CoerceTo::Real));
+                self.generate_coerced_expr(expr.rhs, Some(CoerceTo::Real));
+                self.proc.ins().realdivide();
+            }
+            hir_expr::BinaryOp::Mod => match self
+                .coerce_and_select_numbers(
+                    expr,
+                    lhs_ty.kind(self.db.up()),
+                    rhs_ty.kind(self.db.up()),
+                )
+                .expect("op over unsupported type")
+            {
+                OperandPairs::IntInt => _ = self.proc.ins().modint(),
+                OperandPairs::IntNat => _ = self.proc.ins().modint(),
+                OperandPairs::NatInt => _ = self.proc.ins().modint(),
+                OperandPairs::NatNat => _ = self.proc.ins().modnat(),
+                OperandPairs::Real => _ = self.proc.ins().modreal(),
+            },
+            hir_expr::BinaryOp::Rem => match self
+                .coerce_and_select_numbers(
+                    expr,
+                    lhs_ty.kind(self.db.up()),
+                    rhs_ty.kind(self.db.up()),
+                )
+                .expect("op over unsupported type")
+            {
+                OperandPairs::IntInt => _ = self.proc.ins().remint(),
+                OperandPairs::IntNat => _ = self.proc.ins().remint(),
+                OperandPairs::NatInt => _ = self.proc.ins().remint(),
+                OperandPairs::NatNat => _ = self.proc.ins().modnat(),
+                OperandPairs::Real => _ = self.proc.ins().remreal(),
+            },
+            hir_expr::BinaryOp::Exp => match (lhs_ty.kind(self.db.up()), rhs_ty.kind(self.db.up()))
+            {
+                (lhs, rhs) if lhs.is_integer() && rhs.is_integer() => {
+                    self.generate_expr(expr.lhs);
+                    self.generate_expr(expr.rhs);
+                    self.proc.ins().expintint();
+                }
+                (ty::TypeKind::Real(_), rhs) if rhs.is_integer() => {
+                    self.generate_expr(expr.lhs);
+                    self.generate_expr(expr.rhs);
+                    self.proc.ins().exprealint();
+                }
+                (ty::TypeKind::Real(_), ty::TypeKind::Real(_)) => {
+                    self.generate_coerced_expr(expr.lhs, Some(CoerceTo::Real));
+                    self.generate_coerced_expr(expr.rhs, Some(CoerceTo::Real));
+                    self.proc.ins().exprealreal();
+                }
+                _ => unreachable!(),
+            },
             hir_expr::BinaryOp::And => {
                 // TODO: This does not implement short-circuiting for booleans
                 self.generate_expr(expr.lhs);
@@ -1479,7 +1486,6 @@ impl BodyCodeGenerator<'_> {
                 self.generate_expr(expr.rhs);
                 self.proc.ins().or();
             }
-            _ => unimplemented!(),
         };
     }
 

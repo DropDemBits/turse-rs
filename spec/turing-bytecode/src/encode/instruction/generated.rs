@@ -241,6 +241,22 @@ impl InstructionEncoder {
     pub fn case(&mut self, descriptor: Offset) -> InstructionRef {
         self.add(Instruction::new(Opcode::CASE).with_operand(Operand::Offset(descriptor)))
     }
+    #[doc = "Encode a [**CHARTOCSTR**](Opcode::CHARTOCSTR) instruction."]
+    pub fn chartocstr(&mut self) -> InstructionRef {
+        self.add(Instruction::new(Opcode::CHARTOCSTR))
+    }
+    #[doc = "Encode a [**CHARTOSTR**](Opcode::CHARTOSTR) instruction."]
+    pub fn chartostr(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::CHARTOSTR)) }
+    #[doc = "Encode a [**CHARTOSTRLEFT**](Opcode::CHARTOSTRLEFT) instruction."]
+    pub fn chartostrleft(&mut self) -> InstructionRef {
+        self.add(Instruction::new(Opcode::CHARTOSTRLEFT))
+    }
+    #[doc = "Encode a [**CHKCHRSTRSIZE**](Opcode::CHKCHRSTRSIZE) instruction.\n\n## Operands\n\n- expected_length: Expected length of the `char(N)` value.\n"]
+    pub fn chkchrstrsize(&mut self, expected_length: Nat4) -> InstructionRef {
+        self.add(
+            Instruction::new(Opcode::CHKCHRSTRSIZE).with_operand(Operand::Nat4(expected_length)),
+        )
+    }
     #[doc = "Encode a [**CHKRANGE**](Opcode::CHKRANGE) instruction.\n\n## Operands\n\n- stack_offset: Offset to the value to check within the operand stack\n- min: Minimum bound of the accepted value range.\n- max: Maximum bound of the accepted value range.\n- check_type: What the value range check is asserting.\n"]
     pub fn chkrange(
         &mut self,
@@ -257,6 +273,26 @@ impl InstructionEncoder {
                 .with_operand(Operand::CheckKind(check_type)),
         )
     }
+    #[doc = "Encode a [**CHKSTRSIZE**](Opcode::CHKSTRSIZE) instruction.\n\n## Operands\n\n- expected_length: Expected length of the `string` value.\n"]
+    pub fn chkstrsize(&mut self, expected_length: Nat4) -> InstructionRef {
+        self.add(Instruction::new(Opcode::CHKSTRSIZE).with_operand(Operand::Nat4(expected_length)))
+    }
+    #[doc = "Encode a [**CSTRTOCHAR**](Opcode::CSTRTOCHAR) instruction."]
+    pub fn cstrtochar(&mut self) -> InstructionRef {
+        self.add(Instruction::new(Opcode::CSTRTOCHAR))
+    }
+    #[doc = "Encode a [**CSTRTOSTR**](Opcode::CSTRTOSTR) instruction."]
+    pub fn cstrtostr(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::CSTRTOSTR)) }
+    #[doc = "Encode a [**CSTRTOSTRLEFT**](Opcode::CSTRTOSTRLEFT) instruction."]
+    pub fn cstrtostrleft(&mut self) -> InstructionRef {
+        self.add(Instruction::new(Opcode::CSTRTOSTRLEFT))
+    }
+    #[doc = "Encode a [**DIVINT**](Opcode::DIVINT) instruction."]
+    pub fn divint(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::DIVINT)) }
+    #[doc = "Encode a [**DIVNAT**](Opcode::DIVNAT) instruction."]
+    pub fn divnat(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::DIVNAT)) }
+    #[doc = "Encode a [**DIVREAL**](Opcode::DIVREAL) instruction."]
+    pub fn divreal(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::DIVREAL)) }
     #[doc = "Encode a [**EQADDR**](Opcode::EQADDR) instruction."]
     pub fn eqaddr(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::EQADDR)) }
     #[doc = "Encode a [**EQCHARN**](Opcode::EQCHARN) instruction.\n\n## Operands\n\n- length: Byte length of the `char(N)` type.\n"]
@@ -277,6 +313,16 @@ impl InstructionEncoder {
     }
     #[doc = "Encode a [**EQSTR**](Opcode::EQSTR) instruction."]
     pub fn eqstr(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::EQSTR)) }
+    #[doc = "Encode a [**EXPINTINT**](Opcode::EXPINTINT) instruction."]
+    pub fn expintint(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::EXPINTINT)) }
+    #[doc = "Encode a [**EXPREALINT**](Opcode::EXPREALINT) instruction."]
+    pub fn exprealint(&mut self) -> InstructionRef {
+        self.add(Instruction::new(Opcode::EXPREALINT))
+    }
+    #[doc = "Encode a [**EXPREALREAL**](Opcode::EXPREALREAL) instruction."]
+    pub fn exprealreal(&mut self) -> InstructionRef {
+        self.add(Instruction::new(Opcode::EXPREALREAL))
+    }
     #[doc = "Encode a [**FETCHADDR**](Opcode::FETCHADDR) instruction."]
     pub fn fetchaddr(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::FETCHADDR)) }
     #[doc = "Encode a [**FETCHBOOL**](Opcode::FETCHBOOL) instruction."]
@@ -363,6 +409,12 @@ impl InstructionEncoder {
     pub fn infixor(&mut self, offset: Offset) -> InstructionRef {
         self.add(Instruction::new(Opcode::INFIXOR).with_operand(Operand::Offset(offset)))
     }
+    #[doc = "Encode a [**INTREAL**](Opcode::INTREAL) instruction."]
+    pub fn intreal(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::INTREAL)) }
+    #[doc = "Encode a [**INTREALLEFT**](Opcode::INTREALLEFT) instruction."]
+    pub fn intrealleft(&mut self) -> InstructionRef {
+        self.add(Instruction::new(Opcode::INTREALLEFT))
+    }
     #[doc = "Encode a [**LECHARN**](Opcode::LECHARN) instruction.\n\n## Operands\n\n- length: Byte length of the `char(N)` type.\n"]
     pub fn lecharn(&mut self, length: Nat4) -> InstructionRef {
         self.add(Instruction::new(Opcode::LECHARN).with_operand(Operand::Nat4(length)))
@@ -411,6 +463,28 @@ impl InstructionEncoder {
     }
     #[doc = "Encode a [**LTCLASS**](Opcode::LTCLASS) instruction."]
     pub fn ltclass(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::LTCLASS)) }
+    #[doc = "Encode a [**MODINT**](Opcode::MODINT) instruction."]
+    pub fn modint(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::MODINT)) }
+    #[doc = "Encode a [**MODNAT**](Opcode::MODNAT) instruction."]
+    pub fn modnat(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::MODNAT)) }
+    #[doc = "Encode a [**MODREAL**](Opcode::MODREAL) instruction."]
+    pub fn modreal(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::MODREAL)) }
+    #[doc = "Encode a [**MULINT**](Opcode::MULINT) instruction."]
+    pub fn mulint(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::MULINT)) }
+    #[doc = "Encode a [**MULNAT**](Opcode::MULNAT) instruction."]
+    pub fn mulnat(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::MULNAT)) }
+    #[doc = "Encode a [**MULREAL**](Opcode::MULREAL) instruction."]
+    pub fn mulreal(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::MULREAL)) }
+    #[doc = "Encode a [**MULSET**](Opcode::MULSET) instruction.\n\n## Operands\n\n- set_length: Length of the set, in bytes.\n"]
+    pub fn mulset(&mut self, set_length: Nat4) -> InstructionRef {
+        self.add(Instruction::new(Opcode::MULSET).with_operand(Operand::Nat4(set_length)))
+    }
+    #[doc = "Encode a [**NATREAL**](Opcode::NATREAL) instruction."]
+    pub fn natreal(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::NATREAL)) }
+    #[doc = "Encode a [**NATREALLEFT**](Opcode::NATREALLEFT) instruction."]
+    pub fn natrealleft(&mut self) -> InstructionRef {
+        self.add(Instruction::new(Opcode::NATREALLEFT))
+    }
     #[doc = "Encode a [**NEGINT**](Opcode::NEGINT) instruction."]
     pub fn negint(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::NEGINT)) }
     #[doc = "Encode a [**NEGREAL**](Opcode::NEGREAL) instruction."]
@@ -459,6 +533,14 @@ impl InstructionEncoder {
     pub fn put(&mut self, put_kind: PutKind) -> InstructionRef {
         self.add(Instruction::new(Opcode::PUT).with_operand(Operand::PutKind(put_kind)))
     }
+    #[doc = "Encode a [**REALDIVIDE**](Opcode::REALDIVIDE) instruction."]
+    pub fn realdivide(&mut self) -> InstructionRef {
+        self.add(Instruction::new(Opcode::REALDIVIDE))
+    }
+    #[doc = "Encode a [**REMINT**](Opcode::REMINT) instruction."]
+    pub fn remint(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::REMINT)) }
+    #[doc = "Encode a [**REMREAL**](Opcode::REMREAL) instruction."]
+    pub fn remreal(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::REMREAL)) }
     #[doc = "Encode a [**RETURN**](Opcode::RETURN) instruction."]
     pub fn return_(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::RETURN)) }
     #[doc = "Encode a [**INCLINENO**](Opcode::INCLINENO) instruction."]
@@ -487,6 +569,18 @@ impl InstructionEncoder {
     pub fn shl(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::SHL)) }
     #[doc = "Encode a [**SHR**](Opcode::SHR) instruction."]
     pub fn shr(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::SHR)) }
+    #[doc = "Encode a [**STRTOCHAR**](Opcode::STRTOCHAR) instruction."]
+    pub fn strtochar(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::STRTOCHAR)) }
+    #[doc = "Encode a [**SUBINT**](Opcode::SUBINT) instruction."]
+    pub fn subint(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::SUBINT)) }
+    #[doc = "Encode a [**SUBINTNAT**](Opcode::SUBINTNAT) instruction."]
+    pub fn subintnat(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::SUBINTNAT)) }
+    #[doc = "Encode a [**SUBNAT**](Opcode::SUBNAT) instruction."]
+    pub fn subnat(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::SUBNAT)) }
+    #[doc = "Encode a [**SUBNATINT**](Opcode::SUBNATINT) instruction."]
+    pub fn subnatint(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::SUBNATINT)) }
+    #[doc = "Encode a [**SUBREAL**](Opcode::SUBREAL) instruction."]
+    pub fn subreal(&mut self) -> InstructionRef { self.add(Instruction::new(Opcode::SUBREAL)) }
     #[doc = "Encode a [**UNINITADDR**](Opcode::UNINITADDR) instruction."]
     pub fn uninitaddr(&mut self) -> InstructionRef {
         self.add(Instruction::new(Opcode::UNINITADDR))
