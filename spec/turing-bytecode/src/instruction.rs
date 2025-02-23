@@ -1,6 +1,7 @@
 //! Instruction definitions that are used by both encoding and decoding
 //! bytecode blobs.
 
+#[rustfmt::skip]
 mod generated;
 
 pub use generated::*;
