@@ -52,7 +52,7 @@ impl Instruction {
         self.operands
             .iter()
             .take_while(|slot| slot.is_some())
-            .flat_map(|slot| Some(slot.as_ref()?))
+            .flat_map(|slot| slot.as_ref())
     }
 
     /// Iterator over [`OperandRef`]s that refer to the instruction's operands.

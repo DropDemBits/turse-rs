@@ -22,7 +22,7 @@ pub(crate) fn parse_spec(text: &str) -> Result<BytecodeSpec, ParseError> {
     let instructions = get_required_node(&kdl, CommonNodes::InstructionList)?;
     let instructions = get_required_children(instructions, CommonNodes::InstructionList)?;
 
-    let (instr_defs, group_defs) = parse_instruction_list(instructions, &types)?;
+    let InstructionList(instr_defs, group_defs) = parse_instruction_list(instructions, &types)?;
 
     Ok(BytecodeSpec {
         types,
@@ -31,10 +31,12 @@ pub(crate) fn parse_spec(text: &str) -> Result<BytecodeSpec, ParseError> {
     })
 }
 
+struct InstructionList(Vec<Instruction>, Vec<(Group, std::ops::Range<usize>)>);
+
 fn parse_instruction_list(
     instructions: &kdl::KdlDocument,
     types: &Types,
-) -> Result<(Vec<Instruction>, Vec<(Group, std::ops::Range<usize>)>), ParseError> {
+) -> Result<InstructionList, ParseError> {
     let mut instr_defs = vec![];
     let mut group_defs = vec![];
 
@@ -93,7 +95,7 @@ fn parse_instruction_list(
         }
     }
 
-    Ok((instr_defs, group_defs))
+    Ok(InstructionList(instr_defs, group_defs))
 }
 
 fn parse_types(types: &kdl::KdlDocument) -> Result<Types, ParseError> {
@@ -145,7 +147,7 @@ fn check_field_types(
     checks: Vec<(String, miette::SourceSpan)>,
 ) -> Result<(), ParseError> {
     for (ty, field_ty_span) in checks {
-        if let None = types.get(&ty) {
+        if types.get(&ty).is_none() {
             return Err(ParseError::UnknownTypeName(ty, field_ty_span));
         }
     }
@@ -556,7 +558,7 @@ fn get_required_node(
     children: &kdl::KdlDocument,
     node_type: CommonNodes,
 ) -> Result<&kdl::KdlNode, ParseError> {
-    match children.get(&node_type.node_name()) {
+    match children.get(node_type.node_name()) {
         Some(it) => Ok(it),
         None => Err(ParseError::NodeRequired(node_type, children.span())),
     }

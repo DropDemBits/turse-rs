@@ -349,6 +349,8 @@ pub struct CodeUnit<RelocInfo> {
 /// Designates a [`CodeUnit`] that still has unresolved relocations in it.
 #[derive(Debug)]
 pub struct UnreslovedRelocs {
+    // it's fine for now, but still definitely need a better way of conceptualizing this
+    #[allow(clippy::type_complexity)]
     code_relocs: BTreeMap<
         (Option<CodeUnitRef>, UnitSection),
         BTreeMap<ProcedureRef, Vec<(RelocHandle, u32)>>,
@@ -423,10 +425,10 @@ impl CodeUnit<UnreslovedRelocs> {
                 .reloc_info
                 .code_relocs
                 .entry((reloc_unit, reloc_section))
-                .or_insert(BTreeMap::new());
+                .or_default();
             proc_relocs
                 .entry(proc)
-                .or_insert(vec![])
+                .or_default()
                 .push((reloc_handle, reloc_offset));
         }
     }
@@ -1056,19 +1058,10 @@ impl CaseTableRef {
 /// Builder for a [`CaseTable`].
 ///
 /// This manages building up a case table's entry list.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct CaseTableBuilder {
     signedness: Option<bool>,
     branches: BTreeMap<CaseBound, CodeOffset>,
-}
-
-impl Default for CaseTableBuilder {
-    fn default() -> Self {
-        Self {
-            signedness: None,
-            branches: BTreeMap::new(),
-        }
-    }
 }
 
 impl CaseTableBuilder {
@@ -1096,8 +1089,8 @@ impl CaseTableBuilder {
             CaseRange::SingleI32(it) => {
                 vec![CaseBound::I32(it)]
             }
-            CaseRange::RangeU32(lo, hi) => (lo..=hi).into_iter().map(CaseBound::U32).collect(),
-            CaseRange::RangeI32(lo, hi) => (lo..=hi).into_iter().map(CaseBound::I32).collect(),
+            CaseRange::RangeU32(lo, hi) => (lo..=hi).map(CaseBound::U32).collect(),
+            CaseRange::RangeI32(lo, hi) => (lo..=hi).map(CaseBound::I32).collect(),
         };
 
         for bound in target_bounds {
@@ -1183,6 +1176,7 @@ pub enum CaseRange {
 
 impl CaseRange {
     /// Length of the case range.
+    #[allow(clippy::len_without_is_empty)] // can really only be empty if the left bound is greater than the right one
     pub fn len(self) -> u32 {
         match self {
             CaseRange::SingleU32(_) | CaseRange::SingleI32(_) => 1,
