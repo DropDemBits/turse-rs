@@ -152,6 +152,11 @@ fn generate_types(spec: &BytecodeSpec) -> TokenStream {
                     }
 
                     impl #ident {
+                        #[doc = "Fixed (i.e. non-dynamic) size of the type, in bytes."]
+                        pub const fn fixed_size() -> usize {
+                            #size
+                        }
+
                         #[doc = "Size of the type, in bytes."]
                         pub fn size(&self) -> usize {
                             #size
@@ -164,7 +169,7 @@ fn generate_types(spec: &BytecodeSpec) -> TokenStream {
                 let ident = format_ident!("{}", ty.name().to_pascal_case());
                 let repr_ty = format_ident!(
                     "{}",
-                    ty.repr_type().expect("all scalars must have repr types")
+                    ty.repr_type().expect("all enums must have repr types")
                 );
                 let size = ty.size() as usize;
 
@@ -263,12 +268,96 @@ fn generate_types(spec: &BytecodeSpec) -> TokenStream {
                     }
 
                     impl #ident {
+                        #[doc = "Fixed (i.e. non-dynamic) size of the type, in bytes."]
+                        pub const fn fixed_size() -> usize {
+                            #size
+                        }
+
                         #[doc = "Size of the type, in bytes."]
                         pub fn size(&self) -> usize {
                             #size
                         }
 
                         #(#property_accessors)*
+                    }
+                }
+            }
+            Type::Union(ty) => {
+                let doc = doc_comment(ty.description());
+                let ident = format_ident!("{}", ty.name().to_pascal_case());
+                let repr_ty = format_ident!(
+                    "{}",
+                    ty.repr_type().expect("all unions must have repr types")
+                );
+                let tag_size = ty.tag_size() as usize;
+
+                let variants: Vec<_> = ty
+                    .variants()
+                    .iter()
+                    .map(|variant| {
+                        let doc = doc_comment(variant.description());
+                        let ident = format_ident!("{}", variant.name().to_pascal_case());
+                        let ordinal = proc_macro2::Literal::from_str(&format!(
+                            "{}{repr_ty}",
+                            variant.ordinal()
+                        ))
+                        .expect("should be a valid literal");
+
+                        let fields: Vec<_> = variant
+                            .fields()
+                            .iter()
+                            .map(|field| {
+                                let doc = doc_comment(field.description());
+                                let ident = format_ident!("{}", field.name().to_snek_case());
+                                let ty_name = format_ident!("{}", field.ty().to_pascal_case());
+
+                                quote! {
+                                    #doc
+                                    #ident: #ty_name
+                                }
+                            })
+                            .collect();
+                        // Don't let empty field variants have unnecessary braces
+                        let field_group = if !fields.is_empty() {
+                            quote!{ { #(#fields),* } }
+                        } else {
+                           quote!{} 
+                        };
+
+                        quote! {
+                            #doc
+                            #ident #field_group = #ordinal
+                        }
+                    })
+                    .collect();
+
+                let variant_size_arms: Vec<_> = ty.variants().iter().map(|variant| {
+                    let variant_size = proc_macro2::Literal::usize_unsuffixed(tag_size + variant.size() as usize);
+                    let ident = format_ident!("{}", variant.name().to_pascal_case());
+                    let field_group = if !variant.fields().is_empty() {
+                        quote!{ { .. } }
+                    } else {
+                       quote!{} 
+                    };
+
+                    quote!{ Self::#ident #field_group => #variant_size }
+                }).collect();
+
+                quote! {
+                    #doc
+                    #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+                    #[repr(#repr_ty)]
+                    pub enum #ident {
+                        #(#variants,)*
+                    }
+
+                    impl #ident {
+                        #[doc = "Size of the type, in bytes.\nIncludes the size of the tag, and may vary in size depending on the variant."]
+                        pub fn size(&self) -> usize {
+                            match self {
+                                #(#variant_size_arms,)*
+                            }
+                        }
                     }
                 }
             }
@@ -461,7 +550,81 @@ fn generate_encode_impls(spec: &BytecodeSpec) -> TokenStream {
                     }
                 }
             }
-            _ => todo!(),
+            Type::Union(ty) => {
+                let tag_type = ty
+                    .repr_type()
+                    .expect("all union types should have repr types");
+                let write_tag_ident = format_ident!("write_{tag_type}");
+                let tag_as_le = if matches!(tag_type, "u8" | "i8") {
+                    quote! {}
+                } else {
+                    quote! {LE}
+                };
+
+                let variant_encodes: Vec<_> = ty.variants().iter().map(|variant| {
+                    let ident = format_ident!("{}", variant.name().to_pascal_case());
+                    let ordinal = proc_macro2::Literal::from_str(&format!(
+                        "{}{tag_type}",
+                        variant.ordinal()
+                    ))
+                    .expect("should be a valid literal");
+
+                    let field_names: Vec<_> = variant
+                        .fields()
+                        .iter()
+                        .map(|field| {
+                            format_ident!("{}", field.name().to_snek_case())
+                        })
+                        .collect();
+                    let field_pattern = if !field_names.is_empty() {
+                        quote! { { #(#field_names),*} }
+                    } else {
+                        quote!{ }
+                    };
+
+                    let field_encodes: Vec<_> = variant
+                        .fields()
+                        .iter()
+                        .map(|field| {
+                            let ty = spec
+                                .types
+                                .get(field.ty())
+                                .expect("union variant field should have valid type");
+                            let ty = &spec.types[ty];
+                            let field_ident = format_ident!("{}", field.name());
+                            let encode = encode_type(
+                                ty,
+                                quote! { #field_ident },
+                                format_ident!("out"),
+                                true,
+                            );
+
+                            quote! { #encode?; }
+                        })
+                        .collect();
+
+                    quote! {
+                        Self::#ident #field_pattern => {
+                            out.#write_tag_ident::<#tag_as_le>(#ordinal)?;
+                            #(#field_encodes)*
+                        }
+                    }
+                }).collect();
+
+                quote! {
+                    impl #ident {
+                        #[doc = "Encodes the type into the equivalent byte representation."]
+                        pub fn encode(&self, out: &mut impl std::io::Write) -> std::io::Result<()> {
+                            match self {
+                                #(#variant_encodes)*
+                            }
+
+                            Ok(())
+                        }
+                    }
+                }
+            }
+            _ => unimplemented!("unhandled encoding type {ty:?}"),
         }
     });
 
@@ -492,7 +655,7 @@ fn encode_type(
                 quote! { #out_ident.#write_ident::<#as_le>(#value_expr) }
             }
         }
-        Type::Struct(_) | Type::Enum(_) => {
+        Type::Struct(_) | Type::Enum(_) | Type::Union(_) => {
             quote! { #value_expr.encode(#out_ident) }
         }
         _ => unimplemented!("unhandled encoding type {ty:?}"),

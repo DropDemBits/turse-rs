@@ -16,10 +16,12 @@ use turing_bytecode::{
         BytecodeBlob, BytecodeBuilder, CodeOffset, CodeUnitRef, LocalSlot, Procedure,
         ProcedureBuilder, ProcedureRef, RelocHandle, RelocTarget, TemporarySlot,
     },
-    instruction::{AbortReason, CheckKind, PutKind, RelocatableOffset, StdStreamKind, StreamKind},
+    instruction::{
+        AbortReason, CheckKind, GetKind, PutKind, RelocatableOffset, StdStreamKind, StreamKind,
+    },
 };
 
-use crate::instruction::{ForDescriptor, Opcode};
+use crate::instruction::ForDescriptor;
 
 mod instruction;
 
@@ -649,22 +651,15 @@ impl BodyCodeGenerator<'_> {
         self.proc.leave_temporary_scope(old_scope);
     }
 
-    #[allow(unused)]
     fn generate_stmt_get(&mut self, stmt: &hir_stmt::Get) {
-        todo!()
-    }
-
-    #[cfg(any())]
-    fn generate_stmt_get(&mut self, stmt: &hir_stmt::Get) {
-        let stream_handle =
-            self.generate_set_stream(stmt.stream_num, None, StdStream::Stdin(), StreamKind::Get());
+        let stream_handle = self.generate_set_stream(stmt.stream_num, None, StreamKind::Get);
 
         for item in &stmt.items {
             let item = match item {
                 hir_stmt::Skippable::Skip => {
-                    // Skip token
-                    self.code_fragment.emit_locate_temp(stream_handle);
-                    self.code_fragment.emit_opcode(Opcode::GET(GetKind::Skip()));
+                    // Skip whitespace
+                    self.proc.locate_temporary(stream_handle);
+                    self.proc.ins().get(GetKind::Skip);
                     continue;
                 }
                 hir_stmt::Skippable::Item(item) => item,
@@ -674,30 +669,30 @@ impl BodyCodeGenerator<'_> {
                 .db
                 .type_of((self.package_id, self.body_id, item.expr).into())
                 .to_base_type(self.db.up());
-            let ty_size = get_ty.size_of(self.db.up()).expect("type must be concrete") as u32;
+            let size = get_ty.size_of(self.db.up()).expect("type must be concrete") as u32;
 
             let mut get_width = None;
             let get_kind = match get_ty.kind(self.db.up()) {
-                ty::TypeKind::Boolean => GetKind::Boolean(),
-                ty::TypeKind::Int(_) => GetKind::Int(ty_size),
-                ty::TypeKind::Nat(_) => GetKind::Nat(ty_size),
-                ty::TypeKind::Real(_) => GetKind::Real(ty_size),
+                ty::TypeKind::Boolean => GetKind::Boolean { size: 1 },
+                ty::TypeKind::Int(_) => GetKind::Int { size },
+                ty::TypeKind::Nat(_) => GetKind::Nat { size },
+                ty::TypeKind::Real(_) => GetKind::Real { size },
                 ty::TypeKind::Integer => unreachable!(),
-                ty::TypeKind::Char => GetKind::Char(),
+                ty::TypeKind::Char => GetKind::Char { size: 1 },
                 ty::TypeKind::StringN(_) | ty::TypeKind::String => match item.width {
-                    hir_stmt::GetWidth::Token => GetKind::StringToken(ty_size),
-                    hir_stmt::GetWidth::Line => GetKind::StringLine(ty_size),
+                    hir_stmt::GetWidth::Token => GetKind::StringToken { size },
+                    hir_stmt::GetWidth::Line => GetKind::StringLine { size },
                     hir_stmt::GetWidth::Chars(width) => {
                         get_width = Some(width);
-                        GetKind::StringExact(ty_size)
+                        GetKind::StringExact { size }
                     }
                 },
                 ty::TypeKind::CharN(_) => match item.width {
                     hir_stmt::GetWidth::Chars(width) => {
                         get_width = Some(width);
-                        GetKind::CharN(ty_size)
+                        GetKind::CharN { size }
                     }
-                    hir_stmt::GetWidth::Token => GetKind::CharN(ty_size),
+                    hir_stmt::GetWidth::Token => GetKind::CharN { size },
                     hir_stmt::GetWidth::Line => unreachable!(),
                 },
                 _ => unreachable!(),
@@ -708,10 +703,10 @@ impl BodyCodeGenerator<'_> {
 
             if matches!(
                 get_kind,
-                GetKind::StringToken(_)
-                    | GetKind::StringLine(_)
-                    | GetKind::StringExact(_)
-                    | GetKind::CharN(_)
+                GetKind::StringToken { .. }
+                    | GetKind::StringLine { .. }
+                    | GetKind::StringExact { .. }
+                    | GetKind::CharN { .. }
             ) {
                 // push max width
                 if let Some(width) = get_width {
@@ -720,11 +715,11 @@ impl BodyCodeGenerator<'_> {
 
                 // and max length
                 let max_len = get_ty.length_of(self.db.up()).expect("is a charseq") as u32;
-                self.code_fragment.emit_opcode(Opcode::PUSHINT(max_len));
+                self.proc.ins().pushint(max_len as i32);
             }
 
-            self.code_fragment.emit_locate_temp(stream_handle);
-            self.code_fragment.emit_opcode(Opcode::GET(get_kind));
+            self.proc.locate_temporary(stream_handle);
+            self.proc.ins().get(get_kind);
         }
     }
 
