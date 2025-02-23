@@ -17,11 +17,10 @@ use turing_bytecode::{
         ProcedureBuilder, ProcedureRef, RelocHandle, RelocTarget, TemporarySlot,
     },
     instruction::{
-        AbortReason, CheckKind, GetKind, PutKind, RelocatableOffset, StdStreamKind, StreamKind,
+        AbortReason, CheckKind, ForDescriptor, GetKind, PutKind, RelocatableOffset, StdStreamKind,
+        StreamKind,
     },
 };
-
-use crate::instruction::ForDescriptor;
 
 mod instruction;
 
@@ -310,7 +309,6 @@ impl BodyCodeGenerator<'_> {
             package,
             body_id,
             body: package.body(body_id),
-            // code_fragment: &mut code_fragment,
             cctx: codegen_ctx,
             def_bindings: DefBindings::default(),
             proc,
@@ -764,7 +762,7 @@ impl BodyCodeGenerator<'_> {
     }
 
     fn generate_stmt_for(&mut self, stmt: &hir_stmt::For) {
-        let descriptor_size = std::mem::size_of::<ForDescriptor>();
+        let descriptor_size = ForDescriptor::fixed_size() as u32;
 
         let descriptor_slot = self.proc.alloc_temporary(descriptor_size as u32, 4);
         if let Some(counter_def) = stmt.counter_def {

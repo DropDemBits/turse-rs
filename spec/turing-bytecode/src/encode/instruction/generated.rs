@@ -194,6 +194,16 @@ impl CheckKind {
         out.write_u32::<LE>(*self as u32)
     }
 }
+impl ForDescriptor {
+    #[doc = "Encodes the type into the equivalent byte representation."]
+    pub fn encode(&self, out: &mut impl std::io::Write) -> std::io::Result<()> {
+        out.write_i32::<LE>(self.counter)?;
+        out.write_i32::<LE>(self.end)?;
+        out.write_i32::<LE>(self.step)?;
+        out.write_u32::<LE>(self.save_sp)?;
+        Ok(())
+    }
+}
 impl InstructionEncoder {
     #[doc = "Encode a [**ABORT**](Opcode::ABORT) instruction.\n\n## Operands\n\n- abort_kind: What is the reason for aborting\n"]
     pub fn abort(&mut self, abort_kind: AbortReason) -> InstructionRef {

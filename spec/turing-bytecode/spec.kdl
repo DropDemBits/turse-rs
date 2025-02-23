@@ -567,6 +567,32 @@ types {
       description "Range check as part of range parameter passing."
     }
   }
+  // Normative descriptors
+  struct "for_descriptor" size=16 {
+    description """
+    Keeps track of for-loop state, as well as enough state to restart iterations of a for-loop.
+    """
+
+    counter "int4" {
+      description "Current for-loop counter variable, may be exposed via naming the counter variable."
+    }
+    end "int4" {
+      description """
+      Termination value of the for-loop.
+      Once `counter` is equal to `end`, the for-loop will no longer proceed to further iterations.
+      """
+    }
+    step "int4" {
+      description """
+      Value to adjust `counter` by after each iteration.
+      """
+    }
+    save_sp "addrint" {
+      description """
+      Stack pointer address before the for-loop body was entered.
+      """
+    }
+  }
 }
 
 exceptions {
