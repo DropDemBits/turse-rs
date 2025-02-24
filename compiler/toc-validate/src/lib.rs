@@ -11,8 +11,9 @@ mod test;
 use toc_reporting::{CompileResult, FileRange, MessageBuilder, MessageSink};
 use toc_span::TextRange;
 use toc_syntax::{
+    SyntaxNode,
     ast::{self, AstNode},
-    match_ast, SyntaxNode,
+    match_ast,
 };
 
 pub fn validate_ast(root: SyntaxNode) -> CompileResult<(), FileRange> {

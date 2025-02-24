@@ -1,5 +1,5 @@
 //! Sink for events
-use crate::{event::Event, ParseTree};
+use crate::{ParseTree, event::Event};
 
 use rowan::GreenNodeBuilder;
 use std::mem;

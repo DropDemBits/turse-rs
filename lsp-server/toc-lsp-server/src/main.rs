@@ -1,14 +1,14 @@
 use std::sync::Arc;
 
 use lsp_types::{
-    notification::PublishDiagnostics, DidChangeTextDocumentParams, DidCloseTextDocumentParams,
-    DidOpenTextDocumentParams, InitializeParams, InitializeResult, InitializedParams,
-    PublishDiagnosticsParams, ServerCapabilities, TextDocumentIdentifier, TextDocumentItem,
-    TextDocumentSyncCapability, TextDocumentSyncKind, Url, VersionedTextDocumentIdentifier,
+    DidChangeTextDocumentParams, DidCloseTextDocumentParams, DidOpenTextDocumentParams,
+    InitializeParams, InitializeResult, InitializedParams, PublishDiagnosticsParams,
+    ServerCapabilities, TextDocumentIdentifier, TextDocumentItem, TextDocumentSyncCapability,
+    TextDocumentSyncKind, Url, VersionedTextDocumentIdentifier, notification::PublishDiagnostics,
 };
 use toc_ide_db::ServerState;
 use tokio::{sync::Mutex, task::block_in_place};
-use tower_lsp::{jsonrpc, Client, LanguageServer, LspService, Server};
+use tower_lsp::{Client, LanguageServer, LspService, Server, jsonrpc};
 use tracing::{debug, info, trace};
 use tracing_subscriber::EnvFilter;
 

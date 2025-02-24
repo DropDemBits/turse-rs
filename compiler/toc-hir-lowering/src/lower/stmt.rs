@@ -2,7 +2,7 @@
 use std::collections::HashMap;
 
 use indexmap::IndexMap;
-use toc_hir::symbol::{syms, IsPervasive, SymbolKind};
+use toc_hir::symbol::{IsPervasive, SymbolKind, syms};
 use toc_hir::ty::PassBy;
 use toc_hir::{
     expr, item,

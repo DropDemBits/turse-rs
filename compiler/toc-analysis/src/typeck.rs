@@ -6,7 +6,7 @@ mod test;
 use std::cell::RefCell;
 
 use toc_hir::{
-    body,
+    OrMissingExt, body,
     expr::{self, BodyExpr},
     item,
     package::{self, PackageId, WrapInPackage},
@@ -14,7 +14,6 @@ use toc_hir::{
     stmt,
     stmt::BodyStmt,
     symbol::{DefId, DefOwner, IsRegister, Mutability, SubprogramKind, SymbolKind},
-    OrMissingExt,
 };
 use toc_reporting::CompileResult;
 use toc_span::Span;
@@ -1707,11 +1706,7 @@ impl TypeCheck<'_> {
         let (mut params, mut args) = (param_list.iter(), arg_list.iter());
 
         fn arguments(count: usize) -> &'static str {
-            if count == 1 {
-                "argument"
-            } else {
-                "arguments"
-            }
+            if count == 1 { "argument" } else { "arguments" }
         }
 
         // For peeling opaques
@@ -2927,9 +2922,5 @@ enum ExpectedValue {
 }
 
 fn plural<'a>(count: usize, single: &'a str, multiple: &'a str) -> &'a str {
-    if count == 1 {
-        single
-    } else {
-        multiple
-    }
+    if count == 1 { single } else { multiple }
 }

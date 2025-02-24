@@ -4,7 +4,7 @@ use toc_hir::symbol::{self, DefId};
 
 use crate::{
     const_eval,
-    ty::{self, db, TypeId, TypeKind},
+    ty::{self, TypeId, TypeKind, db},
 };
 
 pub fn error(db: &dyn db::TypeDatabase) -> TypeId {

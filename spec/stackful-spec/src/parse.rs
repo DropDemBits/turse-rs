@@ -6,10 +6,10 @@ use std::{
 };
 
 use crate::{
-    entities::{EnumRef, EnumVariantRef, TypeRef, UnionRef, UnionVariantRef},
     AdtField, BytecodeSpec, CommonNodes, Enum, EnumVariant, Group, Instruction, NameKind, Operand,
     ParseError, Property, PropertyValue, Scalar, StringList, Struct, Type, Types, Union,
     UnionVariant,
+    entities::{EnumRef, EnumVariantRef, TypeRef, UnionRef, UnionVariantRef},
 };
 
 pub(crate) fn parse_spec(text: &str) -> Result<BytecodeSpec, ParseError> {
@@ -340,7 +340,7 @@ fn parse_enum(node: &kdl::KdlNode, slot: TypeRef) -> Result<Enum, ParseError> {
                     kdl::KdlValue::Integer(v) => PropertyValue::Number(*v),
                     kdl::KdlValue::Bool(v) => PropertyValue::Bool(*v),
                     kdl::KdlValue::Float(_) | kdl::KdlValue::Null => {
-                        return Err(ParseError::InvalidValue(value.span()))
+                        return Err(ParseError::InvalidValue(value.span()));
                     }
                 };
 

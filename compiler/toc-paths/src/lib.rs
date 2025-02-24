@@ -6,7 +6,7 @@
 mod expansion;
 mod paths;
 
-pub use expansion::{expand_path, BuiltinPrefix, PrefixExpansions};
+pub use expansion::{BuiltinPrefix, PrefixExpansions, expand_path};
 pub use paths::RawPath;
 
 #[salsa::jar(db = Db)]

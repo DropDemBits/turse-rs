@@ -4,8 +4,8 @@ use toc_hir_expand::{AstLocations, SemanticLoc};
 use toc_syntax::ast;
 
 use crate::{
-    item::{item_loc_map::ItemLocMap, ConstVar, Item, ItemCollection, Module},
     Db, Symbol,
+    item::{ConstVar, Item, ItemCollection, Module, item_loc_map::ItemLocMap},
 };
 
 /// Collects the immediately accessible items from a [`ast::StmtList`]

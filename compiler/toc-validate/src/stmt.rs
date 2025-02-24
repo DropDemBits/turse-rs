@@ -3,13 +3,13 @@
 mod test;
 
 use toc_syntax::{
-    ast::{self, AstNode},
     IoKind, SyntaxKind, SyntaxNode,
+    ast::{self, AstNode},
 };
 
 use crate::{
-    block_containing_node, item_block_containing_node, walk_blocks, without_matching, BlockKind,
-    ValidateCtx,
+    BlockKind, ValidateCtx, block_containing_node, item_block_containing_node, walk_blocks,
+    without_matching,
 };
 
 pub(super) fn validate_constvar_decl(decl: ast::ConstVarDecl, ctx: &mut ValidateCtx) {

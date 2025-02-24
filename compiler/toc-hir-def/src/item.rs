@@ -5,9 +5,9 @@ use toc_syntax::ast::{self, AstNode};
 use toc_vfs_db::SourceFile;
 
 use crate::{
+    Db, IsMonitor, IsPervasive, IsRegister, ItemAttrs, Mutability, Symbol,
     body::{Body, BodyOrigin},
     item::item_loc_map::ItemLocMap,
-    Db, IsMonitor, IsPervasive, IsRegister, ItemAttrs, Mutability, Symbol,
 };
 
 macro_rules! impl_into_conversions {

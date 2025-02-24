@@ -21,7 +21,7 @@ mod nodes_ext;
 pub use nodes::*;
 
 mod helper {
-    use crate::{ast::AstNode, SyntaxKind, SyntaxNode, SyntaxToken};
+    use crate::{SyntaxKind, SyntaxNode, SyntaxToken, ast::AstNode};
 
     pub(super) fn token(node: &SyntaxNode, kind: SyntaxKind) -> Option<SyntaxToken> {
         node.children_with_tokens()

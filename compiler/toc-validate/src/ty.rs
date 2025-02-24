@@ -7,7 +7,7 @@ use toc_syntax::{
     match_ast,
 };
 
-use crate::{block_containing_node, ValidateCtx};
+use crate::{ValidateCtx, block_containing_node};
 
 pub(super) fn validate_function_type(ty: ast::FcnType, ctx: &mut ValidateCtx) {
     if ty.params().is_none() {

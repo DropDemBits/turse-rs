@@ -22,8 +22,8 @@ use std::{collections::BTreeMap, marker::PhantomData};
 use toc_ast_db::IntoAst;
 use toc_source_graph::Package;
 use toc_syntax::{
-    ast::{self, AstNode},
     SyntaxNode, SyntaxNodePtr,
+    ast::{self, AstNode},
 };
 use toc_vfs_db::SourceFile;
 use upcast::{Upcast, UpcastFrom};

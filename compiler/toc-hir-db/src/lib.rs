@@ -150,7 +150,7 @@ where
         if parent.0 != child.0 {
             return false;
         }
-        query::is_module_ancestor(self, parent.0 .0, parent.1, child.1)
+        query::is_module_ancestor(self, parent.0.0, parent.1, child.1)
     }
 
     fn inside_module(&self, inside_module: InsideModule) -> item::ModuleId {

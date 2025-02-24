@@ -9,14 +9,14 @@ use toc_hir::{
 
 use crate::{
     const_eval::{
+        ConstError, ConstInt,
         errors::{ErrorKind, NotConst},
         ops::ConstOp,
-        ConstError, ConstInt,
     },
     ty,
 };
 
-use super::{db::ConstEval, Const, ConstResult, ConstValue, EvalParams};
+use super::{Const, ConstResult, ConstValue, EvalParams, db::ConstEval};
 
 pub(crate) fn evaluate_const(
     db: &dyn ConstEval,
@@ -46,7 +46,7 @@ pub(crate) fn evaluate_const(
                 return Err(ConstError::new(
                     ErrorKind::NotConstExpr(NotConst::Expr),
                     body.span.lookup_in(span_map),
-                ))
+                ));
             }
             toc_hir::body::BodyKind::Exprs(expr) => *expr,
         },

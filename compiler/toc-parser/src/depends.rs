@@ -5,9 +5,8 @@ use indexmap::IndexMap;
 use toc_reporting::{CompileResult, FileRange, MessageSink};
 use toc_span::FileId;
 use toc_syntax::{
-    ast,
+    AstPtr, SyntaxNode, ast,
     ast::{AstNode, ExternalItemOwner},
-    AstPtr, SyntaxNode,
 };
 
 /// What other file sources a given file depends on

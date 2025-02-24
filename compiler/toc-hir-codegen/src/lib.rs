@@ -12,9 +12,9 @@ use toc_reporting::CompileResult;
 use toc_span::{FileId, Span};
 use turing_bytecode::{
     encode::{
-        section::{ManifestAllocator, ManifestSlot, SectionData},
         BytecodeBlob, BytecodeBuilder, CodeOffset, CodeUnitRef, LocalSlot, Procedure,
         ProcedureBuilder, ProcedureRef, RelocHandle, RelocTarget, TemporarySlot,
+        section::{ManifestAllocator, ManifestSlot, SectionData},
     },
     instruction::{
         AbortReason, CheckKind, ForDescriptor, GetKind, PutKind, RelocatableOffset, StdStreamKind,
@@ -1747,7 +1747,9 @@ impl BodyCodeGenerator<'_> {
             hir_expr::ExprKind::Field(_ref_expr) => unimplemented!(),
             // The rest can never be in reference producing position
             _ => {
-                unreachable!("malformed code reached code generation (producing reference from non-reference expr)")
+                unreachable!(
+                    "malformed code reached code generation (producing reference from non-reference expr)"
+                )
             }
         }
     }

@@ -5,8 +5,9 @@ use toc_hir_expand::SemanticLoc;
 use toc_syntax::ast;
 
 use crate::{
+    Symbol,
     body::{Body, ModuleBlock},
-    expr, Symbol,
+    expr,
 };
 
 crate::arena_id_wrapper!(

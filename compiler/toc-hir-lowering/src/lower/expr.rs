@@ -5,8 +5,8 @@ use toc_hir::{
 };
 use toc_span::TextRange;
 use toc_syntax::{
-    ast::{self, AstNode},
     LiteralValue,
+    ast::{self, AstNode},
 };
 
 impl super::BodyLowering<'_, '_> {

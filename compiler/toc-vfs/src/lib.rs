@@ -14,7 +14,7 @@ use std::{
     sync::Arc,
 };
 
-pub use fixture::{generate_vfs, FixtureFiles, ParseError};
+pub use fixture::{FixtureFiles, ParseError, generate_vfs};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct LoadError {

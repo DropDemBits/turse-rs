@@ -6,7 +6,7 @@ use toc_span::Span;
 
 use crate::ty;
 use crate::{
-    const_eval::{errors::ErrorKind, ConstError, ConstInt},
+    const_eval::{ConstError, ConstInt, errors::ErrorKind},
     ty::db,
 };
 

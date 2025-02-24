@@ -5,7 +5,7 @@ use std::{cmp::Ordering, convert::TryFrom, sync::Arc};
 use toc_hir::{expr, span::Spanned};
 
 use crate::{
-    const_eval::{errors::ErrorKind, ConstError, ConstInt, ConstValue},
+    const_eval::{ConstError, ConstInt, ConstValue, errors::ErrorKind},
     ty,
 };
 
