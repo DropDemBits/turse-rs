@@ -6,20 +6,48 @@ use std::{
 };
 
 use crate::{
-    AdtField, BytecodeSpec, CommonNodes, Enum, EnumVariant, Group, Instruction, NameKind, Operand,
-    ParseError, Property, PropertyValue, Scalar, StringList, Struct, Type, Types, Union,
-    UnionVariant,
+    AdtField, BytecodeSpec, CommonNodes, Enum, EnumVariant, Group, Instruction, KnownAttrs,
+    NameKind, Operand, ParseError, Property, PropertyValue, Scalar, StringList, Struct, Type,
+    Types, Union, UnionVariant,
     entities::{EnumRef, EnumVariantRef, TypeRef, UnionRef, UnionVariantRef},
 };
+
+const SCALAR_ATTRS: &[KnownAttrs] = &[KnownAttrs::Description, KnownAttrs::ReprType];
+const ENUM_ATTRS: &[KnownAttrs] = &[KnownAttrs::Description, KnownAttrs::ReprType];
+const ENUM_VARIANT_ATTRS: &[KnownAttrs] = &[KnownAttrs::Description];
+const STRUCT_ATTRS: &[KnownAttrs] = &[KnownAttrs::Description];
+const UNION_ATTRS: &[KnownAttrs] = &[KnownAttrs::Description, KnownAttrs::ReprType];
+const UNION_VARIANT_ATTRS: &[KnownAttrs] = &[KnownAttrs::Description];
+const ADT_FIELD_ATTRS: &[KnownAttrs] = &[KnownAttrs::Description];
+
+const GROUP_ATTRS: &[KnownAttrs] = &[KnownAttrs::Description];
+
+const NO_ATTRS: &[KnownAttrs] = &[];
+const INSTRUCTION_ATTRS: &[KnownAttrs] = &[KnownAttrs::Description];
+const IMMEDIATE_OPERAND_ATTRS: &[KnownAttrs] = &[KnownAttrs::Description];
+const STACK_BEFORE_OPERAND_ATTRS: &[KnownAttrs] = &[
+    KnownAttrs::Description,
+    KnownAttrs::Computed,
+    KnownAttrs::ComputedOffset,
+];
+const STACK_AFTER_OPERAND_ATTRS: &[KnownAttrs] = &[
+    KnownAttrs::Description,
+    KnownAttrs::Computed,
+    KnownAttrs::ComputedOffset,
+    KnownAttrs::Preserves,
+];
+const EXCEPTION_CASE_ATTRS: &[KnownAttrs] = &[KnownAttrs::Description];
 
 pub(crate) fn parse_spec(text: &str) -> Result<BytecodeSpec, ParseError> {
     let kdl: kdl::KdlDocument = text.parse()?;
 
     let types = get_required_node(&kdl, CommonNodes::TypeList)?;
+    expect_attribute_names(types, NO_ATTRS)?;
     let types = get_required_children(types, CommonNodes::TypeList)?;
     let types = parse_types(types)?;
 
     let instructions = get_required_node(&kdl, CommonNodes::InstructionList)?;
+    expect_attribute_names(instructions, NO_ATTRS)?;
     let instructions = get_required_children(instructions, CommonNodes::InstructionList)?;
 
     let InstructionList(instr_defs, group_defs) = parse_instruction_list(instructions, &types)?;
@@ -55,6 +83,8 @@ fn parse_instruction_list(
 
     for entry in instructions.nodes() {
         if entry.name().value() == "group" {
+            expect_attribute_names(entry, GROUP_ATTRS)?;
+
             // as group!
             let children = get_required_children(entry, CommonNodes::GroupNode)?;
             let heading = parse_heading(entry, 0)?;
@@ -227,6 +257,8 @@ fn check_acyclic_types(types: &Types) -> Result<(), CycleError> {
 }
 
 fn parse_scalar(node: &kdl::KdlNode) -> Result<Scalar, ParseError> {
+    expect_attribute_names(node, SCALAR_ATTRS)?;
+
     let name = parse_required_string_entry(node, 0)?;
     let size = parse_required_u32_entry(node, "size")?;
     let description = parse_description(node)?;
@@ -244,6 +276,8 @@ fn parse_struct(
     node: &kdl::KdlNode,
     field_ty_checks: &mut Vec<(String, miette::SourceSpan)>,
 ) -> Result<Struct, ParseError> {
+    expect_attribute_names(node, STRUCT_ATTRS)?;
+
     let name = parse_required_string_entry(node, 0)?;
     let size = parse_required_u32_entry(node, "size")?;
     let description = parse_description(node)?;
@@ -274,6 +308,8 @@ fn parse_adt_fields(
             continue;
         }
 
+        expect_attribute_names(field_entry, ADT_FIELD_ATTRS)?;
+
         let ty = parse_required_string_entry(field_entry, 0)?;
         let description = parse_description(field_entry)?;
 
@@ -295,6 +331,8 @@ fn parse_adt_fields(
 }
 
 fn parse_enum(node: &kdl::KdlNode, slot: TypeRef) -> Result<Enum, ParseError> {
+    expect_attribute_names(node, ENUM_ATTRS)?;
+
     let slot = EnumRef(slot);
 
     let name = parse_required_string_entry(node, 0)?;
@@ -311,10 +349,12 @@ fn parse_enum(node: &kdl::KdlNode, slot: TypeRef) -> Result<Enum, ParseError> {
     for variant_entry in variants.nodes() {
         let name = variant_entry.name().value();
 
-        // Skip attribute nodes
+        // Skip top-level attribute nodes
         if matches!(name, "-") {
             continue;
         }
+
+        expect_attribute_names(variant_entry, ENUM_VARIANT_ATTRS)?;
 
         let ordinal = parse_u32_entry(variant_entry, 0)?.unwrap_or(ordinal_iota);
         let description = parse_description(variant_entry)?;
@@ -425,6 +465,8 @@ fn parse_union(
     slot: TypeRef,
     field_ty_checks: &mut Vec<(String, miette::SourceSpan)>,
 ) -> Result<Union, ParseError> {
+    expect_attribute_names(node, UNION_ATTRS)?;
+
     let slot = UnionRef(slot);
 
     let name = parse_required_string_entry(node, 0)?;
@@ -444,6 +486,8 @@ fn parse_union(
         if matches!(name, "-") {
             continue;
         }
+
+        expect_attribute_names(variant_entry, UNION_VARIANT_ATTRS)?;
 
         let size = parse_required_u32_entry(variant_entry, "size")?;
         let ordinal = parse_u32_entry(variant_entry, 0)?.unwrap_or(ordinal_iota);
@@ -492,20 +536,24 @@ fn parse_union(
 }
 
 fn parse_instruction(node: &kdl::KdlNode, types: &Types) -> Result<Instruction, ParseError> {
+    expect_attribute_names(node, INSTRUCTION_ATTRS)?;
+
     let opcode = parse_required_u32_entry(node, 0)?;
     let heading = parse_heading(node, 1)?;
     let description = parse_description(node)?;
 
     let immediate_operands = if let Some(operands) = find_child(node, "operands") {
+        expect_attribute_names(operands, NO_ATTRS)?;
+
         let operands = get_required_children(operands, CommonNodes::OperandsList)?;
         let mut operand_defs = vec![];
         let mut operand_names = DefsTracker::new(NameKind::Operand);
 
         for entry in operands.nodes() {
+            expect_attribute_names(entry, IMMEDIATE_OPERAND_ATTRS)?;
+
             let def = parse_operand(entry, types)?;
-
             operand_names.track_def(def.name.to_owned(), entry.name().span())?;
-
             operand_defs.push(def);
         }
 
@@ -588,6 +636,43 @@ fn parse_description(node: &kdl::KdlNode) -> Result<Option<&str>, ParseError> {
 /// Parses a repr_type attribute node
 fn parse_repr_type(node: &kdl::KdlNode) -> Result<Option<&str>, ParseError> {
     parse_string_attribute(node, "repr_type")
+}
+
+/// Ensure that there are no unexpected attributes for a certain node.
+fn expect_attribute_names<'node>(
+    node: &'node kdl::KdlNode,
+    accepted_attrs: &'static [KnownAttrs],
+) -> Result<(), ParseError> {
+    let Some(children) = node.children() else {
+        return Ok(());
+    };
+
+    for child in children
+        .nodes()
+        .iter()
+        .filter(|it| it.name().value() == "-")
+    {
+        let Some(attr_name) = child.entry(0) else {
+            return Err(ParseError::MissingString(child.name().span()));
+        };
+
+        let Some(attr_value) = attr_name.value().as_string() else {
+            return Err(ParseError::ExpectedString(attr_name.span()));
+        };
+
+        let known_attr: KnownAttrs = attr_value
+            .parse()
+            .map_err(|_| ParseError::UnknownAttribute(attr_value.to_owned(), attr_name.span()))?;
+
+        if !accepted_attrs.contains(&known_attr) {
+            return Err(ParseError::UnexpectedAttribute(
+                known_attr,
+                attr_name.span(),
+            ));
+        }
+    }
+
+    Ok(())
 }
 
 /// Parses a stringy attribute node
@@ -1768,6 +1853,7 @@ mod tests {
             "{err:#?}"
         );
     }
+
     #[test]
     fn parse_fail_duplicate_type_names() {
         let err = parse_fail(
@@ -1782,6 +1868,553 @@ mod tests {
 
         assert!(
             matches!(err, ParseError::DuplicateName(NameKind::Type, ..)),
+            "{err:#?}"
+        );
+    }
+
+    #[test]
+    fn parse_fail_unexpected_attribute_type_list() {
+        let err = parse_fail(
+            r#"
+            types {
+                - description "this is not allowed :>"
+            }
+
+            instructions {}
+            "#,
+        );
+
+        assert!(
+            matches!(
+                err,
+                ParseError::UnexpectedAttribute(KnownAttrs::Description, ..)
+            ),
+            "{err:#?}"
+        );
+    }
+
+    #[test]
+    fn parse_fail_unknown_attribute_type_list() {
+        let err = parse_fail(
+            r#"
+            types {
+                - descrumptulous "typo"
+            }
+
+            instructions {}
+            "#,
+        );
+
+        assert!(
+            matches!(&err, ParseError::UnknownAttribute(name, ..) if name == "descrumptulous"),
+            "{err:#?}"
+        );
+    }
+
+    #[test]
+    fn parse_fail_unexpected_attribute_struct() {
+        let err = parse_fail(
+            r#"
+            types {
+                struct one size=4 {
+                    - description "this is allowed!"
+                    - preserves "this is not :>"
+                }
+            }
+
+            instructions {}
+            "#,
+        );
+
+        assert!(
+            matches!(
+                err,
+                ParseError::UnexpectedAttribute(KnownAttrs::Preserves, ..)
+            ),
+            "{err:#?}"
+        );
+    }
+
+    #[test]
+    fn parse_fail_unknown_attribute_struct() {
+        let err = parse_fail(
+            r#"
+            types {
+                struct one size=4 {
+                    - descrumptulous "typo"
+                }
+            }
+
+            instructions {}
+            "#,
+        );
+
+        assert!(
+            matches!(&err, ParseError::UnknownAttribute(name, ..) if name == "descrumptulous"),
+            "{err:#?}"
+        );
+    }
+
+    #[test]
+    fn parse_fail_unexpected_attribute_adt_field() {
+        let err = parse_fail(
+            r#"
+            types {
+                struct one size=4 {
+                    field "other" {
+                        - description "this is allowed!"
+                        - preserves "this is not :>"
+                    }
+                }
+                scalar other size=4
+            }
+
+            instructions {}
+            "#,
+        );
+
+        assert!(
+            matches!(
+                err,
+                ParseError::UnexpectedAttribute(KnownAttrs::Preserves, ..)
+            ),
+            "{err:#?}"
+        );
+    }
+
+    #[test]
+    fn parse_fail_unknown_attribute_adt_field() {
+        let err = parse_fail(
+            r#"
+            types {
+                struct one size=4 {
+                    field "other" {
+                        - descrumptulous "typo"
+                    }
+                }
+                scalar other size=4
+            }
+
+            instructions {}
+            "#,
+        );
+
+        assert!(
+            matches!(&err, ParseError::UnknownAttribute(name, ..) if name == "descrumptulous"),
+            "{err:#?}"
+        );
+    }
+
+    #[test]
+    fn parse_fail_unexpected_attribute_scalar() {
+        let err = parse_fail(
+            r#"
+            types {
+                scalar one size=4 {
+                    - description "this is allowed!"
+                    - preserves "this is not :>"
+                }
+            }
+
+            instructions {}
+            "#,
+        );
+
+        assert!(
+            matches!(
+                err,
+                ParseError::UnexpectedAttribute(KnownAttrs::Preserves, ..)
+            ),
+            "{err:#?}"
+        );
+    }
+
+    #[test]
+    fn parse_fail_unknown_attribute_scalar() {
+        let err = parse_fail(
+            r#"
+            types {
+                scalar one size=4 {
+                    - descrumptulous "typo"
+                }
+            }
+
+            instructions {}
+            "#,
+        );
+
+        assert!(
+            matches!(&err, ParseError::UnknownAttribute(name, ..) if name == "descrumptulous"),
+            "{err:#?}"
+        );
+    }
+
+    #[test]
+    fn parse_fail_unexpected_attribute_enum() {
+        let err = parse_fail(
+            r#"
+            types {
+                enum one size=4 {
+                    - description "this is allowed!"
+                    - preserves "this is not :>"
+                }
+            }
+
+            instructions {}
+            "#,
+        );
+
+        assert!(
+            matches!(
+                err,
+                ParseError::UnexpectedAttribute(KnownAttrs::Preserves, ..)
+            ),
+            "{err:#?}"
+        );
+    }
+
+    #[test]
+    fn parse_fail_unknown_attribute_enum() {
+        let err = parse_fail(
+            r#"
+            types {
+                enum one size=4 {
+                    - descrumptulous "typo"
+                }
+            }
+
+            instructions {}
+            "#,
+        );
+
+        assert!(
+            matches!(&err, ParseError::UnknownAttribute(name, ..) if name == "descrumptulous"),
+            "{err:#?}"
+        );
+    }
+
+    #[test]
+    fn parse_fail_unexpected_attribute_enum_variant() {
+        let err = parse_fail(
+            r#"
+            types {
+                enum one size=4 {
+                    v1 {
+                        - description "this is allowed!"
+                        - preserves "this is not :>"
+                    }
+                }
+            }
+
+            instructions {}
+            "#,
+        );
+
+        assert!(
+            matches!(
+                err,
+                ParseError::UnexpectedAttribute(KnownAttrs::Preserves, ..)
+            ),
+            "{err:#?}"
+        );
+    }
+
+    #[test]
+    fn parse_fail_unknown_attribute_enum_variant() {
+        let err = parse_fail(
+            r#"
+            types {
+                enum one size=4 {
+                    v1 {
+                        - descrumptulous "typo"
+                    }
+                }
+            }
+
+            instructions {}
+            "#,
+        );
+
+        assert!(
+            matches!(&err, ParseError::UnknownAttribute(name, ..) if name == "descrumptulous"),
+            "{err:#?}"
+        );
+    }
+
+    #[test]
+    fn parse_fail_unexpected_attribute_union() {
+        let err = parse_fail(
+            r#"
+            types {
+                union one tag_size=4 {
+                    - description "this is allowed!"
+                    - preserves "this is not :>"
+                }
+            }
+
+            instructions {}
+            "#,
+        );
+
+        assert!(
+            matches!(
+                err,
+                ParseError::UnexpectedAttribute(KnownAttrs::Preserves, ..)
+            ),
+            "{err:#?}"
+        );
+    }
+
+    #[test]
+    fn parse_fail_unknown_attribute_union() {
+        let err = parse_fail(
+            r#"
+            types {
+                union one tag_size=4 {
+                    - descrumptulous "typo"
+                }
+            }
+
+            instructions {}
+            "#,
+        );
+
+        assert!(
+            matches!(&err, ParseError::UnknownAttribute(name, ..) if name == "descrumptulous"),
+            "{err:#?}"
+        );
+    }
+
+    #[test]
+    fn parse_fail_unexpected_attribute_union_variant() {
+        let err = parse_fail(
+            r#"
+            types {
+                union one tag_size=4 {
+                    v1 size=1 {
+                        - description "this is allowed!"
+                        - preserves "this is not :>"
+                    }
+                }
+            }
+
+            instructions {}
+            "#,
+        );
+
+        assert!(
+            matches!(
+                err,
+                ParseError::UnexpectedAttribute(KnownAttrs::Preserves, ..)
+            ),
+            "{err:#?}"
+        );
+    }
+
+    #[test]
+    fn parse_fail_unexpected_attribute_instruction_list() {
+        let err = parse_fail(
+            r#"
+            types {}
+
+            instructions {
+                - description "this is not allowed :>"
+            }
+            "#,
+        );
+
+        assert!(
+            matches!(
+                err,
+                ParseError::UnexpectedAttribute(KnownAttrs::Description, ..)
+            ),
+            "{err:#?}"
+        );
+    }
+
+    #[test]
+    fn parse_fail_unknown_attribute_instruction_list() {
+        let err = parse_fail(
+            r#"
+            types {}
+
+            instructions {
+                - descrumptulous "typo"
+            }
+            "#,
+        );
+
+        assert!(
+            matches!(&err, ParseError::UnknownAttribute(name, ..) if name == "descrumptulous"),
+            "{err:#?}"
+        );
+    }
+
+    #[test]
+    fn parse_fail_unexpected_attribute_group() {
+        let err = parse_fail(
+            r#"
+            types {
+                scalar ty size=4
+            }
+
+            instructions {
+                group {
+                    - description "this is allowed!"
+                    - repr_type "this is not :>"
+                }
+            }
+            "#,
+        );
+
+        assert!(
+            matches!(
+                err,
+                ParseError::UnexpectedAttribute(KnownAttrs::ReprType, ..)
+            ),
+            "{err:#?}"
+        );
+    }
+
+    #[test]
+    fn parse_fail_unknown_attribute_group() {
+        let err = parse_fail(
+            r#"
+            types {
+                scalar ty size=4
+            }
+
+            instructions {
+                group {
+                    - descrumptulous "typo"
+                }
+            }
+            "#,
+        );
+
+        assert!(
+            matches!(&err, ParseError::UnknownAttribute(name, ..) if name == "descrumptulous"),
+            "{err:#?}"
+        );
+    }
+
+    #[test]
+    fn parse_fail_unknown_attribute_union_variant() {
+        let err = parse_fail(
+            r#"
+            types {
+                union one tag_size=4 {
+                    v1 size=1 {
+                        - descrumptulous "typo"
+                    }
+                }
+            }
+
+            instructions {}
+            "#,
+        );
+
+        assert!(
+            matches!(&err, ParseError::UnknownAttribute(name, ..) if name == "descrumptulous"),
+            "{err:#?}"
+        );
+    }
+
+    #[test]
+    fn parse_fail_unexpected_attribute_instruction() {
+        let err = parse_fail(
+            r#"
+            types {
+                scalar ty size=4
+            }
+
+            instructions {
+                INST_0 0x00 {
+                    - description "this is allowed!"
+                    - repr_type "this is not :>"
+                }
+            }
+            "#,
+        );
+
+        assert!(
+            matches!(
+                err,
+                ParseError::UnexpectedAttribute(KnownAttrs::ReprType, ..)
+            ),
+            "{err:#?}"
+        );
+    }
+
+    #[test]
+    fn parse_fail_unknown_attribute_instruction() {
+        let err = parse_fail(
+            r#"
+            types {
+                scalar ty size=4
+            }
+
+            instructions {
+                INST_0 0x00 {
+                    - descrumptulous "typo"
+                }
+            }
+            "#,
+        );
+
+        assert!(
+            matches!(&err, ParseError::UnknownAttribute(name, ..) if name == "descrumptulous"),
+            "{err:#?}"
+        );
+    }
+
+    #[test]
+    fn parse_fail_unexpected_attribute_operands_list() {
+        let err = parse_fail(
+            r#"
+            types {
+                scalar ty size=4
+            }
+
+            instructions {
+                INST_0 0x00 {
+                    operands {
+                        - description "this is not allowed :>"
+                    }
+                }
+            }
+            "#,
+        );
+
+        assert!(
+            matches!(
+                err,
+                ParseError::UnexpectedAttribute(KnownAttrs::Description, ..)
+            ),
+            "{err:#?}"
+        );
+    }
+
+    #[test]
+    fn parse_fail_unknown_attribute_operands_list() {
+        let err = parse_fail(
+            r#"
+            types {
+                scalar ty size=4
+            }
+
+            instructions {
+                INST_0 0x00 {
+                    operands {
+                        - descrumptulous "typo"
+                    }
+                }
+            }
+            "#,
+        );
+
+        assert!(
+            matches!(&err, ParseError::UnknownAttribute(name, ..) if name == "descrumptulous"),
             "{err:#?}"
         );
     }

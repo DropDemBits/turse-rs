@@ -146,6 +146,14 @@ pub enum ParseError {
         CommonNodes,
     ),
 
+    #[error("unknown attribute `{0}`")]
+    #[diagnostic(code(bytecode_spec::unknown_attribute))]
+    UnknownAttribute(String, #[label] miette::SourceSpan),
+
+    #[error("unexpected attribute `{0}`")]
+    #[diagnostic(code(bytecode_spec::unknown_attribute))]
+    UnexpectedAttribute(KnownAttrs, #[label] miette::SourceSpan),
+
     #[error("invalid type kind")]
     #[diagnostic(code(bytecode_spec::invalid_type_kind))]
     InvalidTypeKind(#[label("expected `scalar`, `struct` or `enum`")] miette::SourceSpan),
@@ -187,7 +195,79 @@ pub enum ParseError {
     ),
 }
 
-/// Common node names used for error reporting.
+/// All known node names.
+/// Used for error reporting as well as restricting the available nodes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum KnownNodes {
+    /// Top-level `types` list.
+    TypeList,
+    /// `scalar` node in the types list.
+    ScalarNode,
+    /// `struct` node in the types list.
+    StructNode,
+    /// `enum` node in the types list.
+    EnumNode,
+    /// `union` node in the types list.
+    UnionNode,
+
+    /// Top-level `exceptions` list.
+    PossibleExceptionsList,
+
+    /// Top-level `instructions` list.
+    InstructionList,
+    /// A grouping of instruction nodes.
+    GroupNode,
+    /// A list of immediate operands in an instruction.
+    OperandsList,
+    /// A description of the stack state before an instruction executes.
+    StackBeforeList,
+    /// A description of the stack state after an instruction executes.
+    StackAfterList,
+    /// Exceptions that an instruction might raise during execution.
+    ExceptionsList,
+}
+
+impl FromStr for KnownNodes {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "types" => Ok(Self::TypeList),
+            "scalar" => Ok(Self::ScalarNode),
+            "struct" => Ok(Self::StructNode),
+            "enum" => Ok(Self::EnumNode),
+            "union" => Ok(Self::UnionNode),
+            "instructions" => Ok(Self::InstructionList),
+            "group" => Ok(Self::GroupNode),
+            "operands" => Ok(Self::OperandsList),
+            "stack_before" => Ok(Self::StackBeforeList),
+            "stack_after" => Ok(Self::StackAfterList),
+            "exceptions" => Ok(Self::ExceptionsList),
+            _ => Err(()),
+        }
+    }
+}
+
+impl Display for KnownNodes {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            KnownNodes::TypeList => "types",
+            KnownNodes::ScalarNode => "scalar",
+            KnownNodes::StructNode => "struct",
+            KnownNodes::EnumNode => "enum",
+            KnownNodes::UnionNode => "union",
+            KnownNodes::PossibleExceptionsList => "exceptions",
+            KnownNodes::InstructionList => "instructions",
+            KnownNodes::GroupNode => "group",
+            KnownNodes::OperandsList => "operands",
+            KnownNodes::StackBeforeList => "stack_before",
+            KnownNodes::StackAfterList => "stack_after",
+            KnownNodes::ExceptionsList => "exceptions",
+        })
+    }
+}
+
+/// Common node names used for error reporting, including known node names.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum CommonNodes {
     InstructionList,
@@ -250,6 +330,8 @@ impl Display for NameKind {
     }
 }
 
+/// A list of strings.
+/// Mainly used to render a list of strings in an error message.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StringList(pub Vec<String>);
 
@@ -267,6 +349,43 @@ impl Display for StringList {
         }
 
         Ok(())
+    }
+}
+
+/// All defined attribute names used in any nodes.
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
+pub enum KnownAttrs {
+    Description,
+    ReprType,
+    Computed,
+    ComputedOffset,
+    Preserves,
+}
+
+impl FromStr for KnownAttrs {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "description" => Ok(Self::Description),
+            "repr_type" => Ok(Self::ReprType),
+            "computed" => Ok(Self::Computed),
+            "computed_offset" => Ok(Self::ComputedOffset),
+            "preserves" => Ok(Self::Preserves),
+            _ => Err(()),
+        }
+    }
+}
+
+impl Display for KnownAttrs {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            KnownAttrs::Description => "description",
+            KnownAttrs::ReprType => "repr_type",
+            KnownAttrs::Computed => "computed",
+            KnownAttrs::ComputedOffset => "computed_offset",
+            KnownAttrs::Preserves => "preserves",
+        })
     }
 }
 
