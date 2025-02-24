@@ -777,6 +777,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "indexmap"
+version = "2.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8c9c992b02b5b4c94ea26e32fe5bccb7aa7d9f390ab5c1221ff895bc7ea8b652"
+dependencies = [
+ "equivalent",
+ "hashbrown 0.15.2",
+]
+
+[[package]]
 name = "insta"
 version = "1.42.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -812,9 +822,9 @@ checksum = "7943c866cc5cd64cbc25b2e01621d07fa8eb2a1a23160ee81ce38704e97b8ecf"
 
 [[package]]
 name = "itertools"
-version = "0.10.5"
+version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b0fd2260e829bddf4cb6ea802289de2f86d6a7a690192fbe91b3f46e0f2c8473"
+checksum = "2b192c782037fadd9cfa75548310488aabdbf3d2da73885b31bd0abd03351285"
 dependencies = [
  "either",
 ]
@@ -1421,7 +1431,7 @@ dependencies = [
  "crossbeam-utils",
  "dashmap",
  "hashlink",
- "indexmap",
+ "indexmap 1.9.3",
  "log",
  "parking_lot",
  "rustc-hash 1.1.0",
@@ -1722,7 +1732,7 @@ dependencies = [
 name = "toc-analysis"
 version = "0.1.0"
 dependencies = [
- "indexmap",
+ "indexmap 2.7.1",
  "insta",
  "paste",
  "salsa-2022",
@@ -1787,7 +1797,7 @@ dependencies = [
 name = "toc-hir"
 version = "0.1.0"
 dependencies = [
- "indexmap",
+ "indexmap 2.7.1",
  "internment",
  "la-arena",
  "toc-hir-def",
@@ -1801,7 +1811,7 @@ name = "toc-hir-codegen"
 version = "0.1.0"
 dependencies = [
  "byteorder",
- "indexmap",
+ "indexmap 2.7.1",
  "toc-analysis",
  "toc-ast-db",
  "toc-hir",
@@ -1827,7 +1837,7 @@ name = "toc-hir-def"
 version = "0.1.0"
 dependencies = [
  "bitflags 2.8.0",
- "indexmap",
+ "indexmap 2.7.1",
  "insta",
  "la-arena",
  "rustc-hash 2.1.1",
@@ -1861,7 +1871,7 @@ version = "0.1.0"
 dependencies = [
  "approx",
  "if_chain",
- "indexmap",
+ "indexmap 2.7.1",
  "insta",
  "paste",
  "salsa-2022",
@@ -1931,7 +1941,7 @@ version = "0.1.0"
 dependencies = [
  "drop_bomb",
  "expect-test",
- "indexmap",
+ "indexmap 2.7.1",
  "rowan",
  "toc-reporting",
  "toc-scanner",
