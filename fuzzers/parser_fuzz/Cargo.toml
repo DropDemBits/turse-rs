@@ -14,4 +14,4 @@ toc-span = { workspace = true }
 
 [target.'cfg(target_os = "linux")'.dependencies.afl]
 package = "afl"
-version = "*"
+version = "0.15"

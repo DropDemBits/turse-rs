@@ -59,6 +59,3 @@ turing-bytecode = { path = "spec/turing-bytecode" }
 
 [profile.release]
 debug = true
-
-[patch.crates-io]
-lazy_static = { git = "https://github.com/rust-fuzz/resettable-lazy-static.rs" }

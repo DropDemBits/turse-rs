@@ -24,5 +24,4 @@ salsa = { workspace = true }
 
 [target.'cfg(target_os = "linux")'.dependencies.afl]
 package = "afl"
-version = "*"
-features = ["reset_lazy_static"]
+version = "0.15"
