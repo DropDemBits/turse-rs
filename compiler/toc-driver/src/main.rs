@@ -1,6 +1,6 @@
 //! Dummy bin for running the new scanner and parser
 
-use std::{collections::HashMap, fs};
+use std::{collections::HashMap, fs, ops::Range};
 
 use camino::{Utf8Path, Utf8PathBuf};
 use toc_analysis::db::HirAnalysis;
@@ -121,9 +121,8 @@ fn main() {
 
 fn emit_message(db: &MainDatabase, cache: &mut VfsCache, msg: &toc_reporting::ReportMessage) {
     use ariadne::{Color, Config, Label, LabelAttach, ReportKind};
-    use std::ops::Range;
 
-    fn mk_range(db: &MainDatabase, span: Span) -> Option<(FileId, Range<usize>)> {
+    fn mk_span(db: &MainDatabase, span: Span) -> Option<ReportSpan> {
         let (file, range) = span.into_parts()?;
         let start: usize = range.start().into();
         let end: usize = range.end().into();
@@ -131,13 +130,13 @@ fn emit_message(db: &MainDatabase, cache: &mut VfsCache, msg: &toc_reporting::Re
         let start = toc_ast_db::map_byte_index_to_character(db, file.into_raw(), start).unwrap();
         let end = toc_ast_db::map_byte_index_to_character(db, file.into_raw(), end).unwrap();
 
-        Some((file, start..end))
+        Some(ReportSpan(file, start..end))
     }
 
     fn kind_to_colour(kind: toc_reporting::AnnotateKind) -> Color {
         match kind {
             toc_reporting::AnnotateKind::Note => Color::Cyan,
-            toc_reporting::AnnotateKind::Info => Color::Unset,
+            toc_reporting::AnnotateKind::Info => Color::Primary,
             toc_reporting::AnnotateKind::Warning => Color::Yellow,
             toc_reporting::AnnotateKind::Error => Color::Red,
         }
@@ -151,7 +150,7 @@ fn emit_message(db: &MainDatabase, cache: &mut VfsCache, msg: &toc_reporting::Re
     };
 
     let top_span = msg.span();
-    let Some((file, range)) = mk_range(db, top_span) else {
+    let Some(span) = mk_span(db, top_span) else {
         // Notify that we've encountered a bad span
         // Missing files don't fall under here, as they use the file they're missing from
         tracing::error!("BUG: Encountered bad message span (Original message: {msg:#?})");
@@ -159,12 +158,12 @@ fn emit_message(db: &MainDatabase, cache: &mut VfsCache, msg: &toc_reporting::Re
     };
 
     let config = Config::default().with_label_attach(LabelAttach::End);
-    let mut builder = ariadne::Report::build(kind, file, range.start)
+    let mut builder = ariadne::Report::build(kind, span)
         .with_message(msg.message())
         .with_config(config);
 
     for (order, annotate) in msg.annotations().iter().enumerate() {
-        let span = if let Some(span) = mk_range(db, annotate.span()) {
+        let span = if let Some(span) = mk_span(db, annotate.span()) {
             span
         } else {
             // Notify that we've encountered a bad span
@@ -189,6 +188,24 @@ fn emit_message(db: &MainDatabase, cache: &mut VfsCache, msg: &toc_reporting::Re
     builder.finish().eprint(cache).unwrap();
 }
 
+struct ReportSpan(FileId, Range<usize>);
+
+impl ariadne::Span for ReportSpan {
+    type SourceId = FileId;
+
+    fn source(&self) -> &Self::SourceId {
+        &self.0
+    }
+
+    fn start(&self) -> usize {
+        self.1.start()
+    }
+
+    fn end(&self) -> usize {
+        self.1.end()
+    }
+}
+
 struct VfsCache<'db> {
     db: &'db MainDatabase,
     sources: HashMap<FileId, ariadne::Source>,
@@ -204,6 +221,8 @@ impl<'db> VfsCache<'db> {
 }
 
 impl ariadne::Cache<FileId> for VfsCache<'_> {
+    type Storage = String;
+
     fn fetch(&mut self, id: &FileId) -> Result<&ariadne::Source, Box<dyn std::fmt::Debug + '_>> {
         use std::collections::hash_map::Entry;
 
@@ -211,7 +230,7 @@ impl ariadne::Cache<FileId> for VfsCache<'_> {
             Entry::Occupied(entry) => entry.into_mut(),
             Entry::Vacant(entry) => {
                 let source = toc_vfs_db::source_of(self.db, id.into_raw());
-                let value = ariadne::Source::from(source.contents(self.db));
+                let value = ariadne::Source::from(source.contents(self.db).to_owned());
                 entry.insert(value)
             }
         })

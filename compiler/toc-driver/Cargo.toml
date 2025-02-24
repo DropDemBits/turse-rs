@@ -24,7 +24,7 @@ toc-syntax = { workspace = true }
 toc-vfs = { workspace = true }
 toc-vfs-db = { workspace = true }
 
-ariadne = { version = "0.1" }
+ariadne = { version = "0.5" }
 camino = { workspace = true }
 clap = { version = "4.0.22", features = ["derive"] }
 salsa = { workspace = true }
