@@ -1,5 +1,6 @@
 //! Token related items
-use super::ErrorFerry;
+use crate::ErrorKind;
+
 pub use toc_span::TextRange as TokenRange;
 
 use logos::Logos;
@@ -23,9 +24,18 @@ impl<'s> Token<'s> {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TokenError(pub ErrorKind, pub TokenKind);
+
+impl Default for TokenError {
+    fn default() -> Self {
+        Self(ErrorKind::InvalidCharacter, TokenKind::Error)
+    }
+}
+
 /// All Tokens scanned by the Scanner
 #[derive(Logos, Debug, Copy, Clone, PartialEq, Eq)]
-#[logos(extras = ErrorFerry)]
+#[logos(error = TokenError)]
 #[repr(u16)]
 pub enum TokenKind {
     // Character Tokens
@@ -368,7 +378,6 @@ pub enum TokenKind {
     #[token("#endif")]
     PreprocEndIf,
 
-    #[error]
     Error,
 }
 
@@ -379,7 +388,7 @@ pub enum NumberKind {
     Real,
 }
 
-fn lex_block_comment(lexer: &mut logos::Lexer<TokenKind>) {
+fn lex_block_comment(lexer: &mut logos::Lexer<TokenKind>) -> Result<(), TokenError> {
     // Continue to lex everything
     let mut bump_len = 0_usize;
     let mut comment_nesting = 1_usize;
@@ -401,18 +410,17 @@ fn lex_block_comment(lexer: &mut logos::Lexer<TokenKind>) {
             // Cap to maximum length of remainder to prevent
             // an out of bounds bump
             lexer.bump(bump_len.min(lexer.remainder().len()));
-            return;
+            return Ok(());
         }
     }
 
     // missing terminator
     lexer.bump(bump_len);
 
-    lexer.extras.push_error(
-        "unterminated block comment",
-        "block comment is missing terminating `*/`",
-        lexer.span(),
-    );
+    Err(TokenError(
+        ErrorKind::UnterminatedBlockComment,
+        TokenKind::Comment,
+    ))
 }
 
 fn nom_char_literal(lexer: &mut logos::Lexer<TokenKind>) {

@@ -2,42 +2,53 @@
 pub mod token;
 
 use logos::Logos;
-use std::ops::Range;
 use toc_reporting::{FileRange, MessageBundle, MessageSink};
-use token::{NumberKind, Token, TokenKind};
+use toc_span::TextRange;
+use token::{NumberKind, Token, TokenError, TokenKind};
 
-#[derive(Debug)]
-pub struct ErrorFerry {
-    sink: MessageSink<FileRange>,
+/// Error encountered while scanning tokens.
+#[derive(Debug, Default, PartialEq, Eq, Clone)]
+pub struct Error {
+    pub range: TextRange,
+    pub kind: ErrorKind,
 }
 
-impl ErrorFerry {
-    pub(crate) fn push_error(&mut self, message: &str, at_span: &str, span: Range<usize>) {
-        let range = token::span_to_text_range(span);
+/// What kind of scanner error was reported.
+#[derive(Debug, PartialEq, Eq, Clone, Default)]
+pub enum ErrorKind {
+    #[default]
+    InvalidCharacter,
+    UnterminatedBlockComment,
+}
 
-        self.sink.error(message, at_span, range.into());
-    }
+impl Error {
+    pub fn report(self, sink: &mut MessageSink<FileRange>) {
+        let (message, at_span) = match self.kind {
+            ErrorKind::InvalidCharacter => ("invalid character", "here"),
+            ErrorKind::UnterminatedBlockComment => (
+                "unterminated block comment",
+                "block comment is missing terminating `*/`",
+            ),
+        };
 
-    pub(crate) fn finish(self) -> MessageBundle<FileRange> {
-        self.sink.finish()
+        sink.error(message, at_span, self.range.into());
     }
 }
 
 /// Scanner for tokens
 pub struct Scanner<'s> {
     inner: logos::Lexer<'s, TokenKind>,
+    errors: Vec<Error>,
 }
 
 impl<'s> Scanner<'s> {
     pub fn new(source: &'s str) -> Self {
-        let inner = TokenKind::lexer_with_extras(
-            source,
-            ErrorFerry {
-                sink: MessageSink::default(),
-            },
-        );
+        let inner = TokenKind::lexer(source);
 
-        Self { inner }
+        Self {
+            inner,
+            errors: vec![],
+        }
     }
 
     pub fn collect_all(mut self) -> (Vec<Token<'s>>, MessageBundle<FileRange>) {
@@ -47,24 +58,31 @@ impl<'s> Scanner<'s> {
             toks.push(token)
         }
 
-        (toks, self.inner.extras.finish())
+        let mut sink = MessageSink::default();
+
+        for err in self.errors {
+            err.report(&mut sink);
+        }
+
+        (toks, sink.finish())
     }
 
     fn next_token(&mut self) -> Option<Token<'s>> {
         let kind = match self.inner.next()? {
-            TokenKind::NumberLiteral(number_kind) => match number_kind {
+            Ok(TokenKind::NumberLiteral(number_kind)) => match number_kind {
                 NumberKind::Int => TokenKind::IntLiteral,
                 NumberKind::Radix => TokenKind::RadixLiteral,
                 NumberKind::Real => TokenKind::RealLiteral,
             },
-            TokenKind::Error => {
-                // Report the invalid character
-                self.inner
-                    .extras
-                    .push_error("invalid character", "here", self.inner.span());
-                TokenKind::Error
+            Ok(other) => other,
+            Err(TokenError(kind, error_kind)) => {
+                self.errors.push(Error {
+                    range: token::span_to_text_range(self.inner.span()),
+                    kind,
+                });
+
+                error_kind
             }
-            other => other,
         };
 
         let text = self.inner.slice();
@@ -118,9 +136,17 @@ mod test {
 
         // Should be the expected token & the same source text
         let token = scanner.next().unwrap();
+
+        // Render as message sink errors first
+        let mut sink = MessageSink::default();
+
+        for err in scanner.errors {
+            err.report(&mut sink);
+        }
+
         assert_eq!(token.kind, *kind);
         assert_eq!(token.lexeme, source);
-        assert_eq!(build_error_list(scanner.inner.extras.finish()), "");
+        assert_eq!(build_error_list(sink.finish()), "");
     }
 
     /// Runs the lexer over the given text, and asserts if the expected tokens
@@ -152,7 +178,14 @@ mod test {
         assert_eq!(token.kind, *kind);
         assert_eq!(token.lexeme, source);
 
-        let buf = build_error_list(scanner.inner.extras.finish());
+        // Render as message sink errors first
+        let mut sink = MessageSink::default();
+
+        for err in scanner.errors {
+            err.report(&mut sink);
+        }
+
+        let buf = build_error_list(sink.finish());
 
         expecting.assert_eq(&buf);
     }

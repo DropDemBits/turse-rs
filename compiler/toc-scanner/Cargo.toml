@@ -11,7 +11,7 @@ edition.workspace = true
 [dependencies]
 toc-reporting = { workspace = true }
 toc-span = { workspace = true }
-logos = "0.12"
+logos = "0.15"
 
 [dev-dependencies]
 expect-test = "1.1"
