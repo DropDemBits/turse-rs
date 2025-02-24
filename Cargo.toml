@@ -8,7 +8,7 @@ default-members = ["xtask/", "compiler/*", "lsp-server/*", "spec/*"]
 [workspace.package]
 authors = ["DropDemBits"]
 license = "MIT"
-edition = "2021"
+edition = "2024"
 
 [workspace.dependencies]
 byteorder = "1.5.0"
@@ -31,7 +31,7 @@ thiserror = "2.0"
 tracing = "0.1.37"
 tracing-subscriber = "0.3.16"
 unindent = "0.2"
-# FIXME(rust-1.85?): stable upcasting!
+# FIXME(rust-1.86): stable upcasting!
 upcast = "0.1.0"
 
 # Compiler crates
