@@ -10,7 +10,7 @@ edition.workspace = true
 
 [dependencies]
 indexmap = { workspace = true }
-internment = "0.7.0"
+internment = "0.8"
 la-arena = "0.3"
 toc-span = { workspace = true }
 toc-source-graph = { workspace = true }
