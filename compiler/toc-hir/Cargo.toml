@@ -12,7 +12,6 @@ edition.workspace = true
 indexmap = { workspace = true }
 internment = "0.7.0"
 la-arena = "0.3"
-lazy_static = "1.4.0"
 toc-span = { workspace = true }
 toc-source-graph = { workspace = true }
 
