@@ -15,7 +15,7 @@ toc-source-graph = { workspace = true }
 toc-syntax = { workspace = true }
 toc-vfs-db = { workspace = true }
 toc-ast-db = { workspace = true }
-rustc-hash = "1.1"
+rustc-hash.workspace = true
 
 salsa = { workspace = true }
 upcast = { workspace = true }

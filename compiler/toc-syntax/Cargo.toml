@@ -12,7 +12,7 @@ edition.workspace = true
 # Local deps
 toc-span = { workspace = true }
 # External deps
-rowan = "0.15"
+rowan.workspace = true
 num-derive = "^0.4"
 num-traits = "0.2"
 lexical = { version = "^7", default-features = false, features = [ "std", "parse-floats", ] }
