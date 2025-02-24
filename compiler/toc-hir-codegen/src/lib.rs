@@ -302,7 +302,7 @@ impl BodyCodeGenerator<'_> {
         param_defs: &[LocalDefId],
         ret_param: Option<LocalDefId>,
     ) -> BodyCode {
-        let mut gen = BodyCodeGenerator {
+        let mut bctx = BodyCodeGenerator {
             db,
             package_id,
             package,
@@ -316,41 +316,41 @@ impl BodyCodeGenerator<'_> {
         };
 
         // FIXME: Bind imported defs
-        gen.bind_inputs(param_defs, ret_param);
+        bctx.bind_inputs(param_defs, ret_param);
 
         match &package.body(body_id).kind {
-            hir_body::BodyKind::Stmts(stmts, ..) => gen.generate_stmt_list(stmts),
-            hir_body::BodyKind::Exprs(expr) => gen.generate_expr(*expr),
+            hir_body::BodyKind::Stmts(stmts, ..) => bctx.generate_stmt_list(stmts),
+            hir_body::BodyKind::Exprs(expr) => bctx.generate_expr(*expr),
         }
 
         // Generate the appropriate footer
         {
-            let item_owner = match gen
+            let item_owner = match bctx
                 .db
-                .body_owner(InPackage(gen.package_id, gen.body_id))
+                .body_owner(InPackage(bctx.package_id, bctx.body_id))
                 .expect("from stmt body")
             {
                 hir_body::BodyOwner::Item(item_id) => item_id,
                 hir_body::BodyOwner::Type(_) | hir_body::BodyOwner::Expr(_) => unreachable!(),
             };
-            let item_ty = gen
+            let item_ty = bctx
                 .db
-                .type_of((gen.package_id, item_owner).into())
-                .to_base_type(gen.db.up());
+                .type_of((bctx.package_id, item_owner).into())
+                .to_base_type(bctx.db.up());
 
             if matches!(
-                item_ty.kind(gen.db.up()),
+                item_ty.kind(bctx.db.up()),
                 ty::TypeKind::Subprogram(toc_hir::symbol::SubprogramKind::Function, ..)
             ) {
-                gen.proc.ins().abort(AbortReason::NoResult);
+                bctx.proc.ins().abort(AbortReason::NoResult);
             } else {
-                gen.proc.ins().return_();
+                bctx.proc.ins().return_();
             }
         }
 
         BodyCode {
-            proc: gen.proc.finish(),
-            external_relocs: gen.def_bindings.external_defs,
+            proc: bctx.proc.finish(),
+            external_relocs: bctx.def_bindings.external_defs,
         }
     }
 

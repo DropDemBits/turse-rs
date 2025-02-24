@@ -115,6 +115,93 @@ macro_rules! __match_token {
     };
 
     // Specialize over groups of
+    // ...seven at the tail
+    (@arm ($p:ident) {
+        $tok1:expr => $action1:expr,
+        $tok2:expr => $action2:expr,
+        $tok3:expr => $action3:expr,
+        $tok4:expr => $action4:expr,
+        $tok5:expr => $action5:expr,
+        $tok6:expr => $action6:expr,
+        $tok7:expr => $action7:expr,
+        _ => $otherwise:expr,
+    }) => {
+        if __match_token!(@at ($p) $tok1) {
+            $action1
+        } else if __match_token!(@at ($p) $tok2) {
+            $action2
+        } else if __match_token!(@at ($p) $tok3) {
+            $action3
+        } else if __match_token!(@at ($p) $tok4) {
+            $action4
+        } else if __match_token!(@at ($p) $tok5) {
+            $action5
+        } else if __match_token!(@at ($p) $tok6) {
+            $action6
+        } else if __match_token!(@at ($p) $tok7) {
+            $action7
+        } else {
+            $otherwise
+        }
+    };
+
+    // ...five at the tail
+    (@arm ($p:ident) {
+        $tok1:expr => $action1:expr,
+        $tok2:expr => $action2:expr,
+        $tok3:expr => $action3:expr,
+        $tok4:expr => $action4:expr,
+        $tok5:expr => $action5:expr,
+        _ => $otherwise:expr,
+    }) => {
+        if __match_token!(@at ($p) $tok1) {
+            $action1
+        } else if __match_token!(@at ($p) $tok2) {
+            $action2
+        } else if __match_token!(@at ($p) $tok3) {
+            $action3
+        } else if __match_token!(@at ($p) $tok4) {
+            $action4
+        } else if __match_token!(@at ($p) $tok5) {
+            $action5
+        } else {
+            $otherwise
+        }
+    };
+
+    // ...three at the tail
+    (@arm ($p:ident) {
+        $tok1:expr => $action1:expr,
+        $tok2:expr => $action2:expr,
+        $tok3:expr => $action3:expr,
+        _ => $otherwise:expr,
+    }) => {
+        if __match_token!(@at ($p) $tok1) {
+            $action1
+        } else if __match_token!(@at ($p) $tok2) {
+            $action2
+        } else if __match_token!(@at ($p) $tok3) {
+            $action3
+        } else {
+            $otherwise
+        }
+    };
+
+    // ...two at the tail
+    (@arm ($p:ident) {
+        $tok1:expr => $action1:expr,
+        $tok2:expr => $action2:expr,
+        _ => $otherwise:expr,
+    }) => {
+        if __match_token!(@at ($p) $tok1) {
+            $action1
+        } else if __match_token!(@at ($p) $tok2) {
+            $action2
+        } else {
+            $otherwise
+        }
+    };
+
     // ...seven
     (@arm ($p:ident) {
         $tok1:expr => $action1:expr,
@@ -302,7 +389,7 @@ mod preproc;
 mod stmt;
 mod ty;
 
-use crate::parser::{marker::CompletedMarker, Expected, Parser};
+use crate::parser::{Expected, Parser, marker::CompletedMarker};
 use toc_scanner::token::TokenKind;
 use toc_syntax::SyntaxKind;
 
