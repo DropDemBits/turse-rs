@@ -71,8 +71,8 @@ fn parse_instruction_list(
                             entry.name().span()
                         );
                     }
-                    "description" => {
-                        // skip description node
+                    "-" => {
+                        // skip attribute nodes
                     }
                     _ => {
                         // within!
@@ -230,7 +230,7 @@ fn parse_scalar(node: &kdl::KdlNode) -> Result<Scalar, ParseError> {
     let name = parse_required_string_entry(node, 0)?;
     let size = parse_required_u32_entry(node, "size")?;
     let description = parse_description(node)?;
-    let repr_type = parse_string_child(node, "repr_type")?;
+    let repr_type = parse_repr_type(node)?;
 
     Ok(Scalar {
         name: name.to_owned(),
@@ -269,8 +269,8 @@ fn parse_adt_fields(
     for field_entry in fields.nodes() {
         let name = field_entry.name().value();
 
-        // Skip nodes with special names
-        if matches!(name, "description") {
+        // Skip attribute nodes
+        if matches!(name, "-") {
             continue;
         }
 
@@ -300,7 +300,7 @@ fn parse_enum(node: &kdl::KdlNode, slot: TypeRef) -> Result<Enum, ParseError> {
     let name = parse_required_string_entry(node, 0)?;
     let size = parse_required_u32_entry(node, "size")?;
     let description = parse_description(node)?;
-    let repr_type = parse_string_child(node, "repr_type")?;
+    let repr_type = parse_repr_type(node)?;
 
     let variants = get_required_children(node, CommonNodes::EnumNode)?;
     let mut variant_names = DefsTracker::new(NameKind::Variant);
@@ -311,8 +311,8 @@ fn parse_enum(node: &kdl::KdlNode, slot: TypeRef) -> Result<Enum, ParseError> {
     for variant_entry in variants.nodes() {
         let name = variant_entry.name().value();
 
-        // Skip nodes with special names
-        if matches!(name, "description" | "repr_type") {
+        // Skip attribute nodes
+        if matches!(name, "-") {
             continue;
         }
 
@@ -326,8 +326,8 @@ fn parse_enum(node: &kdl::KdlNode, slot: TypeRef) -> Result<Enum, ParseError> {
             for property_entry in variant_properties {
                 let name = property_entry.name().value();
 
-                // Skip nodes with special names
-                if matches!(name, "description") {
+                // Skip attribute nodes
+                if matches!(name, "-") {
                     continue;
                 }
 
@@ -430,7 +430,7 @@ fn parse_union(
     let name = parse_required_string_entry(node, 0)?;
     let tag_size = parse_required_u32_entry(node, "tag_size")?;
     let description = parse_description(node)?;
-    let repr_type = parse_string_child(node, "repr_type")?;
+    let repr_type = parse_repr_type(node)?;
 
     let variants = get_required_children(node, CommonNodes::UnionNode)?;
     let mut variant_names = DefsTracker::new(NameKind::Variant);
@@ -440,8 +440,8 @@ fn parse_union(
     for variant_entry in variants.nodes() {
         let name = variant_entry.name().value();
 
-        // Skip nodes with special names
-        if matches!(name, "description" | "repr_type") {
+        // Skip attribute nodes
+        if matches!(name, "-") {
             continue;
         }
 
@@ -580,9 +580,38 @@ fn parse_heading(node: &kdl::KdlNode, at_arg: usize) -> Result<Option<&str>, Par
     parse_string_entry(node, at_arg)
 }
 
-/// Parses a child description node
+/// Parses a description attribute node
 fn parse_description(node: &kdl::KdlNode) -> Result<Option<&str>, ParseError> {
-    parse_string_child(node, "description")
+    parse_string_attribute(node, "description")
+}
+
+/// Parses a repr_type attribute node
+fn parse_repr_type(node: &kdl::KdlNode) -> Result<Option<&str>, ParseError> {
+    parse_string_attribute(node, "repr_type")
+}
+
+/// Parses a stringy attribute node
+fn parse_string_attribute<'node>(
+    node: &'node kdl::KdlNode,
+    attr_name: &'static str,
+) -> Result<Option<&'node str>, ParseError> {
+    let Some(attr_node) = find_attribute_node(node, attr_name) else {
+        return Ok(None);
+    };
+
+    parse_required_string_entry(attr_node, 1).map(Some)
+}
+
+fn find_attribute_node<'node>(
+    node: &'node kdl::KdlNode,
+    attr_name: &'static str,
+) -> Option<&'node kdl::KdlNode> {
+    find_child_with(node, "-", |it| {
+        it.entry(0)
+            .filter(|key| key.name().is_none())
+            .and_then(|key| key.value().as_string())
+            == Some(attr_name)
+    })
 }
 
 fn parse_string_entry(
@@ -660,16 +689,15 @@ fn find_child<'node>(
         .find(|it| it.name().value() == child_name)
 }
 
-/// Parses a child description node with a string value
-fn parse_string_child<'node>(
+fn find_child_with<'node>(
     node: &'node kdl::KdlNode,
     child_name: &'static str,
-) -> Result<Option<&'node str>, ParseError> {
-    let Some(child_node) = find_child(node, child_name) else {
-        return Ok(None);
-    };
-
-    Some(parse_required_string_entry(child_node, 0)).transpose()
+    f: impl Fn(&'node kdl::KdlNode) -> bool,
+) -> Option<&'node kdl::KdlNode> {
+    node.children()?
+        .nodes()
+        .iter()
+        .find(|it| it.name().value() == child_name && f(it))
 }
 
 fn for_each_field<R>(ty: &Type, mut it: impl FnMut(&AdtField) -> ControlFlow<R>) -> Option<R> {
@@ -796,7 +824,7 @@ mod tests {
             r#"
             types {}
             instructions {
-                INSTR 0x0 "heading" { description "blah" }
+                INSTR 0x0 "heading" { - description "blah" }
             }
             "#,
         );
@@ -864,8 +892,8 @@ mod tests {
                 INSTR_A 0x0 {
                     operands {
                         op1 "int4"
-                        op2 "int4" unused=#true { description "op2" }
-                        op3 "int4" { description "op3" }
+                        op2 "int4" unused=#true { - description "op2" }
+                        op3 "int4" { - description "op3" }
                     }
                 }
             }
@@ -967,8 +995,8 @@ mod tests {
             r#"
             types {
                 scalar "one" size=4 {
-                    description "some description"
-                    repr_type "u8"
+                    - description "some - description"
+                    - repr_type "u8"
                 }
             }
             instructions {}
@@ -979,7 +1007,7 @@ mod tests {
         let scalar = out.types.types[0].as_scalar().unwrap();
 
         assert_eq!(scalar.name, "one");
-        assert_eq!(scalar.description.as_deref(), Some("some description"));
+        assert_eq!(scalar.description.as_deref(), Some("some - description"));
         assert_eq!(scalar.size, 4);
         assert_eq!(scalar.repr_type.as_deref(), Some("u8"));
     }
@@ -1008,9 +1036,9 @@ mod tests {
             r#"
                 types {
                     struct some_struct size=8 {
-                        description "brief description"
+                        - description "brief - description"
                         field_1 ty1
-                        field_2 ty2 { description "some description" }
+                        field_2 ty2 { - description "some - description" }
                     }
 
                     scalar ty1 size=4
@@ -1024,7 +1052,7 @@ mod tests {
         let strukt = out.types.types[0].as_struct().unwrap();
 
         assert_eq!(strukt.name(), "some_struct");
-        assert_eq!(strukt.description(), Some("brief description"));
+        assert_eq!(strukt.description(), Some("brief - description"));
         assert_eq!(strukt.size(), 8);
         assert_eq!(strukt.fields().len(), 2);
 
@@ -1039,7 +1067,7 @@ mod tests {
             let field = &strukt.fields()[1];
             assert_eq!(field.name(), "field_2");
             assert_eq!(field.ty(), "ty2");
-            assert_eq!(field.description(), Some("some description"));
+            assert_eq!(field.description(), Some("some - description"));
         }
     }
 
@@ -1205,11 +1233,11 @@ mod tests {
             r#"
                 types {
                    enum with_variants size=4 {
-                       description "top-level"
-                       repr_type u32
+                       - description "top-level"
+                       - repr_type u32
 
                        variant_0 0 {
-                           description "yep"
+                           - description "yep"
                            strn "something"
                            int 1
                        }
@@ -1218,7 +1246,7 @@ mod tests {
                            int -2
                        }
                        variant_2 2 {
-                           description "also yep"
+                           - description "also yep"
                            strn "more thing"
                            int 2
                        }
@@ -1292,7 +1320,7 @@ mod tests {
             r#"
                 types {
                    enum implict_iota size=4 {
-                       repr_type u32
+                       - repr_type u32
 
                        variant_0 0
                        variant_1
@@ -1427,16 +1455,16 @@ mod tests {
             r#"
             types {
                 union "tagged_kinds" tag_size=4 {
-                    description "a description"
-                    repr_type "u32"
+                    - description "a - description"
+                    - repr_type "u32"
 
                     v1 1 size=4 {
-                        description "variant 1"
-                        field1 "int4" { description "some field 1" }
+                        - description "variant 1"
+                        field1 "int4" { - description "some field 1" }
                     }
                     v2 2 size=8 {
-                        field2 "int4" { description "some field 2" }
-                        field3 "int4" { description "some field 3" }
+                        field2 "int4" { - description "some field 2" }
+                        field3 "int4" { - description "some field 3" }
                     }
                 }
                 scalar "int4" size=4 {}
@@ -1450,7 +1478,7 @@ mod tests {
         let union = out.types.types[0].as_union().unwrap();
 
         assert_eq!(union.name(), "tagged_kinds");
-        assert_eq!(union.description(), Some("a description"));
+        assert_eq!(union.description(), Some("a - description"));
         assert_eq!(union.tag_size(), 4);
         assert_eq!(union.size(), 12); // sum of the largest variant
         assert_eq!(union.repr_type(), Some("u32"));

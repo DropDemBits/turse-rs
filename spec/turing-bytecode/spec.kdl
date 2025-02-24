@@ -6,8 +6,8 @@
 
 types {
   enum "quit_exception" size=4 {
-    description "All named recoverable exceptions that can be thrown during program execution."
-    repr_type "u32"
+    - description "All named recoverable exceptions that can be thrown during program execution."
+    - repr_type "u32"
 
     tag_out_of_range 14 {}
 
@@ -38,71 +38,71 @@ types {
   }
 
   scalar "int1" size=1 {
-    description """
+    - description """
     8-bit signed integer.
     """
-    repr_type "i8"
+    - repr_type "i8"
   }
   scalar "int2" size=2 {
-    description """
+    - description """
     16-bit signed integer.
     """
-    repr_type "i16"
+    - repr_type "i16"
   }
   scalar "int4" size=4 {
-    description """
+    - description """
     32-bit signed integer.
 
     `0x80000000` is used as the `undefint` sentinel value in `int` to represent uninitialized `int` variables.
     `int4` values have no such sentinel values.
     """
-    repr_type "i32"
+    - repr_type "i32"
   }
   scalar "nat2" size=2 {
-    description """
+    - description """
     16-bit unsigned integer.
     """
-    repr_type "u16"
+    - repr_type "u16"
   }
   scalar "nat4" size=4 {
-    description """
+    - description """
     32-bit unsigned integer.
 
     `0xFFFFFFFF` is used as the `undefnat` sentinel value in `nat` to represent uninitialized `nat` variables.
     `nat4` values have no such sentinel values.
     """
-    repr_type "u32"
+    - repr_type "u32"
   }
   scalar "real4" size=4 {
-    description """
+    - description """
     binary32 floating-point number.
     """
-    repr_type "f32"
+    - repr_type "f32"
   }
   scalar "real8" size=8 {
-    description """
+    - description """
     binary64 floating-point number.
     """
-    repr_type "f64"
+    - repr_type "f64"
   }
   scalar "set16" size=2 {
-    description """
+    - description """
     Element of a large bitset, storing up to 16 elements.
     
     Sets larger than 4 bytes (32 elements) store the backing bitset as a separate allocation of an array of `set16`s.
     """
-    repr_type "u16"
+    - repr_type "u16"
   }
   scalar "set32" size=4 {
-    description """
+    - description """
     Compact bitset, storing up to 32 elements.
 
     Sets up to 4 bytes in size store the backing bitset inline with the value.
     """
-    repr_type "u32"
+    - repr_type "u32"
   }
   scalar "offset" size=4 {
-    description """
+    - description """
     Address-sized signed integer to offset an `addrint` address with.
 
     Always a 32-bit integer, and is always less than or equal to 2^31 - 1 and greater than or equal to -2^31.
@@ -110,99 +110,103 @@ types {
 
     `0xFFFFFFFF` is used as a sentinel value to represent uninitialized `addrint` variables.
     """
-    repr_type "u32"
+    - repr_type "u32"
   }
   struct "relocatable_offset" size=8 {
-    description """
+    - description """
     Relocatable address that is resolved at runtime.
 
     This is an entry within a relocatable patch list, with `link` pointing to the next entry in the list.
     Each distinct relocatable patch list refers to the local code unit sections (code, manifest, and global), as well as to other code units's sections.
     """
 
-    link "offset" { description "Offset to the next relocatable patch entry to fixup." }
-    offset "offset" { description "Offset within the section, relative to the base address." }
+    link "offset" {
+      - description "Offset to the next relocatable patch entry to fixup."
+    }
+    offset "offset" {
+      - description "Offset within the section, relative to the base address."
+    }
   }
   scalar "addrint" size=4 {
-    description """
+    - description """
     Pointer-sized unsigned integer referring to a specific location in the execution address space.
 
     This is always a 32-bit integer as 64-bit execution address spaces are unsupported.
     """
-    repr_type "u32"
+    - repr_type "u32"
   }
   enum "abort_reason" size=4 {
-    description """
+    - description """
     The reason for aborting program execution
     """
-    repr_type "u32"
+    - repr_type "u32"
 
     assert 1 {
-      description "For conditional `assert` statements."
+      - description "For conditional `assert` statements."
       message "Assert condition is false"
       error_code 21
     }
     pre_invariant 2 {
-      description "For conditional `pre` statements."
+      - description "For conditional `pre` statements."
       message "Pre condition is false"
       error_code 16
     }
     post_invariant 3 {
-      description "For conditional `post` statements."
+      - description "For conditional `post` statements."
       message "Post condition is false"
       error_code 17
     }
     for_invariant 4 {
-      description "For conditional `invariant` statements in for-loops."
+      - description "For conditional `invariant` statements in for-loops."
       message "For-loop invariant is false"
       error_code 18
     }
     loop_invariant 5 {
-      description "For conditional `invariant` statements in loops."
+      - description "For conditional `invariant` statements in loops."
       message "Loop invariant is false"
       error_code 19
     }
     module_invariant 6 {
-      description "For conditional `invariant` statements in module initialization."
+      - description "For conditional `invariant` statements in module initialization."
       message "Module invariant is false"
       error_code 20
     }
     class_downcast 7 {
-      description "For conditional class downcast expressions."
+      - description "For conditional class downcast expressions."
       message "Cannot convert pointer to more specific class"
       error_code 10_000
     }
     case_out_of_range 8 {
-      description "For unhandled case arms in case statements without a default label."
+      - description "For unhandled case arms in case statements without a default label."
       message "Case selector is out of range"
       error_code 25
     }
     no_result 9 {
-      description "For functions that return without producing a result."
+      - description "For functions that return without producing a result."
       message "Function failed to give a result"
       error_code 26
     }
   }
   enum "put_kind" size=4 {
-    description """
+    - description """
     Valid put items for [**PUT**].
 
     [**PUT**]: Opcode::PUT
     """
-    repr_type "u32"
+    - repr_type "u32"
 
     boolean 0 {
-      description """
+      - description """
       Boolean item for putting `boolean` values.
       """
     }
     char 1 {
-      description """
+      - description """
       Char item for putting `char` values.
       """
     }
     char_n 2 {
-      description """
+      - description """
       CharN item for putting `char(N)` values.
 
       ## Note
@@ -211,70 +215,70 @@ types {
       """
     }
     enum 3 {
-      description """
+      - description """
       Enum item for putting `enum` types.
 
       Points to a list of variant names.
       """
     }
     int 4 {
-      description """
+      - description """
       Int item for putting `int` types, with only the width argument.
       """
     }
     int_fract 5 {
-      description """
+      - description """
       Int item for putting `int` types, with the width and fractional width arguments.
       """
     }
     int_exp 6 {
-      description """
+      - description """
       Int item for putting `int` types, with the width, fractional width, and exponent width arguments.
       """
     }
     nat 7 {
-      description """
+      - description """
       Nat item for putting `nat` types, with only the width argument.
       """
     }
     nat_fract 8 {
-      description """
+      - description """
       Nat item for putting `nat` types, with the width and fractional width arguments.
       """
     }
     nat_exp 9 {
-      description """
+      - description """
       Nat item for putting `nat` types, with the width, fractional width, and exponent width arguments.
       """
     }
     real 10 {
-      description """
+      - description """
       Real item for putting `real` types, with only the width argument.
       """
     }
     real_fract 11 {
-      description """
+      - description """
       Real item for putting `real` types, with the width and fractional width arguments.
       """
     }
     real_exp 12 {
-      description """
+      - description """
       Real item for putting `real` types, with the width, fractional width, and exponent width arguments.
       """
     }
     string 13 {
-      description """
+      - description """
       String item for putting `string` types.
       """
     }
     skip 14 {
-      description """
+      - description """
       Skip item, only putting a newline.
       """
     }
   }
   union "get_kind" tag_size=4 {
-    description """
+    - description #"""
     Valid get items for [**GET**].
 
     In Turing/OpenTuring, only Basic Latin (the non-extended ASCII range) characters are accepted in text streams, but this is only an implementation restriction.
@@ -282,40 +286,40 @@ types {
     ## Tokens
 
     For some get items, characters are in groups of tokens.
-    Tokens may have leading whitespace (`\\x20`, `\\t`, `\\n`, `\\f`), followed by either unquoted text, or quoted text potentially containing the standard Turing backslash and caret escape characters, and potentially followed by trailing whitespace (`\\x20`, `\\t`, `\\f`).
+    Tokens may have leading whitespace (`\x20`, `\t`, `\n`, `\f`), followed by either unquoted text, or quoted text potentially containing the standard Turing backslash and caret escape characters, and potentially followed by trailing whitespace (`\x20`, `\t`, `\f`).
     For [`GetKind::Skip`], the whitespace groups are collapsed together as it does not consume any non-whitespace characters.
         
     [**GET**]: Opcode::GET
     [`GetKind::Skip`]: GetKind::Skip
-    """
-    repr_type "u32"
+    """#
+    - repr_type "u32"
 
     boolean 0 size=4 {
-      description """
+      - description """
       `boolean` item, only accepting a `true` or `false` token.
       """
 
       size "nat4" {
-        description """
+        - description """
         Size of the value to store.
         Always 1 for `boolean` items.
         """
       }
     }
     char 1 size=4 {
-      description """
+      - description """
       `char` item, accepting a literal `char` value.
       """
 
       size "nat4" {
-        description """
+        - description """
         Size of the value to store.
         Always 1 for `char` items.
         """
       }
     }
     char_range 2 size=12 {
-      description """
+      - description """
       `char` item, accepting a literal `char` value within the accepted value range.
       `min` and `max` form an inclusive range of `[min..max]`.
 
@@ -325,260 +329,260 @@ types {
       """
 
       size "nat4" {
-        description """
+        - description """
         Size of the value to store.
         Always 1 for `char` items.
         """
       }
       min "nat4" {
-        description """
+        - description """
         Minimum accepted `char` value.
         """
       }
       max "nat4" {
-        description """
+        - description """
         Maximum accepted `char` value.
         """
       }
     }
     char_n 3 size=4 {
-      description """
+      - description """
       `char(N)` item, accepting a literal `char(N)` value of the specified byte length `size`.
       """
 
       size "nat4" {
-        description """
+        - description """
         Size of the value to store.
         Ignored for `char(N)` items.
         """
       }
     }
     enum 4 size=4 {
-      description """
+      - description """
       `enum` item, accepting a token corresponding to one of the possible variant names.
       """
 
       size "nat4" {
-        description """
+        - description """
         Size of the value to store.
         Corresponds to the size of the backing `enum` type.
         """
       }
     }
     enum_range 5 size=12 {
-      description """
+      - description """
       `enum` item, accepting a token corresponding to one of the possible variant names within the accepted ordinal range.
       `min` and `max` form an inclusive range of `[min..max]`.
       """
 
       size "nat4" {
-        description """
+        - description """
         Size of the value to store.
         Corresponds to the size of the backing `enum` type.
         """
       }
       min "nat4" {
-        description """
+        - description """
         Minimum accepted `enum` ordinal value.
         """
       }
       max "nat4" {
-        description """
+        - description """
         Maximum accepted `enum` ordinal value.
         """
       }
     }
     int 6 size=4 {
-      description """
+      - description """
       `int` item, accepting an `int` token value (in base 10) within the accepted range.
       `min` and `max` form an inclusive range of `[min..max]`.
       """
       size "nat4" {
-        description """
+        - description """
         Size of the value to store.
         May be one of 1, 2, or 4 (corresponding to `int1`, `int2`, or `int4`).
         """
       }
     }
     int_range 7 size=4 {
-      description """
+      - description """
       `int` item, accepting an `int` token value (in base 10).
       """
       size "nat4" {
-        description """
+        - description """
         Size of the value to store.
         May be one of 1, 2, or 4 (corresponding to `int1`, `int2`, or `int4`).
         """
       }
       min "int4" {
-        description """
+        - description """
         Minimum accepted `int` value.
         """
       }
       max "int4" {
-        description """
+        - description """
         Maximum accepted `int` value.
         """
       }
     }
     nat 8 size=4 {
-      description """
+      - description """
       `nat` item, accepting a `nat` token value (in base 10).
       """
       size "nat4" {
-        description """
+        - description """
         Size of the value to store.
         May be one of 1, 2, or 4 (corresponding to `nat1`, `nat2`, or `nat4`).
         """
       }
     }
     real 9 size=4 {
-      description """
+      - description """
       `real` item, accepting a `real` token value.
       """
       size "nat4" {
-        description """
+        - description """
         Size of the value to store.
         May be either 4 or 8 (corresponding to `real4`, or `real8`).
         """
       }
     }
     string_exact 10 size=4 {
-      description """
+      - description """
       `string` item, accepting exactly `width` literal `string` characters.
       """
       
       size "nat4" {
-        description """
+        - description """
         Size of the value to store.
         Ignored for `string` items.
         """
       }
     }
     string_line 11 size=4 {
-      description """
+      - description """
       `string` item, accepting literal `string` characters up to the first found newline (`\n`) character.
       """
       
       size "nat4" {
-        description """
+        - description """
         Size of the value to store.
         Ignored for `string` items.
         """
       }
     }
     string_token 12 size=4 {
-      description """
+      - description """
       `string` item, accepting a token of `string` characters.
       """
       
       size "nat4" {
-        description """
+        - description """
         Size of the value to store.
         Ignored for `string` items.
         """
       }
     }
     skip 13 size=0 {
-      description """
+      - description """
       Skips the stream to the first non-whitespace character.
       """
     }
   }
   enum "std_stream_kind" size=4 {
-    description """
+    - description """
     Which stream to get the handle for in [**SETSTDSTREAM**].
 
     [**SETSTDSTREAM**]: Opcode::SETSTDSTREAM
     """
-    repr_type "u32"
+    - repr_type "u32"
 
     get 1 {
-      description """
+      - description """
       Stream handle for a `get`, which uses the standard in stream.
       """
       default_handle -2
     }
     put 2 {
-      description """
+      - description """
       Stream handle for a `put`, which uses the standard out stream.
       """
       default_handle -1
     }
   }
   enum "stream_kind" size=4 {
-    description """
+    - description """
     How to prepare the stream handle for the specified stream operation.
     """
-    repr_type "u32"
+    - repr_type "u32"
 
     default 0 {
-      description "Default stream operation, which is assumed to be a `put` operation."
+      - description "Default stream operation, which is assumed to be a `put` operation."
     }
     get 1 {
-      description "Prepare stream for a `get` operation."
+      - description "Prepare stream for a `get` operation."
     }
     put 2 {
-      description "Prepare stream for a `put` operation."
+      - description "Prepare stream for a `put` operation."
     }
     read 3 {
-      description "Prepare stream for a `read` operation."
+      - description "Prepare stream for a `read` operation."
     }
     write 4 {
-      description "Prepare stream for a `write` operation."
+      - description "Prepare stream for a `write` operation."
     }
   }
   enum "check_kind" size=4 {
-    description """
+    - description """
     Which kind of check is being performed in a [**CHKRANGE**].
 
     [**CHKRANGE**]: Opcode::CHKRANGE
     """
-    repr_type "u32"
+    - repr_type "u32"
 
     assign 0 {
-      description "Range check as part of an assignment."
+      - description "Range check as part of an assignment."
     }
     any_char 1 {
-      description "Negative or zero char(*) length."
+      - description "Negative or zero char(*) length."
     }
     chr 2 {
-      description "Value passed to `chr` is not in `[0,255]`."
+      - description "Value passed to `chr` is not in `[0,255]`."
     }
     int_overflow 3 {
-      description "After an arithmetic operation."
+      - description "After an arithmetic operation."
     }
     range_assign 4 {
-      description "Range check as part of an assignemt into a range."
+      - description "Range check as part of an assignemt into a range."
     }
     loop_step 5 {
-      description "Computation of a for-loop step."
+      - description "Computation of a for-loop step."
     }
     pred 6 {
-      description "Asserting that `pred` isn't applied on the first element of a sequence."
+      - description "Asserting that `pred` isn't applied on the first element of a sequence."
     }
     succ 7 {
-      description  "Asserting that `succ` isn't applied on the last element of a sequence."
+      - description  "Asserting that `succ` isn't applied on the last element of a sequence."
     }
     tag_value 8 {
-      description "Asserting that a value is a valid tag for a given union." 
+      - description "Asserting that a value is a valid tag for a given union." 
     }
     value_param 9 {
-      description "Range check as part of range parameter passing."
+      - description "Range check as part of range parameter passing."
     }
   }
   struct "location" size=4 {
-    description """
+    - description """
     Describes an absolute source location in a program.
     """
 
     file_no "nat2" {
-      description """
+      - description """
       File number in file descriptor table.
       """
     }
     line_no "nat2" {
-      description """
+      - description """
       Line number within the file.
       Line numbers are 1-indexed.
       """
@@ -586,26 +590,26 @@ types {
   }
   // Normative descriptors
   struct "for_descriptor" size=16 {
-    description """
+    - description """
     Keeps track of for-loop state, as well as enough state to restart iterations of a for-loop.
     """
 
     counter "int4" {
-      description "Current for-loop counter variable, may be exposed via naming the counter variable."
+      - description "Current for-loop counter variable, may be exposed via naming the counter variable."
     }
     end "int4" {
-      description """
+      - description """
       Termination value of the for-loop.
       Once `counter` is equal to `end`, the for-loop will no longer proceed to further iterations.
       """
     }
     step "int4" {
-      description """
+      - description """
       Value to adjust `counter` by after each iteration.
       """
     }
     save_sp "addrint" {
-      description """
+      - description """
       Stack pointer address before the for-loop body was entered.
       """
     }
@@ -614,12 +618,12 @@ types {
 
 exceptions {
   ExecutionError "@text" {
-    description """
+    - description """
     An unrecoverable fatal runtime error. Contains a message on more information about the error.
     """
   }
   Quit "quit_exception" {
-    description """
+    - description """
     A recoverable runtime error. Code becomes the value passed into a `handler` block, if present. 
     """
   }
@@ -627,7 +631,7 @@ exceptions {
 
 instructions {
   group "Abort Program" {
-    description """
+    - description """
     Aborts program execution for a specific reason.
 
     The specific abort reason depends on the `abort_kind`, which is always provided
@@ -636,12 +640,12 @@ instructions {
     """
 
     ABORT 0x00 "Abort" {
-      description """
+      - description """
       Always aborts program execution.
       """
       operands {
         abort_kind "abort_reason" {
-          description """
+          - description """
           What is the reason for aborting
           """
         }
@@ -649,19 +653,19 @@ instructions {
     }
 
     ABORTCOND 0x01 "Abort If Condition is False" {
-      description """
+      - description """
       Conditionally aborts program execution based on `will_abort`.
       """
       operands {
         abort_kind "abort_reason" {
-          description """
+          - description """
           What is the reason for aborting
           """
         }
       }
       stack_before {
         condition_holds "int4" {
-          description """
+          - description """
           If the condition to assert holds, otherwise aborts program execution (i.e. `condition_holds` is 0).
           """
         }
@@ -673,21 +677,27 @@ instructions {
   }
 
   group "Add Values" {
-    description "Performs addition on two values."
+    - description "Performs addition on two values."
 
     ADDINT 0x04 "Add Integers" {
-      description "Adds as `int` values `lhs` and `rhs`, producing `out`."
+      - description "Adds as `int` values `lhs` and `rhs`, producing `out`."
       operands {}
       stack_before {
-        lhs "int4" { description "Left-hand side of operation." }
-        rhs "int4" { description "Right-hand side of operation." }
+        lhs "int4" {
+          - description "Left-hand side of operation."
+        }
+        rhs "int4" {
+          - description "Right-hand side of operation."
+        }
       }
       stack_after {
-        out "int4" { description "Result of operation." }
+        out "int4" {
+          - description "Result of operation."
+        }
       }
       exceptions {
         Quit (quit_code).integer_overflow {
-          description """
+          - description """
           When the computed value is greater than can what be represented by `out`.
           """
         }
@@ -695,18 +705,24 @@ instructions {
     }
     
     ADDINTNAT 0x05 "Add Integer with Natural" {
-      description "Adds `lhs` (as an `int` value) and `rhs` (as a `nat` value), producing `out`."
+      - description "Adds `lhs` (as an `int` value) and `rhs` (as a `nat` value), producing `out`."
       operands {}
       stack_before {
-        lhs "int4" { description "Left-hand side of operation." }
-        rhs "nat4" { description "Right-hand side of operation." }
+        lhs "int4" {
+          - description "Left-hand side of operation."
+        }
+        rhs "nat4" {
+          - description "Right-hand side of operation."
+        }
       }
       stack_after {
-        out "int4" { description "Result of operation." }
+        out "int4" {
+          - description "Result of operation."
+        }
       }
       exceptions {
         Quit (quit_code).integer_overflow {
-          description """
+          - description """
           When the computed value is greater than can what be represented by `out`.
           """
         }
@@ -714,18 +730,24 @@ instructions {
     }
     
     ADDNAT 0x06 "Add Naturals" {
-      description "Adds as `nat` values `lhs` and `rhs`, producing `out`."
+      - description "Adds as `nat` values `lhs` and `rhs`, producing `out`."
       operands {}
       stack_before {
-        lhs "nat4" { description "Left-hand side of operation." }
-        rhs "nat4" { description "Right-hand side of operation." }
+        lhs "nat4" {
+          - description "Left-hand side of operation."
+        }
+        rhs "nat4" {
+          - description "Right-hand side of operation."
+        }
       }
       stack_after {
-        out "nat4" { description "Result of operation." }
+        out "nat4" {
+          - description "Result of operation."
+        }
       }
       exceptions {
         Quit (quit_code).integer_overflow {
-          description """
+          - description """
           When the computed value is greater than can what be represented by `out`.
           """
         }
@@ -733,18 +755,24 @@ instructions {
     }
     
     ADDNATINT 0x07 "Add Natural with Integer" {
-      description "Adds `lhs` (as a `nat` value) and `rhs` (as an `int` value), producing `out`."
+      - description "Adds `lhs` (as a `nat` value) and `rhs` (as an `int` value), producing `out`."
       operands {}
       stack_before {
-        lhs "nat4" { description "Left-hand side of operation." }
-        rhs "int4" { description "Right-hand side of operation." }
+        lhs "nat4" {
+          - description "Left-hand side of operation."
+        }
+        rhs "int4" {
+          - description "Right-hand side of operation."
+        }
       }
       stack_after {
-        out "nat4" { description "Result of operation." }
+        out "nat4" {
+          - description "Result of operation."
+        }
       }
       exceptions {
         Quit (quit_code).integer_overflow {
-          description """
+          - description """
           When the computed value is greater than can what be represented by `out`.
           """
         }
@@ -752,18 +780,24 @@ instructions {
     }
     
     ADDREAL 0x08 "Add Reals" {
-      description "Adds as `real` values `lhs` and `rhs`, producing `out`."
+      - description "Adds as `real` values `lhs` and `rhs`, producing `out`."
       operands {}
       stack_before {
-        lhs "real8" { description "Left-hand side of operation." }
-        rhs "real8" { description "Right-hand side of operation." }
+        lhs "real8" {
+          - description "Left-hand side of operation."
+        }
+        rhs "real8" {
+          - description "Right-hand side of operation."
+        }
       }
       stack_after {
-        out "real8" { description "Result of operation." }
+        out "real8" {
+          - description "Result of operation."
+        }
       }
       exceptions {
         Quit (quit_code).real_overflow {
-          description """
+          - description """
           When the computed value is greater than can what be represented by `out`.
           """
         }
@@ -771,7 +805,7 @@ instructions {
     }
 
     ADDSET 0x09 "Union of Sets" {
-      description """
+      - description """
       Computes as `set` values the set union of `lhs` and `rhs`, producing `out`.
 
       `set_length` determines the size of both sets, as well as determining the set representation.
@@ -780,7 +814,7 @@ instructions {
       
       operands {
         set_length "nat4" {
-          description """
+          - description """
           Length of the set, in bytes.
           """
         }
@@ -789,29 +823,41 @@ instructions {
         @conditional {
           @predicate (operands).set_length "<=" 4 
 
-          lhs "set32" { description "Left-hand side of operation." }
-          rhs "set32" { description "Right-hand side of operation." }
+          lhs "set32" {
+            - description "Left-hand side of operation."
+          }
+          rhs "set32" {
+            - description "Right-hand side of operation."
+          }
         }
         @conditional {
           @predicate "otherwise"
 
-          lhs "addrint" { description "Left-hand side of operation." }
-          rhs "addrint" { description "Right-hand side of operation." }
-          out "addrint" { description "Stores the result of the operation." }
+          lhs "addrint" {
+            - description "Left-hand side of operation."
+          }
+          rhs "addrint" {
+            - description "Right-hand side of operation."
+          }
+          out "addrint" {
+            - description "Stores the result of the operation."
+          }
         }
       }
       stack_after {
         @conditional {
           @predicate (operands).set_length "<=" 4 
 
-          out "set32" { description "Result of operation." }
+          out "set32" {
+            - description "Result of operation."
+          }
         }
         @conditional {
           @predicate "otherwise"
 
           out "addrint" {
-            description "Result of operation."
-            preserves (stack_before).out
+            - description "Result of operation."
+            - preserves (stack_before).out
           }
         }
       }
@@ -819,21 +865,27 @@ instructions {
   }
 
   AND 0x0F "Bitwise And" {
-    description """
+    - description """
     Applies a bitwise logical and operation between `lhs` and `rhs`, producing `out`.
     """
     operands {}
     stack_before {
-      lhs "int4" { description "Left-hand side of operation." }
-      rhs "int4" { description "Right-hand side of operation." }
+      lhs "int4" {
+        - description "Left-hand side of operation."
+      }
+      rhs "int4" {
+        - description "Right-hand side of operation."
+      }
     }
     stack_after {
-      out "int4" { description "Result of operation." }
+      out "int4" {
+        - description "Result of operation."
+      }
     }
   }
 
   group "Assign Value" {
-    description """
+    - description """
     Stores `value` at the provided `dest` address.
     Individual assignment instructions may have different initialized value requirements.
 
@@ -841,20 +893,24 @@ instructions {
     """
 
     ASNADDR 0x11 "Assign Address Value" {
-      description """
+      - description """
       Stores a `value` as an `addrint` value at the provided `dest` address.
       """
 
       operands {}
       stack_before {
-        value "addrint" { description "Value to store." }
-        dest "addrint" { description "Address to store value at." }
+        value "addrint" {
+          - description "Value to store."
+        }
+        dest "addrint" {
+          - description "Address to store value at."
+        }
       }
       stack_after {}
     }
 
     ASNADDRINV 0x12 "Assign Address Value (Inverted)" {
-      description """
+      - description """
       Stores a `value` as an `addrint` value at the provided `dest` address.
 
       Stack operand order corresponds to post-computing the `dest` address.
@@ -862,27 +918,35 @@ instructions {
 
       operands {}
       stack_before {
-        dest "addrint" { description "Address to store value at." }
-        value "addrint" { description "Value to store." }
+        dest "addrint" {
+          - description "Address to store value at."
+        }
+        value "addrint" {
+          - description "Value to store."
+        }
       }
       stack_after {}
     }
 
     ASNINT 0x13 "Assign Integer Value" {
-      description """
+      - description """
       Stores a `value` as an `int` value at the provided `dest` address.
       Asserts that `value` is not `undefint` (`0x8000_0000`).
       """
 
       operands {}
       stack_before {
-        value "int4" { description "Value to store." }
-        dest "addrint" { description "Address to store value at." }
+        value "int4" {
+          - description "Value to store."
+        }
+        dest "addrint" {
+          - description "Address to store value at."
+        }
       }
       stack_after {}
       exceptions {
         Quit (quit_exception).uninit_value {
-          description """
+          - description """
           When `value` is `undefint` (`0x8000_0000`).
           """
         }
@@ -890,7 +954,7 @@ instructions {
     }
 
     ASNINTINV 0x14 "Assign Integer Value (Inverted)" {
-      description """
+      - description """
       Stores a `value` as an `int` value at the provided `dest` address.
       Asserts that `value` is not `undefint` (`0x8000_0000`).
 
@@ -899,13 +963,17 @@ instructions {
 
       operands {}
       stack_before {
-        dest "addrint" { description "Address to store value at." }
-        value "int4" { description "Value to store." }
+        dest "addrint" {
+          - description "Address to store value at."
+        }
+        value "int4" {
+          - description "Value to store."
+        }
       }
       stack_after {}
       exceptions {
         Quit (quit_exception).uninit_value {
-          description """
+          - description """
           When `value` is `undefint` (`0x8000_0000`).
           """
         }
@@ -913,20 +981,24 @@ instructions {
     }
 
     ASNINT1 0x15 "Assign Int1 Value" {
-      description """
+      - description """
       Stores a `value` as an `int1` value at the provided `dest` address.
       Asserts that `value` is representable as an `int1` (i.e. it is within the range `[-128..127]`).
       """
 
       operands {}
       stack_before {
-        value "int4" { description "Value to store." }
-        dest "addrint" { description "Address to store value at." }
+        value "int4" {
+          - description "Value to store."
+        }
+        dest "addrint" {
+          - description "Address to store value at."
+        }
       }
       stack_after {}
       exceptions {
         Quit (quit_exception).assignment_out_of_range {
-          description """
+          - description """
           When `value` is outside of the range of `[-128..127]`.
           """
         }
@@ -934,7 +1006,7 @@ instructions {
     }
 
     ASNINT1INV 0x16 "Assign Int1 Value (Inverted)" {
-      description """
+      - description """
       Stores a `value` as an `int1` value at the provided `dest` address.
       Asserts that `value` is representable as an `int1` (i.e. it is within the range `[-128..127]`).
 
@@ -943,13 +1015,17 @@ instructions {
 
       operands {}
       stack_before {
-        dest "addrint" { description "Address to store value at." }
-        value "int4" { description "Value to store." }
+        dest "addrint" {
+          - description "Address to store value at."
+        }
+        value "int4" {
+          - description "Value to store."
+        }
       }
       stack_after {}
       exceptions {
         Quit (quit_exception).assignment_out_of_range {
-          description """
+          - description """
           When `value` is outside of the range of `[-128..127]`.
           """
         }
@@ -957,20 +1033,24 @@ instructions {
     }
 
     ASNINT2 0x17 "Assign Int2 Value" {
-      description """
+      - description """
       Stores a `value` as an `int2` value at the provided `dest` address.
       Asserts that `value` is representable as an `int2` (i.e. it is within the range `[-32768..32767]`).
       """
 
       operands {}
       stack_before {
-        value "int4" { description "Value to store." }
-        dest "addrint" { description "Address to store value at." }
+        value "int4" {
+          - description "Value to store."
+        }
+        dest "addrint" {
+          - description "Address to store value at."
+        }
       }
       stack_after {}
       exceptions {
         Quit (quit_exception).assignment_out_of_range {
-          description """
+          - description """
           When `value` is outside of the range of `[-32768..32767]`.
           """
         }
@@ -978,7 +1058,7 @@ instructions {
     }
 
     ASNINT2INV 0x18 "Assign Int2 Value (Inverted)" {
-      description """
+      - description """
       Stores a `value` as an `int2` value at the provided `dest` address.
       Asserts that `value` is representable as an `int2` (i.e. it is within the range `[-32768..32767]`).
 
@@ -987,13 +1067,17 @@ instructions {
 
       operands {}
       stack_before {
-        dest "addrint" { description "Address to store value at." }
-        value "int4" { description "Value to store." }
+        dest "addrint" {
+          - description "Address to store value at."
+        }
+        value "int4" {
+          - description "Value to store."
+        }
       }
       stack_after {}
       exceptions {
         Quit (quit_exception).assignment_out_of_range {
-          description """
+          - description """
           When `value` is outside of the range of `[-32768..32767]`.
           """
         }
@@ -1001,7 +1085,7 @@ instructions {
     }
 
     ASNINT4 0x19 "Assign Int4 Value" {
-      description """
+      - description """
       Stores a `value` as an `int4` value at the provided `dest` address.
       Unlike [**ASNINT**], this does not perform uninit checking.
 
@@ -1010,14 +1094,18 @@ instructions {
 
       operands {}
       stack_before {
-        value "int4" { description "Value to store." }
-        dest "addrint" { description "Address to store value at." }
+        value "int4" {
+          - description "Value to store."
+        }
+        dest "addrint" {
+          - description "Address to store value at."
+        }
       }
       stack_after {}
     }
 
     ASNINT4INV 0x1A "Assign Int4 Value (Inverted)" {
-      description """
+      - description """
       Stores a `value` as an `int4` value at the provided `dest` address.
       Unlike [**ASNINTINV**], this does not perform uninit checking.
 
@@ -1028,27 +1116,35 @@ instructions {
 
       operands {}
       stack_before {
-        dest "addrint" { description "address to store value at." }
-        value "int4" { description "Value to store." }
+        dest "addrint" {
+          - description "address to store value at."
+        }
+        value "int4" {
+          - description "Value to store."
+        }
       }
       stack_after {}
     }
 
     ASNNAT 0x1B "Assign Natural Value" {
-      description """
+      - description """
       Stores a `value` as a `nat` value at the provided `dest` address.
       Asserts that `value` is not `undefnat` (`0xFFFF_FFFF`).
       """
 
       operands {}
       stack_before {
-        value "nat4" { description "Value to store." }
-        dest "addrint" { description "Address to store value at." }
+        value "nat4" {
+          - description "Value to store."
+        }
+        dest "addrint" {
+          - description "Address to store value at."
+        }
       }
       stack_after {}
       exceptions {
         Quit (quit_exception).uninit_value {
-          description """
+          - description """
           When `value` is `undefnat` (`0xFFFF_FFFF`).
           """
         }
@@ -1056,7 +1152,7 @@ instructions {
     }
 
     ASNNATINV 0x1C "Assign Natural Value (Inverted)" {
-      description """
+      - description """
       Stores a `value` as an `int` value at the provided `dest` address.
       Asserts that `value` is not `undefnat` (`0xFFFF_FFFF`).
 
@@ -1065,13 +1161,17 @@ instructions {
 
       operands {}
       stack_before {
-        dest "addrint" { description "Address to store value at." }
-        value "nat4" { description "Value to store." }
+        dest "addrint" {
+          - description "Address to store value at."
+        }
+        value "nat4" {
+          - description "Value to store."
+        }
       }
       stack_after {}
       exceptions {
         Quit (quit_exception).uninit_value {
-          description """
+          - description """
           When `value` is `undefnat` (`0xFFFF_FFFF`).
           """
         }
@@ -1079,20 +1179,24 @@ instructions {
     }
 
     ASNNAT1 0x1D "Assign Nat1 Value" {
-      description """
+      - description """
       Stores a `value` as a `nat1` value at the provided `dest` address.
       Asserts that `value` is representable as a `nat1` (i.e. it is within the range `[0..255]`).
       """
 
       operands {}
       stack_before {
-        value "nat4" { description "Value to store." }
-        dest "addrint" { description "Address to store value at." }
+        value "nat4" {
+          - description "Value to store."
+        }
+        dest "addrint" {
+          - description "Address to store value at."
+        }
       }
       stack_after {}
       exceptions {
         Quit (quit_exception).assignment_out_of_range {
-          description """
+          - description """
           When `value` is outside of the range of `[0..255]`.
           """
         }
@@ -1100,7 +1204,7 @@ instructions {
     }
 
     ASNNAT1INV 0x1E "Assign Nat1 Value (Inverted)" {
-      description """
+      - description """
       Stores a `value` as a `nat1` value at the provided `dest` address.
       Asserts that `value` is representable as a `nat1` (i.e. it is within the range `[0..255]`).
 
@@ -1109,13 +1213,17 @@ instructions {
 
       operands {}
       stack_before {
-        dest "addrint" { description "Address to store value at." }
-        value "nat4" { description "Value to store." }
+        dest "addrint" {
+          - description "Address to store value at."
+        }
+        value "nat4" {
+          - description "Value to store."
+        }
       }
       stack_after {}
       exceptions {
         Quit (quit_exception).assignment_out_of_range {
-          description """
+          - description """
           When `value` is outside of the range of `[0..255]`.
           """
         }
@@ -1123,20 +1231,24 @@ instructions {
     }
 
     ASNNAT2 0x1F "Assign Int2 Value" {
-      description """
+      - description """
       Stores a `value` as a `nat2` value at the provided `dest` address.
       Asserts that `value` is representable as a `nat2` (i.e. it is within the range `[0..65535]`).
       """
 
       operands {}
       stack_before {
-        value "nat4" { description "Value to store." }
-        dest "addrint" { description "Address to store value at." }
+        value "nat4" {
+          - description "Value to store."
+        }
+        dest "addrint" {
+          - description "Address to store value at."
+        }
       }
       stack_after {}
       exceptions {
         Quit (quit_exception).assignment_out_of_range {
-          description """
+          - description """
           When `value` is outside of the range of `[-32768..32767]`.
           """
         }
@@ -1144,7 +1256,7 @@ instructions {
     }
 
     ASNNAT2INV 0x20 "Assign Int2 Value (Inverted)" {
-      description """
+      - description """
       Stores a `value` as an `nat2` value at the provided `dest` address.
       Asserts that `value` is representable as an `nat2` (i.e. it is within the range `[0..65535]`).
 
@@ -1153,13 +1265,17 @@ instructions {
 
       operands {}
       stack_before {
-        dest "addrint" { description "Address to store value at." }
-        value "nat4" { description "Value to store." }
+        dest "addrint" {
+          - description "Address to store value at."
+        }
+        value "nat4" {
+          - description "Value to store."
+        }
       }
       stack_after {}
       exceptions {
         Quit (quit_exception).assignment_out_of_range {
-          description """
+          - description """
           When `value` is outside of the range of `[0..65535]`.
           """
         }
@@ -1167,7 +1283,7 @@ instructions {
     }
 
     ASNNAT4 0x21 "Assign Nat4 Value" {
-      description """
+      - description """
       Stores a `value` as a `nat4` value at the provided `dest` address.
       Unlike [**ASNNAT**], this does not perform uninit checking.
 
@@ -1176,14 +1292,18 @@ instructions {
 
       operands {}
       stack_before {
-        value "nat4" { description "Value to store." }
-        dest "addrint" { description "Address to store value at." }
+        value "nat4" {
+          - description "Value to store."
+        }
+        dest "addrint" {
+          - description "Address to store value at."
+        }
       }
       stack_after {}
     }
 
     ASNNAT4INV 0x22 "Assign Nat4 Value (Inverted)" {
-      description """
+      - description """
       Stores a `value` as an `nat4` value at the provided `dest` address.
       Unlike [**ASNNATINV**], this does not perform uninit checking.
 
@@ -1194,86 +1314,114 @@ instructions {
 
       operands {}
       stack_before {
-        dest "addrint" { description "address to store value at." }
-        value "nat4" { description "Value to store." }
+        dest "addrint" {
+          - description "address to store value at."
+        }
+        value "nat4" {
+          - description "Value to store."
+        }
       }
       stack_after {}
     }
 
     ASNNONSCALAR 0x23 "Assign Non-Scalar Value" {
-      description """
+      - description """
       Copies `length` bytes from `src` to `dest`.
       """
 
       operands {
-        length "nat4" { description "Number of bytes to copy." }
+        length "nat4" {
+          - description "Number of bytes to copy."
+        }
       }
       stack_before {
-        src "addrint" { description "Address to copy bytes from." }
-        dest "addrint" { description "Address to store bytes to." }
+        src "addrint" {
+          - description "Address to copy bytes from."
+        }
+        dest "addrint" {
+          - description "Address to store bytes to."
+        }
       }
       stack_after {}
     }
 
     ASNNONSCALARINV 0x24 "Assign Non-Scalar Value (Inverted)" {
-      description """
+      - description """
       Copies `length` bytes from `src` to `dest`.
 
       Stack operand order corresponds to post-computing the `dest` address.
       """
 
       operands {
-        length "nat4" { description "Number of bytes to copy." }
+        length "nat4" {
+          - description "Number of bytes to copy."
+        }
       }
       stack_before {
-        dest "addrint" { description "Address to store bytes to." }
-        src "addrint" { description "Address to copy bytes from." }
+        dest "addrint" {
+          - description "Address to store bytes to."
+        }
+        src "addrint" {
+          - description "Address to copy bytes from."
+        }
       }
       stack_after {}
     }
 
     ASNPTR 0x25 "Assign Checked Pointer Value" {
-      description """
+      - description """
       Copies the address stored in pointer descriptor information from `src` to `dest`'s pointer descriptor.
       If `src` does not point to a `nil` (`0x0`) address, additional metadata is copied to `dest` from the pointed-to heap allocation (e.g. the generation cookie).
       """
 
       stack_before {
-        src "addrint" { description "Address to copy pointer descriptor from." }
-        dest "addrint" { description "Address to store pointer descriptor to." }
+        src "addrint" {
+          - description "Address to copy pointer descriptor from."
+        }
+        dest "addrint" {
+          - description "Address to store pointer descriptor to."
+        }
       }
       stack_after {}
     }
 
     ASNPTRINV 0x26 "Assign Checked Pointer Value (Inverted)" {
-      description """
+      - description """
       Copies the address stored in pointer descriptor information from `src` to `dest`'s pointer descriptor.
       If `src` does not point to a `nil` (`0x0`) address, additional metadata is copied to `dest` from the pointed-to heap allocation (e.g. the generation cookie).
       """
 
       stack_before {
-        src "addrint" { description "Address to copy pointer descriptor from." }
-        dest "addrint" { description "Address to store pointer descriptor to." }
+        src "addrint" {
+          - description "Address to copy pointer descriptor from."
+        }
+        dest "addrint" {
+          - description "Address to store pointer descriptor to."
+        }
       }
       stack_after {}
     }
     
     ASNREAL 0x27 "Assign Real Value" {
-      description """
+      - description """
       Stores a `value` as a `real` value at the provided `dest` address.
       Does not perform uninit checking.
       """
 
       operands {}
       stack_before {
-        value "real8" { description "Value to store." }
-        dest "addrint" { description "Address to store value at." }
+        value "real8" {
+          - description "Value to store."
+        }
+        dest "addrint" {
+          - description "Address to store value at."
+        }
       }
       stack_after {}
     }
 
     ASNREALINV 0x28 "Assign Real Value (Inverted)" {
-      description """
+      - description """
       Stores a `value` as a `real` value at the provided `dest` address.
       Does not perform uninit checking.
 
@@ -1282,28 +1430,36 @@ instructions {
 
       operands {}
       stack_before {
-        dest "addrint" { description "Address to store value at." }
-        value "real8" { description "Value to store." }
+        dest "addrint" {
+          - description "Address to store value at."
+        }
+        value "real8" {
+          - description "Value to store."
+        }
       }
       stack_after {}
     }
 
     ASNREAL4 0x29 "Assign Real4 Value" {
-      description """
+      - description """
       Stores a `value` as a `real4` value at the provided `dest` address.
       Applies a narrowing cast to `real8` to convert the value into the equivalent `real4` representation.
       """
 
       operands {}
       stack_before {
-        value "real8" { description "Value to store." }
-        dest "addrint" { description "Address to store value at." }
+        value "real8" {
+          - description "Value to store."
+        }
+        dest "addrint" {
+          - description "Address to store value at."
+        }
       }
       stack_after {}
     }
 
     ASNREAL4INV 0x2A "Assign Real4 Value (Inverted)" {
-      description """
+      - description """
       Stores a `value` as a `real4` value at the provided `dest` address.
       Applies a narrowing cast to `real8` to convert the value into the equivalent `real4` representation.
 
@@ -1312,28 +1468,36 @@ instructions {
 
       operands {}
       stack_before {
-        dest "addrint" { description "Address to store value at." }
-        value "real8" { description "Value to store." }
+        dest "addrint" {
+          - description "Address to store value at."
+        }
+        value "real8" {
+          - description "Value to store."
+        }
       }
       stack_after {}
     }
 
     ASNREAL8 0x2B "Assign Real8 Value" {
-      description """
+      - description """
       Stores a `value` as a `real8` value at the provided `dest` address.
       Does not perform uninit checking.
       """
 
       operands {}
       stack_before {
-        value "real8" { description "Value to store." }
-        dest "addrint" { description "Address to store value at." }
+        value "real8" {
+          - description "Value to store."
+        }
+        dest "addrint" {
+          - description "Address to store value at."
+        }
       }
       stack_after {}
     }
     
     ASNREAL8INV 0x2C "Assign Real8 Value (Inverted)" {
-      description """
+      - description """
       Stores a `value` as a `real8` value at the provided `dest` address.
       Does not perform uninit checking.
 
@@ -1342,28 +1506,38 @@ instructions {
 
       operands {}
       stack_before {
-        dest "addrint" { description "Address to store value at." }
-        value "real8" { description "Value to store." }
+        dest "addrint" {
+          - description "Address to store value at."
+        }
+        value "real8" {
+          - description "Value to store."
+        }
       }
       stack_after {}
     }
 
     ASNSTR 0x2D "Assign String Value" {
-      description """
+      - description """
       Copies up to `max_length` string bytes from `src` to `dest`.
       Asserts that the string byte length of `src` is less than or equal to `max_length`.
       Does not perform uninit checking.
       """
 
       stack_before {
-        max_length "nat4" { description "Maximum string bytes that can be stored in `dest`." }
-        src "addrint" { description "Address to copy string bytes from." }
-        dest "addrint" { description "Address to store string bytes to." }
+        max_length "nat4" {
+          - description "Maximum string bytes that can be stored in `dest`."
+        }
+        src "addrint" {
+          - description "Address to copy string bytes from."
+        }
+        dest "addrint" {
+          - description "Address to store string bytes to."
+        }
       }
       stack_after {}
       exceptions {
         Quit (quit_exception).string_value_too_long {
-          description """
+          - description """
           When the string byte length of `src` is greater than `max_length`.
           """
         }
@@ -1371,7 +1545,7 @@ instructions {
     }
 
     ASNSTRINV 0x2E "Assign String Value (Inverted)" {
-      description """
+      - description """
       Copies up to `max_length` string bytes from `src` to `dest`.
       Asserts that the string byte length of `src` is less than or equal to `max_length`.
       Does not perform uninit checking.
@@ -1380,14 +1554,20 @@ instructions {
       """
 
       stack_before {
-        max_length "nat4" { description "Maximum string bytes that can be stored in `dest`." }
-        dest "addrint" { description "Address to store string bytes to." }
-        src "addrint" { description "Address to copy string bytes from." }
+        max_length "nat4" {
+          - description "Maximum string bytes that can be stored in `dest`."
+        }
+        dest "addrint" {
+          - description "Address to store string bytes to."
+        }
+        src "addrint" {
+          - description "Address to copy string bytes from."
+        }
       }
       stack_after {}
       exceptions {
         Quit (quit_exception).string_value_too_long {
-          description """
+          - description """
           When the string byte length of `src` is greater than `max_length`.
           """
         }
@@ -1396,24 +1576,28 @@ instructions {
   }
 
   CALL 0x32 "Call Procedure" {
-    description """
+    - description """
     Changes execution to follow the procedure at the provided call address.
     Standard call ABI (that is, the call ABI of Turing/OpenTuring) requires that the call address be pushed before all of the operands.
     """
 
     operands {
-      address_offset "offset" { description "Offset to the call address in the stack." }
+      address_offset "offset" {
+        - description "Offset to the call address in the stack."
+      }
     }
     stack_before {}
     stack_after {
-      return_addr "addrint" { description "Return address." }
+      return_addr "addrint" {
+        - description "Return address."
+      }
     }
     exceptions {
       Quit (quit_exception).uninit_value {
-        description "When the call address is `undefaddr` (`0xFFFF_FFFF`)."
+        - description "When the call address is `undefaddr` (`0xFFFF_FFFF`)."
       }
       ExecutionError "Deferred subroutine has not been resolved" {
-        description "When the call address is `nil` (`0x0`)."
+        - description "When the call address is `nil` (`0x0`)."
       }
     }
   }
@@ -1421,25 +1605,27 @@ instructions {
   // TODO: CALLEXTERNAL
 
   CALLIMPLEMENTBY 0x34 "Call Implement-By Initializer" {
-    description """
+    - description """
     Calls the next initialization procedure in the `implement by` module chain.
     `address_offset` points to an `addrint` storead at start of the code section, which is patched in by the interpreter to point to the next initializer in the `implement by` chain.
     """
     operands {
       address_offset "relocatable_offset" {
-        description """
+        - description """
         Offset to the patched-in implement-by call address in the code section.
         """
       }
     }
     stack_before {}
     stack_after {
-      return_addr "addrint" { description "Return address." }
+      return_addr "addrint" {
+        - description "Return address."
+      }
     }
   }
 
   CASE 0x35 "Case Of" {
-    description """
+    - description """
     Jumps to a specific branch depending on `selector`.
     `descriptor` points to a case descriptor describing the case bounds, default branch offset, and per-entry branch.
     Succinctly, it is of the following layout:
@@ -1461,107 +1647,125 @@ instructions {
 
     operands {
       descriptor "offset" {
-        description """
+        - description """
         Offset to the case descriptor table describing the jump targets
         """
       }
     }
     stack_before {
-      selector "int4" { description "Selects which case target entry to use." }
+      selector "int4" {
+        - description "Selects which case target entry to use."
+      }
     }
     stack_after {}
   }
 
   CHARTOCSTR 0x39 "Convert Char to Char(N)" {
-    description """
+    - description """
     Converts `value` as a `char` into a `char(N)` value stored at `out` (`value` followed by a nul terminator).
     """
 
     operands {}
     stack_before {
-      value "int4" { description "`char` to convert into a `char(N)` value" }
-      out "addrint" { description "Place to store the converted `char(N)` value." }
+      value "int4" {
+        - description "`char` to convert into a `char(N)` value"
+      }
+      out "addrint" {
+        - description "Place to store the converted `char(N)` value."
+      }
     }
     stack_after {
       out "addrint" {
-        description "Converted `char(N)` value."
-        preserves (stack_before).out
+        - description "Converted `char(N)` value."
+        - preserves (stack_before).out
       }
     }
   }
 
   group "Converte Char to String" {
-    description """
+    - description """
     Converts `value` as a `char` into a `string` storead at `out`.
     """
 
     CHARTOSTR 0x3A {
-      description "Converts a `char` value into a `string` value (`value` followed by a nul terminator)."
+      - description "Converts a `char` value into a `string` value (`value` followed by a nul terminator)."
 
       operands {}
       stack_before {
-        value "int4" { description "`char` to convert into a `string` value" }
-        out "addrint" { description "Place to store the converted `string` value." }
+        value "int4" {
+          - description "`char` to convert into a `string` value"
+        }
+        out "addrint" {
+          - description "Place to store the converted `string` value."
+        }
       }
       stack_after {
         out "addrint" {
-          description "Converted `string` value."
-          preserves (stack_before).out
+          - description "Converted `string` value."
+          - preserves (stack_before).out
         }
       }
       exceptions {
         ExecutionError "char converted to string is EOS or uninitchar" {
-          description "When `value` is either the nul terminator (`0x00`) or `undefchar` (`0x80`)."
+          - description "When `value` is either the nul terminator (`0x00`) or `undefchar` (`0x80`)."
         }
       }
     }
 
     CHARTOSTRLEFT 0x3B {
-      description """
+      - description """
       Converts a `char` value into a `string` value (`value` followed by a nul terminator).
       Preserves the existing right-hand side `char` value.
       """
 
       operands {}
       stack_before {
-        value "int4" { description "`char` to convert into a `string` value" }
-        out "addrint" { description "Place to store the converted `string` value." }
+        value "int4" {
+          - description "`char` to convert into a `string` value"
+        }
+        out "addrint" {
+          - description "Place to store the converted `string` value."
+        }
       }
       stack_after {
         out "addrint" {
-          description "Converted `string` value."
-          preserves (stack_before).out
+          - description "Converted `string` value."
+          - preserves (stack_before).out
         }
       }
       exceptions {
         ExecutionError "char converted to string is EOS or uninitchar" {
-          description "When `value` is either the nul terminator (`0x00`) or `undefchar` (`0x80`)."
+          - description "When `value` is either the nul terminator (`0x00`) or `undefchar` (`0x80`)."
         }
       }
     }
   }
 
   group "Check Invariants" {
-    description """
+    - description """
     Checks if any of a variety of runtime invariants are held.
     This forms the basis of the dynamically-checked portion of the excution runtime.
     """
 
     CHKCHRSTRSIZE 0x3C "Check Char(N) Length" {
-      description """
+      - description """
       Asserts that `length` is equal to `expected_length`.
       """
 
       operands {
-        expected_length "nat4" { description "Expected length of the `char(N)` value." }
+        expected_length "nat4" {
+          - description "Expected length of the `char(N)` value."
+        }
       }
       stack_before {
-        length "nat4" { description "Byte length of the `char(N)` to check." }
+        length "nat4" {
+          - description "Byte length of the `char(N)` to check."
+        }
       }
       stack_after {}
       exceptions {
         Quit (quit_code).char_assigned_to_dyn_char {
-          description """
+          - description """
           `right side of assignment to char(n) is not length 'n'`.
 
           If `length` does not match `expected_length`.
@@ -1571,123 +1775,133 @@ instructions {
     }
 
     CHKCSTRRANGE 0x3D "Check Char(N) Byte Length" {
-      description """
+      - description """
       Asserts that the string byte length (the number of bytes up until the nul terminator) of `value` is less than or equal to `max_length`.
       """
 
       operands {
-        max_length "nat4" { description "Maximum string byte length of the `char(N)` value." }
+        max_length "nat4" {
+          - description "Maximum string byte length of the `char(N)` value."
+        }
       }
       stack_before {
         value "addrint" {
-          description "`char(N)` value to check."
+          - description "`char(N)` value to check."
         }
       }
       stack_after {
         value "addrint" {
-          description "Checked `char(N)` value."
-          preserves (stack_before).value
+          - description "Checked `char(N)` value."
+          - preserves (stack_before).value
         }
       }
       exceptions {
         ExecutionError "Length of char(n) parameter is not `max_length`" {
-          description "When the string byte length of `value` exceeds `max_length`."
+          - description "When the string byte length of `value` exceeds `max_length`."
         }
       }
     }
 
     CHKRANGE 0x3E "Check Value in Range" {
-      description """
+      - description """
       Asserts that the value at `stack_offset` is within the range `[min..max]` (inclusive range).     
 
       Raises an exception dependent on `check_type` if the value is outside of the range.
       """
 
       operands {
-        stack_offset "offset" { description "Offset to the value to check within the operand stack" }
-        min "int4" { description "Minimum bound of the accepted value range." }
-        max "int4" { description "Maximum bound of the accepted value range." }
-        check_type "check_kind" { description "What the value range check is asserting." }
+        stack_offset "offset" {
+          - description "Offset to the value to check within the operand stack"
+        }
+        min "int4" {
+          - description "Minimum bound of the accepted value range."
+        }
+        max "int4" {
+          - description "Maximum bound of the accepted value range."
+        }
+        check_type "check_kind" {
+          - description "What the value range check is asserting."
+        }
       }
       stack_before {
         value "int4" {
-          description "Value to check."
-          computed_offset { (operands).stack_offset }
+          - description "Value to check."
+          - computed_offset { (operands).stack_offset }
         }
       }
       stack_after {
         value "int4" {
-          description "Value that was checked."
-          computed_offset { (operands).stack_offset }
-          preserves (stack_before).value
+          - description "Value that was checked."
+          - computed_offset { (operands).stack_offset }
+          - preserves (stack_before).value
         }
       }
       exceptions {
         Quit (quit_code).assignment_out_of_range {
-          description """
+          - description """
           Raised as the assertion when `check_type` is [CheckKind::Assign].
 
           [CheckKind::Assign]: CheckKind::Assign
           """
         }
         ExecutionError "Size of dynamic char(n) is less than 1" {
-          description """
+          - description """
           Raised as the assertion when `check_type` is [CheckKind::AnyChar].
 
           [CheckKind::AnyChar]: CheckKind::AnyChar
           """
         }
         ExecutionError "Value passed to 'chr' is < 0 or > 255" {
-          description """
+          - description """
           Raised as the assertion when `check_type` is [CheckKind::Chr].
 
           [CheckKind::Chr]: CheckKind::Chr
           """
         }
         Quit (quit_code).integer_overflow {
-          description """
+          - description """
           Raised as the assertion when `check_type` is [CheckKind::IntOverflow].
 
           [CheckKind::IntOverflow]: CheckKind::IntOverflow
           """
         }
         Quit (quit_code).result_out_of_range {
-          description """
+          - description """
           Raised as the assertion when `check_type` is [CheckKind::RangeAssign].
 
           [CheckKind::RangeAssign]: CheckKind::RangeAssign
           """
         }
         ExecutionError "Zero or negative for loop step" {
-          description """
+          - description """
           Raised as the assertion when `check_type` is [CheckKind::LoopStep].
 
           [CheckKind::LoopStep]: CheckKind::LoopStep
           """
         }
         Quit (quit_code).pred_of_first {
-          description """
+          - description """
           Raised as the assertion when `check_type` is [CheckKind::Pred].
 
           [CheckKind::Pred]: CheckKind::Pred
           """
         }
         Quit (quit_code).succ_of_last {
-          description """
+          - description """
           Raised as the assertion when `check_type` is [CheckKind::Succ].
 
           [CheckKind::Succ]: CheckKind::Succ
           """
         }
         Quit (quit_code).tag_out_of_range {
-          description """
+          - description """
           Raised as the assertion when `check_type` is [CheckKind::TagValue].
 
           [CheckKind::TagValue]: CheckKind::TagValue
           """
         }
         Quit (quit_code).parameter_out_of_range {
-          description """
+          - description """
           Raised as the assertion when `check_type` is [CheckKind::ValueParam].
 
           [CheckKind::ValueParam]: CheckKind::ValueParam
@@ -1697,51 +1911,57 @@ instructions {
     }
 
     CHKSTRRANGE 0x3F "Check String Byte Length" {
-      description """
+      - description """
       Asserts that the string byte length (the number of bytes up until the nul terminator) of `value` is less than or equal to `max_length`.
       """
 
       operands {
-        max_length "nat4" { description "Maximum string byte length of the `string` value." }
+        max_length "nat4" {
+          - description "Maximum string byte length of the `string` value."
+        }
       }
       stack_before {
         value "addrint" {
-          description "`string` value to check."
+          - description "`string` value to check."
         }
       }
       stack_after {
         value "addrint" {
-          description "Checked `string` value."
-          preserves (stack_before).value
+          - description "Checked `string` value."
+          - preserves (stack_before).value
         }
       }
       exceptions {
         Quit (quit_code).string_parameter_too_long {
-          description "When the string byte length of `value` exceeds `max_length`."
+          - description "When the string byte length of `value` exceeds `max_length`."
         }
       }
     }
 
     CHKSTRSIZE 0x40 "Check String Length" {
-      description """
+      - description """
       Asserts that the byte length of `value` is equal to `expected_length`.
       """
 
       operands {
-        expected_length "nat4" { description "Expected length of the `string` value." }
+        expected_length "nat4" {
+          - description "Expected length of the `string` value."
+        }
       }
       stack_before {
-        value "addrint" { description "`string` value to check." }
+        value "addrint" {
+          - description "`string` value to check."
+        }
       }
       stack_after {
         value "addrint" {
-          description "Checked `string` value."
-          preserves (stack_before).value
+          - description "Checked `string` value."
+          - preserves (stack_before).value
         }
       }
       exceptions {
         Quit (quit_code).char_assigned_to_dyn_char {
-          description """
+          - description """
           `right side of assignment to char(n) is not length 'n'`.
 
           If the byte length of `value` does not match `expected_length`.
@@ -1753,113 +1973,133 @@ instructions {
   }
 
   CSTRTOCHAR 0x43 "Convert Char(N) to Char" {
-    description """
+    - description """
     Converts a `char(N)` value of byte length `length` into a `char` value by extracting the first `char`.
     Asserts that `length` is 1.
     """
 
     operands {}
     stack_before {
-      char_str "addrint" { description "The `char(N)` value to convert." }
-      length "nat4" { description "The length of the `char(N)` value."}
+      char_str "addrint" {
+        - description "The `char(N)` value to convert."
+      }
+      length "nat4" {
+        - description "The length of the `char(N)` value."}
     }
     stack_after {
-      value "nat1" { description "Extracted `char` value." }
+      value "nat1" {
+        - description "Extracted `char` value."
+      }
       length "nat4" {
-        description "The length of the `char(N)` value."
-        preserves (stack_before).length
+        - description "The length of the `char(N)` value."
+        - preserves (stack_before).length
       }
     }
     exceptions {
       ExecutionError "char(n) coerced to char is not length 1" {
-        description "If `length` is not 1."
+        - description "If `length` is not 1."
       }
     }
   }
 
   group "Convert Char(N) to String" {
-    description """
+    - description """
     Converts a `char(N)` value into the equivalent `string` value.
     """
 
     CSTRTOSTR 0x44 "Convert Char(N) to String" {
-      description """
+      - description """
       Converts a `char(N)` value into the equivalent `string` value.
       Assumes that `dest` is large enough to store the resultant `string` value.
       """
 
       operands {}
       stack_before {
-        source "addrint" { description "`char(N)` value to convert." }
-        length "nat4" { description "Byte length of `source`." }
-        dest "addrint" { description "Place to store the converted `string` value." }
+        source "addrint" {
+          - description "`char(N)` value to convert."
+        }
+        length "nat4" {
+          - description "Byte length of `source`."
+        }
+        dest "addrint" {
+          - description "Place to store the converted `string` value."
+        }
       }
       stack_after {
         dest "addrint" {
-          description "Converted `string` value."
-          preserves (stack_before).dest
+          - description "Converted `string` value."
+          - preserves (stack_before).dest
         }
       }
       exceptions {
         ExecutionError "char(n) converted to string is EOS or uninitchar" {
-          description "When `source` contains either the nul terminator (`0x00`) or `undefchar` (`0x80`)."
+          - description "When `source` contains either the nul terminator (`0x00`) or `undefchar` (`0x80`)."
         }
         ExecutionError "char(n) size of `length` is too large to convert to string" {
-          description "When length is greater than the maximum storage size of a `string` (255 bytes)."
+          - description "When length is greater than the maximum storage size of a `string` (255 bytes)."
         }
       }
     }
 
     CSTRTOSTRLEFT 0x45 "Convert Left-Hand Side Char(N) to String" {
-      description """
+      - description """
       Converts a `char(N)` value into the equivalent `string` value, preserving the existing right-hand side `string` value.
       Assumes that `dest` is large enough to store the resultant `string` value.
       """
 
       operands {}
       stack_before {
-        source "addrint" { description "`char(N)` value to convert." }
-        preserve "addrint" { description "Right-hand side of a future operation."}
-        length "nat4" { description "Byte length of `source`." }
-        dest "addrint" { description "Place to store the converted `string` value." }
+        source "addrint" {
+          - description "`char(N)` value to convert."
+        }
+        preserve "addrint" {
+          - description "Right-hand side of a future operation."}
+        length "nat4" {
+        - description "Byte length of `source`."
+      }
+        dest "addrint" {
+        - description "Place to store the converted `string` value."
+      }
       }
       stack_after {
         dest "addrint" {
-          description "Converted `string` value."
-          preserves (stack_before).dest
+          - description "Converted `string` value."
+          - preserves (stack_before).dest
         }
         preserve "real8" {
-          description "Right-hand side of a future operation."
-          preserves (stack_before).preserve
+          - description "Right-hand side of a future operation."
+          - preserves (stack_before).preserve
         }
       }
       exceptions {
         ExecutionError "char(n) converted to string is EOS or uninitchar" {
-          description "When `source` contains either the nul terminator (`0x00`) or `undefchar` (`0x80`)."
+          - description "When `source` contains either the nul terminator (`0x00`) or `undefchar` (`0x80`)."
         }
         ExecutionError "char(n) size of `length` is too large to convert to string" {
-          description "When length is greater than the maximum storage size of a `string` (255 bytes)."
+          - description "When length is greater than the maximum storage size of a `string` (255 bytes)."
         }
       }
     }
   }
 
   DECSP 0x47 "Decrement Stack Pointer" {
-    description """
+    - description """
     Decrements the operand stack pointer by `size` bytes.
     Equivalent to repeatedly pushing values onto the operand stack.
     """
     operands {
-      size "nat4" { description "Amount of bytes to push onto the operand stack." }
+      size "nat4" {
+        - description "Amount of bytes to push onto the operand stack."
+      }
     }
     stack_before {}
     stack_after {
       bytes "nat1" {
-        description """
+        - description """
         Bytes that were pushed onto the operand stack.
         Assumed to be and should be treated as uninitialized memory.
         """
-        computed {
+        - computed {
           (operands).size
         }
       }
@@ -1867,21 +2107,27 @@ instructions {
   }
 
   group "Divide Values as Integers" {
-    description "Performs division on two values, with values being expected to be representable as an `int` or `nat` value."
+    - description "Performs division on two values, with values being expected to be representable as an `int` or `nat` value."
 
     DIVINT 0x48 "Divide Integers" {
-      description "Divides as `int` values `lhs` and `rhs`, producing `out`."
+      - description "Divides as `int` values `lhs` and `rhs`, producing `out`."
       operands {}
       stack_before {
-        lhs "int4" { description "Left-hand side of operation." }
-        rhs "int4" { description "Right-hand side of operation." }
+        lhs "int4" {
+          - description "Left-hand side of operation."
+        }
+        rhs "int4" {
+          - description "Right-hand side of operation."
+        }
       }
       stack_after {
-        out "int4" { description "Result of operation." }
+        out "int4" {
+          - description "Result of operation."
+        }
       }
       exceptions {
         Quit (quit_code).divmod_by_zero {
-          description """
+          - description """
           When `rhs` is `0`.
           """
         }
@@ -1889,18 +2135,24 @@ instructions {
     }
     
     DIVNAT 0x49 "Divide Naturals" {
-      description "Divides as `nat` values `lhs` and `rhs`, producing `out`."
+      - description "Divides as `nat` values `lhs` and `rhs`, producing `out`."
       operands {}
       stack_before {
-        lhs "nat4" { description "Left-hand side of operation." }
-        rhs "nat4" { description "Right-hand side of operation." }
+        lhs "nat4" {
+          - description "Left-hand side of operation."
+        }
+        rhs "nat4" {
+          - description "Right-hand side of operation."
+        }
       }
       stack_after {
-        out "nat4" { description "Result of operation." }
+        out "nat4" {
+          - description "Result of operation."
+        }
       }
       exceptions {
         Quit (quit_code).divmod_by_zero {
-          description """
+          - description """
           When `rhs` is `0`.
           """
         }
@@ -1908,7 +2160,7 @@ instructions {
     }
     
     DIVREAL 0x4A "Integer Divide Reals" {
-      description """
+      - description """
       Integer divides as `real` values `lhs` and `rhs`, producing `out` after truncating to an `int` value.
       Asserts that `out` when converted to an `int` is still representable (that is, it is not outside of the range of possible `int` values).
 
@@ -1918,20 +2170,26 @@ instructions {
       """
       operands {}
       stack_before {
-        lhs "real8" { description "Left-hand side of operation." }
-        rhs "real8" { description "Right-hand side of operation." }
+        lhs "real8" {
+          - description "Left-hand side of operation."
+        }
+        rhs "real8" {
+          - description "Right-hand side of operation."
+        }
       }
       stack_after {
-        out "int4" { description "Result of operation." }
+        out "int4" {
+          - description "Result of operation."
+        }
       }
       exceptions {
         Quit (quit_code).divmod_by_zero {
-          description """
+          - description """
           When `rhs` is `0`.
           """
         }
         Quit (quit_code).real_overflow {
-          description """
+          - description """
           When `out` is outside the range of possible `int` values.
           """
         }
@@ -1940,76 +2198,100 @@ instructions {
   }
 
   group "Compare Equal" {
-    description """
+    - description """
     Tests if `lhs` is equal to `rhs`, putting the compare result in `compare`.
     """
 
     EQADDR 0x4E "Compare Equal Addresses" {
-      description """
+      - description """
       Tests as `addrint` values if `lhs` and `rhs` are equal `addrint` values.
       """
       operands {}
       stack_before {
-        lhs "addrint" { description "Left-hand side of comparison." }
-        rhs "addrint" { description "Right-hand side of comparison." }
+        lhs "addrint" {
+          - description "Left-hand side of comparison."
+        }
+        rhs "addrint" {
+          - description "Right-hand side of comparison."
+        }
       }
       stack_after {
-        compare "int4" { description "Result of operation. 1 if values are equal, 0 otherwise." }
+        compare "int4" {
+          - description "Result of operation. 1 if values are equal, 0 otherwise."
+        }
       }
     }
 
     EQCHARN 0x4F "Compare Equal Char(N)" {
-      description """
+      - description """
       Tests as `char(N)` values if `lhs` and `rhs` are equal.
       Performs a byte-by-byte comparison.
       """
       operands {
         length "nat4" {
-          description """
+          - description """
           Byte length of the `char(N)` type.
           """
         }
       }
       stack_before {
-        lhs "addrint" { description "Left-hand side of comparison." }
-        rhs "addrint" { description "Right-hand side of comparison." }
+        lhs "addrint" {
+          - description "Left-hand side of comparison."
+        }
+        rhs "addrint" {
+          - description "Right-hand side of comparison."
+        }
       }
       stack_after {
-        compare "int4" { description "Result of operation. 1 if values are equal, 0 otherwise." }
+        compare "int4" {
+          - description "Result of operation. 1 if values are equal, 0 otherwise."
+        }
       }
     }
 
     EQINT 0x50 "Compare Equal Integers" {
-      description """
+      - description """
       Tests as `int` values if `lhs` and `rhs` are equal.
       """
       operands {}
       stack_before {
-        lhs "int4" { description "Left-hand side of comparison." }
-        rhs "int4" { description "Right-hand side of comparison." }
+        lhs "int4" {
+          - description "Left-hand side of comparison."
+        }
+        rhs "int4" {
+          - description "Right-hand side of comparison."
+        }
       }
       stack_after {
-        compare "int4" { description "Result of operation. 1 if values are equal, 0 otherwise." }
+        compare "int4" {
+          - description "Result of operation. 1 if values are equal, 0 otherwise."
+        }
       }
     }
 
     EQINTNAT 0x51 "Compare Equal Integer with Natural" {
-      description """
+      - description """
       Tests if `lhs` (as an `int` value) and `rhs` (as a `nat` value) are equal values.
       If `rhs` is greater than `maxint` (`0x7FFF_FFFF`), the comparison is always false.
       """
       operands {}
       stack_before {
-        lhs "int4" { description "Left-hand side of comparison." }
-        rhs "nat4" { description "Right-hand side of comparison." }
+        lhs "int4" {
+          - description "Left-hand side of comparison."
+        }
+        rhs "nat4" {
+          - description "Right-hand side of comparison."
+        }
       }
       stack_after {
-        compare "int4" { description "Result of operation. 1 if values are equal, 0 otherwise." }
+        compare "int4" {
+          - description "Result of operation. 1 if values are equal, 0 otherwise."
+        }
       }
     }
 
     EQNAT 0x52 "Compare Equal Nats" {
-      description """
+      - description """
       Tests as `nat` values if `lhs` and `rhs` are equal.
 
       ## Note
@@ -2021,30 +2303,42 @@ instructions {
       """
       operands {}
       stack_before {
-        lhs "nat4" { description "Left-hand side of comparison." }
-        rhs "nat4" { description "Right-hand side of comparison." }
+        lhs "nat4" {
+          - description "Left-hand side of comparison."
+        }
+        rhs "nat4" {
+          - description "Right-hand side of comparison."
+        }
       }
       stack_after {
-        compare "int4" { description "Result of operation. 1 if values are equal, 0 otherwise." }
+        compare "int4" {
+          - description "Result of operation. 1 if values are equal, 0 otherwise."
+        }
       }
     }
 
     EQREAL 0x53 "Compare Equal Reals" {
-      description """
+      - description """
       Tests as `real` values if `lhs` and `rhs` are equal.
       """
       operands {}
       stack_before {
-        lhs "real8" { description "Left-hand side of comparison." }
-        rhs "real8" { description "Right-hand side of comparison." }
+        lhs "real8" {
+          - description "Left-hand side of comparison."
+        }
+        rhs "real8" {
+          - description "Right-hand side of comparison."
+        }
       }
       stack_after {
-        compare "int4" { description "Result of operation. 1 if values are equal, 0 otherwise." }
+        compare "int4" {
+          - description "Result of operation. 1 if values are equal, 0 otherwise."
+        }
       }
     }
 
     EQSET 0x54 "Compare Equal Sets" {
-      description """
+      - description """
       Tests as `set` values if `lhs` and `rhs` are equal.
       Performs a byte-by-byte comparison.
 
@@ -2053,7 +2347,7 @@ instructions {
       """
       operands {
         set_length "nat4" {
-          description """
+          - description """
           Length of the set, in bytes.
           """
         }
@@ -2062,64 +2356,86 @@ instructions {
         @conditional {
           @predicate (operands).set_length "<=" 4
 
-          lhs "set32" { description "Left-hand side of comparison." }
-          rhs "set32" { description "Right-hand side of comparison." }
+          lhs "set32" {
+            - description "Left-hand side of comparison."
+          }
+          rhs "set32" {
+            - description "Right-hand side of comparison."
+          }
         }
         @conditional {
           @predicate "otherwise"
 
-          lhs "addrint" { description "Left-hand side of comparison." }
-          rhs "addrint" { description "Right-hand side of comparison." }
+          lhs "addrint" {
+            - description "Left-hand side of comparison."
+          }
+          rhs "addrint" {
+            - description "Right-hand side of comparison."
+          }
         }
       }
       stack_after {
-        compare "int4" { description "Result of operation. 1 if values are equal, 0 otherwise." }
+        compare "int4" {
+          - description "Result of operation. 1 if values are equal, 0 otherwise."
+        }
       }
     }
 
     EQSTR 0x55 "Compare Equal Strings" {
-      description """
+      - description """
       Tests as `string` values if `lhs` and `rhs` are equal.
       Performs a byte-by-byte comparison.
       """
       operands {}
       stack_before {
-        lhs "addrint" { description "Left-hand side of comparison." }
-        rhs "addrint" { description "Right-hand side of comparison." }
+        lhs "addrint" {
+          - description "Left-hand side of comparison."
+        }
+        rhs "addrint" {
+          - description "Right-hand side of comparison."
+        }
       }
       stack_after {
-        compare "int4" { description "Result of operation. 1 if values are equal, 0 otherwise." }
+        compare "int4" {
+          - description "Result of operation. 1 if values are equal, 0 otherwise."
+        }
       }
     }
   }
 
   group "Exponentiate Values" {
-    description "Raises `lhs` to the power of `rhs`."
+    - description "Raises `lhs` to the power of `rhs`."
 
     EXPINTINT 0x56 "Exponentiate Integers" {
-      description "Raises `lhs` to the power of `rhs` as `int` values, producing `out`."
+      - description "Raises `lhs` to the power of `rhs` as `int` values, producing `out`."
 
       operands {}
       stack_before {
-        lhs "int4" { description "Left-hand side of operation." }
-        rhs "int4" { description "Right-hand side of operation." }
+        lhs "int4" {
+          - description "Left-hand side of operation."
+        }
+        rhs "int4" {
+          - description "Right-hand side of operation."
+        }
       }
       stack_after {
-        out "int4" { description "Result of operation." }
+        out "int4" {
+          - description "Result of operation."
+        }
       }
       exceptions {
         Quit (quit_code).zero_pow_zero {
-          description """
+          - description """
           When `lhs` and `rhs` are both `0`.
           """
         }
         Quit (quit_code).integer_pow_negative {
-          description """
+          - description """
           When `rhs` is negative.
           """
         }
         Quit (quit_code).integer_overflow {
-          description """
+          - description """
           When the computed value is greater than can what be represented by `out`.
           """
         }
@@ -2127,24 +2443,30 @@ instructions {
     }
 
     EXPREALINT 0x57 "Exponentiate Real with Integer" {
-      description "Raises `lhs` (as a `real` value) to the power of `rhs` (as an `int` value), producing `out`."
+      - description "Raises `lhs` (as a `real` value) to the power of `rhs` (as an `int` value), producing `out`."
 
       operands {}
       stack_before {
-        lhs "real8" { description "Left-hand side of operation." }
-        rhs "int4" { description "Right-hand side of operation." }
+        lhs "real8" {
+          - description "Left-hand side of operation."
+        }
+        rhs "int4" {
+          - description "Right-hand side of operation."
+        }
       }
       stack_after {
-        out "real8" { description "Result of operation." }
+        out "real8" {
+          - description "Result of operation."
+        }
       }
       exceptions {
         Quit (quit_code).zero_pow_zero {
-          description """
+          - description """
           When `lhs` and `rhs` are both `0`.
           """
         }
         Quit (quit_code).real_overflow {
-          description """
+          - description """
           When `out` is not a finite value (i.e. either infinite or NaN).
           """
         }
@@ -2152,34 +2474,40 @@ instructions {
     }
 
     EXPREALREAL 0x58 "Exponentiate Reals" {
-      description "Raises `lhs` to the power of `rhs` as `real` values, producing `out`."
+      - description "Raises `lhs` to the power of `rhs` as `real` values, producing `out`."
 
       operands {}
       stack_before {
-        lhs "real8" { description "Left-hand side of operation." }
-        rhs "real8" { description "Right-hand side of operation." }
+        lhs "real8" {
+          - description "Left-hand side of operation."
+        }
+        rhs "real8" {
+          - description "Right-hand side of operation."
+        }
       }
       stack_after {
-        out "real8" { description "Result of operation." }
+        out "real8" {
+          - description "Result of operation."
+        }
       }
       exceptions {
         Quit (quit_code).zero_pow_zero {
-          description """
+          - description """
           When `lhs` and `rhs` are both `0`.
           """
         }
         Quit (quit_code).zero_pow_negative {
-          description """
+          - description """
           When `lhs` is `0` and `rhs` is negative.
           """
         }
         Quit (quit_code).negative_pow_real {
-          description """
+          - description """
           When `lhs` is `0`.
           """
         }
         Quit (quit_code).real_overflow {
-          description """
+          - description """
           When the computed value is greater than can what be represented by `out`.
           """
         }
@@ -2188,26 +2516,30 @@ instructions {
   }
 
   group "Fetch Value from Address" {
-    description """
+    - description """
     Fetches a value from the specified `addr`.
     Individual fetch instructions may have different initialized value requirements.
     """
 
     FETCHADDR 0x59 "Fetch Address Value" {
-      description """
+      - description """
       Fetches an `addrint` value from `addr`.
       Asserts that the loaded value is not `undefaddr` (`0xFFFF_FFFF`).
       """
       operands {}
       stack_before {
-        addr "addrint" { description "Address of the value to load." }
+        addr "addrint" {
+          - description "Address of the value to load."
+        }
       }
       stack_after {
-        value "addrint" { description "Value loaded from `addr`" }
+        value "addrint" {
+          - description "Value loaded from `addr`"
+        }
       }
       exceptions {
         Quit (quit_exception).uninit_value {
-          description """
+          - description """
           When `value` is `undefaddr` (`0xFFFF_FFFF`).
           """
         }
@@ -2215,20 +2547,24 @@ instructions {
     }
 
     FETCHBOOL 0x5A "Fetch Boolean Value" {
-      description """
+      - description """
       Fetches a `boolean` value from `addr`, performing a 1-byte load.
       Asserts that the loaded value is not `undefbool` (`0xFF`).
       """
       operands {}
       stack_before {
-        addr "addrint" { description "Address of the value to load." }
+        addr "addrint" {
+          - description "Address of the value to load."
+        }
       }
       stack_after {
-        value "int4" { description "Value loaded from `addr`" }
+        value "int4" {
+          - description "Value loaded from `addr`"
+        }
       }
       exceptions {
         Quit (quit_exception).uninit_value {
-          description """
+          - description """
           When `value` is `uninitaddr` (`0xFFFF_FFFF`).
           """
         }
@@ -2236,20 +2572,24 @@ instructions {
     }
 
     FETCHINT 0x5B "Fetch Integer Value" {
-      description """
+      - description """
       Fetches an `int` value from `addr`, performing a 4-byte load.
       Asserts that the loaded value is not `undefint` (`0x8000_0000`).
       """
       operands {}
       stack_before {
-        addr "addrint" { description "Address of the value to load." }
+        addr "addrint" {
+          - description "Address of the value to load."
+        }
       }
       stack_after {
-        value "int4" { description "Value loaded from `addr`" }
+        value "int4" {
+          - description "Value loaded from `addr`"
+        }
       }
       exceptions {
         Quit (quit_exception).uninit_value {
-          description """
+          - description """
           When `value` is `undefint` (`0x8000_0000`).
           """
         }
@@ -2257,35 +2597,43 @@ instructions {
     }
 
     FETCHINT1 0x5C "Fetch Int1 Value" {
-      description """
+      - description """
       Fetches an `int1` value from `addr`, performing a 1-byte load.
       Coerces the loaded `value` into an `int4` value.
       """
       operands {}
       stack_before {
-        addr "addrint" { description "Address of the value to load." }
+        addr "addrint" {
+          - description "Address of the value to load."
+        }
       }
       stack_after {
-        value "int4" { description "Value loaded from `addr`" }
+        value "int4" {
+          - description "Value loaded from `addr`"
+        }
       }
     }
 
     FETCHINT2 0x5D "Fetch Int2 Value" {
-      description """
+      - description """
       Fetches an `int2` value from `addr`, performing a 2-byte load.
       Coerces the loaded `value` into an `int4` value.
       """
       operands {}
       stack_before {
-        addr "addrint" { description "Address of the value to load." }
+        addr "addrint" {
+          - description "Address of the value to load."
+        }
       }
       stack_after {
-        value "int4" { description "Value loaded from `addr`" }
+        value "int4" {
+          - description "Value loaded from `addr`"
+        }
       }
     }
 
     FETCHINT4 0x5E "Fetch Int4 Value" {
-      description """
+      - description """
       Fetches an `int4` value from `addr`, performing a 4-byte load.
       Unlike [**FETCHINT**], this does not perform uninit checking.
 
@@ -2293,28 +2641,36 @@ instructions {
       """
       operands {}
       stack_before {
-        addr "addrint" { description "Address of the value to load." }
+        addr "addrint" {
+          - description "Address of the value to load."
+        }
       }
       stack_after {
-        value "int4" { description "Value loaded from `addr`" }
+        value "int4" {
+          - description "Value loaded from `addr`"
+        }
       }
     }
 
     FETCHNAT 0x5F "Fetch Natural Value" {
-      description """
+      - description """
       Fetches a `nat` value from `addr`, performing a 4-byte load.
       Asserts that the loaded value is not `undefnat` (`0xFFFF_FFFF`).
       """
       operands {}
       stack_before {
-        addr "addrint" { description "Address of the value to load." }
+        addr "addrint" {
+          - description "Address of the value to load."
+        }
       }
       stack_after {
-        value "nat4" { description "Value loaded from `addr`" }
+        value "nat4" {
+          - description "Value loaded from `addr`"
+        }
       }
       exceptions {
         Quit (quit_exception).uninit_value {
-          description """
+          - description """
           When `value` is `undefnat` (`0xFFFF_FFFF`).
           """
         }
@@ -2322,35 +2678,43 @@ instructions {
     }
 
     FETCHNAT1 0x60 "Fetch Nat1 Value" {
-      description """
+      - description """
       Fetches a `nat1` value from `addr`, performing a 1-byte load.
       Coerces the loaded `value` into a `nat4` value.
       """
       operands {}
       stack_before {
-        addr "addrint" { description "Address of the value to load." }
+        addr "addrint" {
+          - description "Address of the value to load."
+        }
       }
       stack_after {
-        value "nat4" { description "Value loaded from `addr`" }
+        value "nat4" {
+          - description "Value loaded from `addr`"
+        }
       }
     }
 
     FETCHNAT2 0x61 "Fetch Nat2 Value" {
-      description """
+      - description """
       Fetches a `nat2` value from `addr`, performing a 2-byte load.
       Coerces the loaded `value` into a `nat4` value.
       """
       operands {}
       stack_before {
-        addr "addrint" { description "Address of the value to load." }
+        addr "addrint" {
+          - description "Address of the value to load."
+        }
       }
       stack_after {
-        value "nat4" { description "Value loaded from `addr`" }
+        value "nat4" {
+          - description "Value loaded from `addr`"
+        }
       }
     }
     
     FETCHNAT4 0x62 "Fetch Nat4 Value" {
-      description """
+      - description """
       Fetches a `nat4` value from `addr`, performing a 4-byte load.
       Unlike [**FETCHNAT**], this does not perform uninit checking.
 
@@ -2358,34 +2722,42 @@ instructions {
       """
       operands {}
       stack_before {
-        addr "addrint" { description "Address of the value to load." }
+        addr "addrint" {
+          - description "Address of the value to load."
+        }
       }
       stack_after {
-        value "nat4" { description "Value loaded from `addr`" }
+        value "nat4" {
+          - description "Value loaded from `addr`"
+        }
       }
     }
 
     FETCHPTR 0x63 "Fetch Checked Pointer Value" {
-      description """
+      - description """
       Fetches an `addrint` value from `addr`, performing a 4-byte load.
       Asserts that the loaded value is not `undefaddr` (`0xFFFF_FFFF`), and that the checked pointer's generation cookie matches the pointed-to allocation's generation cookie.
       """
       operands {}
       stack_before {
-        addr "addrint" { description "Address of the value to load." }
+        addr "addrint" {
+          - description "Address of the value to load."
+        }
       }
       stack_after {
-        value "addrint" { description "Value loaded from `addr`" }
+        value "addrint" {
+          - description "Value loaded from `addr`"
+        }
       }
       exceptions {
         Quit (quit_exception).uninit_value {
-          description """
+          - description """
           When `value` is `undefaddr` (`0xFFFF_FFFF`).
           """
         }
 
         ExecutionError "Reference to previously freed pointer" {
-          description """
+          - description """
           When the checked pointer and the pointed-to allocation's generation cookies do not match.
           Indicates a likely use-after-free scenario.
           """
@@ -2394,20 +2766,24 @@ instructions {
     }
 
     FETCHREAL 0x64 "Fetch Real Value" {
-      description """
+      - description """
       Fetches a `real` value from `addr`, performing an 8-byte load.
       Asserts that the loaded value is not `undefreal` (`0x8000_0000_8000_0000`).
       """
       operands {}
       stack_before {
-        addr "addrint" { description "Address of the value to load." }
+        addr "addrint" {
+          - description "Address of the value to load."
+        }
       }
       stack_after {
-        value "real8" { description "Value loaded from `addr`" }
+        value "real8" {
+          - description "Value loaded from `addr`"
+        }
       }
       exceptions {
         Quit (quit_exception).uninit_value {
-          description """
+          - description """
           When `value` is `undefreal` (`0x8000_0000_8000_0000`).
           """
         }
@@ -2415,21 +2791,25 @@ instructions {
     }
 
     FETCHREAL4 0x65 "Fetch Real4 Value" {
-      description """
+      - description """
       Fetches a `real4` value from `addr`, performing a 4-byte load.
       Coerces the loaded `value` into a `real8` value.
       """
       operands {}
       stack_before {
-        addr "addrint" { description "Address of the value to load." }
+        addr "addrint" {
+          - description "Address of the value to load."
+        }
       }
       stack_after {
-        value "real8" { description "Value loaded from `addr`" }
+        value "real8" {
+          - description "Value loaded from `addr`"
+        }
       }
     }
 
     FETCHREAL8 0x66 "Fetch Real8 Value" {
-      description """
+      - description """
       Fetches a `real8` value from `addr`, performing an 8-byte load.
       Unlike [**FETCHREAL**], this does not perform uninit checking.
 
@@ -2437,15 +2817,19 @@ instructions {
       """
       operands {}
       stack_before {
-        addr "addrint" { description "Address of the value to load." }
+        addr "addrint" {
+          - description "Address of the value to load."
+        }
       }
       stack_after {
-        value "real8" { description "Value loaded from `addr`" }
+        value "real8" {
+          - description "Value loaded from `addr`"
+        }
       }
     }
 
     FETCHSET 0x67 "Fetch Compact Set Value" {
-      description """
+      - description """
       Fetches a compact set value from `addr`, performing a `set_length`-byte load.
 
       Asserts that the loaded value is not:
@@ -2458,20 +2842,24 @@ instructions {
       """
       operands {
         set_length "nat4" {
-          description """
+          - description """
           Length of the set, in bytes.
           """
         }
       }
       stack_before {
-        addr "addrint" { description "Address of the value to load." }
+        addr "addrint" {
+          - description "Address of the value to load."
+        }
       }
       stack_after {
-        value "set32" { description "Value loaded from `addr`" }
+        value "set32" {
+          - description "Value loaded from `addr`"
+        }
       }
       exceptions {
         Quit (quit_exception).uninit_value {
-          description """
+          - description """
           When `value` is the corresponding `undefsetX` value.
           """
         }
@@ -2479,22 +2867,24 @@ instructions {
     }
 
     FETCHSTR 0x68 "Fetch String Value" {
-      description """
+      - description """
       Asserts that the string at `addr` is an initialized string, i.e. the first byte is not `undefchar` (`0x80`).
       """
       operands {}
       stack_before {
-        addr "addrint" { description "Address of the string to check." }
+        addr "addrint" {
+          - description "Address of the string to check."
+        }
       }
       stack_after {
         addr "addrint" {
-          description "Address of the string data buffer."
-          preserves (stack_before).addr
+          - description "Address of the string data buffer."
+          - preserves (stack_before).addr
         }
       }
       exceptions {
         Quit (quit_exception).uninit_value {
-          description """
+          - description """
           When the first byte of the string is `0x80`.
           """
         }
@@ -2503,10 +2893,10 @@ instructions {
   }
 
   group "Begin and End For-loop" {
-    description "Handles management of for-loop iteration responsibilities."
+    - description "Handles management of for-loop iteration responsibilities."
 
     FOR 0x6A "Begin For-Loop" {
-      description """
+      - description """
       Initializes `for_descriptor` to keep track of for-loop iteration state.
 
       `counter` is initialized with `start`, with `end` and `step` being initialized to the corresponding stack operands.
@@ -2516,27 +2906,29 @@ instructions {
       """
 
       operands {
-        skip_offset "offset" { description "Offset to jump over for-loop body, in bytes." }
+        skip_offset "offset" {
+          - description "Offset to jump over for-loop body, in bytes."
+        }
       }
       stack_before {
         start "int4" {
-          description """
+          - description """
           Initial value of iteration `counter` in the for-loop state.
           """
         }
         end "int4" {
-          description """
+          - description """
           Termination value of the for-loop.
           Once `counter` is equal to `end`, the for-loop is considered to have finished execution.
           """
         }
         step "int4" {
-          description """
+          - description """
           Value to adjust `counter` by after every iteration.
           """
         }
         for_descriptor "addrint" {
-          description """
+          - description """
           Place to store for-descriptor state. See [`ForDescriptor`] for the example layout of the for-loop state.
 
           [`ForDescriptor`]: ForDescriptor
@@ -2547,7 +2939,7 @@ instructions {
     }
 
     ENDFOR 0x4C "End For-Loop" {
-      description """
+      - description """
       Completes an iteration of a for-loop.
 
       If `counter` (in `for_descriptor`) is not equal to `step` (also in `for_descriptor`), and the next `counter` adjustment will not exceed either `minint` (`0x8000_0001`) or `maxint` (`0x7FFF_FFFF`), `offset` will be used to jump back to the start of the for-loop body.
@@ -2556,11 +2948,13 @@ instructions {
       """
 
       operands {
-        offset "offset" { description "Offset to jump to the start of the for-loop body, in bytes." }
+        offset "offset" {
+          - description "Offset to jump to the start of the for-loop body, in bytes."
+        }
       }
       stack_before {
         for_descriptor "addrint" {
-          description """
+          - description """
           Place to store for-descriptor state. See [`ForDescriptor`] for the example layout of the for-loop state.
 
           [`ForDescriptor`]: ForDescriptor
@@ -2572,28 +2966,34 @@ instructions {
   }
 
   group "Compare Greater Than or Equal" {
-    description """
+    - description """
     Tests if `lhs` is greater than or equal to `rhs`, putting the compare result in `compare`.
     """
 
     GECHARN 0x6F "Compare Greater or Equal Char(N)" {
-      description """
+      - description """
       Tests as `char(N)` values if `lhs` is greater than or equal to `rhs`.
       Performs a byte-by-byte comparison.
       """
       operands {
         length "nat4" {
-          description """
+          - description """
           Byte length of the `char(N)` type.
           """
         }
       }
       stack_before {
-        lhs "addrint" { description "Left-hand side of comparison." }
-        rhs "addrint" { description "Right-hand side of comparison." }
+        lhs "addrint" {
+          - description "Left-hand side of comparison."
+        }
+        rhs "addrint" {
+          - description "Right-hand side of comparison."
+        }
       }
       stack_after {
-        compare "int4" { description "Result of operation. 1 if `lhs` is greater than or equal to `rhs`, 0 otherwise." }
+        compare "int4" {
+          - description "Result of operation. 1 if `lhs` is greater than or equal to `rhs`, 0 otherwise."
+        }
       }
     }
 
@@ -2606,51 +3006,73 @@ instructions {
       """
 
       stack_before {
-        lhs "addrint" { description "Left-hand side of comparison." }
-        rhs "addrint" { description "Right-hand side of comparison." }
+        lhs "addrint" {
+          - description "Left-hand side of comparison."
+        }
+        rhs "addrint" {
+          - description "Right-hand side of comparison."
+        }
       }
       stack_after {
-        compare "int4" { description "Result of operation. 1 if `lhs` is a descendant of, or same class as `rhs`, 0 otherwise." }
+        compare "int4" {
+          - description "Result of operation. 1 if `lhs` is a descendant of, or same class as `rhs`, 0 otherwise."
+        }
       }
     }
 
     GEINT 0x71 "Compare Greater or Equal Integers" {
-      description """
+      - description """
       Tests as `int` values if `lhs` is greater than or equal to `rhs`.
       """
       operands {}
       stack_before {
-        lhs "int4" { description "Left-hand side of comparison." }
-        rhs "int4" { description "Right-hand side of comparison." }
+        lhs "int4" {
+          - description "Left-hand side of comparison."
+        }
+        rhs "int4" {
+          - description "Right-hand side of comparison."
+        }
       }
       stack_after {
-        compare "int4" { description "Result of operation. 1 if `lhs` is greater than or equal to `rhs`, 0 otherwise." }
+        compare "int4" {
+          - description "Result of operation. 1 if `lhs` is greater than or equal to `rhs`, 0 otherwise."
+        }
       }
     }
 
     GEINTNAT 0x72 "Compare Greater or Equal Natural with Integer" {
-      description """
+      - description """
       Tests if `lhs` (as an`nat` value) is greater than or equal to `rhs` (as a `nat` value).
       If `rhs` is greater than `maxint` (`0x7FFF_FFFF`), the comparison is always false.
       """
       operands {}
       stack_before {
-        lhs "int4" { description "Left-hand side of comparison." }
-        rhs "nat4" { description "Right-hand side of comparison." }
+        lhs "int4" {
+          - description "Left-hand side of comparison."
+        }
+        rhs "nat4" {
+          - description "Right-hand side of comparison."
+        }
       }
       stack_after {
-        compare "int4" { description "Result of operation. 1 if `lhs` is greater than or equal to `rhs`, 0 otherwise." }
+        compare "int4" {
+          - description "Result of operation. 1 if `lhs` is greater than or equal to `rhs`, 0 otherwise."
+        }
       }
     }
 
     GENAT 0x73 "Compare Greater or Equal Naturals" {
-      description """
+      - description """
       Tests as `nat` values if `lhs` is greater than or equal to `rhs`.
       """
       operands {}
       stack_before {
-        lhs "nat4" { description "Left-hand side of comparison." }
-        rhs "nat4" { description "Right-hand side of comparison." }
+        lhs "nat4" {
+          - description "Left-hand side of comparison."
+        }
+        rhs "nat4" {
+          - description "Right-hand side of comparison."
+        }
       }
       stack_after {
         compare "int4" { "Result of operation. 1 if `lhs` is greater than or equal to `rhs`, 0 otherwise." }
@@ -2658,36 +3080,48 @@ instructions {
     }
 
     GENATINT 0x74 "Compare Greater or Equal Integer with Natural" {
-      description """
+      - description """
       Tests if `lhs` (as a `nat` value) is greater than or equal to `rhs` (as an `int` value).
       If `lhs` is greater than `maxint` (`0x7FFF_FFFF`), the comparison is always true.
       """
       operands {}
       stack_before {
-        lhs "nat4" { description "Left-hand side of comparison." }
-        rhs "int" { description "Right-hand side of comparison." }
+        lhs "nat4" {
+          - description "Left-hand side of comparison."
+        }
+        rhs "int" {
+          - description "Right-hand side of comparison."
+        }
       }
       stack_after {
-        compare "int4" { description "Result of operation. 1 if `lhs` is greater than or equal to `rhs`, 0 otherwise." }
+        compare "int4" {
+          - description "Result of operation. 1 if `lhs` is greater than or equal to `rhs`, 0 otherwise."
+        }
       }
     }
 
     GEREAL 0x75 "Compare Greater or Equal Reals" {
-      description """
+      - description """
       Tests as `real` values if `lhs` is greater than or equal to `rhs`.
       """
       operands {}
       stack_before {
-        lhs "real8" { description "Left-hand side of comparison." }
-        rhs "real8" { description "Right-hand side of comparison." }
+        lhs "real8" {
+          - description "Left-hand side of comparison."
+        }
+        rhs "real8" {
+          - description "Right-hand side of comparison."
+        }
       }
       stack_after {
-        compare "int4" { description "Result of operation. 1 if `lhs` is greater than or equal to `rhs`, 0 otherwise." }
+        compare "int4" {
+          - description "Result of operation. 1 if `lhs` is greater than or equal to `rhs`, 0 otherwise."
+        }
       }
     }
 
     GESET 0x76 "Compare Greater or Equal Sets" {
-      description """
+      - description """
       Tests as `set` values if `lhs` is a supeset of `rhs` (that is, all elements in `rhs` are contained in `lhs`).
       Performs a byte-by-byte comparison.
 
@@ -2696,7 +3130,7 @@ instructions {
       """
       operands {
         set_length "nat4" {
-          description """
+          - description """
           Length of the set, in bytes.
           """
         }
@@ -2705,39 +3139,55 @@ instructions {
         @conditional {
           @predicate (operands).set_length "<=" 4
 
-          lhs "set32" { description "Left-hand side of comparison." }
-          rhs "set32" { description "Right-hand side of comparison." }
+          lhs "set32" {
+            - description "Left-hand side of comparison."
+          }
+          rhs "set32" {
+            - description "Right-hand side of comparison."
+          }
         }
         @conditional {
           @predicate "otherwise"
 
-          lhs "addrint" { description "Left-hand side of comparison." }
-          rhs "addrint" { description "Right-hand side of comparison." }
+          lhs "addrint" {
+            - description "Left-hand side of comparison."
+          }
+          rhs "addrint" {
+            - description "Right-hand side of comparison."
+          }
         }
       }
       stack_after {
-        compare "int4" { description "Result of operation. 1 if `lhs` is greater than or equal to `rhs`, 0 otherwise." }
+        compare "int4" {
+          - description "Result of operation. 1 if `lhs` is greater than or equal to `rhs`, 0 otherwise."
+        }
       }
     }
 
     GESTR 0x77 "Compare Greater or Equal Strings" {
-      description """
+      - description """
       Tests as `string` values if `lhs` is greater than or equal to `rhs`.
       Performs a byte-by-byte comparison.
       """
       operands {}
       stack_before {
-        lhs "addrint" { description "Left-hand side of comparison." }
-        rhs "addrint" { description "Right-hand side of comparison." }
+        lhs "addrint" {
+          - description "Left-hand side of comparison."
+        }
+        rhs "addrint" {
+          - description "Right-hand side of comparison."
+        }
       }
       stack_after {
-        compare "int4" { description "Result of operation. 1 if `lhs` is greater than or equal to `rhs`, 0 otherwise." }
+        compare "int4" {
+          - description "Result of operation. 1 if `lhs` is greater than or equal to `rhs`, 0 otherwise."
+        }
       }
     }
   }
 
   GET 0x78 "Get Characters from Stream" {
-    description """
+    - description """
     Gets the given value from the provided `stream` based on interpreting the stream data as characters.
     
     The actual number of stack arguments is based on `get_kind`, as different get items have different uses for the arguments.
@@ -2746,7 +3196,7 @@ instructions {
 
     operands {
       get_kind "get_kind" {
-        description """
+        - description """
         Which kind of item to get.
         """
       }
@@ -2756,7 +3206,7 @@ instructions {
         @predicate (operands).get_kind "!=" (get_kind).skip
 
         dest "addrint" {
-          description """
+          - description """
           Place to store the parsed value.
           `get_kind` determines which type of value that this address refers to.
           """
@@ -2767,14 +3217,14 @@ instructions {
         @predicate (operands).get_kind "==" (get_kind).string_exact
 
         width "int4" {
-          description "Exact number of characters to extract from the stream."
+          - description "Exact number of characters to extract from the stream."
         }
       }
       @conditional {
         @predicate (operands).get_kind "==" (get_kind).string_exact
 
         length "nat4" {
-          description "Byte length of the destination `char(N)` value."
+          - description "Byte length of the destination `char(N)` value."
         }
       }
       @conditional {
@@ -2782,7 +3232,7 @@ instructions {
         @predicate (operands).get_kind "==" (put_kind).enum_range
 
         variant_names "addrint" {
-          description """
+          - description """
           Array of names of the enum variants.
           Any unknown variant names are rejected.
           """
@@ -2794,11 +3244,11 @@ instructions {
         @predicate (operands).get_kind "==" (get_kind).string_token
 
         max_length "nat4" {
-          description "Maximum accepted byte length that can be stored by the destination `string` value."
+          - description "Maximum accepted byte length that can be stored by the destination `string` value."
         }
       }
       stream "addrint" {
-        description """
+        - description """
         Stream to put characters to.
         """
       }
@@ -2819,67 +3269,81 @@ instructions {
     """
 
     stack_before {
-      lhs "addrint" { description "Left-hand side of comparison." }
-      rhs "addrint" { description "Right-hand side of comparison." }
+      lhs "addrint" {
+        - description "Left-hand side of comparison."
+      }
+      rhs "addrint" {
+        - description "Right-hand side of comparison."
+      }
     }
     stack_after {
-      compare "int4" { description "Result of operation. 1 if `lhs` is a descendant of `rhs`, 0 otherwise." }
+      compare "int4" {
+        - description "Result of operation. 1 if `lhs` is a descendant of `rhs`, 0 otherwise."
+      }
     }
   }
 
   IF 0x7B "Branch If Zero" {
-    description """
+    - description """
     Branches execution if `test` is zero (i.e. false).
     """
 
     operands {
-      offset "offset" { description "Offset to jump forward by if `test` is zero, in bytes." }
+      offset "offset" {
+        - description "Offset to jump forward by if `test` is zero, in bytes."
+      }
     }
     stack_before {
-      test "int4" { description "Value to test if the branch should be taken." }
+      test "int4" {
+        - description "Value to test if the branch should be taken."
+      }
     }
     stack_after {}
   }
 
   INCSP 0x7E "Increment Stack Pointer" {
-    description """
+    - description """
     Increments the operand stack pointer by `size` bytes.
     Equivalent to repeatedly popping values off of the operand stack.
     """
     operands {
-      size "nat4" { description "Amount of bytes to pop off the operand stack." }
+      size "nat4" {
+        - description "Amount of bytes to pop off the operand stack."
+      }
     }
     stack_before {
       bytes "nat1" {
-        description "Bytes that will be popped off of the operand stack."
-        computed { (operands).size }
+        - description "Bytes that will be popped off of the operand stack."
+        - computed { (operands).size }
       }
     }
     stack_after {}
   }
 
   INFIXAND 0x7F "Infix And" {
-    description """
+    - description """
     Branches execution if `value` is zero (i.e. false), otherwise leaves `value` on the stack.
     This is equivalent to the short-circuiting infix boolean `and` operator.
     """
 
     operands {
-      offset "offset" { description "Offset to jump forward by if `test` is zero, in bytes." }
+      offset "offset" {
+        - description "Offset to jump forward by if `test` is zero, in bytes."
+      }
     }
     stack_before {
       value "int4" {
-        description """
+        - description """
         Value to test if the branch should be taken.
         """
       }
     }
     stack_after {
       value "int4" {
-        description """
+        - description """
         Preserved value to test if the branch was not taken.
         """
-        preserves-if (stack_before).value {
+        - preserves-if (stack_before).value {
           "==" (stack_before).value 0
         }
       }
@@ -2887,27 +3351,29 @@ instructions {
   }
 
   INFIXOR 0x80 "Infix Or" {
-    description """
+    - description """
     Branches execution if `value` is non-zero (i.e. true), otherwise leaves `value` on the stack.
     This is equivalent to the short-circuiting infix boolean `or` operator.
     """
 
     operands {
-      offset "offset" { description "Offset to jump forward by if `test` is non-zero, in bytes." }
+      offset "offset" {
+        - description "Offset to jump forward by if `test` is non-zero, in bytes."
+      }
     }
     stack_before {
       value "int4" {
-        description """
+        - description """
         Value to test if the branch should be taken.
         """
       }
     }
     stack_after {
       value "int4" {
-        description """
+        - description """
         Preserved value to test if the branch was not taken.
         """
-        preserves-if (stack_before).value {
+        - preserves-if (stack_before).value {
           "!=" (stack_before).value 0
         }
       }
@@ -2915,61 +3381,77 @@ instructions {
   }
 
   group "Convert Integer to Real" {
-    description "Converts an `int` value into a `real` value."
+    - description "Converts an `int` value into a `real` value."
 
     INTREAL 0x85 "Convert Integer to Real" {
-      description "Converts an `int` value into a `real` value."
+      - description "Converts an `int` value into a `real` value."
 
       operands {}
       stack_before {
-        value "int4" { description "Value to convert to a `real`." }
+        value "int4" {
+          - description "Value to convert to a `real`."
+        }
       }
       stack_after {
-        value "real8" { description "Equivalent `real` value." }
+        value "real8" {
+          - description "Equivalent `real` value."
+        }
       }
     }
 
     INTREALLEFT 0x86 "Convert Left-Hand Side Integer to Real" {
-      description "Converts an `int` value into a `real` value, preserving the existing right-hand side value."
+      - description "Converts an `int` value into a `real` value, preserving the existing right-hand side value."
 
       operands {}
       stack_before {
-        value "int4" { description "Value to convert to a `real`." }
-        preserve "real8" { description "Right-hand side of a future operation." }
+        value "int4" {
+          - description "Value to convert to a `real`."
+        }
+        preserve "real8" {
+          - description "Right-hand side of a future operation."
+        }
       }
       stack_after {
-        value "real8" { description "Equivalent `real` value." }
+        value "real8" {
+          - description "Equivalent `real` value."
+        }
         preserve "real8" {
-          description "Right-hand side of a future operation."
-          preserves (stack_before).preserve
+          - description "Right-hand side of a future operation."
+          - preserves (stack_before).preserve
         }
       }
     }
   }
 
   group "Compare Less or Equal" {
-    description """
+    - description """
     Tests if `lhs` is less than or equal to `rhs`, putting the compare result in `compare`.
     """
 
     LECHARN 0x8B "Compare Less or Equal Char(N)" {
-      description """
+      - description """
       Tests as `char(N)` values if `lhs` is less than or equal to `rhs`.
       Performs a byte-by-byte comparison.
       """
       operands {
         length "nat4" {
-          description """
+          - description """
           Byte length of the `char(N)` type.
           """
         }
       }
       stack_before {
-        lhs "addrint" { description "Left-hand side of comparison." }
-        rhs "addrint" { description "Right-hand side of comparison." }
+        lhs "addrint" {
+          - description "Left-hand side of comparison."
+        }
+        rhs "addrint" {
+          - description "Right-hand side of comparison."
+        }
       }
       stack_after {
-        compare "int4" { description "Result of operation. 1 if `lhs` is less than or equal to `rhs`, 0 otherwise." }
+        compare "int4" {
+          - description "Result of operation. 1 if `lhs` is less than or equal to `rhs`, 0 otherwise."
+        }
       }
     }
 
@@ -2982,88 +3464,124 @@ instructions {
       """
 
       stack_before {
-        lhs "addrint" { description "Left-hand side of comparison." }
-        rhs "addrint" { description "Right-hand side of comparison." }
+        lhs "addrint" {
+          - description "Left-hand side of comparison."
+        }
+        rhs "addrint" {
+          - description "Right-hand side of comparison."
+        }
       }
       stack_after {
-        compare "int4" { description "Result of operation. 1 if `lhs` is a descendant of, or same class as `rhs`, 0 otherwise." }
+        compare "int4" {
+          - description "Result of operation. 1 if `lhs` is a descendant of, or same class as `rhs`, 0 otherwise."
+        }
       }
     }
 
     LEINT 0x8D "Compare Less or Equal Integers" {
-      description """
+      - description """
       Tests as `int` values if `lhs` is less than or equal to `rhs`.
       """
       operands {}
       stack_before {
-        lhs "int4" { description "Left-hand side of comparison." }
-        rhs "int4" { description "Right-hand side of comparison." }
+        lhs "int4" {
+          - description "Left-hand side of comparison."
+        }
+        rhs "int4" {
+          - description "Right-hand side of comparison."
+        }
       }
       stack_after {
-        compare "int4" { description "Result of operation. 1 if `lhs` is less than or equal to `rhs`, 0 otherwise." }
+        compare "int4" {
+          - description "Result of operation. 1 if `lhs` is less than or equal to `rhs`, 0 otherwise."
+        }
       }
     }
 
     LEINTNAT 0x8E "Compare Less or Equal Natural with Integer" {
-      description """
+      - description """
       Tests if `lhs` (as an `int` value) is less than or equal to `rhs` (as a `nat` value).
       If `rhs` is greater than `maxint` (`0x7FFF_FFFF`), the comparison is always true.
       """
       operands {}
       stack_before {
-        lhs "int4" { description "Left-hand side of comparison." }
-        rhs "nat4" { description "Right-hand side of comparison." }
+        lhs "int4" {
+          - description "Left-hand side of comparison."
+        }
+        rhs "nat4" {
+          - description "Right-hand side of comparison."
+        }
       }
       stack_after {
-        compare "int4" { description "Result of operation. 1 if `lhs` is less than or equal to `rhs`, 0 otherwise." }
+        compare "int4" {
+          - description "Result of operation. 1 if `lhs` is less than or equal to `rhs`, 0 otherwise."
+        }
       }
     }
 
     LENAT 0x8F "Compare Less or Equal Naturals" {
-      description """
+      - description """
       Tests as `nat` values if `lhs` is less than or equal to `rhs`.
       """
       operands {}
       stack_before {
-        lhs "nat4" { description "Left-hand side of comparison." }
-        rhs "nat4" { description "Right-hand side of comparison." }
+        lhs "nat4" {
+          - description "Left-hand side of comparison."
+        }
+        rhs "nat4" {
+          - description "Right-hand side of comparison."
+        }
       }
       stack_after {
-        compare "int4" { description "Result of operation. 1 if `lhs` is less than or equal to `rhs`, 0 otherwise." }
+        compare "int4" {
+          - description "Result of operation. 1 if `lhs` is less than or equal to `rhs`, 0 otherwise."
+        }
       }
     }
 
     LENATINT 0x90 "Compare Less or Equal Integer with Natural" {
-      description """
+      - description """
       Tests if `lhs` (as a `nat` value) is less than or equal to `rhs` (as an `int` value).
       If `lhs` is greater than `maxint` (`0x7FFF_FFFF`), the comparison is always false.
       """
       operands {}
       stack_before {
-        lhs "nat4" { description "Left-hand side of comparison." }
-        rhs "int4" { description "Right-hand side of comparison." }
+        lhs "nat4" {
+          - description "Left-hand side of comparison."
+        }
+        rhs "int4" {
+          - description "Right-hand side of comparison."
+        }
       }
       stack_after {
-        compare "int4" { description "Result of operation. 1 if `lhs` is less than or equal to `rhs`, 0 otherwise." }
+        compare "int4" {
+          - description "Result of operation. 1 if `lhs` is less than or equal to `rhs`, 0 otherwise."
+        }
       }
     }
 
     LEREAL 0x91 "Compare Less or Equal Reals" {
-      description """
+      - description """
       Tests as `real` values if `lhs` is less than or equal to `rhs`.
       """
       operands {}
       stack_before {
-        lhs "real8" { description "Left-hand side of comparison." }
-        rhs "real8" { description "Right-hand side of comparison." }
+        lhs "real8" {
+          - description "Left-hand side of comparison."
+        }
+        rhs "real8" {
+          - description "Right-hand side of comparison."
+        }
       }
       stack_after {
-        compare "int4" { description "Result of operation. 1 if `lhs` is less than or equal to `rhs`, 0 otherwise." }
+        compare "int4" {
+          - description "Result of operation. 1 if `lhs` is less than or equal to `rhs`, 0 otherwise."
+        }
       }
     }
 
     LESET 0x92 "Compare Less or Equal Sets" {
-      description """
+      - description """
       Tests as `set` values if `lhs` is a subset of `rhs` (that is, all elements in `lhs` are contained in `rhs`).
       Performs a byte-by-byte comparison.
 
@@ -3072,7 +3590,7 @@ instructions {
       """
       operands {
         set_length "nat4" {
-          description """
+          - description """
           Length of the set, in bytes.
           """
         }
@@ -3081,117 +3599,149 @@ instructions {
         @conditional {
           @predicate (operands).set_length "<=" 4
 
-          lhs "set32" { description "Left-hand side of comparison." }
-          rhs "set32" { description "Right-hand side of comparison." }
+          lhs "set32" {
+            - description "Left-hand side of comparison."
+          }
+          rhs "set32" {
+            - description "Right-hand side of comparison."
+          }
         }
         @conditional {
           @predicate "otherwise"
 
-          lhs "addrint" { description "Left-hand side of comparison." }
-          rhs "addrint" { description "Right-hand side of comparison." }
+          lhs "addrint" {
+            - description "Left-hand side of comparison."
+          }
+          rhs "addrint" {
+            - description "Right-hand side of comparison."
+          }
         }
       }
       stack_after {
-        compare "int4" { description "Result of operation. 1 if `lhs` is less than or equal to `rhs`, 0 otherwise." }
+        compare "int4" {
+          - description "Result of operation. 1 if `lhs` is less than or equal to `rhs`, 0 otherwise."
+        }
       }
     }
 
     LESTR 0x93 "Compare Less or Equal Strings" {
-      description """
+      - description """
       Tests as `string` values if `lhs` is less than or equal to `rhs`.
       Performs a byte-by-byte comparison.
       """
       operands {}
       stack_before {
-        lhs "addrint" { description "Left-hand side of comparison." }
-        rhs "addrint" { description "Right-hand side of comparison." }
+        lhs "addrint" {
+          - description "Left-hand side of comparison."
+        }
+        rhs "addrint" {
+          - description "Right-hand side of comparison."
+        }
       }
       stack_after {
-        compare "int4" { description "Result of operation. 1 if `lhs` is less than or equal to `rhs`, 0 otherwise." }
+        compare "int4" {
+          - description "Result of operation. 1 if `lhs` is less than or equal to `rhs`, 0 otherwise."
+        }
       }
     }
   }
 
   group "Jump" {
-    description """
+    - description """
     Changes program execution forwards or backwards. 
     """
     
     JUMP 0x89 "Jump Forward" {
-      description """
+      - description """
       Advances program counter forwards by `offset` bytes.
       Offset is relative to the address of the offset operand.
       """
 
       operands {
-        offset "offset" { description "Offset to jump forward by, in bytes." }
+        offset "offset" {
+          - description "Offset to jump forward by, in bytes."
+        }
       }
     }
 
     JUMPB 0x8A "Jump Backward" {
-      description """
+      - description """
       Retreats program counter backwards by `offset` bytes.
       Offset is relative to the address of the offset operand.
       """
       
       operands {
-        offset "offset" { description "Offset to jump backwards by, in bytes." }
+        offset "offset" {
+          - description "Offset to jump backwards by, in bytes."
+        }
       }
     }
   }
 
   group "Locate Address" {
-    description """
+    - description """
     Computes the effective address of the entity of interest.
     """
 
     LOCATEARG 0x94 "Locate Operand Argument" {
-      description """
+      - description """
       Locates the address of an operand on the operand stack.
       Offset is computed relative to the start of the current operand stack pointer.
       """
 
       operands {
-        offset "offset" { description "Offset in the operand stack." }
+        offset "offset" {
+          - description "Offset in the operand stack."
+        }
       }
       stack_before {}
       stack_after {
-        address "addrint" { description "Address of the computed operand stack argument." }
+        address "addrint" {
+          - description "Address of the computed operand stack argument."
+        }
       }
     }
 
     LOCATELOCAL 0x96 "Locate Local Slot" {
-      description """
+      - description """
       Locates the address of a local in the current call frame.
       Offset is computed relative to the start of the local area.
       """
 
       operands {
-        offset "offset" { description "Offset in the locals area." }
+        offset "offset" {
+          - description "Offset in the locals area."
+        }
       }
       stack_before {}
       stack_after {
-        address "addrint" { description "Address of the computed local slot." }
+        address "addrint" {
+          - description "Address of the computed local slot."
+        }
       }
     }
 
     LOCATEPARM 0x97 "Locate Parameter" {
-      description """
+      - description """
       Locates the address of a passed-in parameter in the current call frame.
       Offset is computed relative to the start of the call frame.
       """
 
       operands {
-        offset "offset" { description "Offset from the start of the call frame." }
+        offset "offset" {
+          - description "Offset from the start of the call frame."
+        }
       }
       stack_before {}
       stack_after {
-        address "addrint" { description "Address of the computed parameter slot." }
+        address "addrint" {
+          - description "Address of the computed parameter slot."
+        }
       }
     }
 
     LOCATETEMP 0x98 "Locate Temporary Slot" {
-      description """
+      - description """
       Locates the address of a temporary in the current call frame.
       Offset is computed relative to the start of the temporaries area.
 
@@ -3199,12 +3749,18 @@ instructions {
       """
 
       operands {
-        frame_size "nat4" { description "Size of the call frame." }
-        offset "offset" { description "Offset in the temporary area." }
+        frame_size "nat4" {
+          - description "Size of the call frame."
+        }
+        offset "offset" {
+          - description "Offset in the temporary area."
+        }
       }
       stack_before {}
       stack_after {
-        address "addrint" { description "Address of the computed temporary slot." }
+        address "addrint" {
+          - description "Address of the computed temporary slot."
+        }
       }
     }
   }
@@ -3218,31 +3774,43 @@ instructions {
     """
 
     stack_before {
-      lhs "addrint" { description "Left-hand side of comparison." }
-      rhs "addrint" { description "Right-hand side of comparison." }
+      lhs "addrint" {
+        - description "Left-hand side of comparison."
+      }
+      rhs "addrint" {
+        - description "Right-hand side of comparison."
+      }
     }
     stack_after {
-      compare "int4" { description "Result of operation. 1 if `lhs` is a descendant of `rhs`, 0 otherwise." }
+      compare "int4" {
+        - description "Result of operation. 1 if `lhs` is a descendant of `rhs`, 0 otherwise."
+      }
     }
   }
 
   group "Modulus of Values" {
-    description "Computes the modulus (with floored division) of two values."
+    - description "Computes the modulus (with floored division) of two values."
 
     MODINT 0xA0 "Modulus of Integers" {
-      description "Computes the modulus (with floored division) of `lhs` and `rhs` as `int` values, producing `out`."
+      - description "Computes the modulus (with floored division) of `lhs` and `rhs` as `int` values, producing `out`."
 
       operands {}
       stack_before {
-        lhs "int4" { description "Left-hand side of operation." }
-        rhs "int4" { description "Right-hand side of operation." }
+        lhs "int4" {
+          - description "Left-hand side of operation."
+        }
+        rhs "int4" {
+          - description "Right-hand side of operation."
+        }
       }
       stack_after {
-        out "int4" { description "Result of operation." }
+        out "int4" {
+          - description "Result of operation."
+        }
       }
       exceptions {
         Quit (quit_code).divmod_by_zero {
-          description """
+          - description """
           When `rhs` is `0`.
           """
         }
@@ -3250,7 +3818,7 @@ instructions {
     }
 
     MODNAT 0xA1 "Modulus of Naturals" {
-      description """
+      - description """
       Computes the modulus (with floored division) of `lhs` and `rhs` as `nat` values, producing `out`.
 
       This is equivalent to both the `mod` and `rem` operators for `nat` values, as `mod` and `rem` are equivalent when neither `lhs` nor `rhs` is negative.
@@ -3258,15 +3826,21 @@ instructions {
 
       operands {}
       stack_before {
-        lhs "nat4" { description "Left-hand side of operation." }
-        rhs "nat4" { description "Right-hand side of operation." }
+        lhs "nat4" {
+          - description "Left-hand side of operation."
+        }
+        rhs "nat4" {
+          - description "Right-hand side of operation."
+        }
       }
       stack_after {
-        out "nat4" { description "Result of operation." }
+        out "nat4" {
+          - description "Result of operation."
+        }
       }
       exceptions {
         Quit (quit_code).divmod_by_zero {
-          description """
+          - description """
           When `rhs` is `0`.
           """
         }
@@ -3274,27 +3848,33 @@ instructions {
     }
 
     MODREAL 0xA2 "Integer Modulus of Reals" {
-      description """
+      - description """
       Computes the modulus (with floored division) of `lhs` and `rhs` as `real` values, producing `out`.
       Asserts that the division of `lhs` and `rhs`, when converted to an `int`, is still representable (that is, it is not outside of the range of possible `int` values).
       """
 
       operands {}
       stack_before {
-        lhs "real8" { description "Left-hand side of operation." }
-        rhs "real8" { description "Right-hand side of operation." }
+        lhs "real8" {
+          - description "Left-hand side of operation."
+        }
+        rhs "real8" {
+          - description "Right-hand side of operation."
+        }
       }
       stack_after {
-        out "real8" { description "Result of operation." }
+        out "real8" {
+          - description "Result of operation."
+        }
       }
       exceptions {
         Quit (quit_code).divmod_by_zero {
-          description """
+          - description """
           When `rhs` is `0`.
           """
         }
         Quit (quit_code).real_overflow {
-          description """
+          - description """
           When the division is outside the range of possible `int` values.
           """
         }
@@ -3303,22 +3883,28 @@ instructions {
   }
 
   group "Multiply Values" {
-    description "Performs multiplication on two values."
+    - description "Performs multiplication on two values."
 
     MULINT 0xA5 "Multiply Integers" {
-      description "Multiplies as `int` values `lhs` and `rhs`, producing `out`."
+      - description "Multiplies as `int` values `lhs` and `rhs`, producing `out`."
 
       operands {}
       stack_before {
-        lhs "int4" { description "Left-hand side of operation." }
-        rhs "int4" { description "Right-hand side of operation." }
+        lhs "int4" {
+          - description "Left-hand side of operation."
+        }
+        rhs "int4" {
+          - description "Right-hand side of operation."
+        }
       }
       stack_after {
-        out "int4" { description "Result of operation." }
+        out "int4" {
+          - description "Result of operation."
+        }
       }
       exceptions {
         Quit (quit_code).integer_overflow {
-          description """
+          - description """
           When the computed value is greater than can what be represented by `out`.
           """
         }
@@ -3326,19 +3912,25 @@ instructions {
     }
     
     MULNAT 0xA6 "Multiply Naturals" {
-      description "Multiplies as `nat` values `lhs` and `rhs`, producing `out`."
+      - description "Multiplies as `nat` values `lhs` and `rhs`, producing `out`."
 
       operands {}
       stack_before {
-        lhs "nat4" { description "Left-hand side of operation." }
-        rhs "nat4" { description "Right-hand side of operation." }
+        lhs "nat4" {
+          - description "Left-hand side of operation."
+        }
+        rhs "nat4" {
+          - description "Right-hand side of operation."
+        }
       }
       stack_after {
-        out "nat4" { description "Result of operation." }
+        out "nat4" {
+          - description "Result of operation."
+        }
       }
       exceptions {
         Quit (quit_code).integer_overflow {
-          description """
+          - description """
           When the computed value is greater than can what be represented by `out`.
           """
         }
@@ -3346,19 +3938,25 @@ instructions {
     }
     
     MULREAL 0xA7 "Multiply Reals" {
-      description "Multiplies as `real` values `lhs` and `rhs`, producing `out`."
+      - description "Multiplies as `real` values `lhs` and `rhs`, producing `out`."
 
       operands {}
       stack_before {
-        lhs "real8" { description "Left-hand side of operation." }
-        rhs "real8" { description "Right-hand side of operation." }
+        lhs "real8" {
+          - description "Left-hand side of operation."
+        }
+        rhs "real8" {
+          - description "Right-hand side of operation."
+        }
       }
       stack_after {
-        out "real8" { description "Result of operation." }
+        out "real8" {
+          - description "Result of operation."
+        }
       }
       exceptions {
         Quit (quit_code).real_overflow {
-          description """
+          - description """
           When the computed value is greater than can what be represented by `out`.
           """
         }
@@ -3366,7 +3964,7 @@ instructions {
     }
 
     MULSET 0xA8 "Intersection of Sets" {
-      description """
+      - description """
       Computes as `set` values the set intersection of `lhs` and `rhs`, producing `out`.
 
       `set_length` determines the size of both sets, as well as determining the set representation.
@@ -3375,7 +3973,7 @@ instructions {
       
       operands {
         set_length "nat4" {
-          description """
+          - description """
           Length of the set, in bytes.
           """
         }
@@ -3384,29 +3982,41 @@ instructions {
         @conditional {
           @predicate (operands).set_length "<=" 4 
 
-          lhs "set32" { description "Left-hand side of operation." }
-          rhs "set32" { description "Right-hand side of operation." }
+          lhs "set32" {
+            - description "Left-hand side of operation."
+          }
+          rhs "set32" {
+            - description "Right-hand side of operation."
+          }
         }
         @conditional {
           @predicate "otherwise"
 
-          lhs "addrint" { description "Left-hand side of operation." }
-          rhs "addrint" { description "Right-hand side of operation." }
-          out "addrint" { description "Stores the result of the operation." }
+          lhs "addrint" {
+            - description "Left-hand side of operation."
+          }
+          rhs "addrint" {
+            - description "Right-hand side of operation."
+          }
+          out "addrint" {
+            - description "Stores the result of the operation."
+          }
         }
       }
       stack_after {
         @conditional {
           @predicate (operands).set_length "<=" 4 
 
-          out "set32" { description "Result of operation." }
+          out "set32" {
+            - description "Result of operation."
+          }
         }
         @conditional {
           @predicate "otherwise"
 
           out "addrint" {
-            description "Result of operation."
-            preserves (stack_before).out
+            - description "Result of operation."
+            - preserves (stack_before).out
           }
         }
       }
@@ -3414,33 +4024,43 @@ instructions {
   }
 
   group "Convert Natural to Real" {
-    description "Converts a `nat` value into a `real` value."
+    - description "Converts a `nat` value into a `real` value."
 
     NATREAL 0xA9 "Convert Natural to Real" {
-      description "Converts a `nat` value into a `real` value."
+      - description "Converts a `nat` value into a `real` value."
 
       operands {}
       stack_before {
-        value "nat4" { description "Value to convert to a `real`." }
+        value "nat4" {
+          - description "Value to convert to a `real`."
+        }
       }
       stack_after {
-        value "real8" { description "Equivalent `real` value." }
+        value "real8" {
+          - description "Equivalent `real` value."
+        }
       }
     }
 
     NATREALLEFT 0xAA "Convert Left-Hand Side Natural to Real" {
-      description "Converts a `nat` value into a `real` value, preserving the existing right-hand side value."
+      - description "Converts a `nat` value into a `real` value, preserving the existing right-hand side value."
 
       operands {}
       stack_before {
-        value "nat4" { description "Value to convert to a `real`." }
-        preserve "real8" { description "Right-hand side of a future operation." }
+        value "nat4" {
+          - description "Value to convert to a `real`."
+        }
+        preserve "real8" {
+          - description "Right-hand side of a future operation."
+        }
       }
       stack_after {
-        value "real8" { description "Equivalent `real` value." }
+        value "real8" {
+          - description "Equivalent `real` value."
+        }
         preserve "real8" {
-          description "Right-hand side of a future operation."
-          preserves (stack_before).preserve
+          - description "Right-hand side of a future operation."
+          - preserves (stack_before).preserve
         }
       }
     }
@@ -3448,41 +4068,49 @@ instructions {
 
   group "Negate Number" {
     NEGINT 0xAC "Negate Integer" {
-      description """
+      - description """
       Flips the sign of `value` as an `int`, as if it were multiplied by -1.
       """
 
       operands {}
       stack_before {
-        value "int4" { description "Value to apply operation on." }
+        value "int4" {
+          - description "Value to apply operation on."
+        }
       }
       stack_after {
-        out "int4" { description "Result of operation." }
+        out "int4" {
+          - description "Result of operation."
+        }
       }
       exceptions {
         Quit (quit_code).integer_overflow {
-          description "When `value` is less than `minint` (`-0x7FFFFFFF`) as there are no equivalent positive values."
+          - description "When `value` is less than `minint` (`-0x7FFFFFFF`) as there are no equivalent positive values."
         }
       }
     }
 
     NEGREAL 0xAD "Negate Real" {
-      description """
+      - description """
       Flips the sign of `value` as a `real`, as if it were multiplied by -1.
       """
 
       operands {}
       stack_before {
-        value "real8" { description "Value to apply operation on." }
+        value "real8" {
+          - description "Value to apply operation on."
+        }
       }
       stack_after {
-        out "real8" { description "Result of operation." }
+        out "real8" {
+          - description "Result of operation."
+        }
       }
     }
   }
 
   NOT 0xB2 "Boolean Not" {
-    description """
+    - description """
     Applies a boolean not operation on `value`, by only flipping the first bit.
 
     For a bitwise logical not, a [**XOR**] instruction with a `0xFFFF_FFFF` constant operand should be used. 
@@ -3492,29 +4120,39 @@ instructions {
 
     operands {}
     stack_before {
-      value "int4" { description "The boolean value to invert." }
+      value "int4" {
+        - description "The boolean value to invert."
+      }
     }
     stack_before {
-      out "int4" { description "The inverted boolean value." }
+      out "int4" {
+        - description "The inverted boolean value."
+      }
     }
   }
 
   OR 0xB6 "Bitwise Or" {
-    description """
+    - description """
     Applies a bitwise logical or operation between `lhs` and `rhs`, producing `out`.
     """
     operands {}
     stack_before {
-      lhs "int4" { description "Left-hand side of operation." }
-      rhs "int4" { description "Right-hand side of operation." }
+      lhs "int4" {
+        - description "Left-hand side of operation."
+      }
+      rhs "int4" {
+        - description "Right-hand side of operation."
+      }
     }
     stack_after {
-      out "int4" { description "Result of operation." }
+      out "int4" {
+        - description "Result of operation."
+      }
     }
   }
 
   PROC 0xBA "Begin Procedure" {
-    description """
+    - description """
     Initializes the call frame for the procedure to execute.  
 
     The location and frame pointer are saved before from the prior call frame to restore later with the [**RETURN**] instruction.
@@ -3525,73 +4163,80 @@ instructions {
     
     operands {
       frame_size "nat4" {
-        description "Size of the call frame to allocate for locals and temporaries."
+        - description "Size of the call frame to allocate for locals and temporaries."
       }
     }
     stack_before {}
     stack_after {
       frame_data "nat1" {
-        description """
+        - - description """
         Call frame locals and temporaries.
 
         In the normal Turing ABI, the call frame area is split into two parts: the locals area, and the temporaries area.
-        The locals area is anchored at the split point of the call frame data and "grows up" (i.e. grows to higher addresses in the normal stack discipline).
-        The temporaries area is anchored at the end of the call frame data and "grows down" (i.e. grows to lower addresses in the normal stack discipline).
+        The locals area is anchored at the split point of the call frame data and \"grows up\" (i.e. grows to higher addresses in the normal stack discipline).
+        The temporaries area is anchored at the end of the call frame data and \"grows down\" (i.e. grows to lower addresses in the normal stack discipline).
         """
-        computed {
+        - computed {
           (operands).frame_size
         }
       }
       old_fp "addrint" {
-        description """
+        - description """
         Address of the old frame pointer from the prior call frame.
         """
       }
       old_location "location" {
-        description """
+        - description """
         Old source location prior to entering the procedure.
         """
       }
     }
     exceptions {
       ExecutionError "Stack overflow! Attempted to allocate `frame_size` bytes of local variables with `remaining` bytes left of stack space. (Original stack size: `stack_allocated` bytes)" {
-        description "When allocation of the call frame will result in a stack overflow."
+        - description "When allocation of the call frame will result in a stack overflow."
       }
     }
   }
 
   group "Push Value Onto Stack" {
     PUSHADDR 0xBB "Push Address" {
-      description """
+      - description """
       Pushes an absolute address. The address will not be relocated.
       """
 
       operands {
-        addr "addrint" { description "Absolute address to refer to."}
+        addr "addrint" {
+          - description "Absolute address to refer to."}
       }
       stack_before {}
       stack_after {
-        addr "addrint" { description "Absolute address." }
+        addr "addrint" {
+          - description "Absolute address."
+        }
       }
     }
 
     PUSHADDR1 0xBC "Push Relocatable Address" {
-      description """
+      - description """
       Pushes a relocatable address with a runtime-determined base address.
 
       This may be relative to the base address of the local or external code unit section (code, manifest, or global).
       """
       operands {
-        offset "relocatable_offset" { description "Runtime-resolved offset within a section." }
+        offset "relocatable_offset" {
+          - description "Runtime-resolved offset within a section."
+        }
       }
       stack_before {}
       stack_after {
-        addr "addrint" { description "Computed offset and base address." }
+        addr "addrint" {
+          - description "Computed offset and base address."
+        }
       }
     }
 
     PUSHCOPY 0xBD "Push Copy of Value" {
-      description """
+      - description """
       Pushes a copy of the top value on the operand stack.
 
       Will only copy `nat4` sized or smaller values.
@@ -3599,115 +4244,129 @@ instructions {
 
       operands {}
       stack_before {
-        value "nat4" { description "Value to copy." }
+        value "nat4" {
+          - description "Value to copy."
+        }
       }
       stack_after {
         value "nat4" {
-          description "Original value to copy."
-          preserves (stack_before).value
+          - description "Original value to copy."
+          - preserves (stack_before).value
         }
         copy "nat4" {
-          description "Copied value."
+          - description "Copied value."
         }
       }
     }
 
     PUSHINT 0xBE "Push Literal Integer Value" {
-      description """
+      - description """
       Pushes a literal `int` value onto the operand stack.
       """
 
       operands {
-        literal "int4" { description "Literal value to push." }
+        literal "int4" {
+          - description "Literal value to push."
+        }
       }
       stack_before {}
       stack_after {
         value "int4" {
-          description "Literal value pushed onto the operand stack."
+          - description "Literal value pushed onto the operand stack."
         }
       }
     }
 
     PUSHINT1 0xBF "Push Literal Int1 Value" {
-      description """
+      - description """
       Pushes a literal `int1` value onto the operand stack.
       """
 
       operands {
-        literal "int1" { description "Literal value to push." }
+        literal "int1" {
+          - description "Literal value to push."
+        }
       }
       stack_before {}
       stack_after {
         value "int1" {
-          description "Literal value pushed onto the operand stack."
+          - description "Literal value pushed onto the operand stack."
         }
       }
     }
 
     PUSHINT2 0xC0 "Push Literal Int2 Value" {
-      description """
+      - description """
       Pushes a literal `int2` value onto the operand stack.
       """
 
       operands {
-        literal "int2" { description "Literal value to push." }
+        literal "int2" {
+          - description "Literal value to push."
+        }
       }
       stack_before {}
       stack_after {
         value "int2" {
-          description "Literal value pushed onto the operand stack."
+          - description "Literal value pushed onto the operand stack."
         }
       }
     }
 
     PUSHREAL 0xC1 "Push Literal Real Value" {
-      description """
+      - description """
       Pushes a literal `real8` value onto the operand stack.
       """
 
       operands {
-        literal "real8" { description "Literal value to push." }
+        literal "real8" {
+          - description "Literal value to push."
+        }
       }
       stack_before {}
       stack_after {
         value "real8" {
-          description "Literal value pushed onto the operand stack."
+          - description "Literal value pushed onto the operand stack."
         }
       }
     }
 
     PUSHVAL0 0xC2 "Push Literal 0" {
-      description """
+      - description """
       Pushes a literal 0 value onto the operand stack.
       """
       operands {}
       stack_before {}
       stack_after {
-        zero "int4" { description "Literal 0 value." }
+        zero "int4" {
+          - description "Literal 0 value."
+        }
       }
     }
 
     PUSHVAL1 0xC3 "Push Literal 1" {
-      description """
+      - description """
       Pushes a literal 1 value onto the operand stack.
       """
       operands {}
       stack_before {}
       stack_after {
-        one "int4" { description "Literal 1 value." }
+        one "int4" {
+          - description "Literal 1 value."
+        }
       }
     }
   }
 
   PUT 0xC4 "Put Characters to Stream" {
-    description """
+    - description """
     Puts the given value to the provided `stream`.
     
     The actual number of stack arguments is based on `put_kind`, as different put items have different uses for the arguments.
     """
     operands {
       put_kind "put_kind" {
-        description """
+        - description """
         Which kind of item to put.
         """
       }
@@ -3716,40 +4375,56 @@ instructions {
     stack_before {
       @conditional-case (operands).put_kind {
         @case (put_kind).boolean {
-          value "nat4" { description "`boolean` value to put." }
+          value "nat4" {
+            - description "`boolean` value to put."
+          }
         }
         @case (put_kind).char {
-          value "nat1" { description "`char` value to put." }
+          value "nat1" {
+            - description "`char` value to put."
+          }
         }
         @case (put_kind).char_n {
-          value "addrint" { description "`char(N)` value to put." }
+          value "addrint" {
+            - description "`char(N)` value to put."
+          }
           length "nat4" {
-            description """
+            - description """
             Byte length of the `char(N)` type.
             """
           }
         }
         @case (put_kind).enum {
-          value "nat4" { description "`enum` value to put." }
+          value "nat4" {
+            - description "`enum` value to put."
+          }
         }
         @case (put_kind).int (put_kind).int_fract (put_kind).int_exp {
-          value "int4" { description "`int` value to put." }
+          value "int4" {
+            - description "`int` value to put."
+          }
         }
         @case (put_kind).nat (put_kind).nat_fract (put_kind).nat_exp {
-          value "nat4" { description "`nat` value to put." }
+          value "nat4" {
+            - description "`nat` value to put."
+          }
         }
         @case (put_kind).real (put_kind).real_fract (put_kind).real_exp {
-          value "real8" { description "`real` value to put." }
+          value "real8" {
+            - description "`real` value to put."
+          }
         }
         @case (put_kind).string {
-          value "addrint" { description "`string` value to put." }
+          value "addrint" {
+            - description "`string` value to put."
+          }
         }
       }
       @conditional {
         @predicate (operands).put_kind "!=" (put_kind).skip
 
         width "int4" {
-          description """
+          - description """
           Minimum number of characters to put.
           If less characters than the minimum are printed, the remaining count is padded to the right with spaces.
           """
@@ -3761,7 +4436,7 @@ instructions {
         @predicate (operands).put_kind "==" (put_kind).real_fract
 
         fractional_width "int4" {
-          description """
+          - description """
           Minimum number of decimal places to put.
           Contributes to the number of characters printed.
           """
@@ -3773,7 +4448,7 @@ instructions {
         @predicate (operands).put_kind "==" (put_kind).real_exp
 
         exponent_width "int4" {
-          description """
+          - description """
           Minimum number of exponential digits to put.
           Contributes to the number of characters printed.
           """
@@ -3783,14 +4458,14 @@ instructions {
         @predicate (operands).put_kind "==" (put_kind).enum
 
         variant_names "addrint" {
-          description """
+          - description """
           Array of names of the enum variants.
           Any out-of-range values are put as the raw ordinal value.
           """
         }
       }
       stream "addrint" {
-        description """
+        - description """
         Stream to put characters to.
         """
       }
@@ -3799,25 +4474,31 @@ instructions {
   }
 
   REALDIVIDE 0xC7 "Divide Reals" {
-    description """
+    - description """
     Divides as `real` values `lhs` and `rhs`, producing `out`.
     """
     operands {}
     stack_before {
-      lhs "real8" { description "Left-hand side of operation." }
-      rhs "real8" { description "Right-hand side of operation." }
+      lhs "real8" {
+        - description "Left-hand side of operation."
+      }
+      rhs "real8" {
+        - description "Right-hand side of operation."
+      }
     }
     stack_after {
-      out "real8" { description "Result of operation." }
+      out "real8" {
+        - description "Result of operation."
+      }
     }
     exceptions {
       Quit (quit_code).divmod_by_zero {
-        description """
+        - description """
         When `rhs` is `0`.
         """
       }
       Quit (quit_code).real_overflow {
-        description """
+        - description """
         When `out` is not a finite value (i.e. either infinite or NaN).
         """
       }
@@ -3825,24 +4506,30 @@ instructions {
   }
 
   group "Remainder of Values" {
-    description "Computes the remainder of two values."
+    - description "Computes the remainder of two values."
 
     REMINT 0xC8 "Remainder of Integers" {
-      description """
+      - description """
       Computes the remainder of dividing `lhs` and `rhs` as `int` values.
       """
 
       operands {}
       stack_before {
-        lhs "int4" { description "Left-hand side of operation." }
-        rhs "int4" { description "Right-hand side of operation." }
+        lhs "int4" {
+          - description "Left-hand side of operation."
+        }
+        rhs "int4" {
+          - description "Right-hand side of operation."
+        }
       }
       stack_after {
-        out "int4" { description "Result of operation." }
+        out "int4" {
+          - description "Result of operation."
+        }
       }
       exceptions {
         Quit (quit_code).divmod_by_zero {
-          description """
+          - description """
           When `rhs` is `0`.
           """
         }
@@ -3850,27 +4537,33 @@ instructions {
     }
     
     REMREAL 0xC9 "Integer Remainder of Reals" {
-      description """
+      - description """
       Computes the integer remainder of dividing `lhs` and `rhs` as `real` values.
       Asserts that the division of `lhs` and `rhs`, when converted to an `int`, is still representable (that is, it is not outside of the range of possible `int` values).
       """
 
       operands {}
       stack_before {
-        lhs "real8" { description "Left-hand side of operation." }
-        rhs "real8" { description "Right-hand side of operation." }
+        lhs "real8" {
+          - description "Left-hand side of operation."
+        }
+        rhs "real8" {
+          - description "Right-hand side of operation."
+        }
       }
       stack_after {
-        out "real8" { description "Result of operation." }
+        out "real8" {
+          - description "Result of operation."
+        }
       }
       exceptions {
         Quit (quit_code).divmod_by_zero {
-          description """
+          - description """
           When `rhs` is `0`.
           """
         }
         Quit (quit_code).real_overflow {
-          description """
+          - description """
           When the division is outside the range of possible `int` values.
           """
         }
@@ -3879,7 +4572,7 @@ instructions {
   }
 
   RETURN 0xCD "Return From Procedure" {
-    description """
+    - description """
     Ends the current call frame, restoring execution state to the prior call frame.
 
     Prior to execution of this instruction, the stack operands at the frame pointer should be as follows:
@@ -3906,14 +4599,14 @@ instructions {
   }
 
   group "Set Location" {
-    description """
+    - description """
     Modifies the current execution location to match the source code representation.
 
     Primarily used for debugging, this has no effect on the program state.
     """
 
     INCLINENO 0x7D "Increment Line Number" {
-      description """
+      - description """
       Increments the line number up by 1.
 
       Primarily used for debugging, this has no effect on the program state.
@@ -3921,48 +4614,58 @@ instructions {
     }
 
     SETFILENO 0xD5 "Set File & Line Number" {
-      description """
+      - description """
       Sets the current execution file number and line number.
 
       Primarily used for debugging, this has no effect on the program state.
       """
       
       operands {
-        file_no "nat2" { description "File number to set location to." }
-        line_no "nat2" { description "Line number to set location to." }
+        file_no "nat2" {
+          - description "File number to set location to."
+        }
+        line_no "nat2" {
+          - description "Line number to set location to."
+        }
       }
     }
 
     SETLINENO 0xD6 "Set Line Number" {
-      description """
+      - description """
       Sets the current execution line number, using the same file number.
 
       Primarily used for debugging, this has no effect on the program state.
       """
       
       operands {
-        line_no "nat2" { description "Line number to set location to." }
+        line_no "nat2" {
+          - description "Line number to set location to."
+        }
       }
     }
   }
 
   SETSTDSTREAM 0xD8 "Set Standard I/O Stream" {
-    description """
+    - description """
     Retrieves the standard I/O handle for `kind` and stores it in `dest`.
     Depending on the I/O redirection settings, this may differ from the standard stream handle numbers.
     """
 
     operands {
-      kind "std_stream_kind" { description "Which standard stream handle to retrieve." }
+      kind "std_stream_kind" {
+        - description "Which standard stream handle to retrieve."
+      }
     }
     stack_before {
-      dest "addrint" { description "Address to store the stream handle to." }
+      dest "addrint" {
+        - description "Address to store the stream handle to."
+      }
     }
     stack_after {}
   }
 
   SETSTREAM 0xD9 "Set Stream Information" {
-    description """
+    - description """
     Prepares for future stream operations on `stream_handle`, setting up the `stream_status` and opening the stream if necessary.
     `kind` indicates what stream operation to open the stream for if the stream is not open yet.
 
@@ -3970,39 +4673,55 @@ instructions {
     """
 
     operands {
-      kind "stream_kind" { description "Which operation to prepare the stream for." }
+      kind "stream_kind" {
+        - description "Which operation to prepare the stream for."
+      }
     }
     stack_before {
-      save_status "addrint" { description "Address to save the new stream status address to." }
-      save_handle "addrint" { description "Address to save the new stream handle to." }
-      stream_status "addrint" { description "Where to store the status of future stream operations." }
-      stream_handle "int4" { description "Which stream to perform future operations on." }
+      save_status "addrint" {
+        - description "Address to save the new stream status address to."
+      }
+      save_handle "addrint" {
+        - description "Address to save the new stream handle to."
+      }
+      stream_status "addrint" {
+        - description "Where to store the status of future stream operations."
+      }
+      stream_handle "int4" {
+        - description "Which stream to perform future operations on."
+      }
     }
     stack_after {}
     exceptions {
       ExecutionError "I/O attempted on illegal stream number {stream_handle}" {
-        description "When `stream_handle` is outside the range of `[-2..maxstreamno]`."
+        - description "When `stream_handle` is outside the range of `[-2..maxstreamno]`."
       }
     }
   }
 
   SHL 0xDA "Arithmetic Shift Left" {
-    description """
+    - description """
     Applies an arithmetic left bit-shift on `value`.
     Asserts that the computed value is representable as a `nat4`.
     """
 
     operands {}
     stack_before {
-      shift "nat4" { description "How many bits to shift by." }
-      value "nat4" { description "The value to apply the bit-shift to." }
+      shift "nat4" {
+        - description "How many bits to shift by."
+      }
+      value "nat4" {
+        - description "The value to apply the bit-shift to."
+      }
     }
     stack_after {
-      out "nat4" { description "The result of the bit-shift operation." }
+      out "nat4" {
+        - description "The result of the bit-shift operation."
+      }
     }
     exceptions {
       Quit (quit_code).integer_overflow {
-        description """
+        - description """
         When the computed value is greater than can what be represented by a `nat4`.
         """
       }
@@ -4010,53 +4729,69 @@ instructions {
   }
 
   SHR 0xDB "Arithmetic Shift Right" {
-    description """
+    - description """
     Applies an arithmetic right bit-shift on `value` by copying empty positions with the sign bit.
     """
 
     operands {}
     stack_before {
-      shift "nat4" { description "How many bits to shift by." }
-      value "nat4" { description "The value to apply the bit-shift to." }
+      shift "nat4" {
+        - description "How many bits to shift by."
+      }
+      value "nat4" {
+        - description "The value to apply the bit-shift to."
+      }
     }
     stack_after {
-      out "nat4" { description "The result of the bit-shift operation." }
+      out "nat4" {
+        - description "The result of the bit-shift operation."
+      }
     }
   }
 
   STRTOCHAR 0xE1 "Convert String to Char" {
-    description "Extracts a single `char` value from the beginning of the `string` at `value`."
+    - description "Extracts a single `char` value from the beginning of the `string` at `value`."
 
     operands {}
     stack_before {
-      value "addrint" { description "`string` value to convert." }
+      value "addrint" {
+        - description "`string` value to convert."
+      }
     }
     stack_after {
-      value "nat1" { description "Extracted `char` value." }
+      value "nat1" {
+        - description "Extracted `char` value."
+      }
     }
     exceptions {
       ExecutionError "String coerced to char is not length 1" {
-        description "If the string at `value` has a byte length that is not 1."
+        - description "If the string at `value` has a byte length that is not 1."
       }
     }
   }
 
   group "Subtract Values" {
-    description "Performs subtraction on two values."
+    - description "Performs subtraction on two values."
 
     SUBINT 0xE2 "Subtract Integers" {
-      description "Subtracts as `int` values `lhs` and `rhs`, producing `out`."
+      - description "Subtracts as `int` values `lhs` and `rhs`, producing `out`."
       operands {}
       stack_before {
-        lhs "int4" { description "Left-hand side of operation." }
-        rhs "int4" { description "Right-hand side of operation." }
+        lhs "int4" {
+          - description "Left-hand side of operation."
+        }
+        rhs "int4" {
+          - description "Right-hand side of operation."
+        }
       }
       stack_after {
-        out "int4" { description "Result of operation." }
+        out "int4" {
+          - description "Result of operation."
+        }
       }
       exceptions {
         Quit (quit_code).integer_overflow {
-          description """
+          - description """
           When the computed value is greater than can what be represented by `out`.
           """
         }
@@ -4064,18 +4799,24 @@ instructions {
     }
     
     SUBINTNAT 0xE3 "Subtract Integer with Natural" {
-      description "Subtracts `lhs` (as an `int` value) and `rhs` (as a `nat` value), producing `out`."
+      - description "Subtracts `lhs` (as an `int` value) and `rhs` (as a `nat` value), producing `out`."
       operands {}
       stack_before {
-        lhs "int4" { description "Left-hand side of operation." }
-        rhs "nat4" { description "Right-hand side of operation." }
+        lhs "int4" {
+          - description "Left-hand side of operation."
+        }
+        rhs "nat4" {
+          - description "Right-hand side of operation."
+        }
       }
       stack_after {
-        out "int4" { description "Result of operation." }
+        out "int4" {
+          - description "Result of operation."
+        }
       }
       exceptions {
         Quit (quit_code).integer_overflow {
-          description """
+          - description """
           When the computed value is greater than can what be represented by `out`.
           """
         }
@@ -4083,18 +4824,24 @@ instructions {
     }
     
     SUBNAT 0xE4 "Subtract Naturals" {
-      description "Subtracts as `nat` values `lhs` and `rhs`, producing `out`."
+      - description "Subtracts as `nat` values `lhs` and `rhs`, producing `out`."
       operands {}
       stack_before {
-        lhs "nat4" { description "Left-hand side of operation." }
-        rhs "nat4" { description "Right-hand side of operation." }
+        lhs "nat4" {
+          - description "Left-hand side of operation."
+        }
+        rhs "nat4" {
+          - description "Right-hand side of operation."
+        }
       }
       stack_after {
-        out "nat4" { description "Result of operation." }
+        out "nat4" {
+          - description "Result of operation."
+        }
       }
       exceptions {
         Quit (quit_code).integer_overflow {
-          description """
+          - description """
           When the computed value is greater than can what be represented by `out`.
           """
         }
@@ -4102,18 +4849,24 @@ instructions {
     }
     
     SUBNATINT 0xE5 "Subtract Natural with Integer" {
-      description "Subtracts `lhs` (as a `nat` value) and `rhs` (as an `int` value), producing `out`."
+      - description "Subtracts `lhs` (as a `nat` value) and `rhs` (as an `int` value), producing `out`."
       operands {}
       stack_before {
-        lhs "nat4" { description "Left-hand side of operation." }
-        rhs "int4" { description "Right-hand side of operation." }
+        lhs "nat4" {
+          - description "Left-hand side of operation."
+        }
+        rhs "int4" {
+          - description "Right-hand side of operation."
+        }
       }
       stack_after {
-        out "nat4" { description "Result of operation." }
+        out "nat4" {
+          - description "Result of operation."
+        }
       }
       exceptions {
         Quit (quit_code).integer_overflow {
-          description """
+          - description """
           When the computed value is greater than can what be represented by `out`.
           """
         }
@@ -4121,18 +4874,24 @@ instructions {
     }
     
     SUBREAL 0xE6 "Subtract Reals" {
-      description "Subtracts as `real` values `lhs` and `rhs`, producing `out`."
+      - description "Subtracts as `real` values `lhs` and `rhs`, producing `out`."
       operands {}
       stack_before {
-        lhs "real8" { description "Left-hand side of operation." }
-        rhs "real8" { description "Right-hand side of operation." }
+        lhs "real8" {
+          - description "Left-hand side of operation."
+        }
+        rhs "real8" {
+          - description "Right-hand side of operation."
+        }
       }
       stack_after {
-        out "real8" { description "Result of operation." }
+        out "real8" {
+          - description "Result of operation."
+        }
       }
       exceptions {
         Quit (quit_code).real_overflow {
-          description """
+          - description """
           When the computed value is greater than can what be represented by `out`.
           """
         }
@@ -4140,7 +4899,7 @@ instructions {
     }
 
     SUBSET 0xE8 "Subtraction of Sets" {
-      description """
+      - description """
       Computes as `set` values the subtraction of `lhs` and `rhs`, producing `out`.
       Equivalent to inverting the elements of `rhs` and then performing a set intersection.
 
@@ -4150,7 +4909,7 @@ instructions {
       
       operands {
         set_length "nat4" {
-          description """
+          - description """
           Length of the set, in bytes.
           """
         }
@@ -4159,29 +4918,41 @@ instructions {
         @conditional {
           @predicate (operands).set_length "<=" 4 
 
-          lhs "set32" { description "Left-hand side of operation." }
-          rhs "set32" { description "Right-hand side of operation." }
+          lhs "set32" {
+            - description "Left-hand side of operation."
+          }
+          rhs "set32" {
+            - description "Right-hand side of operation."
+          }
         }
         @conditional {
           @predicate "otherwise"
 
-          lhs "addrint" { description "Left-hand side of operation." }
-          rhs "addrint" { description "Right-hand side of operation." }
-          out "addrint" { description "Stores the result of the operation." }
+          lhs "addrint" {
+            - description "Left-hand side of operation."
+          }
+          rhs "addrint" {
+            - description "Right-hand side of operation."
+          }
+          out "addrint" {
+            - description "Stores the result of the operation."
+          }
         }
       }
       stack_after {
         @conditional {
           @predicate (operands).set_length "<=" 4 
 
-          out "set32" { description "Result of operation." }
+          out "set32" {
+            - description "Result of operation."
+          }
         }
         @conditional {
           @predicate "otherwise"
 
           out "addrint" {
-            description "Result of operation."
-            preserves (stack_before).out
+            - description "Result of operation."
+            - preserves (stack_before).out
           }
         }
       }
@@ -4189,99 +4960,117 @@ instructions {
   }
 
   group "Mark as Uninitialized" {
-    description """
+    - description """
     Marks an address as containing an uninitialized value, either storing a single value or following an uninitialization pattern.
     """
 
     UNINITADDR 0xF0 "Mark Uninitialized Address" {
-      description """
+      - description """
       Stores `undefaddr` (`0xFFFF_FFFF`) to `dest`.
       """
 
       operands {}
       stack_before {
-        dest "addrint" { description "Address to mark as having an uninitialized value." }
+        dest "addrint" {
+          - description "Address to mark as having an uninitialized value."
+        }
       }
       stack_after {}
     }
 
     UNINITBOOLEAN 0xF1 "Mark Uninitialized Boolean" {
-      description """
+      - description """
       Stores `undefbool` (`0xFF`) to `dest`.
       """
 
       operands {}
       stack_before {
-        dest "addrint" { description "Address to mark as having an uninitialized value." }
+        dest "addrint" {
+          - description "Address to mark as having an uninitialized value."
+        }
       }
       stack_after {}
     }
 
     UNINITINT 0xF2 "Mark Uninitialized Integer" {
-      description """
+      - description """
       Stores `undefint` (`0x8000_0000`) to `dest`.
       """
 
       operands {}
       stack_before {
-        dest "addrint" { description "Address to mark as having an uninitialized value." }
+        dest "addrint" {
+          - description "Address to mark as having an uninitialized value."
+        }
       }
       stack_after {}
     }
 
     UNINITNAT 0xF3 "Mark Uninitialized Natural" {
-      description """
+      - description """
       Stores `undefnat` (`0xFFFF_FFFF`) to `dest`.
       """
 
       operands {}
       stack_before {
-        dest "addrint" { description "Address to mark as having an uninitialized value." }
+        dest "addrint" {
+          - description "Address to mark as having an uninitialized value."
+        }
       }
       stack_after {}
     }
 
     UNINITREAL 0xF4 "Mark Uninitialized Real" {
-      description """
+      - description """
       Stores `undefreal` (`0x8000_0000_8000_0000`) to `dest`.
       """
 
       operands {}
       stack_before {
-        dest "addrint" { description "Address to mark as having an uninitialized value." }
+        dest "addrint" {
+          - description "Address to mark as having an uninitialized value."
+        }
       }
       stack_after {}
     }
 
     UNINITSTR 0xF5 "Mark Uninitialized String" {
-      description """
+      - description """
       Stores an `undefchar` (`0x80`) followed by a nul terminator byte (`0x00`) to `dest`.
       """
 
       operands {}
       stack_before {
-        dest "addrint" { description "Address to mark as having an uninitialized value." }
+        dest "addrint" {
+          - description "Address to mark as having an uninitialized value."
+        }
       }
       stack_after {}
     }
   }
 
   XOR 0xFA "Bitwise Exclusive-Or" {
-    description """
+    - description """
     Applies a bitwise logical xor operation between `lhs` and `rhs`, producing `out`.
     """
     operands {}
     stack_before {
-      lhs "int4" { description "Left-hand side of operation." }
-      rhs "int4" { description "Right-hand side of operation." }
+      lhs "int4" {
+        - description "Left-hand side of operation."
+      }
+      rhs "int4" {
+        - description "Right-hand side of operation."
+      }
     }
     stack_after {
-      out "int4" { description "Result of operation." }
+      out "int4" {
+        - description "Result of operation."
+      }
     }
   }
 
   XORSET 0xFB "Exclusive-Or of Sets" {
-    description """
+    - description """
     Computes as `set` values the exclusive-or of `lhs` and `rhs`, producing `out`.
 
     `set_length` determines the size of both sets, as well as determining the set representation.
@@ -4290,7 +5079,7 @@ instructions {
     
     operands {
       set_length "nat4" {
-        description """
+        - description """
         Length of the set, in bytes.
         """
       }
@@ -4299,43 +5088,55 @@ instructions {
       @conditional {
         @predicate (operands).set_length "<=" 4 
 
-        lhs "set32" { description "Left-hand side of operation." }
-        rhs "set32" { description "Right-hand side of operation." }
+        lhs "set32" {
+          - description "Left-hand side of operation."
+        }
+        rhs "set32" {
+          - description "Right-hand side of operation."
+        }
       }
       @conditional {
         @predicate "otherwise"
 
-        lhs "addrint" { description "Left-hand side of operation." }
-        rhs "addrint" { description "Right-hand side of operation." }
-        out "addrint" { description "Stores the result of the operation." }
+        lhs "addrint" {
+          - description "Left-hand side of operation."
+        }
+        rhs "addrint" {
+          - description "Right-hand side of operation."
+        }
+        out "addrint" {
+          - description "Stores the result of the operation."
+        }
       }
     }
     stack_after {
       @conditional {
         @predicate (operands).set_length "<=" 4 
 
-        out "set32" { description "Result of operation." }
+        out "set32" {
+          - description "Result of operation."
+        }
       }
       @conditional {
         @predicate "otherwise"
 
         out "addrint" {
-          description "Result of operation."
-          preserves (stack_before).out
+          - description "Result of operation."
+          - preserves (stack_before).out
         }
       }
     }
   }
 
   BREAK 0xFC "Debugger Breakpoint" {
-    description """
+    - description """
     Inline debugger breakpoint, pauses execution and hands off execution control to the attached debugger.
     """
     operands {}
   }
 
   SYSEXIT 0xFD "Quit Program" {
-    description """
+    - description """
     Stops all program execution, exiting with the specified `exit_code`.
 
     If `exit_code` is non-zero, the program exit is treated as an abnormal exit and handled appropriately.
@@ -4344,20 +5145,20 @@ instructions {
     operands {}
     stack_before {
       exit_code "nat4" {
-        description "Exit code to exit the program with."
+        - description "Exit code to exit the program with."
       }
     }
   }
 
   ILLEGAL 0xFE "Illegal Instruction (0xFE)" {
-    description """
+    - description """
     Raises an `ExecutionError` indicating that an illegal opcode was encountered.
     """
 
     opcodes {}
     exceptions {
       ExecutionError "Undecodable opcode #254" {
-        description "When executing this opcode."
+        - description "When executing this opcode."
       }
     }
   }
