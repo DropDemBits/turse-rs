@@ -443,10 +443,7 @@ fn generate_encode_operands(spec: &BytecodeSpec) -> TokenStream {
                 .filter(|padding| *padding > 0)
             {
                 // Operands are always aligned to 4-byte boundaries, pad up to the nearest one.
-                let padding: Vec<_> = (0..padding)
-                    .into_iter()
-                    .map(|_| quote! { out.write_u8(0) })
-                    .collect();
+                let padding: Vec<_> = (0..padding).map(|_| quote! { out.write_u8(0) }).collect();
 
                 quote! {
                     Self::#ident(value) => {
