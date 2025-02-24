@@ -4,7 +4,7 @@ mod test;
 
 use toc_syntax::ast::{self, AstNode};
 
-use crate::{item_block_containing_node, walk_item_blocks, ValidateCtx};
+use crate::{ValidateCtx, item_block_containing_node, walk_item_blocks};
 
 pub(super) fn validate_init_expr(expr: ast::InitExpr, ctx: &mut ValidateCtx) {
     // Only allowed in ConstVar decl

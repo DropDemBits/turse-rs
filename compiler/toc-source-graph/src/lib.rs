@@ -6,7 +6,7 @@ mod package;
 #[cfg(test)]
 mod test;
 
-pub use graph::{source_graph, CyclicDependencies, RootPackages, SourceGraph};
+pub use graph::{CyclicDependencies, RootPackages, SourceGraph, source_graph};
 pub use package::{ArtifactKind, DependencyInfo, DependencyList, Package, PackageId};
 
 #[salsa::jar(db = Db)]

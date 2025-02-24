@@ -83,7 +83,7 @@ impl fmt::Display for Expected {
 #[cfg(test)]
 mod test {
     use super::*;
-    use expect_test::{expect, Expect};
+    use expect_test::{Expect, expect};
 
     #[track_caller]
     fn check(info: ParseMessage, out: Expect) {

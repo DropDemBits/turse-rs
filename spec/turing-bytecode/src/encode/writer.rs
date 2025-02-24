@@ -3,7 +3,7 @@ use std::{
     mem,
 };
 
-use byteorder::{WriteBytesExt, LE};
+use byteorder::{LE, WriteBytesExt};
 
 use crate::OBJECT_HEADER_MAGIC;
 

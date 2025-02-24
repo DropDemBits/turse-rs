@@ -1,7 +1,7 @@
 //! Encoded instruction format.
 use std::{
     io,
-    num::{NonZeroU32, NonZeroU8},
+    num::{NonZeroU8, NonZeroU32},
     ops::{Index, IndexMut},
 };
 
@@ -71,7 +71,7 @@ impl Instruction {
 
     /// Encodes the instruction into the equivalent byte representation.
     pub fn encode(&self, out: &mut impl io::Write) -> io::Result<()> {
-        use byteorder::{WriteBytesExt, LE};
+        use byteorder::{LE, WriteBytesExt};
 
         out.write_u32::<LE>(self.opcode() as u32)?;
 

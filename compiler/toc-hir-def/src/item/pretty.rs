@@ -5,8 +5,8 @@ use std::fmt;
 use toc_source_graph::Package;
 
 use crate::{
-    item::{root_module, AnyItem, ConstVar, HasItems, Module, RootModule, UnitModule},
     Db, DisplayWithDb, Mutability,
+    item::{AnyItem, ConstVar, HasItems, Module, RootModule, UnitModule, root_module},
 };
 
 impl<'db> DisplayWithDb<'db, dyn crate::Db + 'db> for ConstVar {

@@ -4,7 +4,7 @@ use std::fs;
 
 use crate::{flags, util::project_root};
 use miette::IntoDiagnostic;
-use xshell::{cmd, Shell};
+use xshell::{Shell, cmd};
 
 impl flags::Package {
     pub(crate) fn run(self, sh: &Shell) -> miette::Result<()> {

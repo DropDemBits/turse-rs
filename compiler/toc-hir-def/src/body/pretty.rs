@@ -3,10 +3,10 @@ use std::{collections::VecDeque, fmt::Write};
 use toc_source_graph::Package;
 
 use crate::{
+    Db, DisplayWithDb,
     expr::{Expr, ExprId, Name},
     item::{AnyItem, HasItems},
     stmt::{Stmt, StmtId},
-    Db, DisplayWithDb,
 };
 
 pub fn render_package_bodies(db: &dyn Db, package: Package) -> String {

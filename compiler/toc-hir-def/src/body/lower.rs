@@ -4,15 +4,15 @@ use toc_hir_expand::{
     AstLocations, SemanticFile, SemanticLoc, SemanticNodePtr, UnstableSemanticLoc,
 };
 use toc_syntax::{
-    ast::{self, AstNode},
     LiteralValue,
+    ast::{self, AstNode},
 };
 
 use crate::{
+    Db, Symbol,
     body::ModuleBlock,
     expr::{self, LocalExpr},
     stmt::{self, LocalStmt},
-    Db, Symbol,
 };
 
 use super::{Body, BodyContents, BodySpans};

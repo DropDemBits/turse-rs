@@ -4,7 +4,7 @@ use upcast::{Upcast, UpcastFrom};
 
 use crate::db;
 
-use super::{query, Const, ConstResult, ConstValue, EvalParams};
+use super::{Const, ConstResult, ConstValue, EvalParams, query};
 
 #[salsa::jar(db = ConstEval)]
 pub struct ConstEvalJar();

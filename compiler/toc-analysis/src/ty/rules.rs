@@ -6,7 +6,7 @@ use toc_span::Span;
 
 use crate::{
     db::{self},
-    ty::{self, make, NotFixedLen, SeqSize, TypeId, TypeKind},
+    ty::{self, NotFixedLen, SeqSize, TypeId, TypeKind, make},
 };
 
 use super::{AllowDyn, ArraySizing};

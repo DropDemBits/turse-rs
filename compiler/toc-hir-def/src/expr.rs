@@ -1,6 +1,6 @@
 //! Expression nodes
 
-use crate::{body::Body, Symbol};
+use crate::{Symbol, body::Body};
 
 use la_arena::ArenaMap;
 pub use toc_syntax::{InfixOp as BinaryOp, PrefixOp as UnaryOp};

@@ -3,7 +3,7 @@ use std::{collections::BTreeSet, fs, str::FromStr};
 use heck::{ToPascalCase, ToSnekCase};
 use miette::IntoDiagnostic;
 use proc_macro2::TokenStream;
-use quote::{format_ident, quote, ToTokens};
+use quote::{ToTokens, format_ident, quote};
 use stackful_spec::{BytecodeSpec, PropertyKind, PropertyValue, Type};
 
 use crate::{flags, util::project_root};

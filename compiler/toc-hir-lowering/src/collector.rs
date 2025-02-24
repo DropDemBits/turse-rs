@@ -5,8 +5,8 @@ use std::collections::HashMap;
 use toc_hir::{
     span::{SpanId, SpanTable},
     symbol::{
-        syms, DefInfoTable, IsMonitor, IsPervasive, IsRegister, LocalDefId, Mutability, NodeSpan,
-        SubprogramKind, Symbol, SymbolKind,
+        DefInfoTable, IsMonitor, IsPervasive, IsRegister, LocalDefId, Mutability, NodeSpan,
+        SubprogramKind, Symbol, SymbolKind, syms,
     },
     ty::PassBy,
 };

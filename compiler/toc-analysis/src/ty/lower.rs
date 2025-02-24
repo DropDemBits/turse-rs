@@ -3,17 +3,17 @@
 use std::convert::TryInto;
 
 use toc_hir::{
-    body, expr, item,
+    OrMissingExt, body, expr, item,
     package::{InPackage, PackageId, WrapInPackage},
     stmt,
     symbol::{self, DefId, LocalDefId, SymbolKind},
-    ty as hir_ty, OrMissingExt,
+    ty as hir_ty,
 };
 
 use crate::{
     const_eval::{Const, ConstInt},
     db::TypeDatabase,
-    ty::{self, db::NotValueErrExt, make, Checked, Param, TypeId, TypeKind},
+    ty::{self, Checked, Param, TypeId, TypeKind, db::NotValueErrExt, make},
 };
 
 use super::{AllowDyn, IntSize, NatSize, RealSize, SeqSize};

@@ -34,7 +34,7 @@ use toc_paths::RawPath;
 use upcast::{Upcast, UpcastFrom};
 
 pub use crate::db_ext::VfsDbExt;
-pub use crate::sources::{source_of, SourceFile, SourceTable, VfsBridge};
+pub use crate::sources::{SourceFile, SourceTable, VfsBridge, source_of};
 
 #[salsa::jar(db = Db)]
 pub struct Jar(sources::SourceFile, sources::source_of, resolve_path);

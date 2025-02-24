@@ -105,8 +105,8 @@ pub(crate) mod query {
     use std::sync::Arc;
 
     use crate::{
-        span::{LineInfo, LineMapping, LspPosition},
         Db,
+        span::{LineInfo, LineMapping, LspPosition},
     };
 
     /// FIXME: Would be better to use SourceFile directly

@@ -14,7 +14,7 @@ use toc_hir::{
     visitor::HirVisitor,
 };
 
-use crate::{db::InsideModule, Db};
+use crate::{Db, db::InsideModule};
 
 /// Get the package associated with the given id
 #[salsa::tracked]

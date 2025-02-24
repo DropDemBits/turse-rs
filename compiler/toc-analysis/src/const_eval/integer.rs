@@ -2,7 +2,7 @@
 
 use std::{cmp::Ordering, convert::TryInto, fmt};
 
-use crate::const_eval::{errors::ErrorKind, ConstError};
+use crate::const_eval::{ConstError, errors::ErrorKind};
 
 /// Constant Integer representation
 ///

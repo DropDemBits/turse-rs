@@ -5,9 +5,8 @@ use toc_hir_expand::{SemanticLoc, UnstableSemanticLoc};
 use toc_syntax::ast;
 
 use crate::{
-    expr,
+    Db, expr,
     stmt::{self, StmtId},
-    Db,
 };
 
 pub(crate) mod lower;

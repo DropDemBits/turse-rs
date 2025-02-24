@@ -14,10 +14,10 @@ pub use crate::source::{
     validate_file,
 };
 pub use crate::span::{
+    LineInfo, LineMapping, LspPosition,
     query::{
         line_mapping, map_byte_index, map_byte_index_to_character, map_byte_index_to_position,
     },
-    LineInfo, LineMapping, LspPosition,
 };
 
 #[salsa::jar(db = Db)]

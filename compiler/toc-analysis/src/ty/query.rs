@@ -5,7 +5,7 @@ use std::sync::Arc;
 use toc_hir::item::{self, ImportMutability};
 use toc_hir::symbol::{IsRegister, Mutability, SymbolKind};
 use toc_hir::ty::PassBy;
-use toc_hir::{body, expr, OrMissingExt};
+use toc_hir::{OrMissingExt, body, expr};
 use toc_hir::{
     body::BodyId,
     expr::BodyExpr,
@@ -16,7 +16,7 @@ use toc_hir::{
 };
 
 use crate::db::{self, BindingSource, TypeDatabase};
-use crate::ty::{lower, make, TypeId, TypeKind};
+use crate::ty::{TypeId, TypeKind, lower, make};
 
 pub(crate) fn lower_hir_type(db: &dyn db::TypeDatabase, type_id: InPackage<HirTypeId>) -> TypeId {
     lower::ty_from_hir_ty(db, type_id)

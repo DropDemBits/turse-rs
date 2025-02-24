@@ -27,7 +27,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use toc_hir::package_graph::SourcePackage;
-use toc_hir::symbol::{syms, IsMonitor, IsPervasive, NodeSpan, SymbolKind};
+use toc_hir::symbol::{IsMonitor, IsPervasive, NodeSpan, SymbolKind, syms};
 use toc_hir::{
     body,
     builder::{self, BodyBuilder},

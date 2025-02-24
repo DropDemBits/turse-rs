@@ -1,7 +1,7 @@
 use std::{fs, path::Path};
 
 use miette::{IntoDiagnostic, WrapErr};
-use xshell::{cmd, Shell};
+use xshell::{Shell, cmd};
 
 use crate::{
     flags,
