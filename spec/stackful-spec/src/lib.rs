@@ -151,12 +151,16 @@ pub enum ParseError {
     UnknownAttribute(String, #[label] miette::SourceSpan),
 
     #[error("unexpected attribute `{0}`")]
-    #[diagnostic(code(bytecode_spec::unknown_attribute))]
+    #[diagnostic(code(bytecode_spec::unexpected_attribute))]
     UnexpectedAttribute(KnownAttrs, #[label] miette::SourceSpan),
+
+    #[error("unexpected node")]
+    #[diagnostic(code(bytecode_spec::unexpected_node))]
+    UnexpectedChildNode(#[label("expected {1}")] miette::SourceSpan, StringList),
 
     #[error("invalid type kind")]
     #[diagnostic(code(bytecode_spec::invalid_type_kind))]
-    InvalidTypeKind(#[label("expected `scalar`, `struct` or `enum`")] miette::SourceSpan),
+    InvalidTypeKind(#[label("expected `scalar`, `struct`, `enum`, or `union`")] miette::SourceSpan),
 
     #[error("unknown type name `{0}`")]
     #[diagnostic(code(bytecode_spec::unknown_type_name))]
@@ -195,79 +199,7 @@ pub enum ParseError {
     ),
 }
 
-/// All known node names.
-/// Used for error reporting as well as restricting the available nodes.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum KnownNodes {
-    /// Top-level `types` list.
-    TypeList,
-    /// `scalar` node in the types list.
-    ScalarNode,
-    /// `struct` node in the types list.
-    StructNode,
-    /// `enum` node in the types list.
-    EnumNode,
-    /// `union` node in the types list.
-    UnionNode,
-
-    /// Top-level `exceptions` list.
-    PossibleExceptionsList,
-
-    /// Top-level `instructions` list.
-    InstructionList,
-    /// A grouping of instruction nodes.
-    GroupNode,
-    /// A list of immediate operands in an instruction.
-    OperandsList,
-    /// A description of the stack state before an instruction executes.
-    StackBeforeList,
-    /// A description of the stack state after an instruction executes.
-    StackAfterList,
-    /// Exceptions that an instruction might raise during execution.
-    ExceptionsList,
-}
-
-impl FromStr for KnownNodes {
-    type Err = ();
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "types" => Ok(Self::TypeList),
-            "scalar" => Ok(Self::ScalarNode),
-            "struct" => Ok(Self::StructNode),
-            "enum" => Ok(Self::EnumNode),
-            "union" => Ok(Self::UnionNode),
-            "instructions" => Ok(Self::InstructionList),
-            "group" => Ok(Self::GroupNode),
-            "operands" => Ok(Self::OperandsList),
-            "stack_before" => Ok(Self::StackBeforeList),
-            "stack_after" => Ok(Self::StackAfterList),
-            "exceptions" => Ok(Self::ExceptionsList),
-            _ => Err(()),
-        }
-    }
-}
-
-impl Display for KnownNodes {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(match self {
-            KnownNodes::TypeList => "types",
-            KnownNodes::ScalarNode => "scalar",
-            KnownNodes::StructNode => "struct",
-            KnownNodes::EnumNode => "enum",
-            KnownNodes::UnionNode => "union",
-            KnownNodes::PossibleExceptionsList => "exceptions",
-            KnownNodes::InstructionList => "instructions",
-            KnownNodes::GroupNode => "group",
-            KnownNodes::OperandsList => "operands",
-            KnownNodes::StackBeforeList => "stack_before",
-            KnownNodes::StackAfterList => "stack_after",
-            KnownNodes::ExceptionsList => "exceptions",
-        })
-    }
-}
-
-/// Common node names used for error reporting, including known node names.
+/// Common node names used for error reporting, including some known node names.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum CommonNodes {
     InstructionList,

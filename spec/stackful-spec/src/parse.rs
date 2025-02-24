@@ -38,8 +38,12 @@ const STACK_AFTER_OPERAND_ATTRS: &[KnownAttrs] = &[
 ];
 const EXCEPTION_CASE_ATTRS: &[KnownAttrs] = &[KnownAttrs::Description];
 
+const TOP_LEVEL_CHILD_NODES: &[&str] = &["types", "exceptions", "instructions"];
+const INSTRUCTION_CHILD_NODES: &[&str] = &["operands", "stack_before", "stack_after", "exceptions"];
+
 pub(crate) fn parse_spec(text: &str) -> Result<BytecodeSpec, ParseError> {
     let kdl: kdl::KdlDocument = text.parse()?;
+    expect_child_names(Some(&kdl), TOP_LEVEL_CHILD_NODES)?;
 
     let types = get_required_node(&kdl, CommonNodes::TypeList)?;
     expect_attribute_names(types, NO_ATTRS)?;
@@ -537,6 +541,7 @@ fn parse_union(
 
 fn parse_instruction(node: &kdl::KdlNode, types: &Types) -> Result<Instruction, ParseError> {
     expect_attribute_names(node, INSTRUCTION_ATTRS)?;
+    expect_child_names(node.children(), INSTRUCTION_CHILD_NODES)?;
 
     let opcode = parse_required_u32_entry(node, 0)?;
     let heading = parse_heading(node, 1)?;
@@ -621,6 +626,32 @@ fn get_required_children(
     };
 
     Ok(children)
+}
+
+/// Ensure that there are no unexpected child nodes for instruction nodes.
+fn expect_child_names(
+    children: Option<&kdl::KdlDocument>,
+    accepted_childs: &[&'static str],
+) -> Result<(), ParseError> {
+    let Some(children) = children else {
+        return Ok(());
+    };
+
+    for child in children.nodes().iter() {
+        if matches!(child.name().value(), "-") {
+            // Skip attribute nodes, those are separately checked
+            continue;
+        }
+
+        if !accepted_childs.contains(&child.name().value()) {
+            return Err(ParseError::UnexpectedChildNode(
+                child.name().span(),
+                StringList(accepted_childs.iter().map(|it| String::from(*it)).collect()),
+            ));
+        }
+    }
+
+    Ok(())
 }
 
 /// Parses a heading argument node
@@ -892,6 +923,31 @@ mod tests {
     }
 
     #[test]
+    fn parse_all_top_level() {
+        let _ = parse_pass(
+            r#"
+            types {}
+            exceptions {}
+            instructions {}
+            "#,
+        );
+    }
+
+    #[test]
+    fn parse_fail_top_level_unknown_child() {
+        let err = parse_fail(
+            r#"
+            not_a_top_level_child {}
+            "#,
+        );
+
+        assert!(
+            matches!(err, ParseError::UnexpectedChildNode(..)),
+            "{err:#?}"
+        );
+    }
+
+    #[test]
     fn parse_only_instructions() {
         let out = parse_pass(
             r#"
@@ -964,6 +1020,46 @@ mod tests {
         assert_eq!(out.instructions.len(), 4);
         assert_eq!(out.groups.len(), 1);
         assert_eq!(out.by_groups().count(), 3);
+    }
+
+    #[test]
+    fn parse_instruction_expected_children() {
+        let _ = parse_pass(
+            r#"
+            types {}
+
+            instructions {
+                INSTR_A 0x0 {
+                    - description "some description"
+
+                    operands {}
+                    stack_before {}
+                    stack_after {}
+                    exceptions {}
+                }
+            }
+            "#,
+        );
+    }
+
+    #[test]
+    fn parse_fail_instruction_unknown_child() {
+        let err = parse_fail(
+            r#"
+            types {}
+
+            instructions {
+                INSTR_A 0x0 {
+                    not_a_child {}
+                }
+            }
+            "#,
+        );
+
+        assert!(
+            matches!(err, ParseError::UnexpectedChildNode(..)),
+            "{err:#?}"
+        );
     }
 
     #[test]
