@@ -629,7 +629,7 @@ impl BodyCodeGenerator<'_> {
             }
 
             if let (Some(exp_width), true) =
-                (item.opts.exponent_width(), put_kind.has_fractional_width())
+                (item.opts.exponent_width(), put_kind.has_exponent_width())
             {
                 self.generate_expr(exp_width);
             }
@@ -748,12 +748,12 @@ impl BodyCodeGenerator<'_> {
 
             self.proc.ins().setstream(op);
         } else {
+            // Use standard stream as the fallback target stream
             let kind: StdStreamKind = op
                 .try_into()
                 .expect("operation does not have a matching standard stream");
             self.proc.locate_temporary(stream_handle);
 
-            // Use stdout as the target stream
             self.proc.ins().setstdstream(kind);
         }
 
@@ -1522,7 +1522,7 @@ impl BodyCodeGenerator<'_> {
                 OperandPairs::IntInt => self.proc.ins().eqint(),
                 OperandPairs::IntNat => self.proc.ins().eqintnat(),
                 OperandPairs::NatInt => self.proc.ins().eqint(),
-                // Note: We use EQINT instead of EQNAT since Turing doesn't support EQNAT.
+                // Note: We use EQINT instead of EQNAT since Turing/OpenTuring doesn't handle EQNAT.
                 OperandPairs::NatNat => self.proc.ins().eqint(),
                 OperandPairs::Real => self.proc.ins().eqreal(),
             };
@@ -1805,7 +1805,8 @@ impl BodyCodeGenerator<'_> {
             ty::TypeKind::Real(ty::RealSize::Real8) => AssignKind::Real8,
             ty::TypeKind::Real(ty::RealSize::Real) => AssignKind::Real,
             ty::TypeKind::Integer => unreachable!("type should be concrete"),
-            ty::TypeKind::Char => AssignKind::Int1,
+            // chars are equivalent to nat1 on regular Turing backend
+            ty::TypeKind::Char => AssignKind::Nat1,
             ty::TypeKind::CharN(_) => {
                 let storage_size = into_tyref.size_of(self.db.up()).expect("not dyn") as u32;
                 AssignKind::NonScalar(storage_size)
@@ -1928,18 +1929,13 @@ impl BodyCodeGenerator<'_> {
             ty::TypeKind::Real(ty::RealSize::Real8) => _ = self.proc.ins().fetchreal8(),
             ty::TypeKind::Real(ty::RealSize::Real) => _ = self.proc.ins().fetchreal(),
             ty::TypeKind::Integer => unreachable!("type should be concrete"),
-            ty::TypeKind::Char => {
-                // chars are equivalent to nat1 on regular Turing backend
-                self.proc.ins().fetchnat1();
-            }
+            // chars are equivalent to nat1 on regular Turing backend
+            ty::TypeKind::Char => _ = self.proc.ins().fetchnat1(),
             ty::TypeKind::String | ty::TypeKind::StringN(_) => _ = self.proc.ins().fetchstr(),
-            ty::TypeKind::CharN(_) => {
-                // already is a pointer, don't need to dereference the pointer to storage
-            }
-            ty::TypeKind::Opaque(_, ty) => {
-                // defer to the opaque type
-                self.emit_fetch_ins(*ty);
-            }
+            // already is a pointer, don't need to dereference the pointer to storage
+            ty::TypeKind::CharN(_) => {}
+            // defer to the opaque type
+            ty::TypeKind::Opaque(_, ty) => self.emit_fetch_ins(*ty),
             ty::TypeKind::Constrained(..) => unimplemented!(),
             ty::TypeKind::Array(..) => unimplemented!(),
             ty::TypeKind::Enum(..) => unimplemented!(),

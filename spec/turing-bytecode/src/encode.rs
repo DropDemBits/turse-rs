@@ -486,8 +486,6 @@ impl CodeUnit<UnreslovedRelocs> {
                         })
                         .collect();
 
-                    dbg!(&patches);
-
                     (proc, patches)
                 })
                 .collect();
@@ -873,7 +871,6 @@ impl ProcedureBuilder {
 
             (offsets, current_offset)
         };
-        dbg!(&instr_offsets);
 
         // Compute case table offsets
         // These are located afte the last instruction of the procedure (the ABORT).
