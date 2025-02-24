@@ -40,10 +40,10 @@ jobs:
 
       # Doing the actual work
       - name: Build
-        run: cargo test --no-run --locked --verbose
+        run: cargo test --no-run --locked --quiet
 
       - name: Run tests
-        run: cargo test -- --no-capture --quiet
+        run: cargo test -- --nocapture --quiet
 
       - name: clippy
         if: matrix.os == 'windows-latest'
