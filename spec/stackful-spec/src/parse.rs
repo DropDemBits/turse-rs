@@ -6,10 +6,10 @@ use std::{
 };
 
 use crate::{
-    AdtField, BytecodeSpec, CommonNodes, Enum, EnumVariant, Group, Instruction, KnownAttrs,
-    NameKind, Operand, ParseError, Property, PropertyValue, Scalar, StringList, Struct, Type,
-    Types, Union, UnionVariant,
-    entities::{EnumRef, EnumVariantRef, TypeRef, UnionRef, UnionVariantRef},
+    AdtField, BytecodeSpec, CommonNodes, Enum, EnumVariant, Group, Immediate, Instruction,
+    KnownAttrs, NameKind, Operand, ParseError, Property, PropertyValue, Scalar, StackAfter,
+    StackBefore, StackEffect, StringList, Struct, Type, Types, Union, UnionVariant, ast,
+    entities::{EnumRef, EnumVariantRef, ImmediateOperandRef, TypeRef, UnionRef, UnionVariantRef},
 };
 
 const SCALAR_ATTRS: &[KnownAttrs] = &[KnownAttrs::Description, KnownAttrs::ReprType];
@@ -35,11 +35,17 @@ const STACK_AFTER_OPERAND_ATTRS: &[KnownAttrs] = &[
     KnownAttrs::Computed,
     KnownAttrs::ComputedOffset,
     KnownAttrs::Preserves,
+    KnownAttrs::PushedIf,
 ];
 const EXCEPTION_CASE_ATTRS: &[KnownAttrs] = &[KnownAttrs::Description];
 
 const TOP_LEVEL_CHILD_NODES: &[&str] = &["types", "exceptions", "instructions"];
 const INSTRUCTION_CHILD_NODES: &[&str] = &["operands", "stack_before", "stack_after", "exceptions"];
+
+const NO_AT_NODES: &[&str] = &[];
+const STACK_OPERAND_LIST_AT_NODES: &[&str] = &["@conditional", "@conditional-case"];
+const CONDITIONAL_CASE_AT_NODES: &[&str] = &["@case"];
+const CONDITIONAL_AT_NODES: &[&str] = &["@predicate"];
 
 pub(crate) fn parse_spec(text: &str) -> Result<BytecodeSpec, ParseError> {
     let kdl: kdl::KdlDocument = text.parse()?;
@@ -555,9 +561,7 @@ fn parse_instruction(node: &kdl::KdlNode, types: &Types) -> Result<Instruction, 
         let mut operand_names = DefsTracker::new(NameKind::Operand);
 
         for entry in operands.nodes() {
-            expect_attribute_names(entry, IMMEDIATE_OPERAND_ATTRS)?;
-
-            let def = parse_operand(entry, types)?;
+            let def = parse_immediate_operand(entry, types)?;
             operand_names.track_def(def.name.to_owned(), entry.name().span())?;
             operand_defs.push(def);
         }
@@ -567,8 +571,62 @@ fn parse_instruction(node: &kdl::KdlNode, types: &Types) -> Result<Instruction, 
         // No explicit immediate operands
         vec![]
     };
+    let immediate_operand_refs: BTreeMap<_, _> = immediate_operands
+        .iter()
+        .enumerate()
+        .map(|(index, operand)| (operand.name(), ImmediateOperandRef::from_usize(index)))
+        .collect();
 
-    // TODO: parse stack operands and conditional decodes
+    // notes:
+    // - enums: be exhaustive, only allow eq or not eq (invert not eq to other cases)
+    // - numbers: don't allow overlapping ranges (i.e. only lt le gt ge comparison with one number)
+    let stack_before_list = parse_stack_before_list(node)?.unwrap_or_default();
+    let stack_after_list = parse_stack_after_list(node)?.unwrap_or_default();
+
+    fn lower_stack_operands<V, N>(
+        ast: Vec<ast::Spanned<ast::MaybeConditional<'_, V>>>,
+        lower_fn: impl Fn(V) -> Result<N, ParseError>,
+    ) -> Result<Vec<N>, ParseError> {
+        let mut operands = vec![];
+
+        for entry in ast {
+            let ast::MaybeConditional::Operand(operand) = entry.into_inner() else {
+                continue;
+            };
+
+            operands.push(lower_fn(operand)?);
+        }
+
+        Ok(operands)
+    }
+
+    fn check_duplicate_names<'src, V>(
+        ast: &[ast::Spanned<ast::MaybeConditional<'_, V>>],
+        operand_name: impl Fn(&V) -> ast::Spanned<&str>,
+    ) -> Result<(), ParseError> {
+        let mut defs_tracker = DefsTracker::new(NameKind::Operand);
+
+        for entry in ast {
+            let ast::MaybeConditional::Operand(operand) = entry.value() else {
+                continue;
+            };
+
+            let name = operand_name(operand);
+            defs_tracker.track_def(name.value().to_owned(), name.span())?;
+        }
+
+        Ok(())
+    }
+
+    check_duplicate_names(&stack_before_list.entries, |ast| ast.name)?;
+    check_duplicate_names(&stack_after_list.entries, |ast| ast.name)?;
+
+    let stack_before_operands = lower_stack_operands(stack_before_list.entries, |ast| {
+        lower_stack_before_operand(ast, types, &immediate_operand_refs)
+    })?;
+    let stack_after = lower_stack_operands(stack_after_list.entries, |ast| {
+        lower_stack_after_operand(ast, types, &immediate_operand_refs)
+    })?;
 
     Ok(Instruction {
         mnemonic: node.name().value().to_owned(),
@@ -576,13 +634,184 @@ fn parse_instruction(node: &kdl::KdlNode, types: &Types) -> Result<Instruction, 
         heading: heading.map(String::from),
         description: description.map(String::from),
         immediate_operands: immediate_operands.into_boxed_slice(),
-        stack_before_operands: Box::new([]),
-        stack_after_operands: Box::new([]),
-        conditional_decodes: None,
+        stack_effects: vec![StackEffect {
+            predicate: None,
+            stack_before: stack_before_operands.into_boxed_slice(),
+            stack_after: stack_after.into_boxed_slice(),
+        }]
+        .into_boxed_slice(),
     })
 }
 
-fn parse_operand(node: &kdl::KdlNode, types: &Types) -> Result<Operand, ParseError> {
+fn parse_stack_before_list<'kdl>(
+    node: &'kdl kdl::KdlNode,
+) -> Result<Option<ast::StackBeforeList<'kdl>>, ParseError> {
+    let Some(node) = find_child(node, "stack_before") else {
+        return Ok(None);
+    };
+
+    expect_attribute_names(node, NO_ATTRS)?;
+    expect_child_at_names(node.children(), STACK_OPERAND_LIST_AT_NODES)?;
+
+    let operands = get_required_children(node, CommonNodes::OperandsList)?;
+    let operand_list = ast::StackBeforeList {
+        entries: parse_maybe_conditional_nodes(operands, parse_stack_before_operand)?,
+    };
+
+    Ok(Some(operand_list))
+}
+
+fn parse_stack_after_list<'kdl>(
+    node: &'kdl kdl::KdlNode,
+) -> Result<Option<ast::StackAfterList<'kdl>>, ParseError> {
+    let Some(node) = find_child(node, "stack_after") else {
+        return Ok(None);
+    };
+
+    expect_attribute_names(node, NO_ATTRS)?;
+    expect_child_at_names(node.children(), STACK_OPERAND_LIST_AT_NODES)?;
+
+    let operands = get_required_children(node, CommonNodes::OperandsList)?;
+    let operand_list = ast::StackAfterList {
+        entries: parse_maybe_conditional_nodes(operands, parse_stack_after_operand)?,
+    };
+
+    Ok(Some(operand_list))
+}
+
+fn parse_stack_before_operand<'kdl>(
+    node: &'kdl kdl::KdlNode,
+) -> Result<ast::Spanned<ast::StackBeforeOperand<'kdl>>, ParseError> {
+    expect_attribute_names(node, &STACK_BEFORE_OPERAND_ATTRS)?;
+
+    let name = ast::Spanned::new(node.name().value(), node.name().span());
+    let ty = parse_required_spanned_string_entry(node, 0)?;
+    let description = parse_spanned_description(node)?;
+    let unused = parse_spanned_bool_entry(node, "unused")?;
+    let variadic = parse_spanned_bool_entry(node, "variadic")?;
+
+    // TODO: Computed element/offset operands
+    // TODO: Reject preserves, preserves-if
+    Ok(ast::Spanned::new(
+        ast::StackBeforeOperand {
+            name,
+            ty,
+            description,
+            unused,
+            variadic,
+            computed: None,
+            computed_offset: None,
+        },
+        node.name().span(),
+    ))
+}
+
+fn parse_stack_after_operand<'kdl>(
+    node: &'kdl kdl::KdlNode,
+) -> Result<ast::Spanned<ast::StackAfterOperand<'kdl>>, ParseError> {
+    expect_attribute_names(node, STACK_AFTER_OPERAND_ATTRS)?;
+
+    let name = ast::Spanned::new(node.name().value(), node.name().span());
+    let ty = parse_required_spanned_string_entry(node, 0)?;
+    let description = parse_spanned_description(node)?;
+    let unused = parse_spanned_bool_entry(node, "unused")?;
+
+    // TODO: Preserves, Preserves-If, Computed element/offset operands
+    // TODO: Reject variadic
+    Ok(ast::Spanned::new(
+        ast::StackAfterOperand {
+            name,
+            ty,
+            description,
+            unused,
+            preserves: None,
+            computed: None,
+            computed_offset: None,
+        },
+        node.name().span(),
+    ))
+}
+
+fn lower_stack_before_operand<'kdl>(
+    ast: ast::StackBeforeOperand<'_>,
+    types: &Types,
+    immediate_operands: &BTreeMap<&'_ str, ImmediateOperandRef>,
+) -> Result<Operand<StackBefore>, ParseError> {
+    let Some(ty) = types.get(ast.ty.value()) else {
+        return Err(ParseError::UnknownTypeName(
+            String::from(*ast.ty.value()),
+            ast.ty.span(),
+        ));
+    };
+
+    Ok(Operand {
+        name: ast.name.map_inner(String::from),
+        ty,
+        description: ast.description.map(|it| it.map_inner(String::from)),
+        unused: ast.unused.map_or(false, |it| it.into_inner()),
+        special: StackBefore {
+            variadic: ast.variadic.map_or(false, |it| it.into_inner()),
+            computed: None,
+            computed_offset: None,
+        },
+    })
+}
+
+fn lower_stack_after_operand<'kdl>(
+    ast: ast::StackAfterOperand<'_>,
+    types: &Types,
+    immediate_operands: &BTreeMap<&'_ str, ImmediateOperandRef>,
+) -> Result<Operand<StackAfter>, ParseError> {
+    let Some(ty) = types.get(ast.ty.value()) else {
+        return Err(ParseError::UnknownTypeName(
+            String::from(*ast.ty.value()),
+            ast.ty.span(),
+        ));
+    };
+
+    Ok(Operand {
+        name: ast.name.map_inner(String::from),
+        ty,
+        description: ast.description.map(|it| it.map_inner(String::from)),
+        unused: ast.unused.map_or(false, |it| it.into_inner()),
+        special: StackAfter {
+            preserves: None,
+            computed: None,
+            computed_offset: None,
+        },
+    })
+}
+
+fn parse_maybe_conditional_nodes<'node, V>(
+    children: &'node kdl::KdlDocument,
+    parse_operand: impl Fn(&'node kdl::KdlNode) -> Result<ast::Spanned<V>, ParseError>,
+) -> Result<Vec<ast::Spanned<ast::MaybeConditional<'node, V>>>, ParseError>
+where
+    V: 'node,
+{
+    let mut entries = vec![];
+
+    for entry in children.nodes() {
+        // TODO: parse conditional decodes
+        let entry = match entry.name().value() {
+            "@conditional" => continue,
+            "@conditional-case" => continue,
+            name if name.starts_with('@') => continue,
+            _ => parse_operand(entry).map(|it| it.map(ast::MaybeConditional::Operand))?,
+        };
+
+        entries.push(entry);
+    }
+
+    Ok(entries)
+}
+
+fn parse_immediate_operand(
+    node: &kdl::KdlNode,
+    types: &Types,
+) -> Result<Operand<Immediate>, ParseError> {
+    expect_attribute_names(node, IMMEDIATE_OPERAND_ATTRS)?;
+
     let name = node.name().value();
     let ty = parse_required_string_entry(node, 0)?;
     let Some(ty) = types.get(ty) else {
@@ -590,10 +819,7 @@ fn parse_operand(node: &kdl::KdlNode, types: &Types) -> Result<Operand, ParseErr
         return Err(ParseError::UnknownTypeName(ty.to_owned(), ty_span.span()));
     };
     let description = parse_description(node)?;
-    let unused = node
-        .entry("unused")
-        .and_then(|it| it.value().as_bool()) // expect bool
-        .unwrap_or(false);
+    let unused = parse_bool_entry(node, "unused")?.unwrap_or(false);
 
     // other things!
     Ok(Operand {
@@ -601,9 +827,7 @@ fn parse_operand(node: &kdl::KdlNode, types: &Types) -> Result<Operand, ParseErr
         ty,
         description: description.map(String::from),
         unused,
-        variadic: false,
-        preserves: None,
-        computed: None,
+        special: Immediate {},
     })
 }
 
@@ -654,6 +878,32 @@ fn expect_child_names(
     Ok(())
 }
 
+/// Ensure that there are no unexpected `@` nodes for nodes that are intermixed with user-defined node names.
+fn expect_child_at_names(
+    children: Option<&kdl::KdlDocument>,
+    accepted_childs: &[&'static str],
+) -> Result<(), ParseError> {
+    let Some(children) = children else {
+        return Ok(());
+    };
+
+    for child in children.nodes().iter() {
+        if !child.name().value().starts_with("@") {
+            // We're only checking for nodes that start with @'s
+            continue;
+        }
+
+        if !accepted_childs.contains(&child.name().value()) {
+            return Err(ParseError::UnexpectedChildNode(
+                child.name().span(),
+                StringList(accepted_childs.iter().map(|it| String::from(*it)).collect()),
+            ));
+        }
+    }
+
+    Ok(())
+}
+
 /// Parses a heading argument node
 fn parse_heading(node: &kdl::KdlNode, at_arg: usize) -> Result<Option<&str>, ParseError> {
     parse_string_entry(node, at_arg)
@@ -662,6 +912,13 @@ fn parse_heading(node: &kdl::KdlNode, at_arg: usize) -> Result<Option<&str>, Par
 /// Parses a description attribute node
 fn parse_description(node: &kdl::KdlNode) -> Result<Option<&str>, ParseError> {
     parse_string_attribute(node, "description")
+}
+
+/// Parses a description attribute node
+fn parse_spanned_description(
+    node: &kdl::KdlNode,
+) -> Result<Option<ast::Spanned<&str>>, ParseError> {
+    parse_spanned_string_attribute(node, "description")
 }
 
 /// Parses a repr_type attribute node
@@ -718,6 +975,18 @@ fn parse_string_attribute<'node>(
     parse_required_string_entry(attr_node, 1).map(Some)
 }
 
+/// Parses a stringy attribute node
+fn parse_spanned_string_attribute<'node>(
+    node: &'node kdl::KdlNode,
+    attr_name: &'static str,
+) -> Result<Option<ast::Spanned<&'node str>>, ParseError> {
+    let Some(attr_node) = find_attribute_node(node, attr_name) else {
+        return Ok(None);
+    };
+
+    parse_required_spanned_string_entry(attr_node, 1).map(Some)
+}
+
 fn find_attribute_node<'node>(
     node: &'node kdl::KdlNode,
     attr_name: &'static str,
@@ -728,6 +997,34 @@ fn find_attribute_node<'node>(
             .and_then(|key| key.value().as_string())
             == Some(attr_name)
     })
+}
+
+fn parse_bool_entry(
+    node: &kdl::KdlNode,
+    key: impl Into<kdl::NodeKey>,
+) -> Result<Option<bool>, ParseError> {
+    let Some(entry) = node.entry(key) else {
+        return Ok(None);
+    };
+
+    match entry.value().as_bool() {
+        Some(value) => Ok(Some(value)),
+        None => Err(ParseError::ExpectedBool(entry.span())),
+    }
+}
+
+fn parse_spanned_bool_entry(
+    node: &kdl::KdlNode,
+    key: impl Into<kdl::NodeKey>,
+) -> Result<Option<ast::Spanned<bool>>, ParseError> {
+    let Some(entry) = node.entry(key) else {
+        return Ok(None);
+    };
+
+    match entry.value().as_bool() {
+        Some(value) => Ok(Some(ast::Spanned::new(value, entry.span()))),
+        None => Err(ParseError::ExpectedBool(entry.span())),
+    }
 }
 
 fn parse_string_entry(
@@ -755,6 +1052,36 @@ fn parse_required_string_entry(
     };
 
     parse_string_entry(node, key)?.ok_or_else(|| match label {
+        Some(label) => ParseError::MissingProperty(label, node.name().span()),
+        None => ParseError::MissingString(node.name().span()),
+    })
+}
+
+fn parse_spanned_string_entry(
+    node: &kdl::KdlNode,
+    key: impl Into<kdl::NodeKey>,
+) -> Result<Option<ast::Spanned<&str>>, ParseError> {
+    let Some(entry) = node.entry(key) else {
+        return Ok(None);
+    };
+
+    match entry.value().as_string() {
+        Some(value) => Ok(Some(ast::Spanned::new(value, entry.span()))),
+        None => Err(ParseError::ExpectedString(entry.span())),
+    }
+}
+
+fn parse_required_spanned_string_entry(
+    node: &kdl::KdlNode,
+    key: impl Into<kdl::NodeKey>,
+) -> Result<ast::Spanned<&str>, ParseError> {
+    let key = key.into();
+    let label = match &key {
+        kdl::NodeKey::Key(ident) => Some(ident.value().to_owned()),
+        kdl::NodeKey::Index(_) => None,
+    };
+
+    parse_spanned_string_entry(node, key)?.ok_or_else(|| match label {
         Some(label) => ParseError::MissingProperty(label, node.name().span()),
         None => ParseError::MissingString(node.name().span()),
     })
@@ -1063,7 +1390,7 @@ mod tests {
     }
 
     #[test]
-    fn parse_instruction_operands() {
+    fn parse_instruction_immediate_operands() {
         let out = parse_pass(
             r#"
             types {
@@ -1108,6 +1435,185 @@ mod tests {
             assert_eq!(operand.ty, int4);
             assert_eq!(operand.description.as_deref(), Some("op3"));
         }
+    }
+
+    #[test]
+    fn parse_fail_instruction_duplicate_immediate_operand() {
+        let err = parse_fail(
+            r#"
+            types {
+                scalar "int4" size=4
+            }
+
+            instructions {
+                INSTR_A 0x0 {
+                    operands {
+                       op1 "int4" 
+                       op1 "int4" 
+                    }
+                }
+            }
+            "#,
+        );
+
+        assert!(
+            matches!(&err, ParseError::DuplicateName(NameKind::Operand, ..)),
+            "{err:#?}"
+        );
+    }
+
+    #[test]
+    fn parse_instruction_stack_before_operands_no_conditional_decode() {
+        // TODO: computed & computed_offset
+        let out = parse_pass(
+            r#"
+            types {
+                scalar int4 size=4
+            }
+            instructions {
+                INSTR_A 0x0 {
+                    operands {}
+                    stack_before {
+                        op1 "int4"
+                        op2 "int4" unused=#true variadic=#true { - description "op2" }
+                        op3 "int4" { - description "op3" }
+                    }
+                }
+            }
+            "#,
+        );
+
+        assert_eq!(out.instructions.len(), 1);
+        let instr = &out.instructions[0];
+        let int4 = out.types.get("int4").expect("should have int4 type");
+
+        assert_eq!(instr.stack_effects[0].stack_before().len(), 3);
+
+        {
+            let operand = &instr.stack_effects[0].stack_before()[0];
+            assert_eq!(operand.name, "op1");
+            assert_eq!(operand.ty, int4);
+            assert_eq!(operand.description, None);
+        }
+
+        {
+            let operand = &instr.stack_effects[0].stack_before()[1];
+            assert_eq!(operand.name, "op2");
+            assert_eq!(operand.ty, int4);
+            assert_eq!(operand.unused, true);
+            assert_eq!(operand.special.variadic, true);
+            assert_eq!(operand.description.as_deref(), Some("op2"));
+        }
+
+        {
+            let operand = &instr.stack_effects[0].stack_before()[2];
+            assert_eq!(operand.name, "op3");
+            assert_eq!(operand.ty, int4);
+            assert_eq!(operand.description.as_deref(), Some("op3"));
+        }
+    }
+
+    #[test]
+    fn parse_fail_instruction_duplicate_stack_before_operand_no_conditional_decode() {
+        let err = parse_fail(
+            r#"
+            types {
+                scalar "int4" size=4
+            }
+
+            instructions {
+                INSTR_A 0x0 {
+                    stack_before {
+                       op1 "int4" 
+                       op1 "int4" 
+                    }
+                }
+            }
+            "#,
+        );
+
+        assert!(
+            matches!(&err, ParseError::DuplicateName(NameKind::Operand, ..)),
+            "{err:#?}"
+        );
+    }
+
+    #[test]
+    fn parse_instruction_stack_after_operands_no_conditional_decode() {
+        // TODO: preserves, computed & computed_offset
+        let out = parse_pass(
+            r#"
+            types {
+                scalar int4 size=4
+            }
+            instructions {
+                INSTR_A 0x0 {
+                    operands {}
+                    stack_before {
+                        op1 "int4"
+                    }
+                    stack_after {
+                        op1 "int4"
+                        op2 "int4" unused=#true { - description "op2" }
+                        op3 "int4" { - description "op3" }
+                    }
+                }
+            }
+            "#,
+        );
+
+        assert_eq!(out.instructions.len(), 1);
+        let instr = &out.instructions[0];
+        let int4 = out.types.get("int4").expect("should have int4 type");
+
+        assert_eq!(instr.stack_effects[0].stack_after().len(), 3);
+
+        {
+            let operand = &instr.stack_effects[0].stack_after()[0];
+            assert_eq!(operand.name, "op1");
+            assert_eq!(operand.ty, int4);
+            assert_eq!(operand.description, None);
+        }
+
+        {
+            let operand = &instr.stack_effects[0].stack_after()[1];
+            assert_eq!(operand.name, "op2");
+            assert_eq!(operand.ty, int4);
+            assert_eq!(operand.unused, true);
+            assert_eq!(operand.description.as_deref(), Some("op2"));
+        }
+
+        {
+            let operand = &instr.stack_effects[0].stack_after()[2];
+            assert_eq!(operand.name, "op3");
+            assert_eq!(operand.ty, int4);
+            assert_eq!(operand.description.as_deref(), Some("op3"));
+        }
+    }
+
+    #[test]
+    fn parse_fail_instruction_duplicate_stack_after_operand_no_conditional_decode() {
+        let err = parse_fail(
+            r#"
+            types {
+                scalar "int4" size=4
+            }
+
+            instructions {
+                INSTR_A 0x0 {
+                    stack_after {
+                       op1 "int4" 
+                       op1 "int4" 
+                    }
+                }
+            }
+            "#,
+        );
+
+        assert!(
+            matches!(&err, ParseError::DuplicateName(NameKind::Operand, ..)),
+            "{err:#?}"
+        );
     }
 
     #[test]

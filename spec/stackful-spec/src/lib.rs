@@ -28,12 +28,13 @@ use std::{
 };
 
 use entities::{
-    EnumRef, EnumVariantRef, ImmediateOperand, ScalarRef, StackAfterOperand, StackBeforeOperand,
-    StructRef, TypeRef, UnionVariantRef,
+    EnumRef, EnumVariantRef, ImmediateOperandRef, ScalarRef, StackBeforeOperandRef, StructRef,
+    TypeRef, UnionVariantRef,
 };
 
 pub mod entities;
 
+mod ast;
 mod parse;
 
 type Str = String;
@@ -110,6 +111,10 @@ pub enum ParseError {
     #[error("expected a string value")]
     #[diagnostic(code(bytecode_spec::expected_string))]
     ExpectedString(#[label] miette::SourceSpan),
+
+    #[error("expected a boolean value")]
+    #[diagnostic(code(bytecode_spec::expected_bool))]
+    ExpectedBool(#[label] miette::SourceSpan),
 
     #[error("expected an integer value")]
     #[diagnostic(code(bytecode_spec::expected_integer))]
@@ -206,6 +211,7 @@ pub enum CommonNodes {
     TypeList,
     GroupNode,
     OperandsList,
+    StackBeforeList,
     OpcodeNode,
     StructNode,
     EnumNode,
@@ -220,6 +226,7 @@ impl CommonNodes {
             CommonNodes::TypeList => "types",
             CommonNodes::GroupNode => "group",
             CommonNodes::OperandsList => "operands",
+            CommonNodes::StackBeforeList => "stack_before",
             CommonNodes::OpcodeNode => "opcode",
             CommonNodes::StructNode => "struct",
             CommonNodes::EnumNode => "enum",
@@ -292,6 +299,7 @@ pub enum KnownAttrs {
     Computed,
     ComputedOffset,
     Preserves,
+    PushedIf,
 }
 
 impl FromStr for KnownAttrs {
@@ -304,6 +312,7 @@ impl FromStr for KnownAttrs {
             "computed" => Ok(Self::Computed),
             "computed_offset" => Ok(Self::ComputedOffset),
             "preserves" => Ok(Self::Preserves),
+            "pushed-if" => Ok(Self::PushedIf),
             _ => Err(()),
         }
     }
@@ -317,6 +326,7 @@ impl Display for KnownAttrs {
             KnownAttrs::Computed => "computed",
             KnownAttrs::ComputedOffset => "computed_offset",
             KnownAttrs::Preserves => "preserves",
+            KnownAttrs::PushedIf => "pushed-if",
         })
     }
 }
@@ -419,14 +429,8 @@ pub struct Instruction {
     opcode: u32,
     heading: Option<Str>,
     description: Option<Str>,
-    // don't have to expose these immediately
-    immediate_operands: Box<[Operand]>,
-    // representing stack operands is hard because
-    // - decode may be conditional
-    // stack operand refs refer to specific named slots, not instances hidden behind conditional decode
-    stack_before_operands: Box<[Operand]>,
-    stack_after_operands: Box<[Operand]>,
-    conditional_decodes: Option<Box<[ConditionalDecode]>>,
+    immediate_operands: Box<[Operand<Immediate>]>,
+    stack_effects: Box<[StackEffect]>,
 }
 
 // q: providing access to decode variants?
@@ -452,113 +456,190 @@ impl Instruction {
         self.description.as_deref()
     }
 
-    /// Immediately decoded operands.
-    pub fn immediate_operands(&self) -> &[Operand] {
+    /// Immediate operands decoded from the instruction stream.
+    pub fn immediate_operands(&self) -> &[Operand<Immediate>] {
         &self.immediate_operands
+    }
+
+    pub fn stack_effects(&self) -> &[StackEffect] {
+        &self.stack_effects
+    }
+}
+
+/// Potential stack effect that an instruction may have.
+#[derive(Debug)]
+pub struct StackEffect {
+    predicate: Option<Box<ConditionalExpr>>,
+    stack_before: Box<[Operand<StackBefore>]>,
+    stack_after: Box<[Operand<StackAfter>]>,
+}
+
+impl StackEffect {
+    /// When does this stack effect apply, or if this applies when no other decode predicates apply.
+    pub fn predicate(&self) -> Option<&ConditionalExpr> {
+        self.predicate.as_deref()
+    }
+
+    /// What the stack should look like before the execution of the instruction.
+    pub fn stack_before(&self) -> &[Operand<StackBefore>] {
+        &self.stack_before
+    }
+
+    /// What the stack should look like after the execution of the instruction.
+    pub fn stack_after(&self) -> &[Operand<StackAfter>] {
+        &self.stack_after
     }
 }
 
 #[derive(Debug)]
-#[non_exhaustive]
-pub struct Operand {
+pub struct Immediate {}
+
+#[derive(Debug)]
+pub struct StackBefore {
+    variadic: bool,
+    computed: Option<ComputedExpr>,
+    computed_offset: Option<ComputedExpr>,
+}
+
+#[derive(Debug)]
+pub struct StackAfter {
+    preserves: Option<StackBeforeOperandRef>,
+    // TODO: pushed_if because there are some operands that aren't always pushed
+    computed: Option<ComputedExpr>,
+    computed_offset: Option<ComputedExpr>,
+}
+
+/// An instruction operand (either a stack or immediate operand).
+#[derive(Debug)]
+pub struct Operand<T> {
+    name: Str,
+    ty: TypeRef,
+    description: Option<Str>,
+    unused: bool,
+    special: T,
+}
+
+impl<T> Operand<T> {
     /// Name of the operand.
-    pub name: Str,
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
     /// Operand type, refers to the top-level type list.
-    pub ty: TypeRef,
+    pub fn ty(&self) -> TypeRef {
+        self.ty
+    }
+
     /// Brief description of how this operand is used.
-    pub description: Option<Str>,
+    pub fn description(&self) -> Option<&str> {
+        self.description.as_deref()
+    }
+
     /// If this operand is not used by the instruction.
     /// Intended for documentation purposes to mark operands as
     /// never being touched, or operands that may have had some use in the past.
-    pub unused: bool,
-    /// If this is a variadic operand whose element count is computed at runtime.
-    /// Only applicable for stack_before operands.
-    pub variadic: bool,
-    /// Which stack_before operand this preserves, which could potentially be in a
-    /// different stack slot.
-    /// Only applicable for stack_after operands.
-    pub preserves: Option<StackBeforeOperand>,
-    /// Expression to compute the element count at decode time, if applicable.
-    pub computed: Option<ComputedExpr>,
-}
-
-/// Named reference to an operand
-#[derive(Debug)]
-#[non_exhaustive]
-pub enum OperandRef {
-    Immediate(ImmediateOperand),
-    StackBefore(StackBeforeOperand),
-    StackAfter(StackAfterOperand),
-}
-
-#[derive(Debug)]
-pub struct ConditionalDecode {
-    predicate: Option<DecodePredicate>,
-}
-
-impl ConditionalDecode {
-    /// When does this decode apply, or if this applies when all of the other
-    /// predicates don't apply.
-    pub fn predicate(&self) -> Option<&DecodePredicate> {
-        self.predicate.as_ref()
+    pub fn unused(&self) -> bool {
+        self.unused
     }
 }
 
-#[derive(Debug)]
-#[non_exhaustive]
-pub struct DecodePredicate {
-    pub lhs: PredicateOperand,
-    pub op: PredicateOp,
-    pub rhs: PredicateOperand,
+impl Operand<StackBefore> {
+    /// If this is a variadic operand whose element count is computed at runtime.
+    pub fn variadic(&self) -> bool {
+        self.special.variadic
+    }
+
+    /// Expression to compute the element count at decode time, if applicable.
+    pub fn computed(&self) -> Option<&ComputedExpr> {
+        self.special.computed.as_ref()
+    }
+
+    /// Expression to compute the stack offset at decode time, if applicable.
+    pub fn computed_offset(&self) -> Option<&ComputedExpr> {
+        self.special.computed_offset.as_ref()
+    }
 }
 
-#[derive(Debug)]
+impl Operand<StackAfter> {
+    /// Which stack_before operand this preserves, which could potentially be in a
+    /// different stack slot.
+    pub fn preserves(&self) -> Option<StackBeforeOperandRef> {
+        self.special.preserves
+    }
+
+    /// Expression to compute the element count at decode time, if applicable.
+    pub fn computed(&self) -> Option<&ComputedExpr> {
+        self.special.computed.as_ref()
+    }
+
+    /// Expression to compute the stack offset at decode time, if applicable.
+    pub fn computed_offset(&self) -> Option<&ComputedExpr> {
+        self.special.computed_offset.as_ref()
+    }
+}
+
+// ???: Conjunction for the inevitable overlaps?
+// - Currently, only aiming for non-unifying conditions
+/// Describes when a [`StackEffect`] may or may not apply.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct ConditionalExpr {
+    /// Left-hand side of a conditional expression.
+    /// Always refers to one of the instruction's operands.
+    pub lhs: ImmediateOperandRef,
+    /// Comparison operator to perform.
+    pub op: PredicateOp,
+    /// Value to compare to.
+    pub rhs: PredicateValue,
+}
+
+/// An operation in a conditional decode predicate expression.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum PredicateOp {
+    /// `==`
     Eq,
+    /// `!=`
     NotEq,
+    /// `<`
     Less,
+    /// `<=`
     LessEq,
+    /// `>`
     Greater,
+    /// `>=`
     GreaterEq,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[non_exhaustive]
-pub enum PredicateOperand {
-    /// Refers to a specific [`ImmediateOperand`].
-    ImmediateOperand(ImmediateOperand),
-    /// Refers to a specific enum's variant
+pub enum PredicateValue {
+    /// Refers to a specific enum's variant.
     VariantRef(EnumVariantRef),
+    /// Refers to a literal integer constant.
+    Number(isize),
 }
 
+/// Expression computed at decode time to either compute an element count, or a stack byte offset.
 #[derive(Debug)]
 pub enum ComputedExpr {
     /// Refers to a specific [`ImmediateOperand`].
-    ImmediateOperand(ImmediateOperand),
+    ImmediateOperand(ImmediateOperandRef),
     /// Refers to a specific enum's variant
     VariantRef(EnumVariantRef),
     Add(Box<ComputedExpr>, Box<ComputedExpr>),
     Sub(Box<ComputedExpr>, Box<ComputedExpr>),
     Mul(Box<ComputedExpr>, Box<ComputedExpr>),
     Div(Box<ComputedExpr>, Box<ComputedExpr>),
-    /// Conditionally evaluates to one value or the other, based on the predicate.
-    If {
-        predicate: Box<ComputedPredicate>,
-        if_true: Box<ComputedExpr>,
-        if_false: Box<ComputedExpr>,
-    },
 }
 
+/// Expression computed at decode time to either compute an element count, or a stack byte offset.
 #[derive(Debug)]
-pub enum ComputedPredicate {
-    Eq(Box<ComputedExpr>, Box<ComputedExpr>),
-    NotEq(Box<ComputedExpr>, Box<ComputedExpr>),
-    LessThan(Box<ComputedExpr>, Box<ComputedExpr>),
-    GreaterThan(Box<ComputedExpr>, Box<ComputedExpr>),
-    GreaterEq(Box<ComputedExpr>, Box<ComputedExpr>),
-    LessEq(Box<ComputedExpr>, Box<ComputedExpr>),
-    And(Box<ComputedPredicate>, Box<ComputedPredicate>),
-    Or(Box<ComputedPredicate>, Box<ComputedPredicate>),
+pub struct ComputedPredicate {
+    /// Left-hand side of a conditional expression.
+    pub lhs: ImmediateOperandRef,
+    /// Comparison operator to perform.
+    pub op: PredicateOp,
+    /// Value to compare to.
+    pub rhs: PredicateValue,
 }
 
 #[derive(Debug)]
