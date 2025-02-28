@@ -82,6 +82,32 @@ fn generate_opcodes(spec: &BytecodeSpec) -> TokenStream {
                     docs.push_str(description);
                 }
 
+                docs.push_str("\n\n## Stack Effect\n\n");
+                match instr.stack_effects() {
+                    [] => {
+                        docs.push_str("None");
+                    }
+                    [effect] => {
+                        // Singular stack effect, can render it out
+                        docs.push_str("```text\n(");
+                        for before in effect.stack_before() {
+                            docs.push(' ');
+                            docs.push_str(before.name());
+                            docs.push(':');
+                            docs.push_str(spec.types[before.ty()].name());
+                        }
+                        docs.push_str(" --");
+                        for after in effect.stack_after() {
+                            docs.push(' ');
+                            docs.push_str(after.name());
+                            docs.push(':');
+                            docs.push_str(spec.types[after.ty()].name());
+                        }
+                        docs.push_str(" )\n\n```");
+                    }
+                    _ => docs.push_str("(varies)"),
+                }
+
                 doc_comment(Some(docs.as_str()))
             };
 
