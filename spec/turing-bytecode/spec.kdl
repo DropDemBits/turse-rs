@@ -4130,7 +4130,7 @@ instructions {
         - description "The boolean value to invert."
       }
     }
-    stack_before {
+    stack_after {
       out "int4" {
         - description "The inverted boolean value."
       }
