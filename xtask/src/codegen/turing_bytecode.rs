@@ -406,7 +406,7 @@ fn generate_encode_operands(spec: &BytecodeSpec) -> TokenStream {
         .instructions
         .iter()
         .flat_map(|instr| instr.immediate_operands())
-        .map(|operand| operand.ty)
+        .map(|operand| operand.ty())
         .collect();
     let operand_tys: Vec<_> = operand_tys.into_iter().map(|ty| &spec.types[ty]).collect();
 
@@ -684,10 +684,10 @@ fn generate_instr_encode_fns(spec: &BytecodeSpec) -> TokenStream {
                     doc.push_str("\n\n## Operands\n\n");
 
                     for operand in instr.immediate_operands() {
-                        if let Some(description) = &operand.description {
+                        if let Some(description) = operand.description() {
                             doc.push_str(&format!(
                                 "- {}: {description}\n",
-                                operand.name.to_snek_case(),
+                                operand.name().to_snek_case(),
                             ));
                         }
                     }
@@ -702,8 +702,8 @@ fn generate_instr_encode_fns(spec: &BytecodeSpec) -> TokenStream {
                 .immediate_operands()
                 .iter()
                 .map(|operand| {
-                    let ident = format_ident!("{}", operand.name.to_snek_case());
-                    let ty = format_ident!("{}", &spec.types[operand.ty].name().to_pascal_case());
+                    let ident = format_ident!("{}", operand.name().to_snek_case());
+                    let ty = format_ident!("{}", &spec.types[operand.ty()].name().to_pascal_case());
 
                     quote! { #ident: #ty }
                 })
@@ -712,8 +712,8 @@ fn generate_instr_encode_fns(spec: &BytecodeSpec) -> TokenStream {
                 .immediate_operands()
                 .iter()
                 .map(|operand| {
-                    let ident = format_ident!("{}", operand.name.to_snek_case());
-                    let ty = format_ident!("{}", &spec.types[operand.ty].name().to_pascal_case());
+                    let ident = format_ident!("{}", operand.name().to_snek_case());
+                    let ty = format_ident!("{}", &spec.types[operand.ty()].name().to_pascal_case());
 
                     quote! { with_operand(Operand::#ty(#ident)) }
                 })

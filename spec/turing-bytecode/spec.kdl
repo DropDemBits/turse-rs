@@ -58,6 +58,12 @@ types {
     """
     - repr_type "i32"
   }
+  scalar "nat1" size=1 {
+    - description """
+    8-bit unsigned integer.
+    """
+    - repr_type "u8"
+  }
   scalar "nat2" size=2 {
     - description """
     16-bit unsigned integer.
@@ -670,9 +676,7 @@ instructions {
           """
         }
       }
-      stack_after {
-        empty
-      }
+      stack_after {}
     }
   }
 
@@ -2998,7 +3002,7 @@ instructions {
     }
 
     GECLASS 0x70 "Compare Descendant or Same Class" {
-      descriptor """
+      - description """
       Tests if `lhs` is a class that is a descendant of, or the same class as `rhs`.
       This navigates up the class hierarchy of `lhs` to see if `rhs` is a member of the ancestor hierarchy.
 
@@ -3089,7 +3093,7 @@ instructions {
         lhs "nat4" {
           - description "Left-hand side of comparison."
         }
-        rhs "int" {
+        rhs "int4" {
           - description "Right-hand side of comparison."
         }
       }
@@ -3261,7 +3265,7 @@ instructions {
   }
 
   GTCLASS 0x7A "Compare Descendant Class" {
-    descriptor """
+    - description """
     Tests if `lhs` is a class that is a descendant of `rhs`.
     This navigates up the class hierarchy of `lhs` to see if `rhs` is a member of the ancestor hierarchy.
 
@@ -3343,8 +3347,9 @@ instructions {
         - description """
         Preserved value to test if the branch was not taken.
         """
-        - preserves-if (stack_before).value {
-          "==" (stack_before).value 0
+        - preserves (stack_before).value
+        - pushed-if {
+          @predicate (stack_before).value "==" 0
         }
       }
     }
@@ -3373,8 +3378,9 @@ instructions {
         - description """
         Preserved value to test if the branch was not taken.
         """
-        - preserves-if (stack_before).value {
-          "!=" (stack_before).value 0
+        - preserves (stack_before).value
+        - pushed-if {
+          (stack_before).value "!=" 0
         }
       }
     }
@@ -3456,7 +3462,7 @@ instructions {
     }
 
     LECLASS 0x8C "Compare Ancestor or Same Class" {
-      descriptor """
+      - description """
       Tests if `lhs` is a class that is an ancestor of, or the same class as `rhs`.
       This navigates up the class hierarchy of `lhs` to see if `rhs` is a member of the ancestor hierarchy.
 
@@ -3766,7 +3772,7 @@ instructions {
   }
 
   LTCLASS 0x99 "Compare Ancestor Class" {
-    descriptor """
+    - description """
     Tests if `lhs` is a class that is an ancestor of `rhs`.
     This navigates up the class hierarchy of `lhs` to see if `rhs` is a member of the ancestor hierarchy.
 
@@ -4169,7 +4175,7 @@ instructions {
     stack_before {}
     stack_after {
       frame_data "nat1" {
-        - - description """
+        - description """
         Call frame locals and temporaries.
 
         In the normal Turing ABI, the call frame area is split into two parts: the locals area, and the temporaries area.
@@ -4434,6 +4440,9 @@ instructions {
         @predicate (operands).put_kind "==" (put_kind).int_fract
         @predicate (operands).put_kind "==" (put_kind).nat_fract
         @predicate (operands).put_kind "==" (put_kind).real_fract
+        @predicate (operands).put_kind "==" (put_kind).int_exp
+        @predicate (operands).put_kind "==" (put_kind).nat_exp
+        @predicate (operands).put_kind "==" (put_kind).real_exp
 
         fractional_width "int4" {
           - description """
@@ -5155,7 +5164,7 @@ instructions {
     Raises an `ExecutionError` indicating that an illegal opcode was encountered.
     """
 
-    opcodes {}
+    operands {}
     exceptions {
       ExecutionError "Undecodable opcode #254" {
         - description "When executing this opcode."
