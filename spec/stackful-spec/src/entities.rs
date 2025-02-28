@@ -46,25 +46,20 @@ macro_rules! from_impls {
 
 /// Refers to a specific immediate operand in an [`Instruction`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct ImmediateOperand(usize);
-entity_impl!(ImmediateOperand);
+pub struct ImmediateOperandRef(usize);
+entity_impl!(ImmediateOperandRef);
 
 /// Refers to a specific stack_before operand in an [`Instruction`].
 /// This may be a part of a specific conditional decode group.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct StackBeforeOperand(usize);
-entity_impl!(StackBeforeOperand);
+pub struct StackBeforeOperandRef(usize);
+entity_impl!(StackBeforeOperandRef);
 
 /// Refers to a specific stack_after operand in an [`Instruction`].
 /// This may be a part of a specific conditional decode group.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct StackAfterOperand(usize);
-entity_impl!(StackAfterOperand);
-
-/// Refers to a specific decode group in an [`Instruction`].
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct ConditionalDecodeRef(usize);
-entity_impl!(ConditionalDecodeRef);
+pub struct StackAfterOperandRef(usize);
+entity_impl!(StackAfterOperandRef);
 
 /// Refers to a specific type in a [`BytecodeSpec`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
