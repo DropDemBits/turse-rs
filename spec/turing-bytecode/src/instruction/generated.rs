@@ -178,7 +178,7 @@ pub enum Opcode {
     ENDFOR = 0x4C,
     #[doc = "Compare Greater or Equal Char(N)\n\nTests as `char(N)` values if `lhs` is greater than or equal to `rhs`.\nPerforms a byte-by-byte comparison."]
     GECHARN = 0x6F,
-    #[doc = "Compare Descendant or Same Class\n\n"]
+    #[doc = "Compare Descendant or Same Class\n\nTests if `lhs` is a class that is a descendant of, or the same class as `rhs`.\nThis navigates up the class hierarchy of `lhs` to see if `rhs` is a member of the ancestor hierarchy.\n\nIf `lhs` is `nil` (`0x0`), the comparison is always true as `nil` is considered a descendant of all classes."]
     GECLASS = 0x70,
     #[doc = "Compare Greater or Equal Integers\n\nTests as `int` values if `lhs` is greater than or equal to `rhs`."]
     GEINT = 0x71,
@@ -196,7 +196,7 @@ pub enum Opcode {
     GESTR = 0x77,
     #[doc = "Get Characters from Stream\n\nGets the given value from the provided `stream` based on interpreting the stream data as characters.\n\nThe actual number of stack arguments is based on `get_kind`, as different get items have different uses for the arguments.\n`get_kind` is also a variably encoded operand, based on interpreting the first `int4` as the tag value."]
     GET = 0x78,
-    #[doc = "Compare Descendant Class\n\n"]
+    #[doc = "Compare Descendant Class\n\nTests if `lhs` is a class that is a descendant of `rhs`.\nThis navigates up the class hierarchy of `lhs` to see if `rhs` is a member of the ancestor hierarchy.\n\nIf `lhs` is `nil` (`0x0`), the comparison is always true as `nil` is considered a descendant of all classes."]
     GTCLASS = 0x7A,
     #[doc = "Branch If Zero\n\nBranches execution if `test` is zero (i.e. false)."]
     IF = 0x7B,
@@ -212,7 +212,7 @@ pub enum Opcode {
     INTREALLEFT = 0x86,
     #[doc = "Compare Less or Equal Char(N)\n\nTests as `char(N)` values if `lhs` is less than or equal to `rhs`.\nPerforms a byte-by-byte comparison."]
     LECHARN = 0x8B,
-    #[doc = "Compare Ancestor or Same Class\n\n"]
+    #[doc = "Compare Ancestor or Same Class\n\nTests if `lhs` is a class that is an ancestor of, or the same class as `rhs`.\nThis navigates up the class hierarchy of `lhs` to see if `rhs` is a member of the ancestor hierarchy.\n\nIf `rhs` is `nil` (`0x0`), the comparison is always true as `nil` is considered a descendant of all classes."]
     LECLASS = 0x8C,
     #[doc = "Compare Less or Equal Integers\n\nTests as `int` values if `lhs` is less than or equal to `rhs`."]
     LEINT = 0x8D,
@@ -240,7 +240,7 @@ pub enum Opcode {
     LOCATEPARM = 0x97,
     #[doc = "Locate Temporary Slot\n\nLocates the address of a temporary in the current call frame.\nOffset is computed relative to the start of the temporaries area.\n\nAs the temporaries area is located after the locals area in the call frame, the size of the call frame must also be known."]
     LOCATETEMP = 0x98,
-    #[doc = "Compare Ancestor Class\n\n"]
+    #[doc = "Compare Ancestor Class\n\nTests if `lhs` is a class that is an ancestor of `rhs`.\nThis navigates up the class hierarchy of `lhs` to see if `rhs` is a member of the ancestor hierarchy.\n\nIf `rhs` is `nil` (`0x0`), the comparison is always true as `nil` is considered a descendant of all classes."]
     LTCLASS = 0x99,
     #[doc = "Modulus of Integers\n\nComputes the modulus (with floored division) of `lhs` and `rhs` as `int` values, producing `out`."]
     MODINT = 0xA0,
@@ -386,6 +386,8 @@ pub type Int1 = i8;
 pub type Int2 = i16;
 #[doc = "32-bit signed integer.\n\n`0x80000000` is used as the `undefint` sentinel value in `int` to represent uninitialized `int` variables.\n`int4` values have no such sentinel values."]
 pub type Int4 = i32;
+#[doc = "8-bit unsigned integer."]
+pub type Nat1 = u8;
 #[doc = "16-bit unsigned integer."]
 pub type Nat2 = u16;
 #[doc = "32-bit unsigned integer.\n\n`0xFFFFFFFF` is used as the `undefnat` sentinel value in `nat` to represent uninitialized `nat` variables.\n`nat4` values have no such sentinel values."]
