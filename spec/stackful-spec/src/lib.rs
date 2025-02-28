@@ -163,6 +163,14 @@ pub enum ParseError {
     #[diagnostic(code(bytecode_spec::unexpected_node))]
     UnexpectedChildNode(#[label("expected {1}")] miette::SourceSpan, StringList),
 
+    #[error("`{0}` appears more than once")]
+    #[diagnostic(code(bytecode_spec::unexpected_node))]
+    DuplicateChildNode(
+        String,
+        #[label("first declared here")] miette::SourceSpan,
+        #[label(collection, "then declared here again")] Vec<miette::SourceSpan>,
+    ),
+
     #[error("invalid type kind")]
     #[diagnostic(code(bytecode_spec::invalid_type_kind))]
     InvalidTypeKind(#[label("expected `scalar`, `struct`, `enum`, or `union`")] miette::SourceSpan),

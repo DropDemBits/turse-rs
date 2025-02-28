@@ -852,7 +852,7 @@ fn get_required_children(
     Ok(children)
 }
 
-/// Ensure that there are no unexpected child nodes for instruction nodes.
+/// Ensure that there are no unexpected or duplicate child nodes for a given node.
 fn expect_child_names(
     children: Option<&kdl::KdlDocument>,
     accepted_childs: &[&'static str],
@@ -861,6 +861,7 @@ fn expect_child_names(
         return Ok(());
     };
 
+    // validate node names
     for child in children.nodes().iter() {
         if matches!(child.name().value(), "-") {
             // Skip attribute nodes, those are separately checked
@@ -871,6 +872,28 @@ fn expect_child_names(
             return Err(ParseError::UnexpectedChildNode(
                 child.name().span(),
                 StringList(accepted_childs.iter().map(|it| String::from(*it)).collect()),
+            ));
+        }
+    }
+
+    // validate that accepted child names only exist once in the tree
+    for &child_name in accepted_childs {
+        let mut instances: Vec<_> = children
+            .nodes()
+            .iter()
+            .filter(|child| child.name().value() == child_name)
+            .collect();
+
+        if instances.len() > 1 {
+            let first_instance = instances.remove(0);
+
+            return Err(ParseError::DuplicateChildNode(
+                child_name.to_owned(),
+                first_instance.name().span(),
+                instances
+                    .into_iter()
+                    .map(|node| node.name().span())
+                    .collect(),
             ));
         }
     }
