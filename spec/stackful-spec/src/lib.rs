@@ -576,8 +576,6 @@ pub struct Instruction {
     stack_effects: Box<[StackEffect]>,
 }
 
-// q: providing access to decode variants?
-
 impl Instruction {
     /// Instruction mnemonic.
     pub fn mnemonic(&self) -> &str {
@@ -606,6 +604,14 @@ impl Instruction {
 
     pub fn stack_effects(&self) -> &[StackEffect] {
         &self.stack_effects
+    }
+}
+
+impl Index<ImmediateOperandRef> for Instruction {
+    type Output = Operand<Immediate>;
+
+    fn index(&self, index: ImmediateOperandRef) -> &Self::Output {
+        &self.immediate_operands[index.index()]
     }
 }
 
@@ -765,6 +771,19 @@ impl FromStr for PredicateOp {
             ">=" => Ok(Self::GreaterEq),
             _ => Err("invalid predicate op"),
         }
+    }
+}
+
+impl Display for PredicateOp {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            PredicateOp::Eq => "==",
+            PredicateOp::NotEq => "!=",
+            PredicateOp::Less => "<",
+            PredicateOp::LessEq => "<=",
+            PredicateOp::Greater => ">",
+            PredicateOp::GreaterEq => ">=",
+        })
     }
 }
 

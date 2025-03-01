@@ -3232,8 +3232,8 @@ instructions {
         }
       }
       @conditional {
-        @predicate (operands).get_kind "==" (put_kind).enum
-        @predicate (operands).get_kind "==" (put_kind).enum_range
+        @predicate (operands).get_kind "==" (get_kind).enum
+        @predicate (operands).get_kind "==" (get_kind).enum_range
 
         variant_names "addrint" {
           - description """
@@ -3380,7 +3380,7 @@ instructions {
         """
         - preserves (stack_before).value
         - pushed-if {
-          (stack_before).value "!=" 0
+          @predicate (stack_before).value "!=" 0
         }
       }
     }

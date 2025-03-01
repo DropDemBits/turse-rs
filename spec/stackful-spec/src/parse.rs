@@ -1357,7 +1357,7 @@ fn parse_conditional_predicate_node(
                 .is_some_and(|it| it == "otherwise")
         {
             return Ok(Either::Right(ast::OtherwisePredicate {
-                otherwise: ast::Spanned::new(
+                _otherwise: ast::Spanned::new(
                     maybe_otherwise.value().as_string().unwrap(),
                     maybe_otherwise.span(),
                 ),
