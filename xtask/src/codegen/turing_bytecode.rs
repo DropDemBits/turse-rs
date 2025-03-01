@@ -89,26 +89,18 @@ fn generate_opcodes(spec: &BytecodeSpec) -> TokenStream {
                     }
                     [effect] => {
                         // Singular stack effect, can render it out
-                        docs.push_str("```text\n(");
-                        for before in effect.stack_before() {
-                            docs.push(' ');
-                            docs.push_str(before.name());
-                            docs.push(':');
-                            docs.push_str(spec.types[before.ty()].name());
-                        }
-                        docs.push_str(" --");
-                        for after in effect.stack_after() {
-                            docs.push(' ');
-                            docs.push_str(after.name());
-                            docs.push(':');
-                            docs.push_str(spec.types[after.ty()].name());
-                        }
-                        docs.push_str(" )\n\n```");
+                        render_stack_effect(&mut docs, spec, effect, 0);
                     }
-                    _ => docs.push_str("(varies)"),
+                    rest => {
+                        for effect in rest {
+                            render_decode_predicate(&mut docs, spec, instr, effect.predicate());
+                            render_stack_effect(&mut docs, spec, effect, 2);
+                            docs.push_str("\n\n");
+                        }
+                    }
                 }
 
-                doc_comment(Some(docs.as_str()))
+                doc_comment(Some(docs.as_str().trim_end()))
             };
 
             let mnemonic = format_ident!("{}", instr.mnemonic());
@@ -129,6 +121,74 @@ fn generate_opcodes(spec: &BytecodeSpec) -> TokenStream {
             #(#variants),*
         }
     }
+}
+
+fn render_decode_predicate(
+    docs: &mut String,
+    spec: &BytecodeSpec,
+    instr: &stackful_spec::Instruction,
+    predicate: Option<&stackful_spec::ConditionalExpr>,
+) {
+    match predicate {
+        Some(predicate) => {
+            let name = instr[predicate.lhs].name();
+            let op = predicate.op;
+            let value = match predicate.rhs {
+                stackful_spec::PredicateValue::EnumVariantRef(variant_ref) => {
+                    let enum_name = spec.types[variant_ref.ty()].name();
+                    let variant_name = spec.types[variant_ref].name();
+
+                    format!(
+                        "[`{enum_name}.{variant_name}`]({}::{})",
+                        enum_name.to_pascal_case(),
+                        variant_name.to_pascal_case()
+                    )
+                }
+                stackful_spec::PredicateValue::UnionVariantRef(variant_ref) => {
+                    let union_name = spec.types[variant_ref.ty()].name();
+                    let variant_name = spec.types[variant_ref].name();
+
+                    format!(
+                        "[`{union_name}.{variant_name}`]({}::{})",
+                        union_name.to_pascal_case(),
+                        variant_name.to_pascal_case()
+                    )
+                }
+                stackful_spec::PredicateValue::Number(value) => format!("`{value}`"),
+                value => unimplemented!("unknown predicate value {value:?}"),
+            };
+
+            let line = format!("- If `{name}` {op} {value}:\n\n");
+            docs.push_str(&line);
+        }
+        None => docs.push_str("- Otherwise:\n\n"),
+    }
+}
+
+fn render_stack_effect(
+    docs: &mut String,
+    spec: &BytecodeSpec,
+    effect: &stackful_spec::StackEffect,
+    indent: usize,
+) {
+    use std::fmt::Write;
+    let indent = " ".repeat(indent);
+
+    write!(docs, "{indent}```text\n{indent}(").unwrap();
+    for before in effect.stack_before() {
+        write!(
+            docs,
+            " {}:{}",
+            before.name(),
+            spec.types[before.ty()].name()
+        )
+        .unwrap();
+    }
+    docs.push_str(" --");
+    for after in effect.stack_after() {
+        write!(docs, " {}:{}", after.name(), spec.types[after.ty()].name()).unwrap();
+    }
+    write!(docs, " )\n\n{indent}```").unwrap();
 }
 
 fn generate_types(spec: &BytecodeSpec) -> TokenStream {
