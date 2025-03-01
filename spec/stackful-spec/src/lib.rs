@@ -29,7 +29,7 @@ use std::{
 
 use entities::{
     EnumRef, EnumVariantRef, ImmediateOperandRef, ScalarRef, StackBeforeOperandRef, StructRef,
-    TypeRef, UnionVariantRef,
+    TypeRef, UnionRef, UnionVariantRef,
 };
 
 pub mod entities;
@@ -124,9 +124,35 @@ pub enum ParseError {
     #[diagnostic(code(bytecode_spec::expected_positive_integer))]
     ExpectedPositiveInteger(#[label] miette::SourceSpan),
 
+    #[error("expected a variant name")]
+    #[diagnostic(code(bytecode_spec::expected_variant))]
+    ExpectedVariant(#[label] miette::SourceSpan),
+
     #[error("integer is too big")]
     #[diagnostic(code(bytecode_spec::integer_too_big))]
     IntegerTooBig(#[label("expected a value less than u32::MAX")] miette::SourceSpan),
+
+    #[error("invalid field base")]
+    #[diagnostic(code(bytecode_spec::invalid_field_base))]
+    InvalidFieldBase(#[label("expected {1}")] miette::SourceSpan, StringList),
+
+    #[error("invalid field name")]
+    #[diagnostic(code(bytecode_spec::invalid_field_base))]
+    InvalidFieldName(
+        #[label("field names must be strings that start with `.`")] miette::SourceSpan,
+    ),
+
+    #[error("invalid predicate comparison operation")]
+    #[diagnostic(code(bytecode_spec::invalid_predicate_op))]
+    InvalidPredicateOp(#[label("expected `==`, `!=`, `<`, `>`, `<=`, `>=`")] miette::SourceSpan),
+
+    #[error("invalid predicate comparison operation")]
+    #[diagnostic(code(bytecode_spec::invalid_predicate_op))]
+    InvalidPredicateInequality(#[label("expected `==`, `!=`")] miette::SourceSpan),
+
+    #[error("multiple scalar predicates defined")]
+    #[diagnostic(code(bytecode_spec::multiple_scalar_predicates))]
+    MultipleScalarPredicates(#[label("first different scalar predicate")] miette::SourceSpan),
 
     #[error("missing a string argument")]
     #[diagnostic(code(bytecode_spec::missing_string))]
@@ -135,6 +161,16 @@ pub enum ParseError {
     #[error("missing an integer argument")]
     #[diagnostic(code(bytecode_spec::missing_integer))]
     MissingInteger(#[label] miette::SourceSpan),
+
+    #[error("missing field base")]
+    #[diagnostic(code(bytecode_spec::invalid_field_base))]
+    MissingFieldBase(
+        #[label("field references must start with `(field_base)`")] miette::SourceSpan,
+    ),
+
+    #[error("missing a field argument")]
+    #[diagnostic(code(bytecode_spec::missing_field))]
+    MissingField(#[label] miette::SourceSpan),
 
     #[error("missing `{0}` property")]
     #[diagnostic(code(bytecode_spec::missing_property))]
@@ -163,12 +199,45 @@ pub enum ParseError {
     #[diagnostic(code(bytecode_spec::unexpected_node))]
     UnexpectedChildNode(#[label("expected {1}")] miette::SourceSpan, StringList),
 
+    #[error("different conditional immediate operands used")]
+    #[diagnostic(code(bytecode_spec::mismatched_immediate_operands))]
+    MismatchedImmediateOperands(
+        String,
+        #[label("this conditional node uses `{0}`")] miette::SourceSpan,
+        #[label(collection, "uses a different immediate operand")] Vec<miette::SourceSpan>,
+    ),
+
+    #[error("unexpected `{0}` type")]
+    #[diagnostic(code(bytecode_spec::unexpected_type))]
+    UnexpectedTypeKind(
+        TypeKindNames,
+        #[label("expected {2} type")] miette::SourceSpan,
+        StringList,
+    ),
+
+    #[error("mismatched types")]
+    #[diagnostic(code(bytecode_spec::mismatched_types))]
+    MismatchedTypes(
+        String,
+        String,
+        #[label("expected `{0}` type, found `{1}` type")] miette::SourceSpan,
+    ),
+
     #[error("`{0}` appears more than once")]
     #[diagnostic(code(bytecode_spec::unexpected_node))]
     DuplicateChildNode(
         String,
         #[label("first declared here")] miette::SourceSpan,
         #[label(collection, "then declared here again")] Vec<miette::SourceSpan>,
+    ),
+
+    #[error("unknown {0} `{1}`")]
+    #[diagnostic(code(bytecode_spec::unknown_name))]
+    UnknownName(
+        NameKind,
+        String,
+        #[label("expected {3}")] miette::SourceSpan,
+        StringList,
     ),
 
     #[error("invalid type kind")]
@@ -220,6 +289,9 @@ pub enum CommonNodes {
     GroupNode,
     OperandsList,
     StackBeforeList,
+    ConditionalOperandList,
+    ConditionalCaseOperandList,
+    ConditionalCaseArmOperandList,
     OpcodeNode,
     StructNode,
     EnumNode,
@@ -235,6 +307,9 @@ impl CommonNodes {
             CommonNodes::GroupNode => "group",
             CommonNodes::OperandsList => "operands",
             CommonNodes::StackBeforeList => "stack_before",
+            CommonNodes::ConditionalOperandList => "@conditional",
+            CommonNodes::ConditionalCaseOperandList => "@conditional-case",
+            CommonNodes::ConditionalCaseArmOperandList => "@case",
             CommonNodes::OpcodeNode => "opcode",
             CommonNodes::StructNode => "struct",
             CommonNodes::EnumNode => "enum",
@@ -257,7 +332,9 @@ pub enum NameKind {
     Variant,
     Property,
     Field,
-    Operand,
+    ImmediateOperand,
+    StackBeforeOperand,
+    StackAfterOperand,
     Mnemonic,
     InstructionOpcode,
 }
@@ -270,10 +347,42 @@ impl Display for NameKind {
             NameKind::Variant => "variant name",
             NameKind::Property => "property name",
             NameKind::Field => "field name",
-            NameKind::Operand => "operand",
+            NameKind::ImmediateOperand => "immediate operand",
+            NameKind::StackBeforeOperand => "stack before operand",
+            NameKind::StackAfterOperand => "stack after operand",
             NameKind::Mnemonic => "mnemonic",
             NameKind::InstructionOpcode => "instruction opcode",
         })
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum TypeKindNames {
+    Scalar,
+    Struct,
+    Enum,
+    Union,
+}
+
+impl Display for TypeKindNames {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            TypeKindNames::Scalar => "scalar",
+            TypeKindNames::Struct => "struct",
+            TypeKindNames::Enum => "enum",
+            TypeKindNames::Union => "union",
+        })
+    }
+}
+
+impl From<&Type> for TypeKindNames {
+    fn from(value: &Type) -> Self {
+        match value {
+            Type::Scalar(_) => TypeKindNames::Scalar,
+            Type::Struct(_) => TypeKindNames::Struct,
+            Type::Enum(_) => TypeKindNames::Enum,
+            Type::Union(_) => TypeKindNames::Union,
+        }
     }
 }
 
@@ -397,6 +506,32 @@ impl Index<EnumRef> for Types {
         self[index.type_ref()]
             .as_enum()
             .expect("type should be an enum")
+    }
+}
+
+impl Index<UnionRef> for Types {
+    type Output = Union;
+
+    fn index(&self, index: UnionRef) -> &Self::Output {
+        self[index.type_ref()]
+            .as_union()
+            .expect("type should be a union")
+    }
+}
+
+impl Index<EnumVariantRef> for Types {
+    type Output = EnumVariant;
+
+    fn index(&self, index: EnumVariantRef) -> &Self::Output {
+        &self[index.ty()].variants()[index.1]
+    }
+}
+
+impl Index<UnionVariantRef> for Types {
+    type Output = UnionVariant;
+
+    fn index(&self, index: UnionVariantRef) -> &Self::Output {
+        &self[index.ty()].variants()[index.1]
     }
 }
 
@@ -601,7 +736,7 @@ pub struct ConditionalExpr {
 }
 
 /// An operation in a conditional decode predicate expression.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum PredicateOp {
     /// `==`
     Eq,
@@ -617,13 +752,31 @@ pub enum PredicateOp {
     GreaterEq,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+impl FromStr for PredicateOp {
+    type Err = &'static str;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "==" => Ok(Self::Eq),
+            "!=" => Ok(Self::NotEq),
+            "<" => Ok(Self::Less),
+            "<=" => Ok(Self::LessEq),
+            ">" => Ok(Self::Greater),
+            ">=" => Ok(Self::GreaterEq),
+            _ => Err("invalid predicate op"),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum PredicateValue {
     /// Refers to a specific enum's variant.
-    VariantRef(EnumVariantRef),
+    EnumVariantRef(EnumVariantRef),
+    /// Refers to a specific union's variant.
+    UnionVariantRef(UnionVariantRef),
     /// Refers to a literal integer constant.
-    Number(isize),
+    Number(i128),
 }
 
 /// Expression computed at decode time to either compute an element count, or a stack byte offset.
@@ -809,6 +962,7 @@ impl AdtField {
 /// A value with possible variants.
 #[derive(Debug)]
 pub struct Enum {
+    slot: EnumRef,
     name: Str,
     description: Option<Str>,
     size: u32,
@@ -843,6 +997,14 @@ impl Enum {
         &self.variants
     }
 
+    /// Variants of this enum along with [`EnumVariantRef`]s to refer to variants directly.
+    pub fn variants_with_refs(&self) -> impl Iterator<Item = (EnumVariantRef, &EnumVariant)> {
+        self.variants
+            .iter()
+            .enumerate()
+            .map(|(index, variant)| (EnumVariantRef(self.slot, index), variant))
+    }
+
     /// Gets a ref to a specific variant.
     pub fn get_variant(&self, variant: &str) -> Option<EnumVariantRef> {
         self.by_name.get(variant).copied()
@@ -856,6 +1018,19 @@ pub struct EnumVariant {
     description: Option<Str>,
     ordinal: u32,
     properties: BTreeMap<Str, Property>,
+}
+
+impl Index<EnumVariantRef> for Enum {
+    type Output = EnumVariant;
+
+    fn index(&self, index: EnumVariantRef) -> &Self::Output {
+        assert_eq!(
+            self.slot,
+            index.ty(),
+            "accessing variant intended for another enum"
+        );
+        &self.variants[index.1]
+    }
 }
 
 impl EnumVariant {
@@ -956,6 +1131,7 @@ impl Display for PropertyKind {
 /// data.
 #[derive(Debug)]
 pub struct Union {
+    slot: UnionRef,
     name: Str,
     description: Option<Str>,
     // size of the tag
@@ -1001,9 +1177,30 @@ impl Union {
         &self.variants
     }
 
+    /// Variants of this union along with [`UnionVariantRef`]s to refer to variants directly.
+    pub fn variants_with_refs(&self) -> impl Iterator<Item = (UnionVariantRef, &UnionVariant)> {
+        self.variants
+            .iter()
+            .enumerate()
+            .map(|(index, variant)| (UnionVariantRef(self.slot, index), variant))
+    }
+
     /// Gets a ref to a specific variant.
     pub fn get_variant(&self, variant: &str) -> Option<UnionVariantRef> {
         self.by_name.get(variant).copied()
+    }
+}
+
+impl Index<UnionVariantRef> for Union {
+    type Output = UnionVariant;
+
+    fn index(&self, index: UnionVariantRef) -> &Self::Output {
+        assert_eq!(
+            self.slot,
+            index.ty(),
+            "accessing variant intended for another union"
+        );
+        &self.variants[index.1]
     }
 }
 

@@ -6,6 +6,8 @@ license.workspace = true
 edition.workspace = true
 
 [dependencies]
+either.workspace = true
+indexmap.workspace = true
 kdl = "6.2.2"
 thiserror.workspace = true
 miette.workspace = true

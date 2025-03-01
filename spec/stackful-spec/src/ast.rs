@@ -3,6 +3,8 @@
 //! Ensures that the syntax of the spec is valid before verifying semantics, and
 //! provides access to equivalent span nodes to provide better error reporting.
 
+use either::Either;
+
 use crate::PredicateOp;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -25,12 +27,31 @@ impl<V> Spanned<V> {
         Spanned(f(self.0), self.1)
     }
 
+    pub(crate) fn try_map<U, E>(
+        self,
+        f: impl FnOnce(Spanned<V>) -> Result<U, E>,
+    ) -> Result<Spanned<U>, E> {
+        let span = self.span();
+        f(self).map(|v| Spanned(v, span))
+    }
+
+    pub(crate) fn try_fold<U, E>(
+        self,
+        f: impl FnOnce(Spanned<V>) -> Result<Spanned<U>, E>,
+    ) -> Result<Spanned<U>, E> {
+        f(self)
+    }
+
     pub(crate) fn into_inner(self) -> V {
         self.0
     }
 
     pub(crate) fn map_inner<U>(self, f: impl FnOnce(V) -> U) -> U {
         f(self.0)
+    }
+
+    pub(crate) fn fold_inner<U>(self, f: impl FnOnce(Spanned<V>) -> U) -> U {
+        f(self)
     }
 }
 
@@ -99,7 +120,8 @@ pub(crate) enum MaybeConditional<'src, V> {
 
 #[derive(Debug)]
 pub(crate) struct Conditional<'src, V> {
-    pub(crate) predicates: Vec<Spanned<ConditionalPredicate<'src>>>,
+    pub(crate) predicates:
+        Either<Vec<Spanned<ConditionalPredicate<'src>>>, OtherwisePredicate<'src>>,
     pub(crate) operands: Vec<Spanned<V>>,
 }
 
@@ -118,15 +140,45 @@ pub(crate) struct ConditionalCase<'src, V> {
 
 #[derive(Debug)]
 pub(crate) struct ConditonalArm<'src, V> {
-    pub(crate) value: Spanned<PredicateValue<'src>>,
+    pub(crate) match_values: Vec<Spanned<PredicateValue<'src>>>,
     pub(crate) operands: Vec<Spanned<V>>,
 }
 
 #[derive(Debug)]
 pub(crate) enum PredicateValue<'src> {
-    EnumVariant {
+    SumTypeVariant {
         enum_ty: Spanned<&'src str>,
         variant: Spanned<&'src str>,
     },
     Number(i128),
+}
+
+#[derive(Debug)]
+pub(crate) struct OtherwisePredicate<'src> {
+    pub(crate) otherwise: Spanned<&'src str>,
+}
+
+pub(crate) trait HasName {
+    fn name(&self) -> Spanned<&str>;
+}
+
+impl HasName for StackBeforeOperand<'_> {
+    fn name(&self) -> Spanned<&str> {
+        self.name
+    }
+}
+
+impl HasName for StackAfterOperand<'_> {
+    fn name(&self) -> Spanned<&str> {
+        self.name
+    }
+}
+
+impl<T> HasName for &T
+where
+    T: HasName,
+{
+    fn name(&self) -> Spanned<&str> {
+        <T as HasName>::name(&self)
+    }
 }
