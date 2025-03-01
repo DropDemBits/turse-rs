@@ -1016,7 +1016,21 @@ fn collect_stack_operands<V>(
                                             .push(slot);
                                     }
                                 }
-                                _ => {}
+                                (Type::Enum(_), PredicateValue::EnumVariantRef(_))
+                                | (Type::Union(_), PredicateValue::UnionVariantRef(_)) => {
+                                    // Variant predicate that doesn't need to be handled specially
+                                    let conditional_slot = conditional_defs.insert_condition(
+                                        *predicate.op.value(),
+                                        value.into_inner(),
+                                    );
+
+                                    stack_operands
+                                        .visible_when
+                                        .entry(conditional_slot)
+                                        .or_default()
+                                        .push(slot);
+                                }
+                                _ => unreachable!(),
                             }
                         }
                     }
