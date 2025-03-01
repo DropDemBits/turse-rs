@@ -2,13 +2,18 @@ use std::{
     borrow::Borrow,
     collections::{BTreeMap, HashMap, HashSet},
     hash::Hash,
+    num::NonZeroUsize,
     ops::{ControlFlow, Index},
 };
 
+use either::Either;
+use indexmap::IndexSet;
+
 use crate::{
-    AdtField, BytecodeSpec, CommonNodes, Enum, EnumVariant, Group, Immediate, Instruction,
-    KnownAttrs, NameKind, Operand, ParseError, Property, PropertyValue, Scalar, StackAfter,
-    StackBefore, StackEffect, StringList, Struct, Type, Types, Union, UnionVariant, ast,
+    AdtField, BytecodeSpec, CommonNodes, ConditionalExpr, Enum, EnumVariant, Group, Immediate,
+    Instruction, KnownAttrs, NameKind, Operand, ParseError, PredicateOp, PredicateValue, Property,
+    PropertyValue, Scalar, StackAfter, StackBefore, StackEffect, StringList, Struct, Type,
+    TypeKindNames, Types, Union, UnionVariant, ast,
     entities::{EnumRef, EnumVariantRef, ImmediateOperandRef, TypeRef, UnionRef, UnionVariantRef},
 };
 
@@ -39,6 +44,7 @@ const STACK_AFTER_OPERAND_ATTRS: &[KnownAttrs] = &[
 ];
 const EXCEPTION_CASE_ATTRS: &[KnownAttrs] = &[KnownAttrs::Description];
 
+const NO_CHILDREN: &[&str] = &[];
 const TOP_LEVEL_CHILD_NODES: &[&str] = &["types", "exceptions", "instructions"];
 const INSTRUCTION_CHILD_NODES: &[&str] = &["operands", "stack_before", "stack_after", "exceptions"];
 
@@ -461,6 +467,7 @@ fn parse_enum(node: &kdl::KdlNode, slot: TypeRef) -> Result<Enum, ParseError> {
         .collect();
 
     Ok(Enum {
+        slot,
         name: name.to_owned(),
         description: description.map(String::from),
         size,
@@ -535,6 +542,7 @@ fn parse_union(
             .unwrap_or(0u32);
 
     Ok(Union {
+        slot,
         name: name.to_owned(),
         description: description.map(String::from),
         tag_size,
@@ -558,7 +566,7 @@ fn parse_instruction(node: &kdl::KdlNode, types: &Types) -> Result<Instruction, 
 
         let operands = get_required_children(operands, CommonNodes::OperandsList)?;
         let mut operand_defs = vec![];
-        let mut operand_names = DefsTracker::new(NameKind::Operand);
+        let mut operand_names = DefsTracker::new(NameKind::ImmediateOperand);
 
         for entry in operands.nodes() {
             let def = parse_immediate_operand(entry, types)?;
@@ -571,62 +579,31 @@ fn parse_instruction(node: &kdl::KdlNode, types: &Types) -> Result<Instruction, 
         // No explicit immediate operands
         vec![]
     };
-    let immediate_operand_refs: BTreeMap<_, _> = immediate_operands
-        .iter()
-        .enumerate()
-        .map(|(index, operand)| (operand.name(), ImmediateOperandRef::from_usize(index)))
-        .collect();
+    let immediate_operand_refs = NameLookup::from_names(
+        NameKind::ImmediateOperand,
+        immediate_operands
+            .iter()
+            .enumerate()
+            .map(|(index, operand)| {
+                (
+                    operand.name(),
+                    (ImmediateOperandRef::from_usize(index), operand),
+                )
+            }),
+    );
 
     // notes:
     // - enums: be exhaustive, only allow eq or not eq (invert not eq to other cases)
     // - numbers: don't allow overlapping ranges (i.e. only lt le gt ge comparison with one number)
     let stack_before_list = parse_stack_before_list(node)?.unwrap_or_default();
     let stack_after_list = parse_stack_after_list(node)?.unwrap_or_default();
-
-    fn lower_stack_operands<V, N>(
-        ast: Vec<ast::Spanned<ast::MaybeConditional<'_, V>>>,
-        lower_fn: impl Fn(V) -> Result<N, ParseError>,
-    ) -> Result<Vec<N>, ParseError> {
-        let mut operands = vec![];
-
-        for entry in ast {
-            let ast::MaybeConditional::Operand(operand) = entry.into_inner() else {
-                continue;
-            };
-
-            operands.push(lower_fn(operand)?);
-        }
-
-        Ok(operands)
-    }
-
-    fn check_duplicate_names<'src, V>(
-        ast: &[ast::Spanned<ast::MaybeConditional<'_, V>>],
-        operand_name: impl Fn(&V) -> ast::Spanned<&str>,
-    ) -> Result<(), ParseError> {
-        let mut defs_tracker = DefsTracker::new(NameKind::Operand);
-
-        for entry in ast {
-            let ast::MaybeConditional::Operand(operand) = entry.value() else {
-                continue;
-            };
-
-            let name = operand_name(operand);
-            defs_tracker.track_def(name.value().to_owned(), name.span())?;
-        }
-
-        Ok(())
-    }
-
-    check_duplicate_names(&stack_before_list.entries, |ast| ast.name)?;
-    check_duplicate_names(&stack_after_list.entries, |ast| ast.name)?;
-
-    let stack_before_operands = lower_stack_operands(stack_before_list.entries, |ast| {
-        lower_stack_before_operand(ast, types, &immediate_operand_refs)
-    })?;
-    let stack_after = lower_stack_operands(stack_after_list.entries, |ast| {
-        lower_stack_after_operand(ast, types, &immediate_operand_refs)
-    })?;
+    let stack_effects = lower_stack_effects(
+        stack_before_list,
+        stack_after_list,
+        types,
+        &immediate_operand_refs,
+        &immediate_operands,
+    )?;
 
     Ok(Instruction {
         mnemonic: node.name().value().to_owned(),
@@ -634,12 +611,32 @@ fn parse_instruction(node: &kdl::KdlNode, types: &Types) -> Result<Instruction, 
         heading: heading.map(String::from),
         description: description.map(String::from),
         immediate_operands: immediate_operands.into_boxed_slice(),
-        stack_effects: vec![StackEffect {
-            predicate: None,
-            stack_before: stack_before_operands.into_boxed_slice(),
-            stack_after: stack_after.into_boxed_slice(),
-        }]
-        .into_boxed_slice(),
+        stack_effects: stack_effects.into_boxed_slice(),
+    })
+}
+
+fn parse_immediate_operand(
+    node: &kdl::KdlNode,
+    types: &Types,
+) -> Result<Operand<Immediate>, ParseError> {
+    expect_attribute_names(node, IMMEDIATE_OPERAND_ATTRS)?;
+
+    let name = node.name().value();
+    let ty = parse_required_string_entry(node, 0)?;
+    let Some(ty) = types.get(ty) else {
+        let ty_span = node.entry(0).expect("must have type entry");
+        return Err(ParseError::UnknownTypeName(ty.to_owned(), ty_span.span()));
+    };
+    let description = parse_description(node)?;
+    let unused = parse_bool_entry(node, "unused")?.unwrap_or(false);
+
+    // other things!
+    Ok(Operand {
+        name: name.to_owned(),
+        ty,
+        description: description.map(String::from),
+        unused,
+        special: Immediate {},
     })
 }
 
@@ -716,7 +713,7 @@ fn parse_stack_after_operand<'kdl>(
     let description = parse_spanned_description(node)?;
     let unused = parse_spanned_bool_entry(node, "unused")?;
 
-    // TODO: Preserves, Preserves-If, Computed element/offset operands
+    // TODO: Preserves, Push-If, Computed element/offset operands
     // TODO: Reject variadic
     Ok(ast::Spanned::new(
         ast::StackAfterOperand {
@@ -732,10 +729,502 @@ fn parse_stack_after_operand<'kdl>(
     ))
 }
 
-fn lower_stack_before_operand<'kdl>(
-    ast: ast::StackBeforeOperand<'_>,
+fn lower_stack_effects(
+    stack_before_list: ast::StackBeforeList<'_>,
+    stack_after_list: ast::StackAfterList<'_>,
     types: &Types,
-    immediate_operands: &BTreeMap<&'_ str, ImmediateOperandRef>,
+    immediate_operand_refs: &NameLookup<&str, (ImmediateOperandRef, &Operand<Immediate>)>,
+    immediate_operands: &[Operand<Immediate>],
+) -> Result<Vec<StackEffect>, ParseError> {
+    let mut conditional_defs = ConditionalDefs::default();
+    let mut used_immediates = vec![];
+    let mut stack_effects = vec![];
+
+    let stack_before_operands = collect_stack_operands(
+        &stack_before_list.entries,
+        &mut conditional_defs,
+        &mut used_immediates,
+        immediate_operand_refs,
+        types,
+    )?;
+
+    let stack_after_operands = collect_stack_operands(
+        &stack_after_list.entries,
+        &mut conditional_defs,
+        &mut used_immediates,
+        immediate_operand_refs,
+        types,
+    )?;
+
+    // Push no-predicate stack effect first
+    {
+        let stack_before = lower_stack_operands(
+            &stack_before_operands.pick_operands(&stack_before_list.entries, None),
+            |operand| lower_stack_before_operand(operand, types, immediate_operand_refs),
+            NameKind::StackBeforeOperand,
+        )?;
+
+        let stack_after = lower_stack_operands(
+            &stack_after_operands.pick_operands(&stack_after_list.entries, None),
+            |operand| lower_stack_after_operand(operand, types, immediate_operand_refs),
+            NameKind::StackAfterOperand,
+        )?;
+
+        stack_effects.push(StackEffect {
+            predicate: None,
+            stack_before: stack_before.into_boxed_slice(),
+            stack_after: stack_after.into_boxed_slice(),
+        });
+    }
+
+    let Some(same_immediate) = used_immediates.first() else {
+        // No conditional decodes to process
+        return Ok(stack_effects);
+    };
+
+    // Ensure that the used immediates refer to the same operand
+    let different_immediates: Vec<_> = used_immediates
+        .iter()
+        .flat_map(|it| (it.value() != same_immediate.value()).then_some(it.span()))
+        .collect();
+
+    if !different_immediates.is_empty() {
+        return Err(ParseError::MismatchedImmediateOperands(
+            immediate_operands[same_immediate.value().index()]
+                .name()
+                .to_owned(),
+            same_immediate.span(),
+            different_immediates,
+        ));
+    }
+
+    match &types[immediate_operands[same_immediate.value().index()].ty()] {
+        Type::Scalar(_) => {
+            // Pick first condition, if applicable
+            if let Some(predicate) = conditional_defs
+                .get_single_condition()
+                .expect("more than one scalar condition")
+            {
+                let stack_before = lower_stack_operands(
+                    &stack_before_operands
+                        .pick_operands(&stack_before_list.entries, Some(predicate)),
+                    |operand| lower_stack_before_operand(operand, types, immediate_operand_refs),
+                    NameKind::StackBeforeOperand,
+                )?;
+
+                let stack_after = lower_stack_operands(
+                    &stack_after_operands.pick_operands(&stack_after_list.entries, Some(predicate)),
+                    |operand| lower_stack_after_operand(operand, types, immediate_operand_refs),
+                    NameKind::StackAfterOperand,
+                )?;
+
+                let (op, value) = conditional_defs[predicate];
+                let predicate = Box::new(ConditionalExpr {
+                    lhs: *same_immediate.value(),
+                    op,
+                    rhs: value,
+                });
+
+                // insert before the default stack condition
+                stack_effects.insert(
+                    0,
+                    StackEffect {
+                        predicate: Some(predicate),
+                        stack_before: stack_before.into_boxed_slice(),
+                        stack_after: stack_after.into_boxed_slice(),
+                    },
+                );
+            }
+        }
+        Type::Struct(_) => unreachable!(),
+        Type::Enum(ty) => {
+            // Enums are treated as being non-exhaustive, we'll push all variant predicates here
+            stack_effects.clear();
+
+            // Declare stack effect predicates in definition order
+            for (variant_ref, _) in ty.variants_with_refs() {
+                let value = PredicateValue::EnumVariantRef(variant_ref);
+                let predicate = conditional_defs.get_condition(PredicateOp::Eq, value);
+
+                let stack_before = lower_stack_operands(
+                    &stack_before_operands.pick_operands(&stack_before_list.entries, predicate),
+                    |operand| lower_stack_before_operand(operand, types, immediate_operand_refs),
+                    NameKind::StackBeforeOperand,
+                )?;
+
+                let stack_after = lower_stack_operands(
+                    &stack_after_operands.pick_operands(&stack_after_list.entries, predicate),
+                    |operand| lower_stack_after_operand(operand, types, immediate_operand_refs),
+                    NameKind::StackAfterOperand,
+                )?;
+
+                stack_effects.push(StackEffect {
+                    predicate: Some(Box::new(ConditionalExpr {
+                        lhs: *same_immediate.value(),
+                        op: PredicateOp::Eq,
+                        rhs: value,
+                    })),
+                    stack_before: stack_before.into_boxed_slice(),
+                    stack_after: stack_after.into_boxed_slice(),
+                });
+            }
+        }
+        Type::Union(ty) => {
+            // Unions are treated as being non-exhaustive, we'll push all variant predicates here
+            stack_effects.clear();
+
+            // Declare stack effect predicates in definition order
+            for (variant_ref, _) in ty.variants_with_refs() {
+                let value = PredicateValue::UnionVariantRef(variant_ref);
+                let predicate = conditional_defs.get_condition(PredicateOp::Eq, value);
+
+                let stack_before = lower_stack_operands(
+                    &stack_before_operands.pick_operands(&stack_before_list.entries, predicate),
+                    |operand| lower_stack_before_operand(operand, types, immediate_operand_refs),
+                    NameKind::StackBeforeOperand,
+                )?;
+
+                let stack_after = lower_stack_operands(
+                    &stack_after_operands.pick_operands(&stack_after_list.entries, predicate),
+                    |operand| lower_stack_after_operand(operand, types, immediate_operand_refs),
+                    NameKind::StackAfterOperand,
+                )?;
+
+                stack_effects.push(StackEffect {
+                    predicate: Some(Box::new(ConditionalExpr {
+                        lhs: *same_immediate.value(),
+                        op: PredicateOp::Eq,
+                        rhs: value,
+                    })),
+                    stack_before: stack_before.into_boxed_slice(),
+                    stack_after: stack_after.into_boxed_slice(),
+                });
+            }
+        }
+    }
+
+    Ok(stack_effects)
+}
+
+fn collect_stack_operands<V>(
+    entries: &[ast::Spanned<ast::MaybeConditional<'_, V>>],
+    conditional_defs: &mut ConditionalDefs,
+    used_immediates: &mut Vec<ast::Spanned<ImmediateOperandRef>>,
+    immediate_operand_refs: &NameLookup<&str, (ImmediateOperandRef, &Operand<Immediate>)>,
+    types: &Types,
+) -> Result<StackOperands, ParseError> {
+    let mut stack_operands = StackOperands::default();
+
+    for (index, entry) in entries.iter().enumerate() {
+        match entry.value() {
+            ast::MaybeConditional::Conditional(conditional) => {
+                let slot = ConditionalEntry::Predicate(index);
+
+                match &conditional.predicates {
+                    Either::Left(predicates) => {
+                        for predicate in predicates {
+                            let predicate = predicate.value();
+
+                            let imm = predicate
+                                .immediate_operand
+                                .try_map(|it| immediate_operand_refs.lookup(it).copied())?;
+                            let (imm_ref, imm) = imm.fold_inner(|it| {
+                                let span = it.span();
+                                let (imm_ref, imm) = it.into_inner();
+                                (
+                                    ast::Spanned::new(imm_ref, span),
+                                    ast::Spanned::new(imm, span),
+                                )
+                            });
+                            used_immediates.push(imm_ref);
+
+                            let value = lower_predicate_value(&predicate.value, types)?;
+                            check_predicate_op_value(
+                                imm.map(|it| it.ty()),
+                                &predicate.op,
+                                &value,
+                                types,
+                            )?;
+
+                            match (&types[imm.value().ty()], value.value()) {
+                                (Type::Scalar(_), PredicateValue::Number(_)) => {
+                                    // No special conditions for dealing with predicates, aside from there being only one condition
+                                    let conditional_slot = conditional_defs.insert_condition(
+                                        *predicate.op.value(),
+                                        value.into_inner(),
+                                    );
+
+                                    if conditional_slot.index() > 0 {
+                                        return Err(ParseError::MultipleScalarPredicates(
+                                            predicate.op.span(),
+                                        ));
+                                    }
+
+                                    stack_operands
+                                        .visible_when
+                                        .entry(conditional_slot)
+                                        .or_default()
+                                        .push(slot);
+                                }
+                                (Type::Enum(ty), PredicateValue::EnumVariantRef(not_variant))
+                                    if predicate.op.value() == &PredicateOp::NotEq =>
+                                {
+                                    // Invert condition
+                                    let other_variants: Vec<_> = ty
+                                        .variants_with_refs()
+                                        .flat_map(|(variant_ref, _)| {
+                                            (variant_ref != *not_variant).then_some(variant_ref)
+                                        })
+                                        .collect();
+
+                                    // Splat out conditions
+                                    for variant in other_variants {
+                                        let conditional_slot = conditional_defs.insert_condition(
+                                            PredicateOp::Eq,
+                                            PredicateValue::EnumVariantRef(variant),
+                                        );
+
+                                        stack_operands
+                                            .visible_when
+                                            .entry(conditional_slot)
+                                            .or_default()
+                                            .push(slot);
+                                    }
+                                }
+                                (Type::Union(ty), PredicateValue::UnionVariantRef(not_variant))
+                                    if predicate.op.value() == &PredicateOp::NotEq =>
+                                {
+                                    // Invert condition
+                                    let other_variants: Vec<_> = ty
+                                        .variants_with_refs()
+                                        .flat_map(|(variant_ref, _)| {
+                                            (variant_ref != *not_variant).then_some(variant_ref)
+                                        })
+                                        .collect();
+
+                                    // Splat out conditions
+                                    for variant in other_variants {
+                                        let conditional_slot = conditional_defs.insert_condition(
+                                            PredicateOp::Eq,
+                                            PredicateValue::UnionVariantRef(variant),
+                                        );
+
+                                        stack_operands
+                                            .visible_when
+                                            .entry(conditional_slot)
+                                            .or_default()
+                                            .push(slot);
+                                    }
+                                }
+                                _ => {}
+                            }
+                        }
+                    }
+
+                    Either::Right(_otherwise) => stack_operands.otherwise.push(slot),
+                }
+            }
+            ast::MaybeConditional::ConditionalCase(conditional_case) => {
+                let imm = conditional_case
+                    .immediate_decode_match
+                    .try_map(|it| immediate_operand_refs.lookup(it).copied())?;
+                let (imm_ref, imm) = imm.fold_inner(|it| {
+                    let span = it.span();
+                    let (imm_ref, imm) = it.into_inner();
+                    (
+                        ast::Spanned::new(imm_ref, span),
+                        ast::Spanned::new(imm, span),
+                    )
+                });
+                used_immediates.push(imm_ref);
+
+                for (arm_index, arm) in conditional_case.arms.iter().enumerate() {
+                    let slot = ConditionalEntry::Case(index, arm_index);
+
+                    // Treat case as equivalent to a series of eq predicates
+                    for value in &arm.value().match_values {
+                        let value = lower_predicate_value(value, types)?;
+                        check_predicate_op_value(
+                            imm.map(|it| it.ty()),
+                            &ast::Spanned::new(PredicateOp::Eq, arm.span()),
+                            &value,
+                            types,
+                        )?;
+
+                        let conditional_slot =
+                            conditional_defs.insert_condition(PredicateOp::Eq, value.into_inner());
+
+                        stack_operands
+                            .visible_when
+                            .entry(conditional_slot)
+                            .or_default()
+                            .push(slot);
+                    }
+                }
+            }
+            ast::MaybeConditional::Operand(_) => {
+                stack_operands.always.push(ConditionalEntry::Always(index))
+            }
+        }
+    }
+
+    Ok(stack_operands)
+}
+
+fn check_predicate_op_value(
+    imm_ty: ast::Spanned<TypeRef>,
+    op: &ast::Spanned<PredicateOp>,
+    value: &ast::Spanned<PredicateValue>,
+    types: &Types,
+) -> Result<(), ParseError> {
+    // Ensure that the op & value can be used for the type
+    match &types[*imm_ty.value()] {
+        Type::Scalar(_) => {
+            // Scalars can use all of the comparison operations
+            // Scalars can only use numbers
+            if !matches!(value.value(), PredicateValue::Number(_)) {
+                return Err(ParseError::ExpectedInteger(value.span()));
+            }
+        }
+        Type::Struct(_) => {
+            // Structs can never be used in conditionals
+            return Err(ParseError::UnexpectedTypeKind(
+                TypeKindNames::Struct,
+                imm_ty.span(),
+                StringList(
+                    [
+                        TypeKindNames::Scalar,
+                        TypeKindNames::Enum,
+                        TypeKindNames::Union,
+                    ]
+                    .into_iter()
+                    .map(|it| it.to_string())
+                    .collect(),
+                ),
+            ));
+        }
+        Type::Enum(_) | Type::Union(_) => {
+            if !matches!(op.value(), PredicateOp::Eq | PredicateOp::NotEq) {
+                return Err(ParseError::InvalidPredicateInequality(op.span()));
+            }
+
+            let value_ty = match value.value() {
+                PredicateValue::EnumVariantRef(variant_ref) => variant_ref.ty().type_ref(),
+                PredicateValue::UnionVariantRef(variant_ref) => variant_ref.ty().type_ref(),
+                PredicateValue::Number(_) => return Err(ParseError::ExpectedVariant(value.span())),
+            };
+
+            if *imm_ty.value() != value_ty {
+                return Err(ParseError::MismatchedTypes(
+                    types[*imm_ty.value()].name().to_owned(),
+                    types[value_ty].name().to_owned(),
+                    value.span(),
+                ));
+            }
+        }
+    }
+
+    Ok(())
+}
+
+fn lower_predicate_value(
+    value: &ast::Spanned<ast::PredicateValue<'_>>,
+    types: &Types,
+) -> Result<ast::Spanned<PredicateValue>, ParseError> {
+    match value.value() {
+        ast::PredicateValue::SumTypeVariant {
+            enum_ty: base_ty,
+            variant,
+        } => {
+            let Some(sum_ty) = types.get(base_ty.value()) else {
+                return Err(ParseError::UnknownTypeName(
+                    (*base_ty.value()).to_owned(),
+                    base_ty.span(),
+                ));
+            };
+
+            variant.try_map(|variant| match &types[sum_ty] {
+                Type::Enum(ty) => {
+                    let Some(variant) = ty.get_variant(variant.value()) else {
+                        let variant_names = ty
+                            .variants()
+                            .iter()
+                            .map(|it| it.name().to_owned())
+                            .collect();
+
+                        return Err(ParseError::UnknownName(
+                            NameKind::Variant,
+                            (*variant.value()).to_owned(),
+                            variant.span(),
+                            StringList(variant_names),
+                        ));
+                    };
+
+                    Ok(PredicateValue::EnumVariantRef(variant))
+                }
+                Type::Union(ty) => {
+                    let Some(variant) = ty.get_variant(variant.value()) else {
+                        let variant_names = ty
+                            .variants()
+                            .iter()
+                            .map(|it| it.name().to_owned())
+                            .collect();
+
+                        return Err(ParseError::UnknownName(
+                            NameKind::Variant,
+                            (*variant.value()).to_owned(),
+                            variant.span(),
+                            StringList(variant_names),
+                        ));
+                    };
+
+                    Ok(PredicateValue::UnionVariantRef(variant))
+                }
+                other_ty @ (Type::Scalar(_) | Type::Struct(_)) => {
+                    return Err(ParseError::UnexpectedTypeKind(
+                        TypeKindNames::from(other_ty),
+                        base_ty.span(),
+                        StringList(
+                            [TypeKindNames::Enum, TypeKindNames::Union]
+                                .into_iter()
+                                .map(|it| it.to_string())
+                                .collect(),
+                        ),
+                    ));
+                }
+            })
+        }
+        ast::PredicateValue::Number(v) => {
+            Ok(ast::Spanned::new(PredicateValue::Number(*v), value.span()))
+        }
+    }
+}
+
+fn lower_stack_operands<'src, V, U>(
+    entries: &[V],
+    lower_operand: impl Fn(&V) -> Result<U, ParseError>,
+    name_kind: NameKind,
+) -> Result<Vec<U>, ParseError>
+where
+    V: 'src + ast::HasName,
+{
+    let mut operands = vec![];
+    let mut defs_tracker = DefsTracker::new(name_kind);
+
+    for entry in entries {
+        let name = entry.name();
+        defs_tracker.track_def(*name.value(), name.span())?;
+
+        operands.push(lower_operand(entry)?);
+    }
+
+    Ok(operands)
+}
+
+fn lower_stack_before_operand<'kdl>(
+    ast: &ast::StackBeforeOperand<'_>,
+    types: &Types,
+    _immediate_operands: &NameLookup<&'_ str, (ImmediateOperandRef, &Operand<Immediate>)>,
 ) -> Result<Operand<StackBefore>, ParseError> {
     let Some(ty) = types.get(ast.ty.value()) else {
         return Err(ParseError::UnknownTypeName(
@@ -758,9 +1247,9 @@ fn lower_stack_before_operand<'kdl>(
 }
 
 fn lower_stack_after_operand<'kdl>(
-    ast: ast::StackAfterOperand<'_>,
+    ast: &ast::StackAfterOperand<'_>,
     types: &Types,
-    immediate_operands: &BTreeMap<&'_ str, ImmediateOperandRef>,
+    _immediate_operands: &NameLookup<&'_ str, (ImmediateOperandRef, &Operand<Immediate>)>,
 ) -> Result<Operand<StackAfter>, ParseError> {
     let Some(ty) = types.get(ast.ty.value()) else {
         return Err(ParseError::UnknownTypeName(
@@ -784,7 +1273,7 @@ fn lower_stack_after_operand<'kdl>(
 
 fn parse_maybe_conditional_nodes<'node, V>(
     children: &'node kdl::KdlDocument,
-    parse_operand: impl Fn(&'node kdl::KdlNode) -> Result<ast::Spanned<V>, ParseError>,
+    parse_operand: impl Copy + Fn(&'node kdl::KdlNode) -> Result<ast::Spanned<V>, ParseError>,
 ) -> Result<Vec<ast::Spanned<ast::MaybeConditional<'node, V>>>, ParseError>
 where
     V: 'node,
@@ -792,12 +1281,13 @@ where
     let mut entries = vec![];
 
     for entry in children.nodes() {
-        // TODO: parse conditional decodes
         let entry = match entry.name().value() {
-            "@conditional" => continue,
-            "@conditional-case" => continue,
+            "@conditional" => parse_conditional_node(entry, parse_operand)?
+                .map(ast::MaybeConditional::Conditional),
+            "@conditional-case" => parse_conditional_case_node(entry, parse_operand)?
+                .map(ast::MaybeConditional::ConditionalCase),
             name if name.starts_with('@') => continue,
-            _ => parse_operand(entry).map(|it| it.map(ast::MaybeConditional::Operand))?,
+            _ => (parse_operand(entry)?).map(ast::MaybeConditional::Operand),
         };
 
         entries.push(entry);
@@ -806,29 +1296,188 @@ where
     Ok(entries)
 }
 
-fn parse_immediate_operand(
-    node: &kdl::KdlNode,
-    types: &Types,
-) -> Result<Operand<Immediate>, ParseError> {
-    expect_attribute_names(node, IMMEDIATE_OPERAND_ATTRS)?;
+fn parse_conditional_node<'node, V>(
+    node: &'node kdl::KdlNode,
+    parse_operand: impl Fn(&'node kdl::KdlNode) -> Result<ast::Spanned<V>, ParseError>,
+) -> Result<ast::Spanned<ast::Conditional<'node, V>>, ParseError>
+where
+    V: 'node,
+{
+    let children = get_required_children(node, CommonNodes::ConditionalOperandList)?;
+    expect_attribute_names(node, NO_ATTRS)?;
+    expect_child_at_names(Some(children), CONDITIONAL_AT_NODES)?;
 
-    let name = node.name().value();
-    let ty = parse_required_string_entry(node, 0)?;
-    let Some(ty) = types.get(ty) else {
-        let ty_span = node.entry(0).expect("must have type entry");
-        return Err(ParseError::UnknownTypeName(ty.to_owned(), ty_span.span()));
+    // parse opcode entries
+    let mut predicates = vec![];
+    let mut otherwises = vec![];
+    let mut operands = vec![];
+
+    for entry in children.nodes() {
+        match entry.name().value() {
+            "@predicate" => parse_conditional_predicate_node(entry)?.either(
+                |predicate| predicates.push(predicate),
+                |otherwise| otherwises.push(otherwise),
+            ),
+            name if name.starts_with('@') => continue,
+            _ => operands.push(parse_operand(entry)?),
+        }
+    }
+
+    // Pick an otherwise to be the representative type
+    // TODO: reject other non-otherwise predicates
+    let predicates = if let Some(otherwise) = otherwises.pop() {
+        Either::Right(otherwise)
+    } else {
+        Either::Left(predicates)
     };
-    let description = parse_description(node)?;
-    let unused = parse_bool_entry(node, "unused")?.unwrap_or(false);
 
-    // other things!
-    Ok(Operand {
-        name: name.to_owned(),
-        ty,
-        description: description.map(String::from),
-        unused,
-        special: Immediate {},
-    })
+    Ok(ast::Spanned::new(
+        ast::Conditional {
+            predicates,
+            operands,
+        },
+        node.name().span(),
+    ))
+}
+
+fn parse_conditional_predicate_node(
+    node: &kdl::KdlNode,
+) -> Result<
+    Either<ast::Spanned<ast::ConditionalPredicate<'_>>, ast::OtherwisePredicate<'_>>,
+    ParseError,
+> {
+    expect_attribute_names(node, NO_ATTRS)?;
+    expect_child_names(node.children(), NO_CHILDREN)?;
+
+    if let Some(maybe_otherwise) = node.entry(0) {
+        if maybe_otherwise.ty().is_none()
+            && maybe_otherwise
+                .value()
+                .as_string()
+                .is_some_and(|it| it == "otherwise")
+        {
+            return Ok(Either::Right(ast::OtherwisePredicate {
+                otherwise: ast::Spanned::new(
+                    maybe_otherwise.value().as_string().unwrap(),
+                    maybe_otherwise.span(),
+                ),
+            }));
+        }
+    }
+
+    let (_, immediate_operand) = parse_required_spanned_field_entry(node, 0, Some(&["operands"]))?;
+    let op = parse_required_spanned_string_entry(node, 1)?.try_fold(|it| {
+        let op: PredicateOp = it
+            .value()
+            .parse()
+            .map_err(|_| ParseError::InvalidPredicateOp(it.span()))?;
+        Ok::<_, ParseError>(ast::Spanned::new(op, it.span()))
+    })?;
+    let value = parse_predicate_value(node, 2)?;
+
+    Ok(Either::Left(ast::Spanned::new(
+        ast::ConditionalPredicate {
+            immediate_operand,
+            op,
+            value,
+        },
+        node.name().span(),
+    )))
+}
+
+fn parse_conditional_case_node<'node, V>(
+    node: &'node kdl::KdlNode,
+    parse_operand: impl Copy + Fn(&'node kdl::KdlNode) -> Result<ast::Spanned<V>, ParseError>,
+) -> Result<ast::Spanned<ast::ConditionalCase<'node, V>>, ParseError>
+where
+    V: 'node,
+{
+    let children = get_required_children(node, CommonNodes::ConditionalCaseOperandList)?;
+    expect_attribute_names(node, NO_ATTRS)?;
+    expect_child_at_names(Some(children), CONDITIONAL_CASE_AT_NODES)?;
+
+    let (_, immediate_decode_match) =
+        parse_required_spanned_field_entry(node, 0, Some(&["operands"]))?;
+
+    let mut arms = vec![];
+
+    for entry in children.nodes() {
+        match entry.name().value() {
+            "@case" => arms.push(parse_conditional_case_arm(entry, parse_operand)?),
+            _ => {
+                return Err(ParseError::UnexpectedChildNode(
+                    entry.name().span(),
+                    StringList(vec!["@case".into()]),
+                ));
+            }
+        };
+    }
+
+    Ok(ast::Spanned::new(
+        ast::ConditionalCase {
+            immediate_decode_match,
+            arms,
+        },
+        node.name().span(),
+    ))
+}
+
+fn parse_conditional_case_arm<'node, V>(
+    node: &'node kdl::KdlNode,
+    parse_operand: impl Fn(&'node kdl::KdlNode) -> Result<ast::Spanned<V>, ParseError>,
+) -> Result<ast::Spanned<ast::ConditonalArm<'node, V>>, ParseError>
+where
+    V: 'node,
+{
+    let children = get_required_children(node, CommonNodes::ConditionalCaseArmOperandList)?;
+    expect_attribute_names(node, NO_ATTRS)?;
+    expect_child_at_names(Some(children), NO_AT_NODES)?;
+
+    let mut match_values = vec![];
+    for value in (0..node.entries().len()).map(|key| parse_predicate_value(node, key)) {
+        match_values.push(value?);
+    }
+
+    let mut operands = vec![];
+    for entry in children.nodes() {
+        operands.push(parse_operand(entry)?);
+    }
+
+    Ok(ast::Spanned::new(
+        ast::ConditonalArm {
+            match_values,
+            operands,
+        },
+        node.name().span(),
+    ))
+}
+
+fn parse_predicate_value(
+    node: &kdl::KdlNode,
+    key: usize,
+) -> Result<ast::Spanned<ast::PredicateValue<'_>>, ParseError> {
+    let Some(entry) = node.entry(key) else {
+        return Err(ParseError::ExpectedValue(node.name().span()));
+    };
+
+    let value = match entry.value() {
+        kdl::KdlValue::String(_) => {
+            // Always treat strings as fields
+            let (field_base, field) = parse_required_spanned_field_entry(node, key, None)?;
+
+            ast::PredicateValue::SumTypeVariant {
+                enum_ty: field_base,
+                variant: field,
+            }
+        }
+        kdl::KdlValue::Integer(_) if entry.ty().is_some() => {
+            return Err(ParseError::ExpectedInteger(entry.span()));
+        }
+        kdl::KdlValue::Integer(value) => ast::PredicateValue::Number(*value),
+        _ => return Err(ParseError::InvalidValue(entry.span())),
+    };
+
+    Ok(ast::Spanned::new(value, entry.span()))
 }
 
 fn get_required_node(
@@ -1110,6 +1759,52 @@ fn parse_required_spanned_string_entry(
     })
 }
 
+fn parse_spanned_field_entry<'node>(
+    node: &'node kdl::KdlNode,
+    key: usize,
+    accepted_bases: Option<&'static [&'static str]>,
+) -> Result<Option<(ast::Spanned<&'node str>, ast::Spanned<&'node str>)>, ParseError> {
+    let Some(entry) = node.entry(key) else {
+        return Ok(None);
+    };
+
+    // ensure it has (field_base) for conventions
+    let Some(field_base) = entry.ty() else {
+        return Err(ParseError::MissingFieldBase(entry.span()));
+    };
+
+    let Some(field_name) = entry
+        .value()
+        .as_string()
+        .and_then(|it| it.strip_prefix('.'))
+    else {
+        return Err(ParseError::InvalidFieldName(entry.span()));
+    };
+
+    if let Some(accepted_bases) = accepted_bases {
+        if !accepted_bases.contains(&field_base.value()) {
+            return Err(ParseError::InvalidFieldBase(
+                field_base.span(),
+                StringList(accepted_bases.iter().map(|it| String::from(*it)).collect()),
+            ));
+        }
+    }
+
+    Ok(Some((
+        ast::Spanned::new(field_base.value(), field_base.span()),
+        ast::Spanned::new(field_name, entry.span()),
+    )))
+}
+
+fn parse_required_spanned_field_entry<'node>(
+    node: &'node kdl::KdlNode,
+    key: usize,
+    accepted_bases: Option<&'static [&'static str]>,
+) -> Result<(ast::Spanned<&'node str>, ast::Spanned<&'node str>), ParseError> {
+    parse_spanned_field_entry(node, key, accepted_bases)?
+        .ok_or_else(|| return ParseError::MissingField(node.name().span()))
+}
+
 fn parse_required_u32_entry(
     node: &kdl::KdlNode,
     key: impl Into<kdl::NodeKey>,
@@ -1242,6 +1937,184 @@ where
     }
 }
 
+struct NameLookup<K, V> {
+    names: BTreeMap<K, V>,
+    name_kind: NameKind,
+}
+
+impl<K, V> NameLookup<K, V>
+where
+    K: Ord,
+{
+    fn from_names(name_kind: NameKind, names: impl IntoIterator<Item = (K, V)>) -> Self {
+        Self {
+            names: names.into_iter().collect(),
+            name_kind,
+        }
+    }
+
+    fn lookup<Q>(&self, name: ast::Spanned<Q>) -> Result<&V, ParseError>
+    where
+        Q: Ord + ToString,
+        K: Borrow<Q> + ToString,
+    {
+        self.names.get(name.value().borrow()).ok_or_else(|| {
+            let names = self.names.keys().map(|it| it.to_string()).collect();
+            ParseError::UnknownName(
+                self.name_kind,
+                name.value().to_string(),
+                name.span(),
+                StringList(names),
+            )
+        })
+    }
+}
+
+#[derive(Debug, Default)]
+struct ConditionalDefs {
+    conditions: IndexSet<(PredicateOp, PredicateValue)>,
+}
+
+impl ConditionalDefs {
+    fn insert_condition(&mut self, op: PredicateOp, value: PredicateValue) -> ConditionalExprRef {
+        let (slot, _) = self.conditions.insert_full((op, value));
+        ConditionalExprRef::from_usize(slot)
+    }
+
+    fn get_condition(&self, op: PredicateOp, value: PredicateValue) -> Option<ConditionalExprRef> {
+        let slot = self.conditions.get_index_of(&(op, value))?;
+        Some(ConditionalExprRef::from_usize(slot))
+    }
+
+    fn get_single_condition(&self) -> Result<Option<ConditionalExprRef>, ()> {
+        match self.conditions.len() {
+            0 => Ok(None),
+            1 => Ok(Some(ConditionalExprRef::from_usize(0))),
+            _ => Err(()),
+        }
+    }
+}
+
+impl Index<ConditionalExprRef> for ConditionalDefs {
+    type Output = (PredicateOp, PredicateValue);
+
+    fn index(&self, index: ConditionalExprRef) -> &Self::Output {
+        self.conditions
+            .get_index(index.index())
+            .expect("should be valid conditional expr ref")
+    }
+}
+
+#[derive(Debug, Default)]
+struct StackOperands {
+    visible_when: BTreeMap<ConditionalExprRef, Vec<ConditionalEntry>>,
+    otherwise: Vec<ConditionalEntry>,
+    always: Vec<ConditionalEntry>,
+}
+
+impl StackOperands {
+    fn pick_operands<'entries, V>(
+        &self,
+        entries: &'entries [ast::Spanned<ast::MaybeConditional<'entries, V>>],
+        predicate: Option<ConditionalExprRef>,
+    ) -> Vec<&'entries V>
+    where
+        V: 'entries,
+    {
+        let mut slots = vec![];
+        let mut operands = vec![];
+
+        let conditional_slots = match predicate {
+            Some(predicate) => self.visible_when.get(&predicate),
+            None => Some(&self.otherwise),
+        };
+
+        if let Some(conditional_slots) = conditional_slots {
+            slots.extend_from_slice(conditional_slots);
+        }
+        slots.extend_from_slice(&self.always);
+
+        // Ensure entries and operands are added in definition order
+        slots.sort_by_key(|key| (key.index(), key.arm()));
+
+        for slot in slots {
+            match slot {
+                ConditionalEntry::Predicate(index) => {
+                    let ast::MaybeConditional::Conditional(conditional) = entries[index].value()
+                    else {
+                        unreachable!()
+                    };
+
+                    operands.extend(conditional.operands.iter().map(|it| it.value()));
+                }
+                ConditionalEntry::Case(index, arm) => {
+                    let ast::MaybeConditional::ConditionalCase(conditional_case) =
+                        entries[index].value()
+                    else {
+                        unreachable!()
+                    };
+
+                    operands.extend(
+                        conditional_case.arms[arm]
+                            .value()
+                            .operands
+                            .iter()
+                            .map(|it| it.value()),
+                    );
+                }
+                ConditionalEntry::Always(index) => {
+                    let ast::MaybeConditional::Operand(operand) = entries[index].value() else {
+                        unreachable!()
+                    };
+
+                    operands.push(operand);
+                }
+            }
+        }
+
+        operands
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+struct ConditionalExprRef(NonZeroUsize);
+
+impl ConditionalExprRef {
+    fn from_usize(value: usize) -> Self {
+        NonZeroUsize::new(value + 1)
+            .map(Self)
+            .expect("too many values")
+    }
+
+    fn index(self) -> usize {
+        self.0.get() - 1
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ConditionalEntry {
+    Predicate(usize),
+    Case(usize, usize),
+    Always(usize),
+}
+
+impl ConditionalEntry {
+    fn index(self) -> usize {
+        match self {
+            ConditionalEntry::Predicate(index)
+            | ConditionalEntry::Case(index, _)
+            | ConditionalEntry::Always(index) => index,
+        }
+    }
+
+    fn arm(self) -> usize {
+        match self {
+            ConditionalEntry::Case(_, arm) => arm,
+            _ => 0,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{Property, PropertyValue};
@@ -1251,8 +2124,12 @@ mod tests {
     #[track_caller]
     fn parse_pass(src: &str) -> BytecodeSpec {
         let out = parse_spec(src);
-        assert!(matches!(out, Ok(_)), "{out:#?}");
-        out.unwrap()
+        match out {
+            Ok(ok) => ok,
+            Err(err) => {
+                panic!("{err:#?}")
+            }
+        }
     }
 
     #[track_caller]
@@ -1480,7 +2357,10 @@ mod tests {
         );
 
         assert!(
-            matches!(&err, ParseError::DuplicateName(NameKind::Operand, ..)),
+            matches!(
+                &err,
+                ParseError::DuplicateName(NameKind::ImmediateOperand, ..)
+            ),
             "{err:#?}"
         );
     }
@@ -1537,6 +2417,69 @@ mod tests {
     }
 
     #[test]
+    fn parse_instruction_stack_before_operands_conditional_predicate_number() {
+        // TODO: computed & computed_offset
+        let out = parse_pass(
+            r#"
+            types {
+                scalar int4 size=4
+            }
+            instructions {
+                INSTR_A 0x0 {
+                    operands {
+                        thing "int4"
+                    }
+                    stack_before {
+                        @conditional {
+                            @predicate (operands).thing ">=" 4
+
+                            op1 "int4"
+                        }
+                        @conditional {
+                            @predicate "otherwise"
+
+                            op1 "int4" unused=#true variadic=#true { - description "op1" }
+                        }
+                        op2 "int4" { - description "op2" }
+                    }
+                }
+            }
+            "#,
+        );
+
+        assert_eq!(out.instructions.len(), 1);
+        let instr = &out.instructions[0];
+        let int4 = out.types.get("int4").expect("should have int4 type");
+
+        assert_eq!(instr.stack_effects().len(), 2);
+        assert_eq!(instr.stack_effects()[0].stack_before().len(), 2);
+        assert_eq!(instr.stack_effects()[1].stack_before().len(), 2);
+
+        {
+            let operand = &instr.stack_effects()[0].stack_before()[0];
+            assert_eq!(operand.name, "op1");
+            assert_eq!(operand.ty, int4);
+            assert_eq!(operand.description, None);
+        }
+
+        {
+            let operand = &instr.stack_effects()[1].stack_before()[0];
+            assert_eq!(operand.name, "op1");
+            assert_eq!(operand.ty, int4);
+            assert_eq!(operand.unused, true);
+            assert_eq!(operand.special.variadic, true);
+            assert_eq!(operand.description.as_deref(), Some("op1"));
+        }
+
+        for effect in 0..=1 {
+            let operand = &instr.stack_effects()[effect].stack_before()[1];
+            assert_eq!(operand.name, "op2");
+            assert_eq!(operand.ty, int4);
+            assert_eq!(operand.description.as_deref(), Some("op2"));
+        }
+    }
+
+    #[test]
     fn parse_fail_instruction_duplicate_stack_before_operand_no_conditional_decode() {
         let err = parse_fail(
             r#"
@@ -1556,10 +2499,97 @@ mod tests {
         );
 
         assert!(
-            matches!(&err, ParseError::DuplicateName(NameKind::Operand, ..)),
+            matches!(
+                &err,
+                ParseError::DuplicateName(NameKind::StackBeforeOperand, ..)
+            ),
             "{err:#?}"
         );
     }
+
+    #[test]
+    fn parse_fail_instruction_duplicate_stack_before_operand_conditional_with_always() {
+        let err = parse_fail(
+            r#"
+            types {
+                scalar "int4" size=4
+            }
+
+            instructions {
+                INSTR_A 0x0 {
+                    operands {
+                        thing "int4"
+                    }
+                    stack_before {
+                        @conditional {
+                            @predicate (operands).thing "==" 1
+
+                            op1 "int4"
+                        }
+
+                        op1 "int4"
+                    }
+                }
+            }
+            "#,
+        );
+
+        assert!(
+            matches!(
+                &err,
+                ParseError::DuplicateName(NameKind::StackBeforeOperand, ..)
+            ),
+            "{err:#?}"
+        );
+    }
+
+    #[test]
+    fn parse_fail_instruction_duplicate_stack_before_operand_conditional_with_otherwise() {
+        let err = parse_fail(
+            r#"
+            types {
+                scalar "int4" size=4
+            }
+
+            instructions {
+                INSTR_A 0x0 {
+                    operands {
+                        thing "int4"
+                    }
+                    stack_before {
+                        @conditional {
+                            @predicate "otherwise"
+
+                            op1 "int4"
+                        }
+
+                        op1 "int4"
+                    }
+                }
+            }
+            "#,
+        );
+
+        assert!(
+            matches!(
+                &err,
+                ParseError::DuplicateName(NameKind::StackBeforeOperand, ..)
+            ),
+            "{err:#?}"
+        );
+    }
+
+    // FIXME: test other conditional decode:
+    // - pass: exhaustive enum (only eq predicates)
+    // - pass: exhaustive union (only eq predicates)
+    // - pass: conditional case union
+    // - pass: conditional case enum
+    // - fail: invalid predicate inequality
+    // - fail: multiple scalar predicates (conditonal)
+    // - fail: multiple scalar predicates (conditonal case)
+    // - fail: multiple immediate operands
+    // - fail: mismatched types
+    // - fail: expected variant name
 
     #[test]
     fn parse_instruction_stack_after_operands_no_conditional_decode() {
@@ -1634,7 +2664,10 @@ mod tests {
         );
 
         assert!(
-            matches!(&err, ParseError::DuplicateName(NameKind::Operand, ..)),
+            matches!(
+                &err,
+                ParseError::DuplicateName(NameKind::StackAfterOperand, ..)
+            ),
             "{err:#?}"
         );
     }
