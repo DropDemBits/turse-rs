@@ -155,7 +155,7 @@ pub(crate) enum PredicateValue<'src> {
 
 #[derive(Debug)]
 pub(crate) struct OtherwisePredicate<'src> {
-    pub(crate) otherwise: Spanned<&'src str>,
+    pub(crate) _otherwise: Spanned<&'src str>,
 }
 
 pub(crate) trait HasName {
