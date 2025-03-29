@@ -801,7 +801,7 @@ pub enum PredicateValue {
 /// Expression computed at decode time to either compute an element count, or a stack byte offset.
 #[derive(Debug)]
 pub enum ComputedExpr {
-    /// Refers to a specific [`ImmediateOperand`].
+    /// Refers to a specific immediate operand.
     ImmediateOperand(ImmediateOperandRef),
     /// Refers to a specific enum's variant
     VariantRef(EnumVariantRef),
