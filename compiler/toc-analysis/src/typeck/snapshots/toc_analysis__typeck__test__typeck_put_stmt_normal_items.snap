@@ -1,18 +1,17 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var i : int\nvar n : nat\nvar r : real\nvar c : char\nvar cn : char(4)\nvar s : string\nvar sn : string(4)\ntype en: enum(a, b) var ef : en\n\nput i : 0\nput n : 0\nput r : 0\nput c : 0\nput cn : 0\nput s : 0\nput sn : 0\nput ef : 0\n"
 ---
-"i"@(FileId(1), 4..5) [ConstVar(Var, No)]: int
-"n"@(FileId(1), 16..17) [ConstVar(Var, No)]: nat
-"r"@(FileId(1), 28..29) [ConstVar(Var, No)]: real
-"c"@(FileId(1), 41..42) [ConstVar(Var, No)]: char
-"cn"@(FileId(1), 54..56) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(0)))
-"s"@(FileId(1), 71..72) [ConstVar(Var, No)]: string
-"sn"@(FileId(1), 86..88) [ConstVar(Var, No)]: string_n Fixed(Unevaluated(PackageId(0), BodyId(1)))
-"en"@(FileId(1), 106..108) [Type]: enum[DefId(PackageId(0), LocalDefId(8))] ( "a"@(FileId(1), 115..116), "b"@(FileId(1), 118..119), )
-"en"@(FileId(1), 110..120) [Enum]: <error>
-"a"@(FileId(1), 115..116) [EnumVariant]: enum[DefId(PackageId(0), LocalDefId(8))] ( "a"@(FileId(1), 115..116), "b"@(FileId(1), 118..119), )
-"b"@(FileId(1), 118..119) [EnumVariant]: enum[DefId(PackageId(0), LocalDefId(8))] ( "a"@(FileId(1), 115..116), "b"@(FileId(1), 118..119), )
-"ef"@(FileId(1), 125..127) [ConstVar(Var, No)]: enum[DefId(PackageId(0), LocalDefId(8))] ( "a"@(FileId(1), 115..116), "b"@(FileId(1), 118..119), )
-"<root>"@(dummy) [Module(No)]: <error>
-
+"i"@"src/main.t:4..5" [ConstVar(Var, No)]: int
+"n"@"src/main.t:16..17" [ConstVar(Var, No)]: nat
+"r"@"src/main.t:28..29" [ConstVar(Var, No)]: real
+"c"@"src/main.t:41..42" [ConstVar(Var, No)]: char
+"cn"@"src/main.t:54..56" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(0)))
+"s"@"src/main.t:71..72" [ConstVar(Var, No)]: string
+"sn"@"src/main.t:86..88" [ConstVar(Var, No)]: string_n Fixed(Unevaluated(PackageId(0), BodyId(1)))
+"en"@"src/main.t:106..108" [Type]: enum[DefId(PackageId(0), LocalDefId(8))] ( "a"@SpanId(11), "b"@SpanId(12), )
+"en"@"src/main.t:110..120" [Enum]: <error>
+"a"@"src/main.t:115..116" [EnumVariant]: enum[DefId(PackageId(0), LocalDefId(8))] ( "a"@SpanId(11), "b"@SpanId(12), )
+"b"@"src/main.t:118..119" [EnumVariant]: enum[DefId(PackageId(0), LocalDefId(8))] ( "a"@SpanId(11), "b"@SpanId(12), )
+"ef"@"src/main.t:125..127" [ConstVar(Var, No)]: enum[DefId(PackageId(0), LocalDefId(8))] ( "a"@SpanId(11), "b"@SpanId(12), )
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>

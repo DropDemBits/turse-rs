@@ -1,8 +1,7 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "for a : 1 .. 10\n    var q : int := a\nend for\n"
 ---
-"a"@(FileId(1), 4..5) [ConstVar(Const, No)]: int
-"q"@(FileId(1), 24..25) [ConstVar(Var, No)]: int
-"<root>"@(dummy) [Module(No)]: <error>
-
+"a"@"src/main.t:4..5" [ConstVar(Const, No)]: int
+"q"@"src/main.t:24..25" [ConstVar(Var, No)]: int
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>

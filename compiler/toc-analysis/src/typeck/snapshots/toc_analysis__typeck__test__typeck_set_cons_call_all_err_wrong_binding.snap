@@ -2,15 +2,15 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "type s : set of boolean\ntype b : boolean\nvar _ := s(all, b)\n"
 ---
-"s"@(FileId(1), 5..6) [Type]: set[DefId(PackageId(0), LocalDefId(1))] of boolean
-"s"@(FileId(1), 9..23) [Set]: <error>
-"b"@(FileId(1), 29..30) [Type]: alias[DefId(PackageId(0), LocalDefId(2))] of boolean
-"_"@(FileId(1), 45..46) [ConstVar(Var, No)]: set[DefId(PackageId(0), LocalDefId(1))] of boolean
-"<root>"@(dummy) [Module(No)]: <error>
+"s"@"src/main.t:5..6" [Type]: set[DefId(PackageId(0), LocalDefId(1))] of boolean
+"s"@"src/main.t:9..23" [Set]: <error>
+"b"@"src/main.t:29..30" [Type]: alias[DefId(PackageId(0), LocalDefId(2))] of boolean
+"_"@"src/main.t:45..46" [ConstVar(Var, No)]: set[DefId(PackageId(0), LocalDefId(1))] of boolean
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 50..51): constructor call has extra arguments
-| error for (FileId(1), 50..51): call has extra arguments
-| note for (FileId(1), 52..55): this `all` also covers the rest of the arguments
-error at (FileId(1), 57..58): cannot use `b` as an expression
-| error for (FileId(1), 57..58): `b` is a reference to a type, not a variable
-| note for (FileId(1), 29..30): `b` declared here
+error at src/main.t:50..51: constructor call has extra arguments
+| error for src/main.t:50..51: call has extra arguments
+| note for src/main.t:52..55: this `all` also covers the rest of the arguments
+error at src/main.t:57..58: cannot use `b` as an expression
+| error for src/main.t:57..58: `b` is a reference to a type, not a variable
+| note for src/main.t:29..30: `b` declared here

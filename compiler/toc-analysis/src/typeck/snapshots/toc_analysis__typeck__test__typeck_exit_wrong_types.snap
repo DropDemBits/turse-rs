@@ -2,8 +2,8 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "loop exit when \"gekdu\" end loop"
 ---
-"<root>"@(dummy) [Module(No)]: <error>
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 15..22): mismatched types
-| note for (FileId(1), 15..22): this is of type `string`
+error at src/main.t:15..22: mismatched types
+| note for src/main.t:15..22: this is of type `string`
 | info: expected a `boolean` type

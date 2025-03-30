@@ -2,51 +2,51 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "\n    var b : boolean\n    var r : real\n    var i : int\n    var n : nat\n    var _br := b mod r\n    var _bi := b mod i\n    var _bn := b mod n\n    var _rb := r mod b\n    var _ib := i mod b\n    var _nb := n mod b\n    var _bb := b mod b\n"
 ---
-"b"@(FileId(1), 9..10) [ConstVar(Var, No)]: boolean
-"r"@(FileId(1), 29..30) [ConstVar(Var, No)]: real
-"i"@(FileId(1), 46..47) [ConstVar(Var, No)]: int
-"n"@(FileId(1), 62..63) [ConstVar(Var, No)]: nat
-"_br"@(FileId(1), 78..81) [ConstVar(Var, No)]: <error>
-"_bi"@(FileId(1), 101..104) [ConstVar(Var, No)]: <error>
-"_bn"@(FileId(1), 124..127) [ConstVar(Var, No)]: <error>
-"_rb"@(FileId(1), 147..150) [ConstVar(Var, No)]: <error>
-"_ib"@(FileId(1), 170..173) [ConstVar(Var, No)]: <error>
-"_nb"@(FileId(1), 193..196) [ConstVar(Var, No)]: <error>
-"_bb"@(FileId(1), 216..219) [ConstVar(Var, No)]: <error>
-"<root>"@(dummy) [Module(No)]: <error>
+"b"@"src/main.t:9..10" [ConstVar(Var, No)]: boolean
+"r"@"src/main.t:29..30" [ConstVar(Var, No)]: real
+"i"@"src/main.t:46..47" [ConstVar(Var, No)]: int
+"n"@"src/main.t:62..63" [ConstVar(Var, No)]: nat
+"_br"@"src/main.t:78..81" [ConstVar(Var, No)]: <error>
+"_bi"@"src/main.t:101..104" [ConstVar(Var, No)]: <error>
+"_bn"@"src/main.t:124..127" [ConstVar(Var, No)]: <error>
+"_rb"@"src/main.t:147..150" [ConstVar(Var, No)]: <error>
+"_ib"@"src/main.t:170..173" [ConstVar(Var, No)]: <error>
+"_nb"@"src/main.t:193..196" [ConstVar(Var, No)]: <error>
+"_bb"@"src/main.t:216..219" [ConstVar(Var, No)]: <error>
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 87..90): mismatched types for modulus
-| note for (FileId(1), 91..92): this is of type `real`
-| note for (FileId(1), 85..86): this is of type `boolean`
-| error for (FileId(1), 87..90): `boolean` cannot be `mod`'d by `real`
+error at src/main.t:87..90: mismatched types for modulus
+| note for src/main.t:91..92: this is of type `real`
+| note for src/main.t:85..86: this is of type `boolean`
+| error for src/main.t:87..90: `boolean` cannot be `mod`'d by `real`
 | info: operands must both be numbers
-error at (FileId(1), 110..113): mismatched types for modulus
-| note for (FileId(1), 114..115): this is of type `int`
-| note for (FileId(1), 108..109): this is of type `boolean`
-| error for (FileId(1), 110..113): `boolean` cannot be `mod`'d by `int`
+error at src/main.t:110..113: mismatched types for modulus
+| note for src/main.t:114..115: this is of type `int`
+| note for src/main.t:108..109: this is of type `boolean`
+| error for src/main.t:110..113: `boolean` cannot be `mod`'d by `int`
 | info: operands must both be numbers
-error at (FileId(1), 133..136): mismatched types for modulus
-| note for (FileId(1), 137..138): this is of type `nat`
-| note for (FileId(1), 131..132): this is of type `boolean`
-| error for (FileId(1), 133..136): `boolean` cannot be `mod`'d by `nat`
+error at src/main.t:133..136: mismatched types for modulus
+| note for src/main.t:137..138: this is of type `nat`
+| note for src/main.t:131..132: this is of type `boolean`
+| error for src/main.t:133..136: `boolean` cannot be `mod`'d by `nat`
 | info: operands must both be numbers
-error at (FileId(1), 156..159): mismatched types for modulus
-| note for (FileId(1), 160..161): this is of type `boolean`
-| note for (FileId(1), 154..155): this is of type `real`
-| error for (FileId(1), 156..159): `real` cannot be `mod`'d by `boolean`
+error at src/main.t:156..159: mismatched types for modulus
+| note for src/main.t:160..161: this is of type `boolean`
+| note for src/main.t:154..155: this is of type `real`
+| error for src/main.t:156..159: `real` cannot be `mod`'d by `boolean`
 | info: operands must both be numbers
-error at (FileId(1), 179..182): mismatched types for modulus
-| note for (FileId(1), 183..184): this is of type `boolean`
-| note for (FileId(1), 177..178): this is of type `int`
-| error for (FileId(1), 179..182): `int` cannot be `mod`'d by `boolean`
+error at src/main.t:179..182: mismatched types for modulus
+| note for src/main.t:183..184: this is of type `boolean`
+| note for src/main.t:177..178: this is of type `int`
+| error for src/main.t:179..182: `int` cannot be `mod`'d by `boolean`
 | info: operands must both be numbers
-error at (FileId(1), 202..205): mismatched types for modulus
-| note for (FileId(1), 206..207): this is of type `boolean`
-| note for (FileId(1), 200..201): this is of type `nat`
-| error for (FileId(1), 202..205): `nat` cannot be `mod`'d by `boolean`
+error at src/main.t:202..205: mismatched types for modulus
+| note for src/main.t:206..207: this is of type `boolean`
+| note for src/main.t:200..201: this is of type `nat`
+| error for src/main.t:202..205: `nat` cannot be `mod`'d by `boolean`
 | info: operands must both be numbers
-error at (FileId(1), 225..228): mismatched types for modulus
-| note for (FileId(1), 229..230): this is of type `boolean`
-| note for (FileId(1), 223..224): this is of type `boolean`
-| error for (FileId(1), 225..228): `boolean` cannot be `mod`'d by `boolean`
+error at src/main.t:225..228: mismatched types for modulus
+| note for src/main.t:229..230: this is of type `boolean`
+| note for src/main.t:223..224: this is of type `boolean`
+| error for src/main.t:225..228: `boolean` cannot be `mod`'d by `boolean`
 | info: operands must both be numbers

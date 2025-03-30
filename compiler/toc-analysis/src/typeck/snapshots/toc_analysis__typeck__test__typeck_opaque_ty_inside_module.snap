@@ -1,11 +1,10 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "module k\n    export opaque t\n    type t : int\n    var a : t := 2\n    var b : k.t := 3\nend k\n"
 ---
-"k"@(FileId(1), 7..8) [Module(No)]: <error>
-"t"@(FileId(1), 38..39) [Type]: opaque[DefId(PackageId(0), LocalDefId(1))] type to int
-"a"@(FileId(1), 54..55) [ConstVar(Var, No)]: opaque[DefId(PackageId(0), LocalDefId(1))] type to int
-"b"@(FileId(1), 73..74) [ConstVar(Var, No)]: opaque[DefId(PackageId(0), LocalDefId(1))] type to int
-"t"@(FileId(1), 27..28) [Export]: opaque[DefId(PackageId(0), LocalDefId(1))] type to int
-"<root>"@(dummy) [Module(No)]: <error>
-
+"k"@"src/main.t:7..8" [Module(No)]: <error>
+"t"@"src/main.t:38..39" [Type]: opaque[DefId(PackageId(0), LocalDefId(1))] type to int
+"a"@"src/main.t:54..55" [ConstVar(Var, No)]: opaque[DefId(PackageId(0), LocalDefId(1))] type to int
+"b"@"src/main.t:73..74" [ConstVar(Var, No)]: opaque[DefId(PackageId(0), LocalDefId(1))] type to int
+"t"@"src/main.t:27..28" [Export]: opaque[DefId(PackageId(0), LocalDefId(1))] type to int
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>

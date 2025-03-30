@@ -2,6 +2,5 @@
 source: compiler/toc-analysis/src/lints/test.rs
 expression: "var k := 16#100000000"
 ---
-
-error at (FileId(1), 9..21): invalid int literal
-| error for (FileId(1), 9..21): number is too large
+error at src/main.t:9..21: invalid int literal
+| error for src/main.t:9..21: number is too large

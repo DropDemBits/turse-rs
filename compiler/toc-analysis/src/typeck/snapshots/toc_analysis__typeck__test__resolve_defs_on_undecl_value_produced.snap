@@ -1,9 +1,8 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "module _\n    import undecl\n    begin\n        bind a to undecl\n    end\nend _\n"
 ---
-"_"@(FileId(1), 7..8) [Module(No)]: <error>
-"undecl"@(FileId(1), 20..26) [Import]: <error>
-"a"@(FileId(1), 50..51) [Binding(Const, No)]: <error>
-"<root>"@(dummy) [Module(No)]: <error>
-
+"_"@"src/main.t:7..8" [Module(No)]: <error>
+"undecl"@"src/main.t:20..26" [Import]: <error>
+"a"@"src/main.t:50..51" [Binding(Const, No)]: <error>
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>

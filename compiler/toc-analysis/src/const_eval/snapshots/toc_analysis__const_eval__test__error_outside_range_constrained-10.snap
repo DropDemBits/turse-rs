@@ -1,10 +1,6 @@
 ---
-source: compiler/toc_analysis/src/const_eval/test.rs
-assertion_line: 12
+source: compiler/toc-analysis/src/const_eval/test.rs
 expression: "const c : char(1) := 'a' const a : 'a' .. 'b' := c const_:=a"
-
 ---
-"c"@(FileId(1), 6..7) -> Char('a')
-"a"@(FileId(1), 31..32) -> Char('a')
-
-
+"c"@"src/main.t:6..7" -> Char('a')
+"a"@"src/main.t:31..32" -> Char('a')

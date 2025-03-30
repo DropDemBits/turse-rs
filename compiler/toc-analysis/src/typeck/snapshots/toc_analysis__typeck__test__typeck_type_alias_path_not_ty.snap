@@ -2,12 +2,12 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "module a export b var b : int end a\nvar e : a.b\n"
 ---
-"a"@(FileId(1), 7..8) [Module(No)]: <error>
-"b"@(FileId(1), 22..23) [ConstVar(Var, No)]: int
-"e"@(FileId(1), 40..41) [ConstVar(Var, No)]: <error>
-"b"@(FileId(1), 16..17) [Export]: int
-"<root>"@(dummy) [Module(No)]: <error>
+"a"@"src/main.t:7..8" [Module(No)]: <error>
+"b"@"src/main.t:22..23" [ConstVar(Var, No)]: int
+"e"@"src/main.t:40..41" [ConstVar(Var, No)]: <error>
+"b"@"src/main.t:16..17" [Export]: int
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 46..47): cannot use `b` as a type alias
-| error for (FileId(1), 46..47): `b` is a reference to a variable, not a type
-| note for (FileId(1), 22..23): `b` declared here
+error at src/main.t:46..47: cannot use `b` as a type alias
+| error for src/main.t:46..47: `b` is a reference to a variable, not a type
+| note for src/main.t:22..23: `b` declared here

@@ -2,13 +2,13 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "type a0 : real\ntype a1 : int\nvar k : a0\nvar i : int\ni := i + k % unchanged"
 ---
-"a0"@(FileId(1), 5..7) [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of real
-"a1"@(FileId(1), 20..22) [Type]: alias[DefId(PackageId(0), LocalDefId(1))] of int
-"k"@(FileId(1), 33..34) [ConstVar(Var, No)]: alias[DefId(PackageId(0), LocalDefId(0))] of real
-"i"@(FileId(1), 44..45) [ConstVar(Var, No)]: int
-"<root>"@(dummy) [Module(No)]: <error>
+"a0"@"src/main.t:5..7" [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of real
+"a1"@"src/main.t:20..22" [Type]: alias[DefId(PackageId(0), LocalDefId(1))] of int
+"k"@"src/main.t:33..34" [ConstVar(Var, No)]: alias[DefId(PackageId(0), LocalDefId(0))] of real
+"i"@"src/main.t:44..45" [ConstVar(Var, No)]: int
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 54..56): mismatched types
-| note for (FileId(1), 57..62): this is of type `real`
-| note for (FileId(1), 52..53): this is of type `int`
+error at src/main.t:54..56: mismatched types
+| note for src/main.t:57..62: this is of type `real`
+| note for src/main.t:52..53: this is of type `int`
 | info: `real` is not assignable into `int`

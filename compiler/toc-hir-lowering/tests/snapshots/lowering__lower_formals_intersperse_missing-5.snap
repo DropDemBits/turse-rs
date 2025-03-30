@@ -3,14 +3,13 @@ source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "procedure args(var : int) end args"
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(1)
-    Module@(FileId(1), 0..34): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..34): []
-        StmtItem@(FileId(1), 0..34): ItemId(0)
-          Subprogram@(FileId(1), 0..34): "args"@(FileId(1), 10..14) [var "<unnamed>"@(dummy)]
-            Primitive@(FileId(1), 21..24): Int
-            Void@(FileId(1), 0..25)
-            StmtBody@(FileId(1), 26..26): ["<unnamed>"@(dummy)]
-error at (FileId(1), 19..20): unexpected token
-| error for (FileId(1), 19..20): expected identifier, but found `:`
-
+  Root@(dummy): src/main.t -> ItemId(1)
+    Module@(src/main.t:0..34): "<root>"@(dummy)
+      StmtBody@(src/main.t:0..34): []
+        StmtItem@(src/main.t:0..34): ItemId(0)
+          Subprogram@(src/main.t:0..34): "args"@(src/main.t:10..14) [var "<unnamed>"@(dummy)]
+            Primitive@(src/main.t:21..24): Int
+            Void@(src/main.t:0..25)
+            StmtBody@(src/main.t:26..26): ["<unnamed>"@(dummy)]
+error at src/main.t:19..20: unexpected token
+| error for src/main.t:19..20: expected identifier, but found `:`

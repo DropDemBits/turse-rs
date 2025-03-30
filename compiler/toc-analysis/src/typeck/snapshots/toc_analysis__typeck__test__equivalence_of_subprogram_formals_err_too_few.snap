@@ -2,19 +2,19 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "type t_p : procedure(a, b : int, var c : string)\nprocedure p(a : int, var c : string) end p\n\nvar _ : t_p := p\n"
 ---
-"t_p"@(FileId(1), 5..8) [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of procedure ( pass(value) int, pass(value) int, pass(var ref) string, ) -> void
-"a"@(FileId(1), 21..22) [Param(Value, No)]: <error>
-"b"@(FileId(1), 24..25) [Param(Value, No)]: <error>
-"c"@(FileId(1), 37..38) [Param(Reference(Var), No)]: <error>
-"p"@(FileId(1), 59..60) [Subprogram(Procedure)]: procedure ( pass(value) int, pass(var ref) string, ) -> void
-"a"@(FileId(1), 61..62) [Param(Value, No)]: int
-"c"@(FileId(1), 74..75) [Param(Reference(Var), No)]: string
-"_"@(FileId(1), 97..98) [ConstVar(Var, No)]: alias[DefId(PackageId(0), LocalDefId(0))] of procedure ( pass(value) int, pass(value) int, pass(var ref) string, ) -> void
-"<unnamed>"@(dummy) [Undeclared]: <error>
-"<unnamed>"@(dummy) [Undeclared]: <error>
-"<root>"@(dummy) [Module(No)]: <error>
+"t_p"@"src/main.t:5..8" [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of procedure ( pass(value) int, pass(value) int, pass(var ref) string, ) -> void
+"a"@"src/main.t:21..22" [Param(Value, No)]: <error>
+"b"@"src/main.t:24..25" [Param(Value, No)]: <error>
+"c"@"src/main.t:37..38" [Param(Reference(Var), No)]: <error>
+"p"@"src/main.t:59..60" [Subprogram(Procedure)]: procedure ( pass(value) int, pass(var ref) string, ) -> void
+"a"@"src/main.t:61..62" [Param(Value, No)]: int
+"c"@"src/main.t:74..75" [Param(Reference(Var), No)]: string
+"_"@"src/main.t:97..98" [ConstVar(Var, No)]: alias[DefId(PackageId(0), LocalDefId(0))] of procedure ( pass(value) int, pass(value) int, pass(var ref) string, ) -> void
+"<unnamed>"@"<unknown>:0..0" [Undeclared]: <error>
+"<unnamed>"@"<unknown>:0..0" [Undeclared]: <error>
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 108..109): mismatched types
-| note for (FileId(1), 108..109): this is of type `procedure (int, var : string)`
-| note for (FileId(1), 101..104): this is of type `t_p (alias of procedure (int, int, var : string))`
+error at src/main.t:108..109: mismatched types
+| note for src/main.t:108..109: this is of type `procedure (int, var : string)`
+| note for src/main.t:101..104: this is of type `t_p (alias of procedure (int, int, var : string))`
 | info: `procedure (int, var : string)` is not assignable into `procedure (int, int, var : string)`

@@ -2,10 +2,10 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var N : int var _ : string(N)"
 ---
-"N"@(FileId(1), 4..5) [ConstVar(Var, No)]: int
-"_"@(FileId(1), 16..17) [ConstVar(Var, No)]: string_n Fixed(Unevaluated(PackageId(0), BodyId(0)))
-"<root>"@(dummy) [Module(No)]: <error>
+"N"@"src/main.t:4..5" [ConstVar(Var, No)]: int
+"_"@"src/main.t:16..17" [ConstVar(Var, No)]: string_n Fixed(Unevaluated(PackageId(0), BodyId(0)))
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 27..28): cannot compute `N` at compile-time
-| error for (FileId(1), 27..28): `N` is a reference to a variable, not a constant
-| note for (FileId(1), 4..5): `N` declared here
+error at src/main.t:27..28: cannot compute `N` at compile-time
+| error for src/main.t:27..28: `N` is a reference to a variable, not a constant
+| note for src/main.t:4..5: `N` declared here

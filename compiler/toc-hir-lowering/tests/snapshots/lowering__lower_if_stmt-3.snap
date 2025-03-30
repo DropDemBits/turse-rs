@@ -1,24 +1,22 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "\n    if true then\n        var a := 1\n    elsif false then\n        var a := 2\n    end if\n    "
-
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(2)
-    Module@(FileId(1), 0..92): "<root>"@(dummy)
-      StmtBody@(FileId(1), 5..87): []
-        If@(FileId(1), 5..87)
-          Literal@(FileId(1), 8..12): Boolean(true)
-          Block@(FileId(1), 26..36): Normal
-            StmtItem@(FileId(1), 26..36): ItemId(0)
-              ConstVar@(FileId(1), 26..36): var "a"@(FileId(1), 30..31)
-                ExprBody@(FileId(1), 35..36)
-                  Literal@(FileId(1), 35..36): Integer(1)
-          If@(FileId(1), 41..76)
-            Literal@(FileId(1), 47..52): Boolean(false)
-            Block@(FileId(1), 66..76): Normal
-              StmtItem@(FileId(1), 66..76): ItemId(1)
-                ConstVar@(FileId(1), 66..76): var "a"@(FileId(1), 70..71)
-                  ExprBody@(FileId(1), 75..76)
-                    Literal@(FileId(1), 75..76): Integer(2)
-
+  Root@(dummy): src/main.t -> ItemId(2)
+    Module@(src/main.t:0..92): "<root>"@(dummy)
+      StmtBody@(src/main.t:5..87): []
+        If@(src/main.t:5..87)
+          Literal@(src/main.t:8..12): Boolean(true)
+          Block@(src/main.t:26..36): Normal
+            StmtItem@(src/main.t:26..36): ItemId(0)
+              ConstVar@(src/main.t:26..36): var "a"@(src/main.t:30..31)
+                ExprBody@(src/main.t:35..36)
+                  Literal@(src/main.t:35..36): Integer(1)
+          If@(src/main.t:41..76)
+            Literal@(src/main.t:47..52): Boolean(false)
+            Block@(src/main.t:66..76): Normal
+              StmtItem@(src/main.t:66..76): ItemId(1)
+                ConstVar@(src/main.t:66..76): var "a"@(src/main.t:70..71)
+                  ExprBody@(src/main.t:75..76)
+                    Literal@(src/main.t:75..76): Integer(2)

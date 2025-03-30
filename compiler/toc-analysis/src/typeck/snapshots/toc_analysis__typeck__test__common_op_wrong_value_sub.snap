@@ -2,22 +2,22 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "\n    type t : int\n    var k : int\n\n    % Type operand prevents checking of type compatibility\n    var _tt := t - t\n    var _tk := t - k\n    var _kt := k - t\n    "
 ---
-"t"@(FileId(1), 10..11) [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of int
-"k"@(FileId(1), 26..27) [ConstVar(Var, No)]: int
-"_tt"@(FileId(1), 102..105) [ConstVar(Var, No)]: int
-"_tk"@(FileId(1), 123..126) [ConstVar(Var, No)]: int
-"_kt"@(FileId(1), 144..147) [ConstVar(Var, No)]: int
-"<root>"@(dummy) [Module(No)]: <error>
+"t"@"src/main.t:10..11" [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of int
+"k"@"src/main.t:26..27" [ConstVar(Var, No)]: int
+"_tt"@"src/main.t:102..105" [ConstVar(Var, No)]: int
+"_tk"@"src/main.t:123..126" [ConstVar(Var, No)]: int
+"_kt"@"src/main.t:144..147" [ConstVar(Var, No)]: int
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 109..110): cannot use `t` as an expression
-| error for (FileId(1), 109..110): `t` is a reference to a type, not a variable
-| note for (FileId(1), 10..11): `t` declared here
-error at (FileId(1), 113..114): cannot use `t` as an expression
-| error for (FileId(1), 113..114): `t` is a reference to a type, not a variable
-| note for (FileId(1), 10..11): `t` declared here
-error at (FileId(1), 130..131): cannot use `t` as an expression
-| error for (FileId(1), 130..131): `t` is a reference to a type, not a variable
-| note for (FileId(1), 10..11): `t` declared here
-error at (FileId(1), 155..156): cannot use `t` as an expression
-| error for (FileId(1), 155..156): `t` is a reference to a type, not a variable
-| note for (FileId(1), 10..11): `t` declared here
+error at src/main.t:109..110: cannot use `t` as an expression
+| error for src/main.t:109..110: `t` is a reference to a type, not a variable
+| note for src/main.t:10..11: `t` declared here
+error at src/main.t:113..114: cannot use `t` as an expression
+| error for src/main.t:113..114: `t` is a reference to a type, not a variable
+| note for src/main.t:10..11: `t` declared here
+error at src/main.t:130..131: cannot use `t` as an expression
+| error for src/main.t:130..131: `t` is a reference to a type, not a variable
+| note for src/main.t:10..11: `t` declared here
+error at src/main.t:155..156: cannot use `t` as an expression
+| error for src/main.t:155..156: `t` is a reference to a type, not a variable
+| note for src/main.t:10..11: `t` declared here

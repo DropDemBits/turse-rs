@@ -3,23 +3,22 @@ source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "var a : int a := init(1, 2, 3, 4)"
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(1)
-    Module@(FileId(1), 0..33): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..33): []
-        StmtItem@(FileId(1), 0..11): ItemId(0)
-          ConstVar@(FileId(1), 0..11): var "a"@(FileId(1), 4..5)
-            Primitive@(FileId(1), 8..11): Int
-        Assign@(FileId(1), 12..33)
-          Name@(FileId(1), 12..13): "a"@(FileId(1), 4..5)
-          InitExpr@(FileId(1), 17..33)
-            ExprBody@(FileId(1), 22..23)
-              Literal@(FileId(1), 22..23): Integer(1)
-            ExprBody@(FileId(1), 25..26)
-              Literal@(FileId(1), 25..26): Integer(2)
-            ExprBody@(FileId(1), 28..29)
-              Literal@(FileId(1), 28..29): Integer(3)
-            ExprBody@(FileId(1), 31..32)
-              Literal@(FileId(1), 31..32): Integer(4)
-error at (FileId(1), 17..33): cannot use `init` expression here
-| error for (FileId(1), 17..33): `init` expression can only be used as a `const` or `var` initializer
-
+  Root@(dummy): src/main.t -> ItemId(1)
+    Module@(src/main.t:0..33): "<root>"@(dummy)
+      StmtBody@(src/main.t:0..33): []
+        StmtItem@(src/main.t:0..11): ItemId(0)
+          ConstVar@(src/main.t:0..11): var "a"@(src/main.t:4..5)
+            Primitive@(src/main.t:8..11): Int
+        Assign@(src/main.t:12..33)
+          Name@(src/main.t:12..13): "a"@(src/main.t:4..5)
+          InitExpr@(src/main.t:17..33)
+            ExprBody@(src/main.t:22..23)
+              Literal@(src/main.t:22..23): Integer(1)
+            ExprBody@(src/main.t:25..26)
+              Literal@(src/main.t:25..26): Integer(2)
+            ExprBody@(src/main.t:28..29)
+              Literal@(src/main.t:28..29): Integer(3)
+            ExprBody@(src/main.t:31..32)
+              Literal@(src/main.t:31..32): Integer(4)
+error at src/main.t:17..33: cannot use `init` expression here
+| error for src/main.t:17..33: `init` expression can only be used as a `const` or `var` initializer

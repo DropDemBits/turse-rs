@@ -2,10 +2,9 @@
 source: compiler/toc-analysis/src/const_eval/test.rs
 expression: "var a := 1\nconst b := a\n"
 ---
-"a"@(FileId(1), 4..5) -> Integer(ConstInt { magnitude: 1, sign: Positive, width: As32 })
-"b"@(FileId(1), 17..18) -> ConstError { kind: NotConstExpr(Def(DefId(PackageId(0), LocalDefId(0)))), span: (FileId(1), 22..23) }
+"a"@"src/main.t:4..5" -> Integer(ConstInt { magnitude: 1, sign: Positive, width: As32 })
+"b"@"src/main.t:17..18" -> <error NotConstExpr(Def(DefId(PackageId(0), LocalDefId(0))))>
 
-error at (FileId(1), 22..23): cannot compute `a` at compile-time
-| error for (FileId(1), 22..23): `a` is a reference to a variable, not a constant
-| note for (FileId(1), 4..5): `a` declared here
-
+error at src/main.t:22..23: cannot compute `a` at compile-time
+| error for src/main.t:22..23: `a` is a reference to a variable, not a constant
+| note for src/main.t:4..5: `a` declared here

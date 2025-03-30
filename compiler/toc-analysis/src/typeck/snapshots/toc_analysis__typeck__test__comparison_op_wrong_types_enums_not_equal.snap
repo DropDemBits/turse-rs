@@ -2,45 +2,45 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "\n    % Different enums\n    type e1 : enum(v)\n    type e2 : enum(v)\n    var ae : e1\n    var be : e2\n    var aA : enum(v)\n    var bA : enum(v)\n\n    % should all produce boolean anyway\n    var _v_res : boolean\n\n    _v_res := ae not= be\n    _v_res := be not= ae\n    _v_res := aA not= ae\n    _v_res := ae not= aA\n    _v_res := aA not= bA\n    "
 ---
-"e1"@(FileId(1), 32..34) [Type]: enum[DefId(PackageId(0), LocalDefId(1))] ( "v"@(FileId(1), 42..43), )
-"e1"@(FileId(1), 37..44) [Enum]: <error>
-"v"@(FileId(1), 42..43) [EnumVariant]: enum[DefId(PackageId(0), LocalDefId(1))] ( "v"@(FileId(1), 42..43), )
-"e2"@(FileId(1), 54..56) [Type]: enum[DefId(PackageId(0), LocalDefId(4))] ( "v"@(FileId(1), 64..65), )
-"e2"@(FileId(1), 59..66) [Enum]: <error>
-"v"@(FileId(1), 64..65) [EnumVariant]: enum[DefId(PackageId(0), LocalDefId(4))] ( "v"@(FileId(1), 64..65), )
-"ae"@(FileId(1), 75..77) [ConstVar(Var, No)]: enum[DefId(PackageId(0), LocalDefId(1))] ( "v"@(FileId(1), 42..43), )
-"be"@(FileId(1), 91..93) [ConstVar(Var, No)]: enum[DefId(PackageId(0), LocalDefId(4))] ( "v"@(FileId(1), 64..65), )
-"aA"@(FileId(1), 107..109) [ConstVar(Var, No)]: enum[DefId(PackageId(0), LocalDefId(9))] ( "v"@(FileId(1), 117..118), )
-"<anonymous>"@(FileId(1), 112..119) [Enum]: <error>
-"v"@(FileId(1), 117..118) [EnumVariant]: enum[DefId(PackageId(0), LocalDefId(9))] ( "v"@(FileId(1), 117..118), )
-"bA"@(FileId(1), 128..130) [ConstVar(Var, No)]: enum[DefId(PackageId(0), LocalDefId(12))] ( "v"@(FileId(1), 138..139), )
-"<anonymous>"@(FileId(1), 133..140) [Enum]: <error>
-"v"@(FileId(1), 138..139) [EnumVariant]: enum[DefId(PackageId(0), LocalDefId(12))] ( "v"@(FileId(1), 138..139), )
-"_v_res"@(FileId(1), 190..196) [ConstVar(Var, No)]: boolean
-"<root>"@(dummy) [Module(No)]: <error>
+"e1"@"src/main.t:32..34" [Type]: enum[DefId(PackageId(0), LocalDefId(1))] ( "v"@SpanId(4), )
+"e1"@"src/main.t:37..44" [Enum]: <error>
+"v"@"src/main.t:42..43" [EnumVariant]: enum[DefId(PackageId(0), LocalDefId(1))] ( "v"@SpanId(4), )
+"e2"@"src/main.t:54..56" [Type]: enum[DefId(PackageId(0), LocalDefId(4))] ( "v"@SpanId(7), )
+"e2"@"src/main.t:59..66" [Enum]: <error>
+"v"@"src/main.t:64..65" [EnumVariant]: enum[DefId(PackageId(0), LocalDefId(4))] ( "v"@SpanId(7), )
+"ae"@"src/main.t:75..77" [ConstVar(Var, No)]: enum[DefId(PackageId(0), LocalDefId(1))] ( "v"@SpanId(4), )
+"be"@"src/main.t:91..93" [ConstVar(Var, No)]: enum[DefId(PackageId(0), LocalDefId(4))] ( "v"@SpanId(7), )
+"aA"@"src/main.t:107..109" [ConstVar(Var, No)]: enum[DefId(PackageId(0), LocalDefId(9))] ( "v"@SpanId(12), )
+"<anonymous>"@"src/main.t:112..119" [Enum]: <error>
+"v"@"src/main.t:117..118" [EnumVariant]: enum[DefId(PackageId(0), LocalDefId(9))] ( "v"@SpanId(12), )
+"bA"@"src/main.t:128..130" [ConstVar(Var, No)]: enum[DefId(PackageId(0), LocalDefId(12))] ( "v"@SpanId(15), )
+"<anonymous>"@"src/main.t:133..140" [Enum]: <error>
+"v"@"src/main.t:138..139" [EnumVariant]: enum[DefId(PackageId(0), LocalDefId(12))] ( "v"@SpanId(15), )
+"_v_res"@"src/main.t:190..196" [ConstVar(Var, No)]: boolean
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 225..229): mismatched types for `not =`
-| note for (FileId(1), 230..232): this is of type `enum e2`
-| note for (FileId(1), 222..224): this is of type `enum e1`
-| error for (FileId(1), 225..229): `enum e1` cannot be compared to `enum e2`
+error at src/main.t:225..229: mismatched types for `not =`
+| note for src/main.t:230..232: this is of type `enum e2`
+| note for src/main.t:222..224: this is of type `enum e1`
+| error for src/main.t:225..229: `enum e1` cannot be compared to `enum e2`
 | info: operands must both be the same type
-error at (FileId(1), 250..254): mismatched types for `not =`
-| note for (FileId(1), 255..257): this is of type `enum e1`
-| note for (FileId(1), 247..249): this is of type `enum e2`
-| error for (FileId(1), 250..254): `enum e2` cannot be compared to `enum e1`
+error at src/main.t:250..254: mismatched types for `not =`
+| note for src/main.t:255..257: this is of type `enum e1`
+| note for src/main.t:247..249: this is of type `enum e2`
+| error for src/main.t:250..254: `enum e2` cannot be compared to `enum e1`
 | info: operands must both be the same type
-error at (FileId(1), 275..279): mismatched types for `not =`
-| note for (FileId(1), 280..282): this is of type `enum e1`
-| note for (FileId(1), 272..274): this is of type `enum <anonymous>`
-| error for (FileId(1), 275..279): `enum <anonymous>` cannot be compared to `enum e1`
+error at src/main.t:275..279: mismatched types for `not =`
+| note for src/main.t:280..282: this is of type `enum e1`
+| note for src/main.t:272..274: this is of type `enum <anonymous>`
+| error for src/main.t:275..279: `enum <anonymous>` cannot be compared to `enum e1`
 | info: operands must both be the same type
-error at (FileId(1), 300..304): mismatched types for `not =`
-| note for (FileId(1), 305..307): this is of type `enum <anonymous>`
-| note for (FileId(1), 297..299): this is of type `enum e1`
-| error for (FileId(1), 300..304): `enum e1` cannot be compared to `enum <anonymous>`
+error at src/main.t:300..304: mismatched types for `not =`
+| note for src/main.t:305..307: this is of type `enum <anonymous>`
+| note for src/main.t:297..299: this is of type `enum e1`
+| error for src/main.t:300..304: `enum e1` cannot be compared to `enum <anonymous>`
 | info: operands must both be the same type
-error at (FileId(1), 325..329): mismatched types for `not =`
-| note for (FileId(1), 330..332): this is of type `enum <anonymous>`
-| note for (FileId(1), 322..324): this is of type `enum <anonymous>`
-| error for (FileId(1), 325..329): `enum <anonymous>` cannot be compared to `enum <anonymous>`
+error at src/main.t:325..329: mismatched types for `not =`
+| note for src/main.t:330..332: this is of type `enum <anonymous>`
+| note for src/main.t:322..324: this is of type `enum <anonymous>`
+| error for src/main.t:325..329: `enum <anonymous>` cannot be compared to `enum <anonymous>`
 | info: operands must both be the same type

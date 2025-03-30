@@ -2,14 +2,14 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "% dyn arrays aren't allowed, since the range is expected to be known at compile-time\nvar c : int\nvar a : array 1..c of char\nproc p(_ : array 1..2 of char(*)) end p\n\np(a)\n"
 ---
-"c"@(FileId(1), 89..90) [ConstVar(Var, No)]: int
-"a"@(FileId(1), 101..102) [ConstVar(Var, No)]: array ( range of `int` (Unevaluated(PackageId(0), BodyId(0)) .. Expr(Unevaluated(PackageId(0), BodyId(1)), Yes)), ) of char
-"p"@(FileId(1), 129..130) [Subprogram(Procedure)]: procedure ( pass(value) array ( range of `int` (Unevaluated(PackageId(0), BodyId(2)) .. Expr(Unevaluated(PackageId(0), BodyId(3)), No)), ) of char_n Any, ) -> void
-"_"@(FileId(1), 131..132) [Param(Value, No)]: array ( range of `int` (Unevaluated(PackageId(0), BodyId(2)) .. Expr(Unevaluated(PackageId(0), BodyId(3)), No)), ) of char_n Any
-"<unnamed>"@(dummy) [Undeclared]: <error>
-"<root>"@(dummy) [Module(No)]: <error>
+"c"@"src/main.t:89..90" [ConstVar(Var, No)]: int
+"a"@"src/main.t:101..102" [ConstVar(Var, No)]: array ( range of `int` (Unevaluated(PackageId(0), BodyId(0)) .. Expr(Unevaluated(PackageId(0), BodyId(1)), Yes)), ) of char
+"p"@"src/main.t:129..130" [Subprogram(Procedure)]: procedure ( pass(value) array ( range of `int` (Unevaluated(PackageId(0), BodyId(2)) .. Expr(Unevaluated(PackageId(0), BodyId(3)), No)), ) of char_n Any, ) -> void
+"_"@"src/main.t:131..132" [Param(Value, No)]: array ( range of `int` (Unevaluated(PackageId(0), BodyId(2)) .. Expr(Unevaluated(PackageId(0), BodyId(3)), No)), ) of char_n Any
+"<unnamed>"@"<unknown>:0..0" [Undeclared]: <error>
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 167..168): mismatched types
-| note for (FileId(1), 167..168): this is of type `array 1 .. {dynamic} of char`
-| note for (FileId(1), 167..168): parameter expects type `array 1 .. 2 of char(*)`
+error at src/main.t:167..168: mismatched types
+| note for src/main.t:167..168: this is of type `array 1 .. {dynamic} of char`
+| note for src/main.t:167..168: parameter expects type `array 1 .. 2 of char(*)`
 | info: `array 1 .. {dynamic} of char` is not assignable into `array 1 .. 2 of char(*)`

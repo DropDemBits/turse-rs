@@ -1,8 +1,7 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "type e : enum()"
 ---
-"e"@(FileId(1), 5..6) [Type]: enum[DefId(PackageId(0), LocalDefId(1))] ( )
-"e"@(FileId(1), 9..15) [Enum]: <error>
-"<root>"@(dummy) [Module(No)]: <error>
-
+"e"@"src/main.t:5..6" [Type]: enum[DefId(PackageId(0), LocalDefId(1))] ( )
+"e"@"src/main.t:9..15" [Enum]: <error>
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>

@@ -1,20 +1,17 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
-assertion_line: 61
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "var _ : flexible array 1 .. 0 of int"
-
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(1)
-    Module@(FileId(1), 0..36): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..36): []
-        StmtItem@(FileId(1), 0..36): ItemId(0)
-          ConstVar@(FileId(1), 0..36): var "_"@(FileId(1), 4..5)
-            Array@(FileId(1), 8..36): Flexible
-              Constrained@(FileId(1), 23..29): end => Expr
-                ExprBody@(FileId(1), 23..24)
-                  Literal@(FileId(1), 23..24): Integer(1)
-                ExprBody@(FileId(1), 28..29)
-                  Literal@(FileId(1), 28..29): Integer(0)
-              Primitive@(FileId(1), 33..36): Int
-
+  Root@(dummy): src/main.t -> ItemId(1)
+    Module@(src/main.t:0..36): "<root>"@(dummy)
+      StmtBody@(src/main.t:0..36): []
+        StmtItem@(src/main.t:0..36): ItemId(0)
+          ConstVar@(src/main.t:0..36): var "_"@(src/main.t:4..5)
+            Array@(src/main.t:8..36): Flexible
+              Constrained@(src/main.t:23..29): end => Expr
+                ExprBody@(src/main.t:23..24)
+                  Literal@(src/main.t:23..24): Integer(1)
+                ExprBody@(src/main.t:28..29)
+                  Literal@(src/main.t:28..29): Integer(0)
+              Primitive@(src/main.t:33..36): Int

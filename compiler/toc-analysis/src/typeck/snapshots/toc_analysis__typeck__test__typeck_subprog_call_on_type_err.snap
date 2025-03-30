@@ -2,9 +2,9 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "type kall : procedure() kall"
 ---
-"kall"@(FileId(1), 5..9) [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of procedure ( ) -> void
-"<unnamed>"@(dummy) [Undeclared]: <error>
-"<root>"@(dummy) [Module(No)]: <error>
+"kall"@"src/main.t:5..9" [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of procedure ( ) -> void
+"<unnamed>"@"<unknown>:0..0" [Undeclared]: <error>
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 24..28): cannot use `kall` as a statement
-| error for (FileId(1), 24..28): `kall` is not a statement
+error at src/main.t:24..28: cannot use `kall` as a statement
+| error for src/main.t:24..28: `kall` is not a statement

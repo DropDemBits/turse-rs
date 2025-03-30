@@ -1,17 +1,16 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "\n    type a : forward\n    type use_it : a\n    type a : int\n    "
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(3)
-    Module@(FileId(1), 0..63): "<root>"@(dummy)
-      StmtBody@(FileId(1), 5..58): []
-        StmtItem@(FileId(1), 5..21): ItemId(0)
-          Type@(FileId(1), 5..21): forward "a"@(FileId(1), 10..11)
-        StmtItem@(FileId(1), 26..41): ItemId(1)
-          Type@(FileId(1), 26..41): "use_it"@(FileId(1), 31..37)
-            Alias@(FileId(1), 40..41): "a"@(FileId(1), 10..11)
-        StmtItem@(FileId(1), 46..58): ItemId(2)
-          Type@(FileId(1), 46..58): "a"@(FileId(1), 51..52)
-            Primitive@(FileId(1), 55..58): Int
-
+  Root@(dummy): src/main.t -> ItemId(3)
+    Module@(src/main.t:0..63): "<root>"@(dummy)
+      StmtBody@(src/main.t:5..58): []
+        StmtItem@(src/main.t:5..21): ItemId(0)
+          Type@(src/main.t:5..21): forward "a"@(src/main.t:10..11)
+        StmtItem@(src/main.t:26..41): ItemId(1)
+          Type@(src/main.t:26..41): "use_it"@(src/main.t:31..37)
+            Alias@(src/main.t:40..41): "a"@(src/main.t:10..11)
+        StmtItem@(src/main.t:46..58): ItemId(2)
+          Type@(src/main.t:46..58): "a"@(src/main.t:51..52)
+            Primitive@(src/main.t:55..58): Int

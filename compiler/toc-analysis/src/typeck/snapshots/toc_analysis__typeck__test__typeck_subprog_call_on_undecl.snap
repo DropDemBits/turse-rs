@@ -1,6 +1,5 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "% pass through, since we can't say anything about this\nno_compile"
 ---
-"<root>"@(dummy) [Module(No)]: <error>
-
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>

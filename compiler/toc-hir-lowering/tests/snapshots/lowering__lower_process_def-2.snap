@@ -1,15 +1,12 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
-assertion_line: 59
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "\n    process empty_params()\n    end empty_params\n    "
-
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(1)
-    Module@(FileId(1), 0..53): "<root>"@(dummy)
-      StmtBody@(FileId(1), 5..48): []
-        StmtItem@(FileId(1), 5..48): ItemId(0)
-          Subprogram@(FileId(1), 5..48): "empty_params"@(FileId(1), 13..25) []
-            Void@(FileId(1), 5..27)
-            StmtBody@(FileId(1), 32..32): []
-
+  Root@(dummy): src/main.t -> ItemId(1)
+    Module@(src/main.t:0..53): "<root>"@(dummy)
+      StmtBody@(src/main.t:5..48): []
+        StmtItem@(src/main.t:5..48): ItemId(0)
+          Subprogram@(src/main.t:5..48): "empty_params"@(src/main.t:13..25) []
+            Void@(src/main.t:5..27)
+            StmtBody@(src/main.t:32..32): []

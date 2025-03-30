@@ -1,12 +1,11 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "\n    type s : enum(a)\n    var a, b : s\n\n    % should all produce booleans\n    var _v_res : boolean\n\n    _v_res := a not= b\n    _v_res := b not= a\n    % enum variants are covered by equivalence rules\n    "
 ---
-"s"@(FileId(1), 10..11) [Type]: enum[DefId(PackageId(0), LocalDefId(1))] ( "a"@(FileId(1), 19..20), )
-"s"@(FileId(1), 14..21) [Enum]: <error>
-"a"@(FileId(1), 19..20) [EnumVariant]: enum[DefId(PackageId(0), LocalDefId(1))] ( "a"@(FileId(1), 19..20), )
-"a"@(FileId(1), 30..31) [ConstVar(Var, No)]: enum[DefId(PackageId(0), LocalDefId(1))] ( "a"@(FileId(1), 19..20), )
-"b"@(FileId(1), 33..34) [ConstVar(Var, No)]: enum[DefId(PackageId(0), LocalDefId(1))] ( "a"@(FileId(1), 19..20), )
-"_v_res"@(FileId(1), 82..88) [ConstVar(Var, No)]: boolean
-"<root>"@(dummy) [Module(No)]: <error>
-
+"s"@"src/main.t:10..11" [Type]: enum[DefId(PackageId(0), LocalDefId(1))] ( "a"@SpanId(4), )
+"s"@"src/main.t:14..21" [Enum]: <error>
+"a"@"src/main.t:19..20" [EnumVariant]: enum[DefId(PackageId(0), LocalDefId(1))] ( "a"@SpanId(4), )
+"a"@"src/main.t:30..31" [ConstVar(Var, No)]: enum[DefId(PackageId(0), LocalDefId(1))] ( "a"@SpanId(4), )
+"b"@"src/main.t:33..34" [ConstVar(Var, No)]: enum[DefId(PackageId(0), LocalDefId(1))] ( "a"@SpanId(4), )
+"_v_res"@"src/main.t:82..88" [ConstVar(Var, No)]: boolean
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>

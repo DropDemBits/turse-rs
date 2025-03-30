@@ -3,13 +3,12 @@ source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "var _ : set of boolean"
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(1)
-    Module@(FileId(1), 0..22): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..22): []
-        StmtItem@(FileId(1), 0..22): ItemId(0)
-          ConstVar@(FileId(1), 0..22): var "_"@(FileId(1), 4..5)
-            Set@(FileId(1), 8..22): "<anonymous>"@(FileId(1), 8..22)
-              Primitive@(FileId(1), 15..22): Boolean
-error at (FileId(1), 8..22): `set` type is not allowed here
-| error for (FileId(1), 8..22): `set` types can only be specified in `type` declarations
-
+  Root@(dummy): src/main.t -> ItemId(1)
+    Module@(src/main.t:0..22): "<root>"@(dummy)
+      StmtBody@(src/main.t:0..22): []
+        StmtItem@(src/main.t:0..22): ItemId(0)
+          ConstVar@(src/main.t:0..22): var "_"@(src/main.t:4..5)
+            Set@(src/main.t:8..22): "<anonymous>"@(src/main.t:8..22)
+              Primitive@(src/main.t:15..22): Boolean
+error at src/main.t:8..22: `set` type is not allowed here
+| error for src/main.t:8..22: `set` types can only be specified in `type` declarations

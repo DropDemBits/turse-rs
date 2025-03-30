@@ -1,8 +1,5 @@
 ---
-source: compiler/toc_analysis/src/const_eval/test.rs
+source: compiler/toc-analysis/src/const_eval/test.rs
 expression: "'e'"
-
 ---
-"_"@(FileId(1), 6..7) -> Char('e')
-
-
+"_"@"src/main.t:6..7" -> Char('e')

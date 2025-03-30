@@ -2,20 +2,20 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "case 'c' of label 123, 'dd', false end case"
 ---
-"<root>"@(dummy) [Module(No)]: <error>
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 18..21): mismatched types
-| note for (FileId(1), 5..8): discriminant is of type `char`
-| note for (FileId(1), 18..21): selector is of type `{integer}`
-| error for (FileId(1), 18..21): `{integer}` is not a `char`
+error at src/main.t:18..21: mismatched types
+| note for src/main.t:5..8: discriminant is of type `char`
+| note for src/main.t:18..21: selector is of type `{integer}`
+| error for src/main.t:18..21: `{integer}` is not a `char`
 | info: selector type must match discriminant type
-error at (FileId(1), 23..27): mismatched types
-| note for (FileId(1), 5..8): discriminant is of type `char`
-| note for (FileId(1), 23..27): selector is of type `char(2)`
-| error for (FileId(1), 23..27): `char(2)` is not a `char`
+error at src/main.t:23..27: mismatched types
+| note for src/main.t:5..8: discriminant is of type `char`
+| note for src/main.t:23..27: selector is of type `char(2)`
+| error for src/main.t:23..27: `char(2)` is not a `char`
 | info: selector type must match discriminant type
-error at (FileId(1), 29..34): mismatched types
-| note for (FileId(1), 5..8): discriminant is of type `char`
-| note for (FileId(1), 29..34): selector is of type `boolean`
-| error for (FileId(1), 29..34): `boolean` is not a `char`
+error at src/main.t:29..34: mismatched types
+| note for src/main.t:5..8: discriminant is of type `char`
+| note for src/main.t:29..34: selector is of type `boolean`
+| error for src/main.t:29..34: `boolean` is not a `char`
 | info: selector type must match discriminant type

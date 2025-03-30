@@ -2,37 +2,37 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var i : int\nvar n : nat\nvar r : real\nvar c : char\nvar b: boolean\nvar cn : char(4)\ntype en: enum(a, b) var ef : en\n\nget i : *\nget n : *\nget r : *\nget c : *\nget b : *\nget cn : *\nget ef : *\n"
 ---
-"i"@(FileId(1), 4..5) [ConstVar(Var, No)]: int
-"n"@(FileId(1), 16..17) [ConstVar(Var, No)]: nat
-"r"@(FileId(1), 28..29) [ConstVar(Var, No)]: real
-"c"@(FileId(1), 41..42) [ConstVar(Var, No)]: char
-"b"@(FileId(1), 54..55) [ConstVar(Var, No)]: boolean
-"cn"@(FileId(1), 69..71) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(0)))
-"en"@(FileId(1), 87..89) [Type]: enum[DefId(PackageId(0), LocalDefId(7))] ( "a"@(FileId(1), 96..97), "b"@(FileId(1), 99..100), )
-"en"@(FileId(1), 91..101) [Enum]: <error>
-"a"@(FileId(1), 96..97) [EnumVariant]: enum[DefId(PackageId(0), LocalDefId(7))] ( "a"@(FileId(1), 96..97), "b"@(FileId(1), 99..100), )
-"b"@(FileId(1), 99..100) [EnumVariant]: enum[DefId(PackageId(0), LocalDefId(7))] ( "a"@(FileId(1), 96..97), "b"@(FileId(1), 99..100), )
-"ef"@(FileId(1), 106..108) [ConstVar(Var, No)]: enum[DefId(PackageId(0), LocalDefId(7))] ( "a"@(FileId(1), 96..97), "b"@(FileId(1), 99..100), )
-"<root>"@(dummy) [Module(No)]: <error>
+"i"@"src/main.t:4..5" [ConstVar(Var, No)]: int
+"n"@"src/main.t:16..17" [ConstVar(Var, No)]: nat
+"r"@"src/main.t:28..29" [ConstVar(Var, No)]: real
+"c"@"src/main.t:41..42" [ConstVar(Var, No)]: char
+"b"@"src/main.t:54..55" [ConstVar(Var, No)]: boolean
+"cn"@"src/main.t:69..71" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(0)))
+"en"@"src/main.t:87..89" [Type]: enum[DefId(PackageId(0), LocalDefId(7))] ( "a"@SpanId(10), "b"@SpanId(11), )
+"en"@"src/main.t:91..101" [Enum]: <error>
+"a"@"src/main.t:96..97" [EnumVariant]: enum[DefId(PackageId(0), LocalDefId(7))] ( "a"@SpanId(10), "b"@SpanId(11), )
+"b"@"src/main.t:99..100" [EnumVariant]: enum[DefId(PackageId(0), LocalDefId(7))] ( "a"@SpanId(10), "b"@SpanId(11), )
+"ef"@"src/main.t:106..108" [ConstVar(Var, No)]: enum[DefId(PackageId(0), LocalDefId(7))] ( "a"@SpanId(10), "b"@SpanId(11), )
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 119..120): invalid get option used
-| error for (FileId(1), 119..120): cannot specify line width for `int`
+error at src/main.t:119..120: invalid get option used
+| error for src/main.t:119..120: cannot specify line width for `int`
 | info: line width can only be specified for `string` types
-error at (FileId(1), 129..130): invalid get option used
-| error for (FileId(1), 129..130): cannot specify line width for `nat`
+error at src/main.t:129..130: invalid get option used
+| error for src/main.t:129..130: cannot specify line width for `nat`
 | info: line width can only be specified for `string` types
-error at (FileId(1), 139..140): invalid get option used
-| error for (FileId(1), 139..140): cannot specify line width for `real`
+error at src/main.t:139..140: invalid get option used
+| error for src/main.t:139..140: cannot specify line width for `real`
 | info: line width can only be specified for `string` types
-error at (FileId(1), 149..150): invalid get option used
-| error for (FileId(1), 149..150): cannot specify line width for `char`
+error at src/main.t:149..150: invalid get option used
+| error for src/main.t:149..150: cannot specify line width for `char`
 | info: line width can only be specified for `string` types
-error at (FileId(1), 159..160): invalid get option used
-| error for (FileId(1), 159..160): cannot specify line width for `boolean`
+error at src/main.t:159..160: invalid get option used
+| error for src/main.t:159..160: cannot specify line width for `boolean`
 | info: line width can only be specified for `string` types
-error at (FileId(1), 169..171): invalid get option used
-| error for (FileId(1), 169..171): cannot specify line width for `char(4)`
+error at src/main.t:169..171: invalid get option used
+| error for src/main.t:169..171: cannot specify line width for `char(4)`
 | info: line width can only be specified for `string` types
-error at (FileId(1), 180..182): invalid get option used
-| error for (FileId(1), 180..182): cannot specify line width for `enum en`
+error at src/main.t:180..182: invalid get option used
+| error for src/main.t:180..182: cannot specify line width for `enum en`
 | info: line width can only be specified for `string` types

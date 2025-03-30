@@ -3,22 +3,21 @@ source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "var _ := init(1, 2, 3, 4)"
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(1)
-    Module@(FileId(1), 0..25): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..25): []
-        StmtItem@(FileId(1), 0..25): ItemId(0)
-          ConstVar@(FileId(1), 0..25): var "_"@(FileId(1), 4..5)
-            ExprBody@(FileId(1), 9..25)
-              InitExpr@(FileId(1), 9..25)
-                ExprBody@(FileId(1), 14..15)
-                  Literal@(FileId(1), 14..15): Integer(1)
-                ExprBody@(FileId(1), 17..18)
-                  Literal@(FileId(1), 17..18): Integer(2)
-                ExprBody@(FileId(1), 20..21)
-                  Literal@(FileId(1), 20..21): Integer(3)
-                ExprBody@(FileId(1), 23..24)
-                  Literal@(FileId(1), 23..24): Integer(4)
-error at (FileId(1), 9..25): mismatched initializer
-| error for (FileId(1), 9..25): `init` initializer is not allowed here
+  Root@(dummy): src/main.t -> ItemId(1)
+    Module@(src/main.t:0..25): "<root>"@(dummy)
+      StmtBody@(src/main.t:0..25): []
+        StmtItem@(src/main.t:0..25): ItemId(0)
+          ConstVar@(src/main.t:0..25): var "_"@(src/main.t:4..5)
+            ExprBody@(src/main.t:9..25)
+              InitExpr@(src/main.t:9..25)
+                ExprBody@(src/main.t:14..15)
+                  Literal@(src/main.t:14..15): Integer(1)
+                ExprBody@(src/main.t:17..18)
+                  Literal@(src/main.t:17..18): Integer(2)
+                ExprBody@(src/main.t:20..21)
+                  Literal@(src/main.t:20..21): Integer(3)
+                ExprBody@(src/main.t:23..24)
+                  Literal@(src/main.t:23..24): Integer(4)
+error at src/main.t:9..25: mismatched initializer
+| error for src/main.t:9..25: `init` initializer is not allowed here
 | info: `init` initializer requires a type to be specified
-

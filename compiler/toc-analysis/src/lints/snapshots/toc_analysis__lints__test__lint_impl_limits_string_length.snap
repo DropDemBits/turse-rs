@@ -2,6 +2,5 @@
 source: compiler/toc-analysis/src/lints/test.rs
 expression: "const a := \"✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨aaaaaaaaaaaaaaaa\""
 ---
-
-error at (FileId(1), 11..269): invalid string literal
-| error for (FileId(1), 11..269): this string literal is too long
+error at src/main.t:11..269: invalid string literal
+| error for src/main.t:11..269: this string literal is too long

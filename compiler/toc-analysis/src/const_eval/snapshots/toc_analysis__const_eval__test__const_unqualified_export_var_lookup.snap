@@ -1,10 +1,6 @@
 ---
-source: compiler/toc_analysis/src/const_eval/test.rs
-assertion_line: 19
+source: compiler/toc-analysis/src/const_eval/test.rs
 expression: "module z\n    export ~.a\n    const a : int := 2\nend z\nconst k := a\n"
-
 ---
-"a"@(FileId(1), 45..46) -> Integer(ConstInt { magnitude: 2, sign: Positive, width: As32 })
-"k"@(FileId(1), 70..71) -> Integer(ConstInt { magnitude: 2, sign: Positive, width: As32 })
-
-
+"a"@"src/main.t:45..46" -> Integer(ConstInt { magnitude: 2, sign: Positive, width: As32 })
+"k"@"src/main.t:70..71" -> Integer(ConstInt { magnitude: 2, sign: Positive, width: As32 })

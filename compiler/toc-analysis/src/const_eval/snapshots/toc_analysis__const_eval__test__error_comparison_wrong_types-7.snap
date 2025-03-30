@@ -2,8 +2,7 @@
 source: compiler/toc-analysis/src/const_eval/test.rs
 expression: "1.0 < \"cc\""
 ---
-"_"@(FileId(1), 6..7) -> ConstError { kind: WrongOperandType, span: (FileId(1), 15..16) }
+"_"@"src/main.t:6..7" -> <error WrongOperandType>
 
-error at (FileId(1), 15..16): cannot compute expression at compile-time
-| error for (FileId(1), 15..16): wrong type for compile-time expression
-
+error at src/main.t:15..16: cannot compute expression at compile-time
+| error for src/main.t:15..16: wrong type for compile-time expression

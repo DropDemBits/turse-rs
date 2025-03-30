@@ -2,26 +2,26 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "module m\n    export opaque ~.* t, ~.* s, make\n    type t : char\n    type s : set of t\n    fcn make(c : char) : t result c end make\nend m\n\n% both should fail, is strictly opaque\ntype xs : set of t\nvar vs : s := s('i')\n\n% should succeed\nvar _ : boolean := m.make('i') in vs\n"
 ---
-"m"@(FileId(1), 7..8) [Module(No)]: <error>
-"t"@(FileId(1), 55..56) [Type]: opaque[DefId(PackageId(0), LocalDefId(1))] type to char
-"s"@(FileId(1), 73..74) [Type]: set[DefId(PackageId(0), LocalDefId(3))] of opaque[DefId(PackageId(0), LocalDefId(1))] type to char
-"s"@(FileId(1), 77..85) [Set]: <error>
-"make"@(FileId(1), 94..98) [Subprogram(Function)]: function ( pass(value) char, ) -> opaque[DefId(PackageId(0), LocalDefId(1))] type to char
-"c"@(FileId(1), 99..100) [Param(Value, No)]: char
-"xs"@(FileId(1), 182..184) [Type]: set[DefId(PackageId(0), LocalDefId(7))] of opaque[DefId(PackageId(0), LocalDefId(1))] type to char
-"xs"@(FileId(1), 187..195) [Set]: <error>
-"vs"@(FileId(1), 200..202) [ConstVar(Var, No)]: set[DefId(PackageId(0), LocalDefId(3))] of opaque[DefId(PackageId(0), LocalDefId(1))] type to char
-"_"@(FileId(1), 239..240) [ConstVar(Var, No)]: boolean
-"<unnamed>"@(dummy) [Undeclared]: <error>
-"t"@(FileId(1), 31..32) [Export]: opaque[DefId(PackageId(0), LocalDefId(1))] type to char
-"s"@(FileId(1), 38..39) [Export]: set[DefId(PackageId(0), LocalDefId(3))] of opaque[DefId(PackageId(0), LocalDefId(1))] type to char
-"make"@(FileId(1), 41..45) [Export]: function ( pass(value) char, ) -> opaque[DefId(PackageId(0), LocalDefId(1))] type to char
-"<root>"@(dummy) [Module(No)]: <error>
+"m"@"src/main.t:7..8" [Module(No)]: <error>
+"t"@"src/main.t:55..56" [Type]: opaque[DefId(PackageId(0), LocalDefId(1))] type to char
+"s"@"src/main.t:73..74" [Type]: set[DefId(PackageId(0), LocalDefId(3))] of opaque[DefId(PackageId(0), LocalDefId(1))] type to char
+"s"@"src/main.t:77..85" [Set]: <error>
+"make"@"src/main.t:94..98" [Subprogram(Function)]: function ( pass(value) char, ) -> opaque[DefId(PackageId(0), LocalDefId(1))] type to char
+"c"@"src/main.t:99..100" [Param(Value, No)]: char
+"xs"@"src/main.t:182..184" [Type]: set[DefId(PackageId(0), LocalDefId(7))] of opaque[DefId(PackageId(0), LocalDefId(1))] type to char
+"xs"@"src/main.t:187..195" [Set]: <error>
+"vs"@"src/main.t:200..202" [ConstVar(Var, No)]: set[DefId(PackageId(0), LocalDefId(3))] of opaque[DefId(PackageId(0), LocalDefId(1))] type to char
+"_"@"src/main.t:239..240" [ConstVar(Var, No)]: boolean
+"<unnamed>"@"<unknown>:0..0" [Undeclared]: <error>
+"t"@"src/main.t:31..32" [Export]: opaque[DefId(PackageId(0), LocalDefId(1))] type to char
+"s"@"src/main.t:38..39" [Export]: set[DefId(PackageId(0), LocalDefId(3))] of opaque[DefId(PackageId(0), LocalDefId(1))] type to char
+"make"@"src/main.t:41..45" [Export]: function ( pass(value) char, ) -> opaque[DefId(PackageId(0), LocalDefId(1))] type to char
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 194..195): mismatched types
-| error for (FileId(1), 194..195): `t (an opaque type)` is not an index type
+error at src/main.t:194..195: mismatched types
+| error for src/main.t:194..195: `t (an opaque type)` is not an index type
 | info: an index type is an integer, a `boolean`, a `char`, an enumerated type, or a range
-error at (FileId(1), 212..215): mismatched types
-| note for (FileId(1), 212..215): this is of type `char`
-| note for (FileId(1), 212..215): parameter expects type `t (an opaque type)`
+error at src/main.t:212..215: mismatched types
+| note for src/main.t:212..215: this is of type `char`
+| note for src/main.t:212..215: parameter expects type `t (an opaque type)`
 | info: `char` is not assignable into `t (an opaque type)`

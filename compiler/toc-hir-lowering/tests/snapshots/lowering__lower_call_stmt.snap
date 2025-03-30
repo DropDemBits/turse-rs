@@ -1,17 +1,14 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
-assertion_line: 59
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: proc call end call call
-
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(1)
-    Module@(FileId(1), 0..23): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..23): []
-        StmtItem@(FileId(1), 0..18): ItemId(0)
-          Subprogram@(FileId(1), 0..18): "call"@(FileId(1), 5..9)
-            Void@(FileId(1), 0..9)
-            StmtBody@(FileId(1), 10..10): []
-        CallStmt@(FileId(1), 19..23): [no params]
-          Name@(FileId(1), 19..23): "call"@(FileId(1), 5..9)
-
+  Root@(dummy): src/main.t -> ItemId(1)
+    Module@(src/main.t:0..23): "<root>"@(dummy)
+      StmtBody@(src/main.t:0..23): []
+        StmtItem@(src/main.t:0..18): ItemId(0)
+          Subprogram@(src/main.t:0..18): "call"@(src/main.t:5..9)
+            Void@(src/main.t:0..9)
+            StmtBody@(src/main.t:10..10): []
+        CallStmt@(src/main.t:19..23): [no params]
+          Name@(src/main.t:19..23): "call"@(src/main.t:5..9)

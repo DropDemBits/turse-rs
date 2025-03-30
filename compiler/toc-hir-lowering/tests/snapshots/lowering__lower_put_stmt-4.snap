@@ -3,13 +3,12 @@ source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "put 1 : 1 :  : 1"
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(0)
-    Module@(FileId(1), 0..16): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..16): []
-        Put@(FileId(1), 0..16): newline
-          Literal@(FileId(1), 4..5): Integer(1)
-          Literal@(FileId(1), 8..9): Integer(1)
-          Literal@(FileId(1), 15..16): Integer(1)
-error at (FileId(1), 13..14): unexpected token
-| error for (FileId(1), 13..14): expected expression, but found `:`
-
+  Root@(dummy): src/main.t -> ItemId(0)
+    Module@(src/main.t:0..16): "<root>"@(dummy)
+      StmtBody@(src/main.t:0..16): []
+        Put@(src/main.t:0..16): newline
+          Literal@(src/main.t:4..5): Integer(1)
+          Literal@(src/main.t:8..9): Integer(1)
+          Literal@(src/main.t:15..16): Integer(1)
+error at src/main.t:13..14: unexpected token
+| error for src/main.t:13..14: expected expression, but found `:`

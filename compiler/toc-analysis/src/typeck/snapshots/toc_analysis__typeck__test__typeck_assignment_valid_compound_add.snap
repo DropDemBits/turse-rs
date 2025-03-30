@@ -1,8 +1,7 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var lhs : real\nvar rhs : int\nlhs += rhs\n"
 ---
-"lhs"@(FileId(1), 4..7) [ConstVar(Var, No)]: real
-"rhs"@(FileId(1), 19..22) [ConstVar(Var, No)]: int
-"<root>"@(dummy) [Module(No)]: <error>
-
+"lhs"@"src/main.t:4..7" [ConstVar(Var, No)]: real
+"rhs"@"src/main.t:19..22" [ConstVar(Var, No)]: int
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>

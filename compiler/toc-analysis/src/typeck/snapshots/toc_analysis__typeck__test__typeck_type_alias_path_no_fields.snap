@@ -2,14 +2,14 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "module a export b type b : int end a\nvar e : a.b.c := 1\nvar f : a.nope := 1\n"
 ---
-"a"@(FileId(1), 7..8) [Module(No)]: <error>
-"b"@(FileId(1), 23..24) [Type]: alias[DefId(PackageId(0), LocalDefId(1))] of int
-"e"@(FileId(1), 41..42) [ConstVar(Var, No)]: <error>
-"f"@(FileId(1), 60..61) [ConstVar(Var, No)]: <error>
-"b"@(FileId(1), 16..17) [Export]: alias[DefId(PackageId(0), LocalDefId(1))] of int
-"<root>"@(dummy) [Module(No)]: <error>
+"a"@"src/main.t:7..8" [Module(No)]: <error>
+"b"@"src/main.t:23..24" [Type]: alias[DefId(PackageId(0), LocalDefId(1))] of int
+"e"@"src/main.t:41..42" [ConstVar(Var, No)]: <error>
+"f"@"src/main.t:60..61" [ConstVar(Var, No)]: <error>
+"b"@"src/main.t:16..17" [Export]: alias[DefId(PackageId(0), LocalDefId(1))] of int
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 49..50): no field named `c` in `b`
-| error for (FileId(1), 49..50): no field named `c` in here
-error at (FileId(1), 66..70): no field named `nope` in `a`
-| error for (FileId(1), 66..70): no field named `nope` in here
+error at src/main.t:49..50: no field named `c` in `b`
+| error for src/main.t:49..50: no field named `c` in here
+error at src/main.t:66..70: no field named `nope` in `a`
+| error for src/main.t:66..70: no field named `nope` in here

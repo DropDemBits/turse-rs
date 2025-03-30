@@ -2,24 +2,24 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "module z\n    export unqualified opaque ty, unwrap, make\n\n    type ty : int\n\n    fcn unwrap(t : ty) : int\n        result t\n    end unwrap\n\n    fcn make(i : int) : ty\n        result i\n    end make\nend z\n\n% can't use path syntax since it isn't lowered yet\nvar a, b : ty\nvar c := z.make(1)\n\n% is equivalent to self\na := b\na := c\n\n% to the original alias def\nvar i : int := z.unwrap(a)\n\n% but not the alias type\ni := a\n"
 ---
-"z"@(FileId(1), 7..8) [Module(No)]: <error>
-"ty"@(FileId(1), 66..68) [Type]: opaque[DefId(PackageId(0), LocalDefId(1))] type to int
-"unwrap"@(FileId(1), 84..90) [Subprogram(Function)]: function ( pass(value) opaque[DefId(PackageId(0), LocalDefId(1))] type to int, ) -> int
-"t"@(FileId(1), 91..92) [Param(Value, No)]: opaque[DefId(PackageId(0), LocalDefId(1))] type to int
-"make"@(FileId(1), 146..150) [Subprogram(Function)]: function ( pass(value) int, ) -> opaque[DefId(PackageId(0), LocalDefId(1))] type to int
-"i"@(FileId(1), 151..152) [Param(Value, No)]: int
-"a"@(FileId(1), 257..258) [ConstVar(Var, No)]: opaque[DefId(PackageId(0), LocalDefId(1))] type to int
-"b"@(FileId(1), 260..261) [ConstVar(Var, No)]: opaque[DefId(PackageId(0), LocalDefId(1))] type to int
-"c"@(FileId(1), 271..272) [ConstVar(Var, No)]: opaque[DefId(PackageId(0), LocalDefId(1))] type to int
-"i"@(FileId(1), 358..359) [ConstVar(Var, No)]: int
-"<unnamed>"@(dummy) [Undeclared]: <error>
-"<unnamed>"@(dummy) [Undeclared]: <error>
-"ty"@(FileId(1), 39..41) [Export]: opaque[DefId(PackageId(0), LocalDefId(1))] type to int
-"unwrap"@(FileId(1), 43..49) [Export]: function ( pass(value) opaque[DefId(PackageId(0), LocalDefId(1))] type to int, ) -> int
-"make"@(FileId(1), 51..55) [Export]: function ( pass(value) int, ) -> opaque[DefId(PackageId(0), LocalDefId(1))] type to int
-"<root>"@(dummy) [Module(No)]: <error>
+"z"@"src/main.t:7..8" [Module(No)]: <error>
+"ty"@"src/main.t:66..68" [Type]: opaque[DefId(PackageId(0), LocalDefId(1))] type to int
+"unwrap"@"src/main.t:84..90" [Subprogram(Function)]: function ( pass(value) opaque[DefId(PackageId(0), LocalDefId(1))] type to int, ) -> int
+"t"@"src/main.t:91..92" [Param(Value, No)]: opaque[DefId(PackageId(0), LocalDefId(1))] type to int
+"make"@"src/main.t:146..150" [Subprogram(Function)]: function ( pass(value) int, ) -> opaque[DefId(PackageId(0), LocalDefId(1))] type to int
+"i"@"src/main.t:151..152" [Param(Value, No)]: int
+"a"@"src/main.t:257..258" [ConstVar(Var, No)]: opaque[DefId(PackageId(0), LocalDefId(1))] type to int
+"b"@"src/main.t:260..261" [ConstVar(Var, No)]: opaque[DefId(PackageId(0), LocalDefId(1))] type to int
+"c"@"src/main.t:271..272" [ConstVar(Var, No)]: opaque[DefId(PackageId(0), LocalDefId(1))] type to int
+"i"@"src/main.t:358..359" [ConstVar(Var, No)]: int
+"<unnamed>"@"<unknown>:0..0" [Undeclared]: <error>
+"<unnamed>"@"<unknown>:0..0" [Undeclared]: <error>
+"ty"@"src/main.t:39..41" [Export]: opaque[DefId(PackageId(0), LocalDefId(1))] type to int
+"unwrap"@"src/main.t:43..49" [Export]: function ( pass(value) opaque[DefId(PackageId(0), LocalDefId(1))] type to int, ) -> int
+"make"@"src/main.t:51..55" [Export]: function ( pass(value) int, ) -> opaque[DefId(PackageId(0), LocalDefId(1))] type to int
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 409..411): mismatched types
-| note for (FileId(1), 412..413): this is of type `ty (an opaque type)`
-| note for (FileId(1), 407..408): this is of type `int`
+error at src/main.t:409..411: mismatched types
+| note for src/main.t:412..413: this is of type `ty (an opaque type)`
+| note for src/main.t:407..408: this is of type `int`
 | info: `ty (an opaque type)` is not assignable into `int`

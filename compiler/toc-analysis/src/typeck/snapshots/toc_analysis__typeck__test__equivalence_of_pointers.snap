@@ -2,22 +2,22 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "type i : int\ntype tpi : pointer to int\ntype tpc : pointer to char\ntype tpai : pointer to i\ntype tupi : unchecked pointer to int\n\nvar v_pi : tpi\nvar v_pc : tpc\nvar v_pai : tpai\nvar v_upi : tupi\n\n% compat through aliases\nv_pi := v_pai\n\n% incompatible - different target types\nv_pi := v_pc\n\n% incompatible - different checkedness\nv_pi := v_upi\n"
 ---
-"i"@(FileId(1), 5..6) [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of int
-"tpi"@(FileId(1), 18..21) [Type]: alias[DefId(PackageId(0), LocalDefId(1))] of pointer to int
-"tpc"@(FileId(1), 44..47) [Type]: alias[DefId(PackageId(0), LocalDefId(2))] of pointer to char
-"tpai"@(FileId(1), 71..75) [Type]: alias[DefId(PackageId(0), LocalDefId(3))] of pointer to alias[DefId(PackageId(0), LocalDefId(0))] of int
-"tupi"@(FileId(1), 96..100) [Type]: alias[DefId(PackageId(0), LocalDefId(4))] of unchecked pointer to int
-"v_pi"@(FileId(1), 133..137) [ConstVar(Var, No)]: alias[DefId(PackageId(0), LocalDefId(1))] of pointer to int
-"v_pc"@(FileId(1), 148..152) [ConstVar(Var, No)]: alias[DefId(PackageId(0), LocalDefId(2))] of pointer to char
-"v_pai"@(FileId(1), 163..168) [ConstVar(Var, No)]: alias[DefId(PackageId(0), LocalDefId(3))] of pointer to alias[DefId(PackageId(0), LocalDefId(0))] of int
-"v_upi"@(FileId(1), 180..185) [ConstVar(Var, No)]: alias[DefId(PackageId(0), LocalDefId(4))] of unchecked pointer to int
-"<root>"@(dummy) [Module(No)]: <error>
+"i"@"src/main.t:5..6" [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of int
+"tpi"@"src/main.t:18..21" [Type]: alias[DefId(PackageId(0), LocalDefId(1))] of pointer to int
+"tpc"@"src/main.t:44..47" [Type]: alias[DefId(PackageId(0), LocalDefId(2))] of pointer to char
+"tpai"@"src/main.t:71..75" [Type]: alias[DefId(PackageId(0), LocalDefId(3))] of pointer to alias[DefId(PackageId(0), LocalDefId(0))] of int
+"tupi"@"src/main.t:96..100" [Type]: alias[DefId(PackageId(0), LocalDefId(4))] of unchecked pointer to int
+"v_pi"@"src/main.t:133..137" [ConstVar(Var, No)]: alias[DefId(PackageId(0), LocalDefId(1))] of pointer to int
+"v_pc"@"src/main.t:148..152" [ConstVar(Var, No)]: alias[DefId(PackageId(0), LocalDefId(2))] of pointer to char
+"v_pai"@"src/main.t:163..168" [ConstVar(Var, No)]: alias[DefId(PackageId(0), LocalDefId(3))] of pointer to alias[DefId(PackageId(0), LocalDefId(0))] of int
+"v_upi"@"src/main.t:180..185" [ConstVar(Var, No)]: alias[DefId(PackageId(0), LocalDefId(4))] of unchecked pointer to int
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 279..281): mismatched types
-| note for (FileId(1), 282..286): this is of type `tpc (alias of pointer to char)`
-| note for (FileId(1), 274..278): this is of type `tpi (alias of pointer to int)`
+error at src/main.t:279..281: mismatched types
+| note for src/main.t:282..286: this is of type `tpc (alias of pointer to char)`
+| note for src/main.t:274..278: this is of type `tpi (alias of pointer to int)`
 | info: `pointer to char` is not assignable into `pointer to int`
-error at (FileId(1), 332..334): mismatched types
-| note for (FileId(1), 335..340): this is of type `tupi (alias of unchecked pointer to int)`
-| note for (FileId(1), 327..331): this is of type `tpi (alias of pointer to int)`
+error at src/main.t:332..334: mismatched types
+| note for src/main.t:335..340: this is of type `tupi (alias of unchecked pointer to int)`
+| note for src/main.t:327..331: this is of type `tpi (alias of pointer to int)`
 | info: `unchecked pointer to int` is not assignable into `pointer to int`

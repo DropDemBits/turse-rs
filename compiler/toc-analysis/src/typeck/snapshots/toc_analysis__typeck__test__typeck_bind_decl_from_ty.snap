@@ -2,10 +2,10 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "begin\ntype no : int\nbind you to no\nend"
 ---
-"no"@(FileId(1), 11..13) [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of int
-"you"@(FileId(1), 25..28) [Binding(Const, No)]: alias[DefId(PackageId(0), LocalDefId(0))] of int
-"<root>"@(dummy) [Module(No)]: <error>
+"no"@"src/main.t:11..13" [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of int
+"you"@"src/main.t:25..28" [Binding(Const, No)]: alias[DefId(PackageId(0), LocalDefId(0))] of int
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 25..34): cannot bind `you` to `no`
-| error for (FileId(1), 32..34): `no` is a reference to a type, not a variable
-| note for (FileId(1), 11..13): `no` declared here
+error at src/main.t:25..34: cannot bind `you` to `no`
+| error for src/main.t:32..34: `no` is a reference to a type, not a variable
+| note for src/main.t:11..13: `no` declared here

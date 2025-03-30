@@ -2,9 +2,8 @@
 source: compiler/toc-analysis/src/const_eval/test.rs
 expression: "type e : enum(a, b, c) const a : e.a .. e.b := e.c const _:=a"
 ---
-"a"@(FileId(1), 29..30) -> EnumVariant(TypeId(Id { value: 2 }), 2)
-"_"@(FileId(1), 57..58) -> ConstError { kind: OutsideRange, span: (FileId(1), 47..50) }
+"a"@"src/main.t:29..30" -> EnumVariant(TypeId(Id { value: 2 }), 2)
+"_"@"src/main.t:57..58" -> <error OutsideRange>
 
-error at (FileId(1), 47..50): cannot compute expression at compile-time
-| error for (FileId(1), 47..50): value is outside of the type's range
-
+error at src/main.t:47..50: cannot compute expression at compile-time
+| error for src/main.t:47..50: value is outside of the type's range

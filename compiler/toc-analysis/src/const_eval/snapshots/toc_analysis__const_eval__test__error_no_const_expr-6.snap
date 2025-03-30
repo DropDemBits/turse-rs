@@ -2,8 +2,7 @@
 source: compiler/toc-analysis/src/const_eval/test.rs
 expression: "\n    module base\n        export ~. tail\n    end base\n\n    module target\n        import tail\n        const _ := tail\n    end target\n    "
 ---
-"_"@(FileId(1), 106..107) -> ConstError { kind: NotConstExpr(Binding(PackageId(0), Spanned("tail", SpanId(10)))), span: (FileId(1), 111..115) }
+"_"@"src/main.t:106..107" -> <error NotConstExpr(Binding(PackageId(0), Spanned("tail", SpanId(10))))>
 
-error at (FileId(1), 111..115): cannot compute `tail` at compile-time
-| error for (FileId(1), 111..115): expression cannot be computed at compile-time
-
+error at src/main.t:111..115: cannot compute `tail` at compile-time
+| error for src/main.t:111..115: expression cannot be computed at compile-time

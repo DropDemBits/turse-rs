@@ -2,14 +2,14 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "type s : set of boolean\nvar _ := s\ns\n"
 ---
-"s"@(FileId(1), 5..6) [Type]: set[DefId(PackageId(0), LocalDefId(1))] of boolean
-"s"@(FileId(1), 9..23) [Set]: <error>
-"_"@(FileId(1), 28..29) [ConstVar(Var, No)]: set[DefId(PackageId(0), LocalDefId(1))] of boolean
-"<root>"@(dummy) [Module(No)]: <error>
+"s"@"src/main.t:5..6" [Type]: set[DefId(PackageId(0), LocalDefId(1))] of boolean
+"s"@"src/main.t:9..23" [Set]: <error>
+"_"@"src/main.t:28..29" [ConstVar(Var, No)]: set[DefId(PackageId(0), LocalDefId(1))] of boolean
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 33..34): cannot use `s` as an expression
-| error for (FileId(1), 33..34): `s` is a reference to a type, not a variable
-| note for (FileId(1), 5..6): `s` declared here
-| note for (FileId(1), 33..34): to construct an empty set, add `()` after here
-error at (FileId(1), 35..36): cannot use `s` as a statement
-| error for (FileId(1), 35..36): `s` is not a statement
+error at src/main.t:33..34: cannot use `s` as an expression
+| error for src/main.t:33..34: `s` is a reference to a type, not a variable
+| note for src/main.t:5..6: `s` declared here
+| note for src/main.t:33..34: to construct an empty set, add `()` after here
+error at src/main.t:35..36: cannot use `s` as a statement
+| error for src/main.t:35..36: `s` is not a statement

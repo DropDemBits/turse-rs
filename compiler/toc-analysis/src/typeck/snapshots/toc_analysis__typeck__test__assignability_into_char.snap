@@ -1,14 +1,13 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var c : char\nvar c1 : char(1)\nvar s : string\nvar s1 : string(1)\n\nvar _v00 : char := c\nvar _v01 : char := c1\nvar _v02 : char := s1\nvar _v03 : char := s % runtime checked\n"
 ---
-"c"@(FileId(1), 4..5) [ConstVar(Var, No)]: char
-"c1"@(FileId(1), 17..19) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(0)))
-"s"@(FileId(1), 34..35) [ConstVar(Var, No)]: string
-"s1"@(FileId(1), 49..51) [ConstVar(Var, No)]: string_n Fixed(Unevaluated(PackageId(0), BodyId(1)))
-"_v00"@(FileId(1), 69..73) [ConstVar(Var, No)]: char
-"_v01"@(FileId(1), 90..94) [ConstVar(Var, No)]: char
-"_v02"@(FileId(1), 112..116) [ConstVar(Var, No)]: char
-"_v03"@(FileId(1), 134..138) [ConstVar(Var, No)]: char
-"<root>"@(dummy) [Module(No)]: <error>
-
+"c"@"src/main.t:4..5" [ConstVar(Var, No)]: char
+"c1"@"src/main.t:17..19" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(0)))
+"s"@"src/main.t:34..35" [ConstVar(Var, No)]: string
+"s1"@"src/main.t:49..51" [ConstVar(Var, No)]: string_n Fixed(Unevaluated(PackageId(0), BodyId(1)))
+"_v00"@"src/main.t:69..73" [ConstVar(Var, No)]: char
+"_v01"@"src/main.t:90..94" [ConstVar(Var, No)]: char
+"_v02"@"src/main.t:112..116" [ConstVar(Var, No)]: char
+"_v03"@"src/main.t:134..138" [ConstVar(Var, No)]: char
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>

@@ -3,16 +3,15 @@ source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "var implied : int for decreasing : implied end for"
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(1)
-    Module@(FileId(1), 0..50): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..50): []
-        StmtItem@(FileId(1), 0..17): ItemId(0)
-          ConstVar@(FileId(1), 0..17): var "implied"@(FileId(1), 4..11)
-            Primitive@(FileId(1), 14..17): Int
-        For@(FileId(1), 18..50): decreasing implicit
-          Name@(FileId(1), 35..42): "implied"@(FileId(1), 4..11)
-error at (FileId(1), 35..42): `decreasing` for-loops cannot use implicit range bounds
-| error for (FileId(1), 35..42): range bounds are implied from here
-| note for (FileId(1), 22..32): `decreasing` for-loop specified here
+  Root@(dummy): src/main.t -> ItemId(1)
+    Module@(src/main.t:0..50): "<root>"@(dummy)
+      StmtBody@(src/main.t:0..50): []
+        StmtItem@(src/main.t:0..17): ItemId(0)
+          ConstVar@(src/main.t:0..17): var "implied"@(src/main.t:4..11)
+            Primitive@(src/main.t:14..17): Int
+        For@(src/main.t:18..50): decreasing implicit
+          Name@(src/main.t:35..42): "implied"@(src/main.t:4..11)
+error at src/main.t:35..42: `decreasing` for-loops cannot use implicit range bounds
+| error for src/main.t:35..42: range bounds are implied from here
+| note for src/main.t:22..32: `decreasing` for-loop specified here
 | info: `decreasing` for-loops can only use explicit range bounds (e.g. `1 .. 2`)
-

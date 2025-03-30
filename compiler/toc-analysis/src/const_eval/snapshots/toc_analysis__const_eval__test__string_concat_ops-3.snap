@@ -1,8 +1,5 @@
 ---
-source: compiler/toc_analysis/src/const_eval/test.rs
+source: compiler/toc-analysis/src/const_eval/test.rs
 expression: "'aca' + 'b'"
-
 ---
-"_"@(FileId(1), 6..7) -> CharN("acab")
-
-
+"_"@"src/main.t:6..7" -> CharN("acab")

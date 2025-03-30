@@ -2,12 +2,12 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "type b : boolean\nif b then\nelsif b then\nend if"
 ---
-"b"@(FileId(1), 5..6) [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of boolean
-"<root>"@(dummy) [Module(No)]: <error>
+"b"@"src/main.t:5..6" [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of boolean
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 20..21): cannot use `b` as an expression
-| error for (FileId(1), 20..21): `b` is a reference to a type, not a variable
-| note for (FileId(1), 5..6): `b` declared here
-error at (FileId(1), 33..34): cannot use `b` as an expression
-| error for (FileId(1), 33..34): `b` is a reference to a type, not a variable
-| note for (FileId(1), 5..6): `b` declared here
+error at src/main.t:20..21: cannot use `b` as an expression
+| error for src/main.t:20..21: `b` is a reference to a type, not a variable
+| note for src/main.t:5..6: `b` declared here
+error at src/main.t:33..34: cannot use `b` as an expression
+| error for src/main.t:33..34: `b` is a reference to a type, not a variable
+| note for src/main.t:5..6: `b` declared here

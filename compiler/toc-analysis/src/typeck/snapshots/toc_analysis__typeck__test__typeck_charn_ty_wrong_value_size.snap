@@ -2,10 +2,10 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "type k : int type _ : char(k)"
 ---
-"k"@(FileId(1), 5..6) [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of int
-"_"@(FileId(1), 18..19) [Type]: alias[DefId(PackageId(0), LocalDefId(1))] of char_n Fixed(Unevaluated(PackageId(0), BodyId(0)))
-"<root>"@(dummy) [Module(No)]: <error>
+"k"@"src/main.t:5..6" [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of int
+"_"@"src/main.t:18..19" [Type]: alias[DefId(PackageId(0), LocalDefId(1))] of char_n Fixed(Unevaluated(PackageId(0), BodyId(0)))
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 27..28): cannot use `k` as an expression
-| error for (FileId(1), 27..28): `k` is a reference to a type, not a variable
-| note for (FileId(1), 5..6): `k` declared here
+error at src/main.t:27..28: cannot use `k` as an expression
+| error for src/main.t:27..28: `k` is a reference to a type, not a variable
+| note for src/main.t:5..6: `k` declared here

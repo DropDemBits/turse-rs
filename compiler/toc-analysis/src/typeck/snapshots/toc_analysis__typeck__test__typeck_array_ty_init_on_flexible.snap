@@ -2,10 +2,10 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var a : flexible array 1..1 of int := init(1)"
 ---
-"a"@(FileId(1), 4..5) [ConstVar(Var, No)]: flexible array ( range of `int` (Unevaluated(PackageId(0), BodyId(0)) .. Expr(Unevaluated(PackageId(0), BodyId(1)), Yes)), ) of int
-"<root>"@(dummy) [Module(No)]: <error>
+"a"@"src/main.t:4..5" [ConstVar(Var, No)]: flexible array ( range of `int` (Unevaluated(PackageId(0), BodyId(0)) .. Expr(Unevaluated(PackageId(0), BodyId(1)), Yes)), ) of int
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 38..45): cannot use `init` here
-| error for (FileId(1), 38..45): `init` initializer cannot be used for `flexible array 1 .. 1 of int`
-| note for (FileId(1), 8..34): `flexible array 1 .. 1 of int` does not support aggregate initialzation
+error at src/main.t:38..45: cannot use `init` here
+| error for src/main.t:38..45: `init` initializer cannot be used for `flexible array 1 .. 1 of int`
+| note for src/main.t:8..34: `flexible array 1 .. 1 of int` does not support aggregate initialzation
 | info: `flexible array`s cannot initialized using `init` since their size is not known at compile-time

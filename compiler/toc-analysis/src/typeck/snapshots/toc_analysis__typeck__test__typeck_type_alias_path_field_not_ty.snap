@@ -2,12 +2,12 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "type e : enum(v)\nvar a : e.v\n"
 ---
-"e"@(FileId(1), 5..6) [Type]: enum[DefId(PackageId(0), LocalDefId(1))] ( "v"@(FileId(1), 14..15), )
-"e"@(FileId(1), 9..16) [Enum]: <error>
-"v"@(FileId(1), 14..15) [EnumVariant]: enum[DefId(PackageId(0), LocalDefId(1))] ( "v"@(FileId(1), 14..15), )
-"a"@(FileId(1), 21..22) [ConstVar(Var, No)]: <error>
-"<root>"@(dummy) [Module(No)]: <error>
+"e"@"src/main.t:5..6" [Type]: enum[DefId(PackageId(0), LocalDefId(1))] ( "v"@SpanId(4), )
+"e"@"src/main.t:9..16" [Enum]: <error>
+"v"@"src/main.t:14..15" [EnumVariant]: enum[DefId(PackageId(0), LocalDefId(1))] ( "v"@SpanId(4), )
+"a"@"src/main.t:21..22" [ConstVar(Var, No)]: <error>
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 27..28): cannot use `v` as a type alias
-| error for (FileId(1), 27..28): `v` is a reference to an enum variant, not a type
-| note for (FileId(1), 14..15): `v` declared here
+error at src/main.t:27..28: cannot use `v` as a type alias
+| error for src/main.t:27..28: `v` is a reference to an enum variant, not a type
+| note for src/main.t:14..15: `v` declared here

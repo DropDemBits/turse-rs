@@ -2,57 +2,57 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "\n    var b : boolean\n    var r : real\n    var i : int\n    var n : nat\n    var _bi := b or i\n    var _bn := b or n\n    var _ib := i or b\n    var _nb := n or b\n    var _ri := r or i\n    var _rn := r or n\n    var _ir := i or r\n    var _nr := n or r\n"
 ---
-"b"@(FileId(1), 9..10) [ConstVar(Var, No)]: boolean
-"r"@(FileId(1), 29..30) [ConstVar(Var, No)]: real
-"i"@(FileId(1), 46..47) [ConstVar(Var, No)]: int
-"n"@(FileId(1), 62..63) [ConstVar(Var, No)]: nat
-"_bi"@(FileId(1), 78..81) [ConstVar(Var, No)]: <error>
-"_bn"@(FileId(1), 100..103) [ConstVar(Var, No)]: <error>
-"_ib"@(FileId(1), 122..125) [ConstVar(Var, No)]: <error>
-"_nb"@(FileId(1), 144..147) [ConstVar(Var, No)]: <error>
-"_ri"@(FileId(1), 166..169) [ConstVar(Var, No)]: <error>
-"_rn"@(FileId(1), 188..191) [ConstVar(Var, No)]: <error>
-"_ir"@(FileId(1), 210..213) [ConstVar(Var, No)]: <error>
-"_nr"@(FileId(1), 232..235) [ConstVar(Var, No)]: <error>
-"<root>"@(dummy) [Module(No)]: <error>
+"b"@"src/main.t:9..10" [ConstVar(Var, No)]: boolean
+"r"@"src/main.t:29..30" [ConstVar(Var, No)]: real
+"i"@"src/main.t:46..47" [ConstVar(Var, No)]: int
+"n"@"src/main.t:62..63" [ConstVar(Var, No)]: nat
+"_bi"@"src/main.t:78..81" [ConstVar(Var, No)]: <error>
+"_bn"@"src/main.t:100..103" [ConstVar(Var, No)]: <error>
+"_ib"@"src/main.t:122..125" [ConstVar(Var, No)]: <error>
+"_nb"@"src/main.t:144..147" [ConstVar(Var, No)]: <error>
+"_ri"@"src/main.t:166..169" [ConstVar(Var, No)]: <error>
+"_rn"@"src/main.t:188..191" [ConstVar(Var, No)]: <error>
+"_ir"@"src/main.t:210..213" [ConstVar(Var, No)]: <error>
+"_nr"@"src/main.t:232..235" [ConstVar(Var, No)]: <error>
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 87..89): mismatched types for logical `or`
-| note for (FileId(1), 90..91): this is of type `int`
-| note for (FileId(1), 85..86): this is of type `boolean`
-| error for (FileId(1), 87..89): `boolean` cannot be `or`ed by `int`
+error at src/main.t:87..89: mismatched types for logical `or`
+| note for src/main.t:90..91: this is of type `int`
+| note for src/main.t:85..86: this is of type `boolean`
+| error for src/main.t:87..89: `boolean` cannot be `or`ed by `int`
 | info: operands must both be integers or booleans
-error at (FileId(1), 109..111): mismatched types for logical `or`
-| note for (FileId(1), 112..113): this is of type `nat`
-| note for (FileId(1), 107..108): this is of type `boolean`
-| error for (FileId(1), 109..111): `boolean` cannot be `or`ed by `nat`
+error at src/main.t:109..111: mismatched types for logical `or`
+| note for src/main.t:112..113: this is of type `nat`
+| note for src/main.t:107..108: this is of type `boolean`
+| error for src/main.t:109..111: `boolean` cannot be `or`ed by `nat`
 | info: operands must both be integers or booleans
-error at (FileId(1), 131..133): mismatched types for logical `or`
-| note for (FileId(1), 134..135): this is of type `boolean`
-| note for (FileId(1), 129..130): this is of type `int`
-| error for (FileId(1), 131..133): `int` cannot be `or`ed by `boolean`
+error at src/main.t:131..133: mismatched types for logical `or`
+| note for src/main.t:134..135: this is of type `boolean`
+| note for src/main.t:129..130: this is of type `int`
+| error for src/main.t:131..133: `int` cannot be `or`ed by `boolean`
 | info: operands must both be integers or booleans
-error at (FileId(1), 153..155): mismatched types for logical `or`
-| note for (FileId(1), 156..157): this is of type `boolean`
-| note for (FileId(1), 151..152): this is of type `nat`
-| error for (FileId(1), 153..155): `nat` cannot be `or`ed by `boolean`
+error at src/main.t:153..155: mismatched types for logical `or`
+| note for src/main.t:156..157: this is of type `boolean`
+| note for src/main.t:151..152: this is of type `nat`
+| error for src/main.t:153..155: `nat` cannot be `or`ed by `boolean`
 | info: operands must both be integers or booleans
-error at (FileId(1), 175..177): mismatched types for bitwise `or`
-| note for (FileId(1), 178..179): this is of type `int`
-| note for (FileId(1), 173..174): this is of type `real`
-| error for (FileId(1), 175..177): `real` cannot be `or`ed bitwise by `int`
+error at src/main.t:175..177: mismatched types for bitwise `or`
+| note for src/main.t:178..179: this is of type `int`
+| note for src/main.t:173..174: this is of type `real`
+| error for src/main.t:175..177: `real` cannot be `or`ed bitwise by `int`
 | info: operands must both be integers or booleans
-error at (FileId(1), 197..199): mismatched types for bitwise `or`
-| note for (FileId(1), 200..201): this is of type `nat`
-| note for (FileId(1), 195..196): this is of type `real`
-| error for (FileId(1), 197..199): `real` cannot be `or`ed bitwise by `nat`
+error at src/main.t:197..199: mismatched types for bitwise `or`
+| note for src/main.t:200..201: this is of type `nat`
+| note for src/main.t:195..196: this is of type `real`
+| error for src/main.t:197..199: `real` cannot be `or`ed bitwise by `nat`
 | info: operands must both be integers or booleans
-error at (FileId(1), 219..221): mismatched types for bitwise `or`
-| note for (FileId(1), 222..223): this is of type `real`
-| note for (FileId(1), 217..218): this is of type `int`
-| error for (FileId(1), 219..221): `int` cannot be `or`ed bitwise by `real`
+error at src/main.t:219..221: mismatched types for bitwise `or`
+| note for src/main.t:222..223: this is of type `real`
+| note for src/main.t:217..218: this is of type `int`
+| error for src/main.t:219..221: `int` cannot be `or`ed bitwise by `real`
 | info: operands must both be integers or booleans
-error at (FileId(1), 241..243): mismatched types for bitwise `or`
-| note for (FileId(1), 244..245): this is of type `real`
-| note for (FileId(1), 239..240): this is of type `nat`
-| error for (FileId(1), 241..243): `nat` cannot be `or`ed bitwise by `real`
+error at src/main.t:241..243: mismatched types for bitwise `or`
+| note for src/main.t:244..245: this is of type `real`
+| note for src/main.t:239..240: this is of type `nat`
+| error for src/main.t:241..243: `nat` cannot be `or`ed bitwise by `real`
 | info: operands must both be integers or booleans

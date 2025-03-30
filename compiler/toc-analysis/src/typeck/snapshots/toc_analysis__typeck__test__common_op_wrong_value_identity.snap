@@ -2,10 +2,10 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "\n    type t : boolean\n\n    % Type operand prevents checking of type compatibility\n    var _t := + t\n    "
 ---
-"t"@(FileId(1), 10..11) [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of boolean
-"_t"@(FileId(1), 90..92) [ConstVar(Var, No)]: <error>
-"<root>"@(dummy) [Module(No)]: <error>
+"t"@"src/main.t:10..11" [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of boolean
+"_t"@"src/main.t:90..92" [ConstVar(Var, No)]: <error>
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 98..99): cannot use `t` as an expression
-| error for (FileId(1), 98..99): `t` is a reference to a type, not a variable
-| note for (FileId(1), 10..11): `t` declared here
+error at src/main.t:98..99: cannot use `t` as an expression
+| error for src/main.t:98..99: `t` is a reference to a type, not a variable
+| note for src/main.t:10..11: `t` declared here

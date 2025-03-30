@@ -3,18 +3,17 @@ source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "var lmao : int proc uwu : lmao end uwu"
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(2)
-    Module@(FileId(1), 0..38): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..38): []
-        StmtItem@(FileId(1), 0..14): ItemId(0)
-          ConstVar@(FileId(1), 0..14): var "lmao"@(FileId(1), 4..8)
-            Primitive@(FileId(1), 11..14): Int
-        StmtItem@(FileId(1), 15..38): ItemId(1)
-          Subprogram@(FileId(1), 15..38): "uwu"@(FileId(1), 20..23)
-            ExprBody@(FileId(1), 26..30)
-              Name@(FileId(1), 26..30): "lmao"@(FileId(1), 4..8)
-            Void@(FileId(1), 15..30)
-            StmtBody@(FileId(1), 31..31): []
-error at (FileId(1), 24..30): device specification is not allowed here
-| error for (FileId(1), 24..30): `procedure` is not in a device monitor
-
+  Root@(dummy): src/main.t -> ItemId(2)
+    Module@(src/main.t:0..38): "<root>"@(dummy)
+      StmtBody@(src/main.t:0..38): []
+        StmtItem@(src/main.t:0..14): ItemId(0)
+          ConstVar@(src/main.t:0..14): var "lmao"@(src/main.t:4..8)
+            Primitive@(src/main.t:11..14): Int
+        StmtItem@(src/main.t:15..38): ItemId(1)
+          Subprogram@(src/main.t:15..38): "uwu"@(src/main.t:20..23)
+            ExprBody@(src/main.t:26..30)
+              Name@(src/main.t:26..30): "lmao"@(src/main.t:4..8)
+            Void@(src/main.t:15..30)
+            StmtBody@(src/main.t:31..31): []
+error at src/main.t:24..30: device specification is not allowed here
+| error for src/main.t:24..30: `procedure` is not in a device monitor

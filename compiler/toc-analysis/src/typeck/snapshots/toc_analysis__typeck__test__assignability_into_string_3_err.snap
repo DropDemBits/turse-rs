@@ -2,12 +2,12 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "const N := 3\nvar c5 : char(5)\n\nvar _e00 : string(N) := c5 % [not captured by ctc]\n"
 ---
-"N"@(FileId(1), 6..7) [ConstVar(Const, No)]: int
-"c5"@(FileId(1), 17..19) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(1)))
-"_e00"@(FileId(1), 35..39) [ConstVar(Var, No)]: string_n Fixed(Unevaluated(PackageId(0), BodyId(2)))
-"<root>"@(dummy) [Module(No)]: <error>
+"N"@"src/main.t:6..7" [ConstVar(Const, No)]: int
+"c5"@"src/main.t:17..19" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(1)))
+"_e00"@"src/main.t:35..39" [ConstVar(Var, No)]: string_n Fixed(Unevaluated(PackageId(0), BodyId(2)))
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 55..57): mismatched types
-| note for (FileId(1), 55..57): this is of type `char(5)`
-| note for (FileId(1), 42..51): this is of type `string(3)`
+error at src/main.t:55..57: mismatched types
+| note for src/main.t:55..57: this is of type `char(5)`
+| note for src/main.t:42..51: this is of type `string(3)`
 | info: `char(5)` is not assignable into `string(3)`

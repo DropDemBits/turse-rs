@@ -3,17 +3,16 @@ source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "\n    var a : int\n    module _\n        import const var a\n    end _"
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(3)
-    Module@(FileId(1), 0..66): "<root>"@(dummy)
-      StmtBody@(FileId(1), 5..66): []
-        StmtItem@(FileId(1), 5..16): ItemId(0)
-          ConstVar@(FileId(1), 5..16): var "a"@(FileId(1), 9..10)
-            Primitive@(FileId(1), 13..16): Int
-        StmtItem@(FileId(1), 21..66): ItemId(2)
-          Module@(FileId(1), 21..66): "_"@(FileId(1), 28..29)
-            Import@(FileId(1), 45..56): SameAsItem local("a"@(FileId(1), 9..10))
-            StmtBody@(FileId(1), 61..61): []
-error at (FileId(1), 51..54): cannot use `const` and `var` on the same import
-| error for (FileId(1), 45..50): first conflicting `const`
-| error for (FileId(1), 51..54): first conflicting `var`
-
+  Root@(dummy): src/main.t -> ItemId(3)
+    Module@(src/main.t:0..66): "<root>"@(dummy)
+      StmtBody@(src/main.t:5..66): []
+        StmtItem@(src/main.t:5..16): ItemId(0)
+          ConstVar@(src/main.t:5..16): var "a"@(src/main.t:9..10)
+            Primitive@(src/main.t:13..16): Int
+        StmtItem@(src/main.t:21..66): ItemId(2)
+          Module@(src/main.t:21..66): "_"@(src/main.t:28..29)
+            Import@(src/main.t:45..56): SameAsItem local("a"@(src/main.t:9..10))
+            StmtBody@(src/main.t:61..61): []
+error at src/main.t:51..54: cannot use `const` and `var` on the same import
+| error for src/main.t:45..50: first conflicting `const`
+| error for src/main.t:51..54: first conflicting `var`

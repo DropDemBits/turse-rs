@@ -3,15 +3,14 @@ source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "var _ : int _ := 30#\n"
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(1)
-    Module@(FileId(1), 0..21): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..20): []
-        StmtItem@(FileId(1), 0..11): ItemId(0)
-          ConstVar@(FileId(1), 0..11): var "_"@(FileId(1), 4..5)
-            Primitive@(FileId(1), 8..11): Int
-        Assign@(FileId(1), 12..20)
-          Name@(FileId(1), 12..13): "_"@(FileId(1), 4..5)
-          Literal@(FileId(1), 17..20): Integer(0)
-error at (FileId(1), 17..20): invalid int literal
-| error for (FileId(1), 17..20): missing radix digits
-
+  Root@(dummy): src/main.t -> ItemId(1)
+    Module@(src/main.t:0..21): "<root>"@(dummy)
+      StmtBody@(src/main.t:0..20): []
+        StmtItem@(src/main.t:0..11): ItemId(0)
+          ConstVar@(src/main.t:0..11): var "_"@(src/main.t:4..5)
+            Primitive@(src/main.t:8..11): Int
+        Assign@(src/main.t:12..20)
+          Name@(src/main.t:12..13): "_"@(src/main.t:4..5)
+          Literal@(src/main.t:17..20): Integer(0)
+error at src/main.t:17..20: invalid int literal
+| error for src/main.t:17..20: missing radix digits

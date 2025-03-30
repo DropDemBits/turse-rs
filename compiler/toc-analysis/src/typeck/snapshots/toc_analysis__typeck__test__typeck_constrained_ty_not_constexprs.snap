@@ -2,13 +2,13 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var c := 1\ntype _ : c .. c"
 ---
-"c"@(FileId(1), 4..5) [ConstVar(Var, No)]: int
-"_"@(FileId(1), 16..17) [Type]: alias[DefId(PackageId(0), LocalDefId(1))] of range of `int` (Unevaluated(PackageId(0), BodyId(1)) .. Expr(Unevaluated(PackageId(0), BodyId(2)), No))
-"<root>"@(dummy) [Module(No)]: <error>
+"c"@"src/main.t:4..5" [ConstVar(Var, No)]: int
+"_"@"src/main.t:16..17" [Type]: alias[DefId(PackageId(0), LocalDefId(1))] of range of `int` (Unevaluated(PackageId(0), BodyId(1)) .. Expr(Unevaluated(PackageId(0), BodyId(2)), No))
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 20..21): cannot compute `c` at compile-time
-| error for (FileId(1), 20..21): `c` is a reference to a variable, not a constant
-| note for (FileId(1), 4..5): `c` declared here
-error at (FileId(1), 25..26): cannot compute `c` at compile-time
-| error for (FileId(1), 25..26): `c` is a reference to a variable, not a constant
-| note for (FileId(1), 4..5): `c` declared here
+error at src/main.t:20..21: cannot compute `c` at compile-time
+| error for src/main.t:20..21: `c` is a reference to a variable, not a constant
+| note for src/main.t:4..5: `c` declared here
+error at src/main.t:25..26: cannot compute `c` at compile-time
+| error for src/main.t:25..26: `c` is a reference to a variable, not a constant
+| note for src/main.t:4..5: `c` declared here

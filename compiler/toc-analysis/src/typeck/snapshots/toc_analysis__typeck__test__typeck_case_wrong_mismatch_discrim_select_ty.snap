@@ -2,18 +2,18 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "case 1.0 of label 1, 'd', false end case"
 ---
-"<root>"@(dummy) [Module(No)]: <error>
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 5..8): mismatched types
-| error for (FileId(1), 5..8): `real` cannot be used as a case discriminant
+error at src/main.t:5..8: mismatched types
+| error for src/main.t:5..8: `real` cannot be used as a case discriminant
 | info: `case` discriminant must be either an index type (an integer, `boolean`, `char`, enumerated type, or a range), or a `string`
-error at (FileId(1), 21..24): mismatched types
-| note for (FileId(1), 5..8): discriminant is of type `real`
-| note for (FileId(1), 21..24): selector is of type `char`
-| error for (FileId(1), 21..24): `char` is not a `real`
+error at src/main.t:21..24: mismatched types
+| note for src/main.t:5..8: discriminant is of type `real`
+| note for src/main.t:21..24: selector is of type `char`
+| error for src/main.t:21..24: `char` is not a `real`
 | info: selector type must match discriminant type
-error at (FileId(1), 26..31): mismatched types
-| note for (FileId(1), 5..8): discriminant is of type `real`
-| note for (FileId(1), 26..31): selector is of type `boolean`
-| error for (FileId(1), 26..31): `boolean` is not a `real`
+error at src/main.t:26..31: mismatched types
+| note for src/main.t:5..8: discriminant is of type `real`
+| note for src/main.t:26..31: selector is of type `boolean`
+| error for src/main.t:26..31: `boolean` is not a `real`
 | info: selector type must match discriminant type

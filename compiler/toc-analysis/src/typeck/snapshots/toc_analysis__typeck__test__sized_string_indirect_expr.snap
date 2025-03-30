@@ -1,8 +1,7 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "const N := 1\nvar _ : string(N)\n"
 ---
-"N"@(FileId(1), 6..7) [ConstVar(Const, No)]: int
-"_"@(FileId(1), 17..18) [ConstVar(Var, No)]: string_n Fixed(Unevaluated(PackageId(0), BodyId(1)))
-"<root>"@(dummy) [Module(No)]: <error>
-
+"N"@"src/main.t:6..7" [ConstVar(Const, No)]: int
+"_"@"src/main.t:17..18" [ConstVar(Var, No)]: string_n Fixed(Unevaluated(PackageId(0), BodyId(1)))
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>

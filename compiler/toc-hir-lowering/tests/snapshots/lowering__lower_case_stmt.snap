@@ -3,13 +3,12 @@ source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: case s of end case
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(0)
-    Module@(FileId(1), 0..18): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..18): []
-        Case@(FileId(1), 0..18)
-          Name@(FileId(1), 5..6): "s"@(FileId(1), 5..6), undeclared
-error at (FileId(1), 0..18): invalid `case` statement
-| error for (FileId(1), 0..18): missing `label` arms
-error at (FileId(1), 5..6): `s` is undeclared
-| error for (FileId(1), 5..6): no definitions of `s` are in scope
-
+  Root@(dummy): src/main.t -> ItemId(0)
+    Module@(src/main.t:0..18): "<root>"@(dummy)
+      StmtBody@(src/main.t:0..18): []
+        Case@(src/main.t:0..18)
+          Name@(src/main.t:5..6): "s"@(src/main.t:5..6), undeclared
+error at src/main.t:0..18: invalid `case` statement
+| error for src/main.t:0..18: missing `label` arms
+error at src/main.t:5..6: `s` is undeclared
+| error for src/main.t:5..6: no definitions of `s` are in scope

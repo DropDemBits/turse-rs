@@ -1,18 +1,17 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "\n    % Compatibility with all variant of numbers\n    var r : real\n    var i : int\n    var n : nat\n    var _rr := r * r\n    var _ri := r * i\n    var _ir := i * r\n    var _rn := r * n\n    var _nr := n * r\n    var _ii := i * i\n    var _in := i * n\n    var _ni := n * i\n    var _nn := n * n\n"
 ---
-"r"@(FileId(1), 57..58) [ConstVar(Var, No)]: real
-"i"@(FileId(1), 74..75) [ConstVar(Var, No)]: int
-"n"@(FileId(1), 90..91) [ConstVar(Var, No)]: nat
-"_rr"@(FileId(1), 106..109) [ConstVar(Var, No)]: real
-"_ri"@(FileId(1), 127..130) [ConstVar(Var, No)]: real
-"_ir"@(FileId(1), 148..151) [ConstVar(Var, No)]: real
-"_rn"@(FileId(1), 169..172) [ConstVar(Var, No)]: real
-"_nr"@(FileId(1), 190..193) [ConstVar(Var, No)]: real
-"_ii"@(FileId(1), 211..214) [ConstVar(Var, No)]: int
-"_in"@(FileId(1), 232..235) [ConstVar(Var, No)]: int
-"_ni"@(FileId(1), 253..256) [ConstVar(Var, No)]: int
-"_nn"@(FileId(1), 274..277) [ConstVar(Var, No)]: nat
-"<root>"@(dummy) [Module(No)]: <error>
-
+"r"@"src/main.t:57..58" [ConstVar(Var, No)]: real
+"i"@"src/main.t:74..75" [ConstVar(Var, No)]: int
+"n"@"src/main.t:90..91" [ConstVar(Var, No)]: nat
+"_rr"@"src/main.t:106..109" [ConstVar(Var, No)]: real
+"_ri"@"src/main.t:127..130" [ConstVar(Var, No)]: real
+"_ir"@"src/main.t:148..151" [ConstVar(Var, No)]: real
+"_rn"@"src/main.t:169..172" [ConstVar(Var, No)]: real
+"_nr"@"src/main.t:190..193" [ConstVar(Var, No)]: real
+"_ii"@"src/main.t:211..214" [ConstVar(Var, No)]: int
+"_in"@"src/main.t:232..235" [ConstVar(Var, No)]: int
+"_ni"@"src/main.t:253..256" [ConstVar(Var, No)]: int
+"_nn"@"src/main.t:274..277" [ConstVar(Var, No)]: nat
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>

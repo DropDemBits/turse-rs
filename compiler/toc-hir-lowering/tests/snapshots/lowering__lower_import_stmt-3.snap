@@ -3,18 +3,17 @@ source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "\n    var a : int\n    module _\n        import forward a\n    end _"
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(3)
-    Module@(FileId(1), 0..64): "<root>"@(dummy)
-      StmtBody@(FileId(1), 5..64): []
-        StmtItem@(FileId(1), 5..16): ItemId(0)
-          ConstVar@(FileId(1), 5..16): var "a"@(FileId(1), 9..10)
-            Primitive@(FileId(1), 13..16): Int
-        StmtItem@(FileId(1), 21..64): ItemId(2)
-          Module@(FileId(1), 21..64): "_"@(FileId(1), 28..29)
-            Import@(FileId(1), 45..54): SameAsItem local("a"@(FileId(1), 9..10))
-            StmtBody@(FileId(1), 59..59): []
-error at (FileId(1), 45..52): unsupported import attribute
-| error for (FileId(1), 45..52): `forward` imports are not supported yet
-error at (FileId(1), 45..52): cannot use `forward` attribute here
-| error for (FileId(1), 45..52): `forward` attribute can only be used in `forward` declarations
-
+  Root@(dummy): src/main.t -> ItemId(3)
+    Module@(src/main.t:0..64): "<root>"@(dummy)
+      StmtBody@(src/main.t:5..64): []
+        StmtItem@(src/main.t:5..16): ItemId(0)
+          ConstVar@(src/main.t:5..16): var "a"@(src/main.t:9..10)
+            Primitive@(src/main.t:13..16): Int
+        StmtItem@(src/main.t:21..64): ItemId(2)
+          Module@(src/main.t:21..64): "_"@(src/main.t:28..29)
+            Import@(src/main.t:45..54): SameAsItem local("a"@(src/main.t:9..10))
+            StmtBody@(src/main.t:59..59): []
+error at src/main.t:45..52: unsupported import attribute
+| error for src/main.t:45..52: `forward` imports are not supported yet
+error at src/main.t:45..52: cannot use `forward` attribute here
+| error for src/main.t:45..52: `forward` attribute can only be used in `forward` declarations

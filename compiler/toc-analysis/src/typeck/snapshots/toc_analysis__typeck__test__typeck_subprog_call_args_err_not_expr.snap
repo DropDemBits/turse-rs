@@ -2,17 +2,17 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "type a : int\nprocedure boop(a, b : int, var c : int) end boop\nboop(1, a, a)\n"
 ---
-"a"@(FileId(1), 5..6) [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of int
-"boop"@(FileId(1), 23..27) [Subprogram(Procedure)]: procedure ( pass(value) int, pass(value) int, pass(var ref) int, ) -> void
-"a"@(FileId(1), 28..29) [Param(Value, No)]: int
-"b"@(FileId(1), 31..32) [Param(Value, No)]: int
-"c"@(FileId(1), 44..45) [Param(Reference(Var), No)]: int
-"<unnamed>"@(dummy) [Undeclared]: <error>
-"<root>"@(dummy) [Module(No)]: <error>
+"a"@"src/main.t:5..6" [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of int
+"boop"@"src/main.t:23..27" [Subprogram(Procedure)]: procedure ( pass(value) int, pass(value) int, pass(var ref) int, ) -> void
+"a"@"src/main.t:28..29" [Param(Value, No)]: int
+"b"@"src/main.t:31..32" [Param(Value, No)]: int
+"c"@"src/main.t:44..45" [Param(Reference(Var), No)]: int
+"<unnamed>"@"<unknown>:0..0" [Undeclared]: <error>
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 70..71): cannot pass `a` to this parameter
-| error for (FileId(1), 70..71): `a` is a reference to a type, not a variable
-| note for (FileId(1), 5..6): `a` declared here
-error at (FileId(1), 73..74): cannot pass `a` to this parameter
-| error for (FileId(1), 73..74): `a` is a reference to a type, not a variable
-| note for (FileId(1), 5..6): `a` declared here
+error at src/main.t:70..71: cannot pass `a` to this parameter
+| error for src/main.t:70..71: `a` is a reference to a type, not a variable
+| note for src/main.t:5..6: `a` declared here
+error at src/main.t:73..74: cannot pass `a` to this parameter
+| error for src/main.t:73..74: `a` is a reference to a type, not a variable
+| note for src/main.t:5..6: `a` declared here

@@ -2,9 +2,9 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "for i : false .. true i := false end for"
 ---
-"i"@(FileId(1), 4..5) [ConstVar(Const, No)]: boolean
-"<root>"@(dummy) [Module(No)]: <error>
+"i"@"src/main.t:4..5" [ConstVar(Const, No)]: boolean
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 24..26): cannot assign into `i`
-| error for (FileId(1), 22..23): `i` is a reference to a constant, not a variable
-| note for (FileId(1), 4..5): `i` declared here
+error at src/main.t:24..26: cannot assign into `i`
+| error for src/main.t:22..23: `i` is a reference to a constant, not a variable
+| note for src/main.t:4..5: `i` declared here

@@ -1,27 +1,26 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "\n    module tree\n        export a, var b, unqualified c, pervasive unqualified d, opaque e\n\n        var a, b, c, d : int\n        type e : int\n    end tree"
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(6)
-    Module@(FileId(1), 0..154): "<root>"@(dummy)
-      StmtBody@(FileId(1), 5..154): []
-        StmtItem@(FileId(1), 5..154): ItemId(5)
-          Module@(FileId(1), 5..154): "tree"@(FileId(1), 12..16), exports [Const Qualified local("a"@(FileId(1), 104..105)), Var Qualified local("b"@(FileId(1), 107..108)), Const Unqualified local("c"@(FileId(1), 110..111)), Const PervasiveUnqualified local("d"@(FileId(1), 113..114)), Const Qualified opaque local("e"@(FileId(1), 134..135))]
-            StmtBody@(FileId(1), 100..141): []
-              StmtItem@(FileId(1), 100..120): ItemId(0)
-                ConstVar@(FileId(1), 100..120): var "a"@(FileId(1), 104..105)
-                  Primitive@(FileId(1), 117..120): Int
-              StmtItem@(FileId(1), 100..120): ItemId(1)
-                ConstVar@(FileId(1), 100..120): var "b"@(FileId(1), 107..108)
-                  Primitive@(FileId(1), 117..120): Int
-              StmtItem@(FileId(1), 100..120): ItemId(2)
-                ConstVar@(FileId(1), 100..120): var "c"@(FileId(1), 110..111)
-                  Primitive@(FileId(1), 117..120): Int
-              StmtItem@(FileId(1), 100..120): ItemId(3)
-                ConstVar@(FileId(1), 100..120): var "d"@(FileId(1), 113..114)
-                  Primitive@(FileId(1), 117..120): Int
-              StmtItem@(FileId(1), 129..141): ItemId(4)
-                Type@(FileId(1), 129..141): "e"@(FileId(1), 134..135)
-                  Primitive@(FileId(1), 138..141): Int
-
+  Root@(dummy): src/main.t -> ItemId(6)
+    Module@(src/main.t:0..154): "<root>"@(dummy)
+      StmtBody@(src/main.t:5..154): []
+        StmtItem@(src/main.t:5..154): ItemId(5)
+          Module@(src/main.t:5..154): "tree"@(src/main.t:12..16), exports [Const Qualified local("a"@(src/main.t:104..105)), Var Qualified local("b"@(src/main.t:107..108)), Const Unqualified local("c"@(src/main.t:110..111)), Const PervasiveUnqualified local("d"@(src/main.t:113..114)), Const Qualified opaque local("e"@(src/main.t:134..135))]
+            StmtBody@(src/main.t:100..141): []
+              StmtItem@(src/main.t:100..120): ItemId(0)
+                ConstVar@(src/main.t:100..120): var "a"@(src/main.t:104..105)
+                  Primitive@(src/main.t:117..120): Int
+              StmtItem@(src/main.t:100..120): ItemId(1)
+                ConstVar@(src/main.t:100..120): var "b"@(src/main.t:107..108)
+                  Primitive@(src/main.t:117..120): Int
+              StmtItem@(src/main.t:100..120): ItemId(2)
+                ConstVar@(src/main.t:100..120): var "c"@(src/main.t:110..111)
+                  Primitive@(src/main.t:117..120): Int
+              StmtItem@(src/main.t:100..120): ItemId(3)
+                ConstVar@(src/main.t:100..120): var "d"@(src/main.t:113..114)
+                  Primitive@(src/main.t:117..120): Int
+              StmtItem@(src/main.t:129..141): ItemId(4)
+                Type@(src/main.t:129..141): "e"@(src/main.t:134..135)
+                  Primitive@(src/main.t:138..141): Int

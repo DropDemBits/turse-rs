@@ -3,18 +3,17 @@ source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "get skip, a, b : 1, c : *"
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(0)
-    Module@(FileId(1), 0..25): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..25): []
-        Get@(FileId(1), 0..25)
-          Name@(FileId(1), 10..11): "a"@(FileId(1), 10..11), undeclared
-          Name@(FileId(1), 13..14): "b"@(FileId(1), 13..14), undeclared
-          Literal@(FileId(1), 17..18): Integer(1)
-          Name@(FileId(1), 20..21): "c"@(FileId(1), 20..21), undeclared
-error at (FileId(1), 10..11): `a` is undeclared
-| error for (FileId(1), 10..11): no definitions of `a` are in scope
-error at (FileId(1), 13..14): `b` is undeclared
-| error for (FileId(1), 13..14): no definitions of `b` are in scope
-error at (FileId(1), 20..21): `c` is undeclared
-| error for (FileId(1), 20..21): no definitions of `c` are in scope
-
+  Root@(dummy): src/main.t -> ItemId(0)
+    Module@(src/main.t:0..25): "<root>"@(dummy)
+      StmtBody@(src/main.t:0..25): []
+        Get@(src/main.t:0..25)
+          Name@(src/main.t:10..11): "a"@(src/main.t:10..11), undeclared
+          Name@(src/main.t:13..14): "b"@(src/main.t:13..14), undeclared
+          Literal@(src/main.t:17..18): Integer(1)
+          Name@(src/main.t:20..21): "c"@(src/main.t:20..21), undeclared
+error at src/main.t:10..11: `a` is undeclared
+| error for src/main.t:10..11: no definitions of `a` are in scope
+error at src/main.t:13..14: `b` is undeclared
+| error for src/main.t:13..14: no definitions of `b` are in scope
+error at src/main.t:20..21: `c` is undeclared
+| error for src/main.t:20..21: no definitions of `c` are in scope

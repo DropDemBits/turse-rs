@@ -1,8 +1,5 @@
 ---
-source: compiler/toc_analysis/src/const_eval/test.rs
+source: compiler/toc-analysis/src/const_eval/test.rs
 expression: 1 + 1.0
-
 ---
-"_"@(FileId(1), 6..7) -> Real(2.0)
-
-
+"_"@"src/main.t:6..7" -> Real(2.0)

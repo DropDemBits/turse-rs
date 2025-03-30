@@ -2,12 +2,12 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "type s : set of boolean\nvar b : boolean\nvar _ := s(all, b, b, b, b)\n"
 ---
-"s"@(FileId(1), 5..6) [Type]: set[DefId(PackageId(0), LocalDefId(1))] of boolean
-"s"@(FileId(1), 9..23) [Set]: <error>
-"b"@(FileId(1), 28..29) [ConstVar(Var, No)]: boolean
-"_"@(FileId(1), 44..45) [ConstVar(Var, No)]: set[DefId(PackageId(0), LocalDefId(1))] of boolean
-"<root>"@(dummy) [Module(No)]: <error>
+"s"@"src/main.t:5..6" [Type]: set[DefId(PackageId(0), LocalDefId(1))] of boolean
+"s"@"src/main.t:9..23" [Set]: <error>
+"b"@"src/main.t:28..29" [ConstVar(Var, No)]: boolean
+"_"@"src/main.t:44..45" [ConstVar(Var, No)]: set[DefId(PackageId(0), LocalDefId(1))] of boolean
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 49..50): constructor call has extra arguments
-| error for (FileId(1), 49..50): call has extra arguments
-| note for (FileId(1), 51..54): this `all` also covers the rest of the arguments
+error at src/main.t:49..50: constructor call has extra arguments
+| error for src/main.t:49..50: call has extra arguments
+| note for src/main.t:51..54: this `all` also covers the rest of the arguments

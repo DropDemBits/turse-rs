@@ -2,10 +2,10 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "1 1(1, 2, 3)"
 ---
-"<root>"@(dummy) [Module(No)]: <error>
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 0..1): cannot use expression as a statement
-| error for (FileId(1), 0..1): expression is not a statement
-error at (FileId(1), 2..3): cannot call or subscript expression
-| note for (FileId(1), 2..3): this is of type `{integer}`
-| error for (FileId(1), 2..3): `{integer}` is not callable
+error at src/main.t:0..1: cannot use expression as a statement
+| error for src/main.t:0..1: expression is not a statement
+error at src/main.t:2..3: cannot call or subscript expression
+| note for src/main.t:2..3: this is of type `{integer}`
+| error for src/main.t:2..3: `{integer}` is not callable

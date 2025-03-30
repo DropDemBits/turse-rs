@@ -2,11 +2,11 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "type ptr : ^int\n^ptr\n"
 ---
-"ptr"@(FileId(1), 5..8) [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of pointer to int
-"<root>"@(dummy) [Module(No)]: <error>
+"ptr"@"src/main.t:5..8" [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of pointer to int
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 16..20): cannot use expression as a statement
-| error for (FileId(1), 16..20): expression is not a statement
-error at (FileId(1), 17..20): cannot use `ptr` as an expression
-| error for (FileId(1), 17..20): `ptr` is a reference to a type, not a variable
-| note for (FileId(1), 5..8): `ptr` declared here
+error at src/main.t:16..20: cannot use expression as a statement
+| error for src/main.t:16..20: expression is not a statement
+error at src/main.t:17..20: cannot use `ptr` as an expression
+| error for src/main.t:17..20: `ptr` is a reference to a type, not a variable
+| note for src/main.t:5..8: `ptr` declared here

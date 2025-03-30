@@ -2,10 +2,10 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "procedure k(var j : int) end p\nk(1 .. * - 2)\n"
 ---
-"k"@(FileId(1), 10..11) [Subprogram(Procedure)]: procedure ( pass(var ref) int, ) -> void
-"j"@(FileId(1), 16..17) [Param(Reference(Var), No)]: int
-"<unnamed>"@(dummy) [Undeclared]: <error>
-"<root>"@(dummy) [Module(No)]: <error>
+"k"@"src/main.t:10..11" [Subprogram(Procedure)]: procedure ( pass(var ref) int, ) -> void
+"j"@"src/main.t:16..17" [Param(Reference(Var), No)]: int
+"<unnamed>"@"<unknown>:0..0" [Undeclared]: <error>
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 33..43): cannot use range expression here
-| error for (FileId(1), 33..43): range expressions can't be used in subprogram calls
+error at src/main.t:33..43: cannot use range expression here
+| error for src/main.t:33..43: range expressions can't be used in subprogram calls

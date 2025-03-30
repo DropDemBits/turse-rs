@@ -2,10 +2,10 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "type b : int for _ : b end for"
 ---
-"b"@(FileId(1), 5..6) [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of int
-"_"@(FileId(1), 17..18) [ConstVar(Const, No)]: alias[DefId(PackageId(0), LocalDefId(0))] of int
-"<root>"@(dummy) [Module(No)]: <error>
+"b"@"src/main.t:5..6" [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of int
+"_"@"src/main.t:17..18" [ConstVar(Const, No)]: alias[DefId(PackageId(0), LocalDefId(0))] of int
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 21..22): bound range is too large
-| error for (FileId(1), 21..22): a range over all `b (alias of int)` values is too large
+error at src/main.t:21..22: bound range is too large
+| error for src/main.t:21..22: a range over all `b (alias of int)` values is too large
 | info: use a range type to shrink the range of the bound

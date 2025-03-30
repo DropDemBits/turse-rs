@@ -3,11 +3,10 @@ source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "type soup: a.b().c"
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(1)
-    Module@(FileId(1), 0..18): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..18): []
-        StmtItem@(FileId(1), 0..18): ItemId(0)
-          Type@(FileId(1), 0..18): "soup"@(FileId(1), 5..9)
-error at (FileId(1), 11..16): invalid type
-| error for (FileId(1), 11..16): expressions can't be used as types
-
+  Root@(dummy): src/main.t -> ItemId(1)
+    Module@(src/main.t:0..18): "<root>"@(dummy)
+      StmtBody@(src/main.t:0..18): []
+        StmtItem@(src/main.t:0..18): ItemId(0)
+          Type@(src/main.t:0..18): "soup"@(src/main.t:5..9)
+error at src/main.t:11..16: invalid type
+| error for src/main.t:11..16: expressions can't be used as types

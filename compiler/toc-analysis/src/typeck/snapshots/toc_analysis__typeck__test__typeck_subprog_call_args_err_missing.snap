@@ -1,9 +1,8 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "procedure boop(a : int) end boop\n% shouldn't die, not reporting an error is fine\nboop(())\n"
 ---
-"boop"@(FileId(1), 10..14) [Subprogram(Procedure)]: procedure ( pass(value) int, ) -> void
-"a"@(FileId(1), 15..16) [Param(Value, No)]: int
-"<unnamed>"@(dummy) [Undeclared]: <error>
-"<root>"@(dummy) [Module(No)]: <error>
-
+"boop"@"src/main.t:10..14" [Subprogram(Procedure)]: procedure ( pass(value) int, ) -> void
+"a"@"src/main.t:15..16" [Param(Value, No)]: int
+"<unnamed>"@"<unknown>:0..0" [Undeclared]: <error>
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>

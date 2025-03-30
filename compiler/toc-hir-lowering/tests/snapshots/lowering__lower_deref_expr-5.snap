@@ -1,17 +1,14 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
-assertion_line: 61
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "var a : int ^a()"
-
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(1)
-    Module@(FileId(1), 0..16): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..16): []
-        StmtItem@(FileId(1), 0..11): ItemId(0)
-          ConstVar@(FileId(1), 0..11): var "a"@(FileId(1), 4..5)
-            Primitive@(FileId(1), 8..11): Int
-        CallStmt@(FileId(1), 12..16): [...]
-          Deref@(FileId(1), 12..14)
-            Name@(FileId(1), 13..14): "a"@(FileId(1), 4..5)
-
+  Root@(dummy): src/main.t -> ItemId(1)
+    Module@(src/main.t:0..16): "<root>"@(dummy)
+      StmtBody@(src/main.t:0..16): []
+        StmtItem@(src/main.t:0..11): ItemId(0)
+          ConstVar@(src/main.t:0..11): var "a"@(src/main.t:4..5)
+            Primitive@(src/main.t:8..11): Int
+        CallStmt@(src/main.t:12..16): [...]
+          Deref@(src/main.t:12..14)
+            Name@(src/main.t:13..14): "a"@(src/main.t:4..5)

@@ -1,11 +1,10 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "procedure p(var a : char(*)) end p\nvar c : char\nvar cs : char(6)\np(c) p(cs)\n"
 ---
-"p"@(FileId(1), 10..11) [Subprogram(Procedure)]: procedure ( pass(var ref) char_n Any, ) -> void
-"a"@(FileId(1), 16..17) [Param(Reference(Var), No)]: char_n Any
-"c"@(FileId(1), 39..40) [ConstVar(Var, No)]: char
-"cs"@(FileId(1), 52..54) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(1)))
-"<unnamed>"@(dummy) [Undeclared]: <error>
-"<root>"@(dummy) [Module(No)]: <error>
-
+"p"@"src/main.t:10..11" [Subprogram(Procedure)]: procedure ( pass(var ref) char_n Any, ) -> void
+"a"@"src/main.t:16..17" [Param(Reference(Var), No)]: char_n Any
+"c"@"src/main.t:39..40" [ConstVar(Var, No)]: char
+"cs"@"src/main.t:52..54" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(1)))
+"<unnamed>"@"<unknown>:0..0" [Undeclared]: <error>
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>

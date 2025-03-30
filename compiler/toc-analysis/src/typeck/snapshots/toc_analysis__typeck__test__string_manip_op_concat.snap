@@ -1,50 +1,49 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "\n    proc __ (var c_any : char(*), var s_any : string(*))\n    var c : char\n    var c_sz : char(6)\n    var s : string\n    var s_sz : string(6)\n\n    % special cases first\n    var _t00 := c + c\n    var _t02 := c + c_sz\n    var _t20 := c_sz + c\n    var _t22 := c_sz + c_sz\n\n    % the rest of them down here (should produce string)\n    var _t01 := c + c_any\n    var _t03 := c + s\n    var _t04 := c + s_any\n    var _t05 := c + s_sz\n\n    var _t10 := c_any + c\n    var _t30 := s + c\n    var _t40 := s_any + c\n    var _t50 := s_sz + c\n\n    var _t11 := c_any + c_any\n    var _t12 := c_any + c_sz\n    var _t13 := c_any + s\n    var _t14 := c_any + s_any\n    var _t15 := c_any + s_sz\n\n    var _t21 := c_sz + c_any\n    var _t31 := s + c_any\n    var _t41 := s_any + c_any\n    var _t51 := s_sz + c_any\n\n    var _t23 := c_sz + s\n    var _t24 := c_sz + s_any\n    var _t25 := c_sz + s_sz\n\n    var _t32 := s + c_sz\n    var _t42 := s_any + c_sz\n    var _t52 := s_sz + c_sz\n\n    var _t33 := s + s\n    var _t34 := s + s_any\n    var _t35 := s + s_sz\n\n    var _t43 := s_any + s\n    var _t53 := s_sz + s\n\n    var _t44 := s_any + s_any\n    var _t45 := s_any + s_sz\n\n    var _t54 := s_sz + s_any\n\n    var _t55 := s_sz + s_sz\n    end __\n    "
 ---
-"__"@(FileId(1), 10..12) [Subprogram(Procedure)]: procedure ( pass(var ref) char_n Any, pass(var ref) string_n Any, ) -> void
-"c_any"@(FileId(1), 18..23) [Param(Reference(Var), No)]: char_n Any
-"s_any"@(FileId(1), 39..44) [Param(Reference(Var), No)]: string_n Any
-"c"@(FileId(1), 66..67) [ConstVar(Var, No)]: char
-"c_sz"@(FileId(1), 83..87) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(0)))
-"s"@(FileId(1), 106..107) [ConstVar(Var, No)]: string
-"s_sz"@(FileId(1), 125..129) [ConstVar(Var, No)]: string_n Fixed(Unevaluated(PackageId(0), BodyId(1)))
-"_t00"@(FileId(1), 177..181) [ConstVar(Var, No)]: string
-"_t02"@(FileId(1), 199..203) [ConstVar(Var, No)]: string
-"_t20"@(FileId(1), 224..228) [ConstVar(Var, No)]: string
-"_t22"@(FileId(1), 249..253) [ConstVar(Var, No)]: string
-"_t01"@(FileId(1), 335..339) [ConstVar(Var, No)]: string
-"_t03"@(FileId(1), 361..365) [ConstVar(Var, No)]: string
-"_t04"@(FileId(1), 383..387) [ConstVar(Var, No)]: string
-"_t05"@(FileId(1), 409..413) [ConstVar(Var, No)]: string
-"_t10"@(FileId(1), 435..439) [ConstVar(Var, No)]: string
-"_t30"@(FileId(1), 461..465) [ConstVar(Var, No)]: string
-"_t40"@(FileId(1), 483..487) [ConstVar(Var, No)]: string
-"_t50"@(FileId(1), 509..513) [ConstVar(Var, No)]: string
-"_t11"@(FileId(1), 535..539) [ConstVar(Var, No)]: string
-"_t12"@(FileId(1), 565..569) [ConstVar(Var, No)]: string
-"_t13"@(FileId(1), 594..598) [ConstVar(Var, No)]: string
-"_t14"@(FileId(1), 620..624) [ConstVar(Var, No)]: string
-"_t15"@(FileId(1), 650..654) [ConstVar(Var, No)]: string
-"_t21"@(FileId(1), 680..684) [ConstVar(Var, No)]: string
-"_t31"@(FileId(1), 709..713) [ConstVar(Var, No)]: string
-"_t41"@(FileId(1), 735..739) [ConstVar(Var, No)]: string
-"_t51"@(FileId(1), 765..769) [ConstVar(Var, No)]: string
-"_t23"@(FileId(1), 795..799) [ConstVar(Var, No)]: string
-"_t24"@(FileId(1), 820..824) [ConstVar(Var, No)]: string
-"_t25"@(FileId(1), 849..853) [ConstVar(Var, No)]: string
-"_t32"@(FileId(1), 878..882) [ConstVar(Var, No)]: string
-"_t42"@(FileId(1), 903..907) [ConstVar(Var, No)]: string
-"_t52"@(FileId(1), 932..936) [ConstVar(Var, No)]: string
-"_t33"@(FileId(1), 961..965) [ConstVar(Var, No)]: string
-"_t34"@(FileId(1), 983..987) [ConstVar(Var, No)]: string
-"_t35"@(FileId(1), 1009..1013) [ConstVar(Var, No)]: string
-"_t43"@(FileId(1), 1035..1039) [ConstVar(Var, No)]: string
-"_t53"@(FileId(1), 1061..1065) [ConstVar(Var, No)]: string
-"_t44"@(FileId(1), 1087..1091) [ConstVar(Var, No)]: string
-"_t45"@(FileId(1), 1117..1121) [ConstVar(Var, No)]: string
-"_t54"@(FileId(1), 1147..1151) [ConstVar(Var, No)]: string
-"_t55"@(FileId(1), 1177..1181) [ConstVar(Var, No)]: string
-"<unnamed>"@(dummy) [Undeclared]: <error>
-"<root>"@(dummy) [Module(No)]: <error>
-
+"__"@"src/main.t:10..12" [Subprogram(Procedure)]: procedure ( pass(var ref) char_n Any, pass(var ref) string_n Any, ) -> void
+"c_any"@"src/main.t:18..23" [Param(Reference(Var), No)]: char_n Any
+"s_any"@"src/main.t:39..44" [Param(Reference(Var), No)]: string_n Any
+"c"@"src/main.t:66..67" [ConstVar(Var, No)]: char
+"c_sz"@"src/main.t:83..87" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(0)))
+"s"@"src/main.t:106..107" [ConstVar(Var, No)]: string
+"s_sz"@"src/main.t:125..129" [ConstVar(Var, No)]: string_n Fixed(Unevaluated(PackageId(0), BodyId(1)))
+"_t00"@"src/main.t:177..181" [ConstVar(Var, No)]: string
+"_t02"@"src/main.t:199..203" [ConstVar(Var, No)]: string
+"_t20"@"src/main.t:224..228" [ConstVar(Var, No)]: string
+"_t22"@"src/main.t:249..253" [ConstVar(Var, No)]: string
+"_t01"@"src/main.t:335..339" [ConstVar(Var, No)]: string
+"_t03"@"src/main.t:361..365" [ConstVar(Var, No)]: string
+"_t04"@"src/main.t:383..387" [ConstVar(Var, No)]: string
+"_t05"@"src/main.t:409..413" [ConstVar(Var, No)]: string
+"_t10"@"src/main.t:435..439" [ConstVar(Var, No)]: string
+"_t30"@"src/main.t:461..465" [ConstVar(Var, No)]: string
+"_t40"@"src/main.t:483..487" [ConstVar(Var, No)]: string
+"_t50"@"src/main.t:509..513" [ConstVar(Var, No)]: string
+"_t11"@"src/main.t:535..539" [ConstVar(Var, No)]: string
+"_t12"@"src/main.t:565..569" [ConstVar(Var, No)]: string
+"_t13"@"src/main.t:594..598" [ConstVar(Var, No)]: string
+"_t14"@"src/main.t:620..624" [ConstVar(Var, No)]: string
+"_t15"@"src/main.t:650..654" [ConstVar(Var, No)]: string
+"_t21"@"src/main.t:680..684" [ConstVar(Var, No)]: string
+"_t31"@"src/main.t:709..713" [ConstVar(Var, No)]: string
+"_t41"@"src/main.t:735..739" [ConstVar(Var, No)]: string
+"_t51"@"src/main.t:765..769" [ConstVar(Var, No)]: string
+"_t23"@"src/main.t:795..799" [ConstVar(Var, No)]: string
+"_t24"@"src/main.t:820..824" [ConstVar(Var, No)]: string
+"_t25"@"src/main.t:849..853" [ConstVar(Var, No)]: string
+"_t32"@"src/main.t:878..882" [ConstVar(Var, No)]: string
+"_t42"@"src/main.t:903..907" [ConstVar(Var, No)]: string
+"_t52"@"src/main.t:932..936" [ConstVar(Var, No)]: string
+"_t33"@"src/main.t:961..965" [ConstVar(Var, No)]: string
+"_t34"@"src/main.t:983..987" [ConstVar(Var, No)]: string
+"_t35"@"src/main.t:1009..1013" [ConstVar(Var, No)]: string
+"_t43"@"src/main.t:1035..1039" [ConstVar(Var, No)]: string
+"_t53"@"src/main.t:1061..1065" [ConstVar(Var, No)]: string
+"_t44"@"src/main.t:1087..1091" [ConstVar(Var, No)]: string
+"_t45"@"src/main.t:1117..1121" [ConstVar(Var, No)]: string
+"_t54"@"src/main.t:1147..1151" [ConstVar(Var, No)]: string
+"_t55"@"src/main.t:1177..1181" [ConstVar(Var, No)]: string
+"<unnamed>"@"<unknown>:0..0" [Undeclared]: <error>
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>

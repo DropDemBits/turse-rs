@@ -1,14 +1,12 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "for : 1 .. 10 by 3 end for"
-
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(0)
-    Module@(FileId(1), 0..26): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..26): []
-        For@(FileId(1), 0..26): explicit
-          Literal@(FileId(1), 6..7): Integer(1)
-          Literal@(FileId(1), 11..13): Integer(10)
-          Literal@(FileId(1), 17..18): Integer(3)
-
+  Root@(dummy): src/main.t -> ItemId(0)
+    Module@(src/main.t:0..26): "<root>"@(dummy)
+      StmtBody@(src/main.t:0..26): []
+        For@(src/main.t:0..26): explicit
+          Literal@(src/main.t:6..7): Integer(1)
+          Literal@(src/main.t:11..13): Integer(10)
+          Literal@(src/main.t:17..18): Integer(3)

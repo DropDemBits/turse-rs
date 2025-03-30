@@ -1,7 +1,6 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "const ptr : ^int\n^ptr := 2\n"
 ---
-"ptr"@(FileId(1), 6..9) [ConstVar(Const, No)]: pointer to int
-"<root>"@(dummy) [Module(No)]: <error>
-
+"ptr"@"src/main.t:6..9" [ConstVar(Const, No)]: pointer to int
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>

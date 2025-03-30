@@ -1,8 +1,7 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "begin var aaaa : int bind aaaa to end"
 ---
-"aaaa"@(FileId(1), 10..14) [ConstVar(Var, No)]: int
-"aaaa"@(FileId(1), 26..30) [Binding(Const, No)]: <error>
-"<root>"@(dummy) [Module(No)]: <error>
-
+"aaaa"@"src/main.t:10..14" [ConstVar(Var, No)]: int
+"aaaa"@"src/main.t:26..30" [Binding(Const, No)]: <error>
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>

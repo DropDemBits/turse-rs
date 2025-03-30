@@ -2,9 +2,9 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var k : int type _ : char(k)"
 ---
-"k"@(FileId(1), 4..5) [ConstVar(Var, No)]: int
-"_"@(FileId(1), 17..18) [Type]: alias[DefId(PackageId(0), LocalDefId(1))] of char_n Fixed(Unevaluated(PackageId(0), BodyId(0)))
-"<root>"@(dummy) [Module(No)]: <error>
+"k"@"src/main.t:4..5" [ConstVar(Var, No)]: int
+"_"@"src/main.t:17..18" [Type]: alias[DefId(PackageId(0), LocalDefId(1))] of char_n Fixed(Unevaluated(PackageId(0), BodyId(0)))
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 21..28): unsupported type
-| error for (FileId(1), 21..28): dynamically sized `char(N)` isn't supported yet
+error at src/main.t:21..28: unsupported type
+| error for src/main.t:21..28: dynamically sized `char(N)` isn't supported yet

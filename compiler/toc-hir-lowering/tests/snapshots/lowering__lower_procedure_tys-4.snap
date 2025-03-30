@@ -1,17 +1,14 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
-assertion_line: 59
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "type _ : procedure p2   (a : int, b : string)"
-
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(1)
-    Module@(FileId(1), 0..45): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..45): []
-        StmtItem@(FileId(1), 0..45): ItemId(0)
-          Type@(FileId(1), 0..45): "_"@(FileId(1), 5..6)
-            Procedure@(FileId(1), 9..45): [...]
-              Primitive@(FileId(1), 29..32): Int
-              Primitive@(FileId(1), 38..44): String
-              Void@(FileId(1), 9..45)
-
+  Root@(dummy): src/main.t -> ItemId(1)
+    Module@(src/main.t:0..45): "<root>"@(dummy)
+      StmtBody@(src/main.t:0..45): []
+        StmtItem@(src/main.t:0..45): ItemId(0)
+          Type@(src/main.t:0..45): "_"@(src/main.t:5..6)
+            Procedure@(src/main.t:9..45): [...]
+              Primitive@(src/main.t:29..32): Int
+              Primitive@(src/main.t:38..44): String
+              Void@(src/main.t:9..45)

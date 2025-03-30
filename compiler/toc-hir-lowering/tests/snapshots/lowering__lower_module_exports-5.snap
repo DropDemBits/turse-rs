@@ -3,15 +3,14 @@ source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "\n        var *a : int\n        module z\n            export a\n        end z"
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(2)
-    Module@(FileId(1), 0..73): "<root>"@(dummy)
-      StmtBody@(FileId(1), 9..73): []
-        StmtItem@(FileId(1), 9..21): ItemId(0)
-          ConstVar@(FileId(1), 9..21): var "a"@(FileId(1), 14..15)
-            Primitive@(FileId(1), 18..21): Int
-        StmtItem@(FileId(1), 30..73): ItemId(1)
-          Module@(FileId(1), 30..73): "z"@(FileId(1), 37..38)
-            StmtBody@(FileId(1), 68..68): []
-error at (FileId(1), 58..59): exported symbol `a` has not been declared
-| error for (FileId(1), 58..59): not declared at the top level of this module
-
+  Root@(dummy): src/main.t -> ItemId(2)
+    Module@(src/main.t:0..73): "<root>"@(dummy)
+      StmtBody@(src/main.t:9..73): []
+        StmtItem@(src/main.t:9..21): ItemId(0)
+          ConstVar@(src/main.t:9..21): var "a"@(src/main.t:14..15)
+            Primitive@(src/main.t:18..21): Int
+        StmtItem@(src/main.t:30..73): ItemId(1)
+          Module@(src/main.t:30..73): "z"@(src/main.t:37..38)
+            StmtBody@(src/main.t:68..68): []
+error at src/main.t:58..59: exported symbol `a` has not been declared
+| error for src/main.t:58..59: not declared at the top level of this module

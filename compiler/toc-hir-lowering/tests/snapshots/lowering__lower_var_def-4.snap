@@ -3,13 +3,12 @@ source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "var a := a"
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(1)
-    Module@(FileId(1), 0..10): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..10): []
-        StmtItem@(FileId(1), 0..10): ItemId(0)
-          ConstVar@(FileId(1), 0..10): var "a"@(FileId(1), 4..5)
-            ExprBody@(FileId(1), 9..10)
-              Name@(FileId(1), 9..10): "a"@(FileId(1), 9..10), undeclared
-error at (FileId(1), 9..10): `a` is undeclared
-| error for (FileId(1), 9..10): no definitions of `a` are in scope
-
+  Root@(dummy): src/main.t -> ItemId(1)
+    Module@(src/main.t:0..10): "<root>"@(dummy)
+      StmtBody@(src/main.t:0..10): []
+        StmtItem@(src/main.t:0..10): ItemId(0)
+          ConstVar@(src/main.t:0..10): var "a"@(src/main.t:4..5)
+            ExprBody@(src/main.t:9..10)
+              Name@(src/main.t:9..10): "a"@(src/main.t:9..10), undeclared
+error at src/main.t:9..10: `a` is undeclared
+| error for src/main.t:9..10: no definitions of `a` are in scope

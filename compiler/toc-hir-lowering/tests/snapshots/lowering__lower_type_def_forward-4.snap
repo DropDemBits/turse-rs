@@ -3,24 +3,23 @@ source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "\n    type a : forward\n    type use_it : a % should not be resolved to latter a\n    var a : int\n    type a : char\n    "
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(4)
-    Module@(FileId(1), 0..117): "<root>"@(dummy)
-      StmtBody@(FileId(1), 5..112): []
-        StmtItem@(FileId(1), 5..21): ItemId(0)
-          Type@(FileId(1), 5..21): forward "a"@(FileId(1), 10..11)
-        StmtItem@(FileId(1), 26..41): ItemId(1)
-          Type@(FileId(1), 26..41): "use_it"@(FileId(1), 31..37)
-            Alias@(FileId(1), 40..41): "a"@(FileId(1), 10..11)
-        StmtItem@(FileId(1), 83..94): ItemId(2)
-          ConstVar@(FileId(1), 83..94): var "a"@(FileId(1), 87..88)
-            Primitive@(FileId(1), 91..94): Int
-        StmtItem@(FileId(1), 99..112): ItemId(3)
-          Type@(FileId(1), 99..112): "a"@(FileId(1), 104..105)
-            Primitive@(FileId(1), 108..112): Char
-error at (FileId(1), 87..88): `a` is already declared in this scope
-| note for (FileId(1), 10..11): `a` previously declared here
-| error for (FileId(1), 87..88): `a` redeclared here
-error at (FileId(1), 104..105): `a` is already declared in this scope
-| note for (FileId(1), 87..88): `a` previously declared here
-| error for (FileId(1), 104..105): `a` redeclared here
-
+  Root@(dummy): src/main.t -> ItemId(4)
+    Module@(src/main.t:0..117): "<root>"@(dummy)
+      StmtBody@(src/main.t:5..112): []
+        StmtItem@(src/main.t:5..21): ItemId(0)
+          Type@(src/main.t:5..21): forward "a"@(src/main.t:10..11)
+        StmtItem@(src/main.t:26..41): ItemId(1)
+          Type@(src/main.t:26..41): "use_it"@(src/main.t:31..37)
+            Alias@(src/main.t:40..41): "a"@(src/main.t:10..11)
+        StmtItem@(src/main.t:83..94): ItemId(2)
+          ConstVar@(src/main.t:83..94): var "a"@(src/main.t:87..88)
+            Primitive@(src/main.t:91..94): Int
+        StmtItem@(src/main.t:99..112): ItemId(3)
+          Type@(src/main.t:99..112): "a"@(src/main.t:104..105)
+            Primitive@(src/main.t:108..112): Char
+error at src/main.t:87..88: `a` is already declared in this scope
+| note for src/main.t:10..11: `a` previously declared here
+| error for src/main.t:87..88: `a` redeclared here
+error at src/main.t:104..105: `a` is already declared in this scope
+| note for src/main.t:87..88: `a` previously declared here
+| error for src/main.t:104..105: `a` redeclared here

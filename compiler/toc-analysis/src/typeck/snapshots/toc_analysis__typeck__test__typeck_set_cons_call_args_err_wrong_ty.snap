@@ -2,20 +2,20 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "type s : set of boolean\nvar _ := s(1, 2, 3)\n"
 ---
-"s"@(FileId(1), 5..6) [Type]: set[DefId(PackageId(0), LocalDefId(1))] of boolean
-"s"@(FileId(1), 9..23) [Set]: <error>
-"_"@(FileId(1), 28..29) [ConstVar(Var, No)]: set[DefId(PackageId(0), LocalDefId(1))] of boolean
-"<root>"@(dummy) [Module(No)]: <error>
+"s"@"src/main.t:5..6" [Type]: set[DefId(PackageId(0), LocalDefId(1))] of boolean
+"s"@"src/main.t:9..23" [Set]: <error>
+"_"@"src/main.t:28..29" [ConstVar(Var, No)]: set[DefId(PackageId(0), LocalDefId(1))] of boolean
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 35..36): mismatched types
-| note for (FileId(1), 35..36): this is of type `{integer}`
-| note for (FileId(1), 35..36): parameter expects type `boolean`
+error at src/main.t:35..36: mismatched types
+| note for src/main.t:35..36: this is of type `{integer}`
+| note for src/main.t:35..36: parameter expects type `boolean`
 | info: `{integer}` is not assignable into `boolean`
-error at (FileId(1), 38..39): mismatched types
-| note for (FileId(1), 38..39): this is of type `{integer}`
-| note for (FileId(1), 38..39): parameter expects type `boolean`
+error at src/main.t:38..39: mismatched types
+| note for src/main.t:38..39: this is of type `{integer}`
+| note for src/main.t:38..39: parameter expects type `boolean`
 | info: `{integer}` is not assignable into `boolean`
-error at (FileId(1), 41..42): mismatched types
-| note for (FileId(1), 41..42): this is of type `{integer}`
-| note for (FileId(1), 41..42): parameter expects type `boolean`
+error at src/main.t:41..42: mismatched types
+| note for src/main.t:41..42: this is of type `{integer}`
+| note for src/main.t:41..42: parameter expects type `boolean`
 | info: `{integer}` is not assignable into `boolean`

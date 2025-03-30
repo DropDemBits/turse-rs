@@ -1,10 +1,9 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "procedure p(a : real) end p\nvar i : int\np(i)\n"
 ---
-"p"@(FileId(1), 10..11) [Subprogram(Procedure)]: procedure ( pass(value) real, ) -> void
-"a"@(FileId(1), 12..13) [Param(Value, No)]: real
-"i"@(FileId(1), 32..33) [ConstVar(Var, No)]: int
-"<unnamed>"@(dummy) [Undeclared]: <error>
-"<root>"@(dummy) [Module(No)]: <error>
-
+"p"@"src/main.t:10..11" [Subprogram(Procedure)]: procedure ( pass(value) real, ) -> void
+"a"@"src/main.t:12..13" [Param(Value, No)]: real
+"i"@"src/main.t:32..33" [ConstVar(Var, No)]: int
+"<unnamed>"@"<unknown>:0..0" [Undeclared]: <error>
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>

@@ -2,9 +2,9 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "function sha wa : int wa end sha"
 ---
-"sha"@(FileId(1), 9..12) [Subprogram(Function)]: function -> int
-"wa"@(FileId(1), 13..15) [Param(Value, No)]: int
-"<root>"@(dummy) [Module(No)]: <error>
+"sha"@"src/main.t:9..12" [Subprogram(Function)]: function -> int
+"wa"@"src/main.t:13..15" [Param(Value, No)]: int
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 22..24): cannot use `wa` as a statement
-| error for (FileId(1), 22..24): `wa` is not a statement
+error at src/main.t:22..24: cannot use `wa` as a statement
+| error for src/main.t:22..24: `wa` is not a statement

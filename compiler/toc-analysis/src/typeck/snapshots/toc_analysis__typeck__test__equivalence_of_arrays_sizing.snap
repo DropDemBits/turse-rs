@@ -2,34 +2,34 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "% categories\n% - Static\n% - MaybeDyn-Static\n% - MaybeDyn-Dynamic\n% - Flexible\n% init-sized are implied Static\n\n% guarantee that these are static arrays\ntype tsta : array 0+1..1 of int\ntype tstb : array 0+1..1 of int\nvar c : int\n\nvar fxa : flexible array 0+1..1 of int\nvar fxb : flexible array 0+1..1 of int\nvar fxc : flexible array 0+1..2 of int\nvar fxd : flexible array 0+1..1 of int1\n\nvar dyna : array 0+1..c of int\nvar dynb : array 0+1..c of int\n\nvar msta : array 0+1..1 of int\nvar mstb : array 0+1..1 of int\n\nvar sta : tsta\nvar stb : tstb\n\n% identity\nsta := stb\nmsta := mstb\n\n% Static & MaybeDyn-Static are equivalent\nsta := msta\nmsta := sta\n\n% MaybeDyn-Dynamic is never equivalent to anything (except itself)\ndyna := dyna % succeed\ndyna := dynb % fail\n\n% usual equivalence rules apply for flexible arrays...\nfxa := fxb % same ranges\nfxa := fxc % different ranges\nfxa := fxd % different elem tys\n\n% except that arrays must be of the same flexibility\nsta := fxa\n"
 ---
-"tsta"@(FileId(1), 157..161) [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of array ( range of `int` (Unevaluated(PackageId(0), BodyId(0)) .. Expr(Unevaluated(PackageId(0), BodyId(1)), No)), ) of int
-"tstb"@(FileId(1), 189..193) [Type]: alias[DefId(PackageId(0), LocalDefId(1))] of array ( range of `int` (Unevaluated(PackageId(0), BodyId(2)) .. Expr(Unevaluated(PackageId(0), BodyId(3)), No)), ) of int
-"c"@(FileId(1), 220..221) [ConstVar(Var, No)]: int
-"fxa"@(FileId(1), 233..236) [ConstVar(Var, No)]: flexible array ( range of `int` (Unevaluated(PackageId(0), BodyId(4)) .. Expr(Unevaluated(PackageId(0), BodyId(5)), Yes)), ) of int
-"fxb"@(FileId(1), 272..275) [ConstVar(Var, No)]: flexible array ( range of `int` (Unevaluated(PackageId(0), BodyId(6)) .. Expr(Unevaluated(PackageId(0), BodyId(7)), Yes)), ) of int
-"fxc"@(FileId(1), 311..314) [ConstVar(Var, No)]: flexible array ( range of `int` (Unevaluated(PackageId(0), BodyId(8)) .. Expr(Unevaluated(PackageId(0), BodyId(9)), Yes)), ) of int
-"fxd"@(FileId(1), 350..353) [ConstVar(Var, No)]: flexible array ( range of `int` (Unevaluated(PackageId(0), BodyId(10)) .. Expr(Unevaluated(PackageId(0), BodyId(11)), Yes)), ) of int1
-"dyna"@(FileId(1), 391..395) [ConstVar(Var, No)]: array ( range of `int` (Unevaluated(PackageId(0), BodyId(12)) .. Expr(Unevaluated(PackageId(0), BodyId(13)), Yes)), ) of int
-"dynb"@(FileId(1), 422..426) [ConstVar(Var, No)]: array ( range of `int` (Unevaluated(PackageId(0), BodyId(14)) .. Expr(Unevaluated(PackageId(0), BodyId(15)), Yes)), ) of int
-"msta"@(FileId(1), 454..458) [ConstVar(Var, No)]: array ( range of `int` (Unevaluated(PackageId(0), BodyId(16)) .. Expr(Unevaluated(PackageId(0), BodyId(17)), Yes)), ) of int
-"mstb"@(FileId(1), 485..489) [ConstVar(Var, No)]: array ( range of `int` (Unevaluated(PackageId(0), BodyId(18)) .. Expr(Unevaluated(PackageId(0), BodyId(19)), Yes)), ) of int
-"sta"@(FileId(1), 517..520) [ConstVar(Var, No)]: alias[DefId(PackageId(0), LocalDefId(0))] of array ( range of `int` (Unevaluated(PackageId(0), BodyId(0)) .. Expr(Unevaluated(PackageId(0), BodyId(1)), No)), ) of int
-"stb"@(FileId(1), 532..535) [ConstVar(Var, No)]: alias[DefId(PackageId(0), LocalDefId(1))] of array ( range of `int` (Unevaluated(PackageId(0), BodyId(2)) .. Expr(Unevaluated(PackageId(0), BodyId(3)), No)), ) of int
-"<root>"@(dummy) [Module(No)]: <error>
+"tsta"@"src/main.t:157..161" [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of array ( range of `int` (Unevaluated(PackageId(0), BodyId(0)) .. Expr(Unevaluated(PackageId(0), BodyId(1)), No)), ) of int
+"tstb"@"src/main.t:189..193" [Type]: alias[DefId(PackageId(0), LocalDefId(1))] of array ( range of `int` (Unevaluated(PackageId(0), BodyId(2)) .. Expr(Unevaluated(PackageId(0), BodyId(3)), No)), ) of int
+"c"@"src/main.t:220..221" [ConstVar(Var, No)]: int
+"fxa"@"src/main.t:233..236" [ConstVar(Var, No)]: flexible array ( range of `int` (Unevaluated(PackageId(0), BodyId(4)) .. Expr(Unevaluated(PackageId(0), BodyId(5)), Yes)), ) of int
+"fxb"@"src/main.t:272..275" [ConstVar(Var, No)]: flexible array ( range of `int` (Unevaluated(PackageId(0), BodyId(6)) .. Expr(Unevaluated(PackageId(0), BodyId(7)), Yes)), ) of int
+"fxc"@"src/main.t:311..314" [ConstVar(Var, No)]: flexible array ( range of `int` (Unevaluated(PackageId(0), BodyId(8)) .. Expr(Unevaluated(PackageId(0), BodyId(9)), Yes)), ) of int
+"fxd"@"src/main.t:350..353" [ConstVar(Var, No)]: flexible array ( range of `int` (Unevaluated(PackageId(0), BodyId(10)) .. Expr(Unevaluated(PackageId(0), BodyId(11)), Yes)), ) of int1
+"dyna"@"src/main.t:391..395" [ConstVar(Var, No)]: array ( range of `int` (Unevaluated(PackageId(0), BodyId(12)) .. Expr(Unevaluated(PackageId(0), BodyId(13)), Yes)), ) of int
+"dynb"@"src/main.t:422..426" [ConstVar(Var, No)]: array ( range of `int` (Unevaluated(PackageId(0), BodyId(14)) .. Expr(Unevaluated(PackageId(0), BodyId(15)), Yes)), ) of int
+"msta"@"src/main.t:454..458" [ConstVar(Var, No)]: array ( range of `int` (Unevaluated(PackageId(0), BodyId(16)) .. Expr(Unevaluated(PackageId(0), BodyId(17)), Yes)), ) of int
+"mstb"@"src/main.t:485..489" [ConstVar(Var, No)]: array ( range of `int` (Unevaluated(PackageId(0), BodyId(18)) .. Expr(Unevaluated(PackageId(0), BodyId(19)), Yes)), ) of int
+"sta"@"src/main.t:517..520" [ConstVar(Var, No)]: alias[DefId(PackageId(0), LocalDefId(0))] of array ( range of `int` (Unevaluated(PackageId(0), BodyId(0)) .. Expr(Unevaluated(PackageId(0), BodyId(1)), No)), ) of int
+"stb"@"src/main.t:532..535" [ConstVar(Var, No)]: alias[DefId(PackageId(0), LocalDefId(1))] of array ( range of `int` (Unevaluated(PackageId(0), BodyId(2)) .. Expr(Unevaluated(PackageId(0), BodyId(3)), No)), ) of int
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 742..744): mismatched types
-| note for (FileId(1), 745..749): this is of type `array 1 .. {dynamic} of int`
-| note for (FileId(1), 737..741): this is of type `array 1 .. {dynamic} of int`
+error at src/main.t:742..744: mismatched types
+| note for src/main.t:745..749: this is of type `array 1 .. {dynamic} of int`
+| note for src/main.t:737..741: this is of type `array 1 .. {dynamic} of int`
 | info: `array 1 .. {dynamic} of int` is not assignable into `array 1 .. {dynamic} of int`
-error at (FileId(1), 842..844): mismatched types
-| note for (FileId(1), 845..848): this is of type `flexible array 1 .. 2 of int`
-| note for (FileId(1), 838..841): this is of type `flexible array 1 .. 1 of int`
+error at src/main.t:842..844: mismatched types
+| note for src/main.t:845..848: this is of type `flexible array 1 .. 2 of int`
+| note for src/main.t:838..841: this is of type `flexible array 1 .. 1 of int`
 | info: `flexible array 1 .. 2 of int` is not assignable into `flexible array 1 .. 1 of int`
-error at (FileId(1), 872..874): mismatched types
-| note for (FileId(1), 875..878): this is of type `flexible array 1 .. 1 of int1`
-| note for (FileId(1), 868..871): this is of type `flexible array 1 .. 1 of int`
+error at src/main.t:872..874: mismatched types
+| note for src/main.t:875..878: this is of type `flexible array 1 .. 1 of int1`
+| note for src/main.t:868..871: this is of type `flexible array 1 .. 1 of int`
 | info: `flexible array 1 .. 1 of int1` is not assignable into `flexible array 1 .. 1 of int`
-error at (FileId(1), 958..960): mismatched types
-| note for (FileId(1), 961..964): this is of type `flexible array 1 .. 1 of int`
-| note for (FileId(1), 954..957): this is of type `tsta (alias of array 1 .. 1 of int)`
+error at src/main.t:958..960: mismatched types
+| note for src/main.t:961..964: this is of type `flexible array 1 .. 1 of int`
+| note for src/main.t:954..957: this is of type `tsta (alias of array 1 .. 1 of int)`
 | info: `flexible array 1 .. 1 of int` is not assignable into `array 1 .. 1 of int`

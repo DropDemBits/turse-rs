@@ -2,33 +2,33 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "type a0 : string\nvar sa0 : a0\nvar s : string\n\nfor : sa0 .. sa0 end for\nfor : s .. sa0 end for\nfor : sa0 .. s end for\n\nfor : 1 .. sa0 end for\nfor : sa0 .. 1 end for\n"
 ---
-"a0"@(FileId(1), 5..7) [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of string
-"sa0"@(FileId(1), 21..24) [ConstVar(Var, No)]: alias[DefId(PackageId(0), LocalDefId(0))] of string
-"s"@(FileId(1), 34..35) [ConstVar(Var, No)]: string
-"<root>"@(dummy) [Module(No)]: <error>
+"a0"@"src/main.t:5..7" [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of string
+"sa0"@"src/main.t:21..24" [ConstVar(Var, No)]: alias[DefId(PackageId(0), LocalDefId(0))] of string
+"s"@"src/main.t:34..35" [ConstVar(Var, No)]: string
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 52..62): mismatched types
-| note for (FileId(1), 59..62): this is of type `a0 (alias of string)`
-| note for (FileId(1), 52..55): this is also of type `a0 (alias of string)`
-| error for (FileId(1), 52..62): expected index types
+error at src/main.t:52..62: mismatched types
+| note for src/main.t:59..62: this is of type `a0 (alias of string)`
+| note for src/main.t:52..55: this is also of type `a0 (alias of string)`
+| error for src/main.t:52..62: expected index types
 | info: range bounds types must both be index types (an integer, `boolean`, `char`, enumerated type, or a range)
-error at (FileId(1), 77..85): mismatched types
-| note for (FileId(1), 82..85): this is of type `a0 (alias of string)`
-| note for (FileId(1), 77..78): this is of type `string`
-| error for (FileId(1), 77..85): expected index types
+error at src/main.t:77..85: mismatched types
+| note for src/main.t:82..85: this is of type `a0 (alias of string)`
+| note for src/main.t:77..78: this is of type `string`
+| error for src/main.t:77..85: expected index types
 | info: range bounds types must both be index types (an integer, `boolean`, `char`, enumerated type, or a range)
-error at (FileId(1), 100..108): mismatched types
-| note for (FileId(1), 107..108): this is of type `string`
-| note for (FileId(1), 100..103): this is of type `a0 (alias of string)`
-| error for (FileId(1), 100..108): expected index types
+error at src/main.t:100..108: mismatched types
+| note for src/main.t:107..108: this is of type `string`
+| note for src/main.t:100..103: this is of type `a0 (alias of string)`
+| error for src/main.t:100..108: expected index types
 | info: range bounds types must both be index types (an integer, `boolean`, `char`, enumerated type, or a range)
-error at (FileId(1), 124..132): mismatched types
-| note for (FileId(1), 129..132): this is of type `a0 (alias of string)`
-| note for (FileId(1), 124..125): this is of type `{integer}`
-| error for (FileId(1), 124..132): `string` is not equivalent to `{integer}`
+error at src/main.t:124..132: mismatched types
+| note for src/main.t:129..132: this is of type `a0 (alias of string)`
+| note for src/main.t:124..125: this is of type `{integer}`
+| error for src/main.t:124..132: `string` is not equivalent to `{integer}`
 | info: range bounds types must be equivalent
-error at (FileId(1), 147..155): mismatched types
-| note for (FileId(1), 154..155): this is of type `{integer}`
-| note for (FileId(1), 147..150): this is of type `a0 (alias of string)`
-| error for (FileId(1), 147..155): `{integer}` is not equivalent to `string`
+error at src/main.t:147..155: mismatched types
+| note for src/main.t:154..155: this is of type `{integer}`
+| note for src/main.t:147..150: this is of type `a0 (alias of string)`
+| error for src/main.t:147..155: `{integer}` is not equivalent to `string`
 | info: range bounds types must be equivalent

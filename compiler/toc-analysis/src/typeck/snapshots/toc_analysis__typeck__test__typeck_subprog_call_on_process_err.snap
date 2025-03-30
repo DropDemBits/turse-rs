@@ -2,17 +2,17 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "process never end never\nnever\nnever()\nvar _ := never()\n"
 ---
-"never"@(FileId(1), 8..13) [Subprogram(Process)]: process -> void
-"_"@(FileId(1), 42..43) [ConstVar(Var, No)]: <error>
-"<root>"@(dummy) [Module(No)]: <error>
+"never"@"src/main.t:8..13" [Subprogram(Process)]: process -> void
+"_"@"src/main.t:42..43" [ConstVar(Var, No)]: <error>
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 24..29): cannot use `never` as a statement
-| error for (FileId(1), 24..29): `never` is not a statement
-error at (FileId(1), 30..35): cannot call or subscript `never`
-| note for (FileId(1), 30..35): this is of type `process`
-| error for (FileId(1), 30..35): `process` is not callable
+error at src/main.t:24..29: cannot use `never` as a statement
+| error for src/main.t:24..29: `never` is not a statement
+error at src/main.t:30..35: cannot call or subscript `never`
+| note for src/main.t:30..35: this is of type `process`
+| error for src/main.t:30..35: `process` is not callable
 | info: to start a new process, use a `fork` statement
-error at (FileId(1), 47..52): cannot call or subscript `never`
-| note for (FileId(1), 47..52): this is of type `process`
-| error for (FileId(1), 47..52): `process` is not callable
+error at src/main.t:47..52: cannot call or subscript `never`
+| note for src/main.t:47..52: this is of type `process`
+| error for src/main.t:47..52: `process` is not callable
 | info: to start a new process, use a `fork` statement

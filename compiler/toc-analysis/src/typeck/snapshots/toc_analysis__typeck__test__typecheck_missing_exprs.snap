@@ -1,7 +1,6 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "const ke : int := ()"
 ---
-"ke"@(FileId(1), 6..8) [ConstVar(Const, No)]: int
-"<root>"@(dummy) [Module(No)]: <error>
-
+"ke"@"src/main.t:6..8" [ConstVar(Const, No)]: int
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>

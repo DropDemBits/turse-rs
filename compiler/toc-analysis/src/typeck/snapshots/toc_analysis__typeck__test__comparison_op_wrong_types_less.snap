@@ -2,234 +2,234 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "\n    % Numerics\n    var r : real\n    var i : int\n    var n : nat\n\n    % Other scalars\n    var b : boolean\n\n    % Sized charseqs\n    var c : char\n    var c_sz : char(6)\n    var s : string\n    var s_sz : string(6)\n\n    % Different sets\n    type s1 : set of boolean\n    type s2 : set of boolean\n    var as1, as2 : s1\n    var bs1, bs2 : s2\n    var aas : set of boolean\n\n    % should all produce boolean anyway\n    var _v_res : boolean\n\n    _v_res := r < b\n    _v_res := r < c\n    _v_res := r < c_sz\n    _v_res := r < s\n    _v_res := r < s_sz\n\n    _v_res := i < b\n    _v_res := i < c\n    _v_res := i < c_sz\n    _v_res := i < s\n    _v_res := i < s_sz\n\n    _v_res := n < b\n    _v_res := n < c\n    _v_res := n < c_sz\n    _v_res := n < s\n    _v_res := n < s_sz\n\n    _v_res := b < r\n    _v_res := b < i\n    _v_res := b < n\n    _v_res := b < c\n    _v_res := b < c_sz\n    _v_res := b < s\n    _v_res := b < s_sz\n\n    _v_res := c < r\n    _v_res := c < i\n    _v_res := c < n\n    _v_res := c < b\n\n    _v_res := c_sz < r\n    _v_res := c_sz < i\n    _v_res := c_sz < n\n    _v_res := c_sz < b\n\n    _v_res := s < r\n    _v_res := s < i\n    _v_res := s < n\n    _v_res := s < b\n\n    _v_res := s_sz < r\n    _v_res := s_sz < i\n    _v_res := s_sz < n\n    _v_res := s_sz < b\n\n    % Incompatible sets\n    _v_res := as1 < bs2\n    _v_res := bs1 < as2\n    _v_res := aas < as1\n    _v_res := as1 < aas\n    "
 ---
-"r"@(FileId(1), 24..25) [ConstVar(Var, No)]: real
-"i"@(FileId(1), 41..42) [ConstVar(Var, No)]: int
-"n"@(FileId(1), 57..58) [ConstVar(Var, No)]: nat
-"b"@(FileId(1), 94..95) [ConstVar(Var, No)]: boolean
-"c"@(FileId(1), 136..137) [ConstVar(Var, No)]: char
-"c_sz"@(FileId(1), 153..157) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(0)))
-"s"@(FileId(1), 176..177) [ConstVar(Var, No)]: string
-"s_sz"@(FileId(1), 195..199) [ConstVar(Var, No)]: string_n Fixed(Unevaluated(PackageId(0), BodyId(1)))
-"s1"@(FileId(1), 243..245) [Type]: set[DefId(PackageId(0), LocalDefId(9))] of boolean
-"s1"@(FileId(1), 248..262) [Set]: <error>
-"s2"@(FileId(1), 272..274) [Type]: set[DefId(PackageId(0), LocalDefId(11))] of boolean
-"s2"@(FileId(1), 277..291) [Set]: <error>
-"as1"@(FileId(1), 300..303) [ConstVar(Var, No)]: set[DefId(PackageId(0), LocalDefId(9))] of boolean
-"as2"@(FileId(1), 305..308) [ConstVar(Var, No)]: set[DefId(PackageId(0), LocalDefId(9))] of boolean
-"bs1"@(FileId(1), 322..325) [ConstVar(Var, No)]: set[DefId(PackageId(0), LocalDefId(11))] of boolean
-"bs2"@(FileId(1), 327..330) [ConstVar(Var, No)]: set[DefId(PackageId(0), LocalDefId(11))] of boolean
-"aas"@(FileId(1), 344..347) [ConstVar(Var, No)]: set[DefId(PackageId(0), LocalDefId(17))] of boolean
-"<anonymous>"@(FileId(1), 350..364) [Set]: <error>
-"_v_res"@(FileId(1), 414..420) [ConstVar(Var, No)]: boolean
-"<root>"@(dummy) [Module(No)]: <error>
+"r"@"src/main.t:24..25" [ConstVar(Var, No)]: real
+"i"@"src/main.t:41..42" [ConstVar(Var, No)]: int
+"n"@"src/main.t:57..58" [ConstVar(Var, No)]: nat
+"b"@"src/main.t:94..95" [ConstVar(Var, No)]: boolean
+"c"@"src/main.t:136..137" [ConstVar(Var, No)]: char
+"c_sz"@"src/main.t:153..157" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(0)))
+"s"@"src/main.t:176..177" [ConstVar(Var, No)]: string
+"s_sz"@"src/main.t:195..199" [ConstVar(Var, No)]: string_n Fixed(Unevaluated(PackageId(0), BodyId(1)))
+"s1"@"src/main.t:243..245" [Type]: set[DefId(PackageId(0), LocalDefId(9))] of boolean
+"s1"@"src/main.t:248..262" [Set]: <error>
+"s2"@"src/main.t:272..274" [Type]: set[DefId(PackageId(0), LocalDefId(11))] of boolean
+"s2"@"src/main.t:277..291" [Set]: <error>
+"as1"@"src/main.t:300..303" [ConstVar(Var, No)]: set[DefId(PackageId(0), LocalDefId(9))] of boolean
+"as2"@"src/main.t:305..308" [ConstVar(Var, No)]: set[DefId(PackageId(0), LocalDefId(9))] of boolean
+"bs1"@"src/main.t:322..325" [ConstVar(Var, No)]: set[DefId(PackageId(0), LocalDefId(11))] of boolean
+"bs2"@"src/main.t:327..330" [ConstVar(Var, No)]: set[DefId(PackageId(0), LocalDefId(11))] of boolean
+"aas"@"src/main.t:344..347" [ConstVar(Var, No)]: set[DefId(PackageId(0), LocalDefId(17))] of boolean
+"<anonymous>"@"src/main.t:350..364" [Set]: <error>
+"_v_res"@"src/main.t:414..420" [ConstVar(Var, No)]: boolean
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 448..449): mismatched types for `<`
-| note for (FileId(1), 450..451): this is of type `boolean`
-| note for (FileId(1), 446..447): this is of type `real`
-| error for (FileId(1), 448..449): `real` cannot be compared to `boolean`
+error at src/main.t:448..449: mismatched types for `<`
+| note for src/main.t:450..451: this is of type `boolean`
+| note for src/main.t:446..447: this is of type `real`
+| error for src/main.t:448..449: `real` cannot be compared to `boolean`
 | info: operands must both be the same type
-error at (FileId(1), 468..469): mismatched types for `<`
-| note for (FileId(1), 470..471): this is of type `char`
-| note for (FileId(1), 466..467): this is of type `real`
-| error for (FileId(1), 468..469): `real` cannot be compared to `char`
+error at src/main.t:468..469: mismatched types for `<`
+| note for src/main.t:470..471: this is of type `char`
+| note for src/main.t:466..467: this is of type `real`
+| error for src/main.t:468..469: `real` cannot be compared to `char`
 | info: operands must both be the same type
-error at (FileId(1), 488..489): mismatched types for `<`
-| note for (FileId(1), 490..494): this is of type `char(6)`
-| note for (FileId(1), 486..487): this is of type `real`
-| error for (FileId(1), 488..489): `real` cannot be compared to `char(6)`
+error at src/main.t:488..489: mismatched types for `<`
+| note for src/main.t:490..494: this is of type `char(6)`
+| note for src/main.t:486..487: this is of type `real`
+| error for src/main.t:488..489: `real` cannot be compared to `char(6)`
 | info: operands must both be the same type
-error at (FileId(1), 511..512): mismatched types for `<`
-| note for (FileId(1), 513..514): this is of type `string`
-| note for (FileId(1), 509..510): this is of type `real`
-| error for (FileId(1), 511..512): `real` cannot be compared to `string`
+error at src/main.t:511..512: mismatched types for `<`
+| note for src/main.t:513..514: this is of type `string`
+| note for src/main.t:509..510: this is of type `real`
+| error for src/main.t:511..512: `real` cannot be compared to `string`
 | info: operands must both be the same type
-error at (FileId(1), 531..532): mismatched types for `<`
-| note for (FileId(1), 533..537): this is of type `string(6)`
-| note for (FileId(1), 529..530): this is of type `real`
-| error for (FileId(1), 531..532): `real` cannot be compared to `string(6)`
+error at src/main.t:531..532: mismatched types for `<`
+| note for src/main.t:533..537: this is of type `string(6)`
+| note for src/main.t:529..530: this is of type `real`
+| error for src/main.t:531..532: `real` cannot be compared to `string(6)`
 | info: operands must both be the same type
-error at (FileId(1), 555..556): mismatched types for `<`
-| note for (FileId(1), 557..558): this is of type `boolean`
-| note for (FileId(1), 553..554): this is of type `int`
-| error for (FileId(1), 555..556): `int` cannot be compared to `boolean`
+error at src/main.t:555..556: mismatched types for `<`
+| note for src/main.t:557..558: this is of type `boolean`
+| note for src/main.t:553..554: this is of type `int`
+| error for src/main.t:555..556: `int` cannot be compared to `boolean`
 | info: operands must both be the same type
-error at (FileId(1), 575..576): mismatched types for `<`
-| note for (FileId(1), 577..578): this is of type `char`
-| note for (FileId(1), 573..574): this is of type `int`
-| error for (FileId(1), 575..576): `int` cannot be compared to `char`
+error at src/main.t:575..576: mismatched types for `<`
+| note for src/main.t:577..578: this is of type `char`
+| note for src/main.t:573..574: this is of type `int`
+| error for src/main.t:575..576: `int` cannot be compared to `char`
 | info: operands must both be the same type
-error at (FileId(1), 595..596): mismatched types for `<`
-| note for (FileId(1), 597..601): this is of type `char(6)`
-| note for (FileId(1), 593..594): this is of type `int`
-| error for (FileId(1), 595..596): `int` cannot be compared to `char(6)`
+error at src/main.t:595..596: mismatched types for `<`
+| note for src/main.t:597..601: this is of type `char(6)`
+| note for src/main.t:593..594: this is of type `int`
+| error for src/main.t:595..596: `int` cannot be compared to `char(6)`
 | info: operands must both be the same type
-error at (FileId(1), 618..619): mismatched types for `<`
-| note for (FileId(1), 620..621): this is of type `string`
-| note for (FileId(1), 616..617): this is of type `int`
-| error for (FileId(1), 618..619): `int` cannot be compared to `string`
+error at src/main.t:618..619: mismatched types for `<`
+| note for src/main.t:620..621: this is of type `string`
+| note for src/main.t:616..617: this is of type `int`
+| error for src/main.t:618..619: `int` cannot be compared to `string`
 | info: operands must both be the same type
-error at (FileId(1), 638..639): mismatched types for `<`
-| note for (FileId(1), 640..644): this is of type `string(6)`
-| note for (FileId(1), 636..637): this is of type `int`
-| error for (FileId(1), 638..639): `int` cannot be compared to `string(6)`
+error at src/main.t:638..639: mismatched types for `<`
+| note for src/main.t:640..644: this is of type `string(6)`
+| note for src/main.t:636..637: this is of type `int`
+| error for src/main.t:638..639: `int` cannot be compared to `string(6)`
 | info: operands must both be the same type
-error at (FileId(1), 662..663): mismatched types for `<`
-| note for (FileId(1), 664..665): this is of type `boolean`
-| note for (FileId(1), 660..661): this is of type `nat`
-| error for (FileId(1), 662..663): `nat` cannot be compared to `boolean`
+error at src/main.t:662..663: mismatched types for `<`
+| note for src/main.t:664..665: this is of type `boolean`
+| note for src/main.t:660..661: this is of type `nat`
+| error for src/main.t:662..663: `nat` cannot be compared to `boolean`
 | info: operands must both be the same type
-error at (FileId(1), 682..683): mismatched types for `<`
-| note for (FileId(1), 684..685): this is of type `char`
-| note for (FileId(1), 680..681): this is of type `nat`
-| error for (FileId(1), 682..683): `nat` cannot be compared to `char`
+error at src/main.t:682..683: mismatched types for `<`
+| note for src/main.t:684..685: this is of type `char`
+| note for src/main.t:680..681: this is of type `nat`
+| error for src/main.t:682..683: `nat` cannot be compared to `char`
 | info: operands must both be the same type
-error at (FileId(1), 702..703): mismatched types for `<`
-| note for (FileId(1), 704..708): this is of type `char(6)`
-| note for (FileId(1), 700..701): this is of type `nat`
-| error for (FileId(1), 702..703): `nat` cannot be compared to `char(6)`
+error at src/main.t:702..703: mismatched types for `<`
+| note for src/main.t:704..708: this is of type `char(6)`
+| note for src/main.t:700..701: this is of type `nat`
+| error for src/main.t:702..703: `nat` cannot be compared to `char(6)`
 | info: operands must both be the same type
-error at (FileId(1), 725..726): mismatched types for `<`
-| note for (FileId(1), 727..728): this is of type `string`
-| note for (FileId(1), 723..724): this is of type `nat`
-| error for (FileId(1), 725..726): `nat` cannot be compared to `string`
+error at src/main.t:725..726: mismatched types for `<`
+| note for src/main.t:727..728: this is of type `string`
+| note for src/main.t:723..724: this is of type `nat`
+| error for src/main.t:725..726: `nat` cannot be compared to `string`
 | info: operands must both be the same type
-error at (FileId(1), 745..746): mismatched types for `<`
-| note for (FileId(1), 747..751): this is of type `string(6)`
-| note for (FileId(1), 743..744): this is of type `nat`
-| error for (FileId(1), 745..746): `nat` cannot be compared to `string(6)`
+error at src/main.t:745..746: mismatched types for `<`
+| note for src/main.t:747..751: this is of type `string(6)`
+| note for src/main.t:743..744: this is of type `nat`
+| error for src/main.t:745..746: `nat` cannot be compared to `string(6)`
 | info: operands must both be the same type
-error at (FileId(1), 769..770): mismatched types for `<`
-| note for (FileId(1), 771..772): this is of type `real`
-| note for (FileId(1), 767..768): this is of type `boolean`
-| error for (FileId(1), 769..770): `boolean` cannot be compared to `real`
+error at src/main.t:769..770: mismatched types for `<`
+| note for src/main.t:771..772: this is of type `real`
+| note for src/main.t:767..768: this is of type `boolean`
+| error for src/main.t:769..770: `boolean` cannot be compared to `real`
 | info: operands must both be the same type
-error at (FileId(1), 789..790): mismatched types for `<`
-| note for (FileId(1), 791..792): this is of type `int`
-| note for (FileId(1), 787..788): this is of type `boolean`
-| error for (FileId(1), 789..790): `boolean` cannot be compared to `int`
+error at src/main.t:789..790: mismatched types for `<`
+| note for src/main.t:791..792: this is of type `int`
+| note for src/main.t:787..788: this is of type `boolean`
+| error for src/main.t:789..790: `boolean` cannot be compared to `int`
 | info: operands must both be the same type
-error at (FileId(1), 809..810): mismatched types for `<`
-| note for (FileId(1), 811..812): this is of type `nat`
-| note for (FileId(1), 807..808): this is of type `boolean`
-| error for (FileId(1), 809..810): `boolean` cannot be compared to `nat`
+error at src/main.t:809..810: mismatched types for `<`
+| note for src/main.t:811..812: this is of type `nat`
+| note for src/main.t:807..808: this is of type `boolean`
+| error for src/main.t:809..810: `boolean` cannot be compared to `nat`
 | info: operands must both be the same type
-error at (FileId(1), 829..830): mismatched types for `<`
-| note for (FileId(1), 831..832): this is of type `char`
-| note for (FileId(1), 827..828): this is of type `boolean`
-| error for (FileId(1), 829..830): `boolean` cannot be compared to `char`
+error at src/main.t:829..830: mismatched types for `<`
+| note for src/main.t:831..832: this is of type `char`
+| note for src/main.t:827..828: this is of type `boolean`
+| error for src/main.t:829..830: `boolean` cannot be compared to `char`
 | info: operands must both be the same type
-error at (FileId(1), 849..850): mismatched types for `<`
-| note for (FileId(1), 851..855): this is of type `char(6)`
-| note for (FileId(1), 847..848): this is of type `boolean`
-| error for (FileId(1), 849..850): `boolean` cannot be compared to `char(6)`
+error at src/main.t:849..850: mismatched types for `<`
+| note for src/main.t:851..855: this is of type `char(6)`
+| note for src/main.t:847..848: this is of type `boolean`
+| error for src/main.t:849..850: `boolean` cannot be compared to `char(6)`
 | info: operands must both be the same type
-error at (FileId(1), 872..873): mismatched types for `<`
-| note for (FileId(1), 874..875): this is of type `string`
-| note for (FileId(1), 870..871): this is of type `boolean`
-| error for (FileId(1), 872..873): `boolean` cannot be compared to `string`
+error at src/main.t:872..873: mismatched types for `<`
+| note for src/main.t:874..875: this is of type `string`
+| note for src/main.t:870..871: this is of type `boolean`
+| error for src/main.t:872..873: `boolean` cannot be compared to `string`
 | info: operands must both be the same type
-error at (FileId(1), 892..893): mismatched types for `<`
-| note for (FileId(1), 894..898): this is of type `string(6)`
-| note for (FileId(1), 890..891): this is of type `boolean`
-| error for (FileId(1), 892..893): `boolean` cannot be compared to `string(6)`
+error at src/main.t:892..893: mismatched types for `<`
+| note for src/main.t:894..898: this is of type `string(6)`
+| note for src/main.t:890..891: this is of type `boolean`
+| error for src/main.t:892..893: `boolean` cannot be compared to `string(6)`
 | info: operands must both be the same type
-error at (FileId(1), 916..917): mismatched types for `<`
-| note for (FileId(1), 918..919): this is of type `real`
-| note for (FileId(1), 914..915): this is of type `char`
-| error for (FileId(1), 916..917): `char` cannot be compared to `real`
+error at src/main.t:916..917: mismatched types for `<`
+| note for src/main.t:918..919: this is of type `real`
+| note for src/main.t:914..915: this is of type `char`
+| error for src/main.t:916..917: `char` cannot be compared to `real`
 | info: operands must both be the same type
-error at (FileId(1), 936..937): mismatched types for `<`
-| note for (FileId(1), 938..939): this is of type `int`
-| note for (FileId(1), 934..935): this is of type `char`
-| error for (FileId(1), 936..937): `char` cannot be compared to `int`
+error at src/main.t:936..937: mismatched types for `<`
+| note for src/main.t:938..939: this is of type `int`
+| note for src/main.t:934..935: this is of type `char`
+| error for src/main.t:936..937: `char` cannot be compared to `int`
 | info: operands must both be the same type
-error at (FileId(1), 956..957): mismatched types for `<`
-| note for (FileId(1), 958..959): this is of type `nat`
-| note for (FileId(1), 954..955): this is of type `char`
-| error for (FileId(1), 956..957): `char` cannot be compared to `nat`
+error at src/main.t:956..957: mismatched types for `<`
+| note for src/main.t:958..959: this is of type `nat`
+| note for src/main.t:954..955: this is of type `char`
+| error for src/main.t:956..957: `char` cannot be compared to `nat`
 | info: operands must both be the same type
-error at (FileId(1), 976..977): mismatched types for `<`
-| note for (FileId(1), 978..979): this is of type `boolean`
-| note for (FileId(1), 974..975): this is of type `char`
-| error for (FileId(1), 976..977): `char` cannot be compared to `boolean`
+error at src/main.t:976..977: mismatched types for `<`
+| note for src/main.t:978..979: this is of type `boolean`
+| note for src/main.t:974..975: this is of type `char`
+| error for src/main.t:976..977: `char` cannot be compared to `boolean`
 | info: operands must both be the same type
-error at (FileId(1), 1000..1001): mismatched types for `<`
-| note for (FileId(1), 1002..1003): this is of type `real`
-| note for (FileId(1), 995..999): this is of type `char(6)`
-| error for (FileId(1), 1000..1001): `char(6)` cannot be compared to `real`
+error at src/main.t:1000..1001: mismatched types for `<`
+| note for src/main.t:1002..1003: this is of type `real`
+| note for src/main.t:995..999: this is of type `char(6)`
+| error for src/main.t:1000..1001: `char(6)` cannot be compared to `real`
 | info: operands must both be the same type
-error at (FileId(1), 1023..1024): mismatched types for `<`
-| note for (FileId(1), 1025..1026): this is of type `int`
-| note for (FileId(1), 1018..1022): this is of type `char(6)`
-| error for (FileId(1), 1023..1024): `char(6)` cannot be compared to `int`
+error at src/main.t:1023..1024: mismatched types for `<`
+| note for src/main.t:1025..1026: this is of type `int`
+| note for src/main.t:1018..1022: this is of type `char(6)`
+| error for src/main.t:1023..1024: `char(6)` cannot be compared to `int`
 | info: operands must both be the same type
-error at (FileId(1), 1046..1047): mismatched types for `<`
-| note for (FileId(1), 1048..1049): this is of type `nat`
-| note for (FileId(1), 1041..1045): this is of type `char(6)`
-| error for (FileId(1), 1046..1047): `char(6)` cannot be compared to `nat`
+error at src/main.t:1046..1047: mismatched types for `<`
+| note for src/main.t:1048..1049: this is of type `nat`
+| note for src/main.t:1041..1045: this is of type `char(6)`
+| error for src/main.t:1046..1047: `char(6)` cannot be compared to `nat`
 | info: operands must both be the same type
-error at (FileId(1), 1069..1070): mismatched types for `<`
-| note for (FileId(1), 1071..1072): this is of type `boolean`
-| note for (FileId(1), 1064..1068): this is of type `char(6)`
-| error for (FileId(1), 1069..1070): `char(6)` cannot be compared to `boolean`
+error at src/main.t:1069..1070: mismatched types for `<`
+| note for src/main.t:1071..1072: this is of type `boolean`
+| note for src/main.t:1064..1068: this is of type `char(6)`
+| error for src/main.t:1069..1070: `char(6)` cannot be compared to `boolean`
 | info: operands must both be the same type
-error at (FileId(1), 1090..1091): mismatched types for `<`
-| note for (FileId(1), 1092..1093): this is of type `real`
-| note for (FileId(1), 1088..1089): this is of type `string`
-| error for (FileId(1), 1090..1091): `string` cannot be compared to `real`
+error at src/main.t:1090..1091: mismatched types for `<`
+| note for src/main.t:1092..1093: this is of type `real`
+| note for src/main.t:1088..1089: this is of type `string`
+| error for src/main.t:1090..1091: `string` cannot be compared to `real`
 | info: operands must both be the same type
-error at (FileId(1), 1110..1111): mismatched types for `<`
-| note for (FileId(1), 1112..1113): this is of type `int`
-| note for (FileId(1), 1108..1109): this is of type `string`
-| error for (FileId(1), 1110..1111): `string` cannot be compared to `int`
+error at src/main.t:1110..1111: mismatched types for `<`
+| note for src/main.t:1112..1113: this is of type `int`
+| note for src/main.t:1108..1109: this is of type `string`
+| error for src/main.t:1110..1111: `string` cannot be compared to `int`
 | info: operands must both be the same type
-error at (FileId(1), 1130..1131): mismatched types for `<`
-| note for (FileId(1), 1132..1133): this is of type `nat`
-| note for (FileId(1), 1128..1129): this is of type `string`
-| error for (FileId(1), 1130..1131): `string` cannot be compared to `nat`
+error at src/main.t:1130..1131: mismatched types for `<`
+| note for src/main.t:1132..1133: this is of type `nat`
+| note for src/main.t:1128..1129: this is of type `string`
+| error for src/main.t:1130..1131: `string` cannot be compared to `nat`
 | info: operands must both be the same type
-error at (FileId(1), 1150..1151): mismatched types for `<`
-| note for (FileId(1), 1152..1153): this is of type `boolean`
-| note for (FileId(1), 1148..1149): this is of type `string`
-| error for (FileId(1), 1150..1151): `string` cannot be compared to `boolean`
+error at src/main.t:1150..1151: mismatched types for `<`
+| note for src/main.t:1152..1153: this is of type `boolean`
+| note for src/main.t:1148..1149: this is of type `string`
+| error for src/main.t:1150..1151: `string` cannot be compared to `boolean`
 | info: operands must both be the same type
-error at (FileId(1), 1174..1175): mismatched types for `<`
-| note for (FileId(1), 1176..1177): this is of type `real`
-| note for (FileId(1), 1169..1173): this is of type `string(6)`
-| error for (FileId(1), 1174..1175): `string(6)` cannot be compared to `real`
+error at src/main.t:1174..1175: mismatched types for `<`
+| note for src/main.t:1176..1177: this is of type `real`
+| note for src/main.t:1169..1173: this is of type `string(6)`
+| error for src/main.t:1174..1175: `string(6)` cannot be compared to `real`
 | info: operands must both be the same type
-error at (FileId(1), 1197..1198): mismatched types for `<`
-| note for (FileId(1), 1199..1200): this is of type `int`
-| note for (FileId(1), 1192..1196): this is of type `string(6)`
-| error for (FileId(1), 1197..1198): `string(6)` cannot be compared to `int`
+error at src/main.t:1197..1198: mismatched types for `<`
+| note for src/main.t:1199..1200: this is of type `int`
+| note for src/main.t:1192..1196: this is of type `string(6)`
+| error for src/main.t:1197..1198: `string(6)` cannot be compared to `int`
 | info: operands must both be the same type
-error at (FileId(1), 1220..1221): mismatched types for `<`
-| note for (FileId(1), 1222..1223): this is of type `nat`
-| note for (FileId(1), 1215..1219): this is of type `string(6)`
-| error for (FileId(1), 1220..1221): `string(6)` cannot be compared to `nat`
+error at src/main.t:1220..1221: mismatched types for `<`
+| note for src/main.t:1222..1223: this is of type `nat`
+| note for src/main.t:1215..1219: this is of type `string(6)`
+| error for src/main.t:1220..1221: `string(6)` cannot be compared to `nat`
 | info: operands must both be the same type
-error at (FileId(1), 1243..1244): mismatched types for `<`
-| note for (FileId(1), 1245..1246): this is of type `boolean`
-| note for (FileId(1), 1238..1242): this is of type `string(6)`
-| error for (FileId(1), 1243..1244): `string(6)` cannot be compared to `boolean`
+error at src/main.t:1243..1244: mismatched types for `<`
+| note for src/main.t:1245..1246: this is of type `boolean`
+| note for src/main.t:1238..1242: this is of type `string(6)`
+| error for src/main.t:1243..1244: `string(6)` cannot be compared to `boolean`
 | info: operands must both be the same type
-error at (FileId(1), 1290..1291): mismatched types for `<`
-| note for (FileId(1), 1292..1295): this is of type `set s2 (of boolean)`
-| note for (FileId(1), 1286..1289): this is of type `set s1 (of boolean)`
-| error for (FileId(1), 1290..1291): `set s1 (of boolean)` cannot be compared to `set s2 (of boolean)`
+error at src/main.t:1290..1291: mismatched types for `<`
+| note for src/main.t:1292..1295: this is of type `set s2 (of boolean)`
+| note for src/main.t:1286..1289: this is of type `set s1 (of boolean)`
+| error for src/main.t:1290..1291: `set s1 (of boolean)` cannot be compared to `set s2 (of boolean)`
 | info: operands must both be the same type
-error at (FileId(1), 1314..1315): mismatched types for `<`
-| note for (FileId(1), 1316..1319): this is of type `set s1 (of boolean)`
-| note for (FileId(1), 1310..1313): this is of type `set s2 (of boolean)`
-| error for (FileId(1), 1314..1315): `set s2 (of boolean)` cannot be compared to `set s1 (of boolean)`
+error at src/main.t:1314..1315: mismatched types for `<`
+| note for src/main.t:1316..1319: this is of type `set s1 (of boolean)`
+| note for src/main.t:1310..1313: this is of type `set s2 (of boolean)`
+| error for src/main.t:1314..1315: `set s2 (of boolean)` cannot be compared to `set s1 (of boolean)`
 | info: operands must both be the same type
-error at (FileId(1), 1338..1339): mismatched types for `<`
-| note for (FileId(1), 1340..1343): this is of type `set s1 (of boolean)`
-| note for (FileId(1), 1334..1337): this is of type `set <anonymous> (of boolean)`
-| error for (FileId(1), 1338..1339): `set <anonymous> (of boolean)` cannot be compared to `set s1 (of boolean)`
+error at src/main.t:1338..1339: mismatched types for `<`
+| note for src/main.t:1340..1343: this is of type `set s1 (of boolean)`
+| note for src/main.t:1334..1337: this is of type `set <anonymous> (of boolean)`
+| error for src/main.t:1338..1339: `set <anonymous> (of boolean)` cannot be compared to `set s1 (of boolean)`
 | info: operands must both be the same type
-error at (FileId(1), 1362..1363): mismatched types for `<`
-| note for (FileId(1), 1364..1367): this is of type `set <anonymous> (of boolean)`
-| note for (FileId(1), 1358..1361): this is of type `set s1 (of boolean)`
-| error for (FileId(1), 1362..1363): `set s1 (of boolean)` cannot be compared to `set <anonymous> (of boolean)`
+error at src/main.t:1362..1363: mismatched types for `<`
+| note for src/main.t:1364..1367: this is of type `set <anonymous> (of boolean)`
+| note for src/main.t:1358..1361: this is of type `set s1 (of boolean)`
+| error for src/main.t:1362..1363: `set s1 (of boolean)` cannot be compared to `set <anonymous> (of boolean)`
 | info: operands must both be the same type

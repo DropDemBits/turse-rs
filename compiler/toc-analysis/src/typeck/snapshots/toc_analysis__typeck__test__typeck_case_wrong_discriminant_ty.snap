@@ -2,11 +2,11 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "case 1.0 of label 1.0: end case\ncase 'aa' of label 'aa': end case\n"
 ---
-"<root>"@(dummy) [Module(No)]: <error>
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 5..8): mismatched types
-| error for (FileId(1), 5..8): `real` cannot be used as a case discriminant
+error at src/main.t:5..8: mismatched types
+| error for src/main.t:5..8: `real` cannot be used as a case discriminant
 | info: `case` discriminant must be either an index type (an integer, `boolean`, `char`, enumerated type, or a range), or a `string`
-error at (FileId(1), 37..41): mismatched types
-| error for (FileId(1), 37..41): `char(2)` cannot be used as a case discriminant
+error at src/main.t:37..41: mismatched types
+| error for src/main.t:37..41: `char(2)` cannot be used as a case discriminant
 | info: `case` discriminant must be either an index type (an integer, `boolean`, `char`, enumerated type, or a range), or a `string`

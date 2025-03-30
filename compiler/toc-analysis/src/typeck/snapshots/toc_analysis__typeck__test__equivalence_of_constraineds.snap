@@ -2,20 +2,20 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "% using array types as a proxy for constrained ty equivalence\ntype r1 : 1..2\ntype r2 : 3..4\n\nvar a : array r1 of int\nvar b : array r2 of int\nvar c : array (1+1-1)..(4 div 2) of int\n\n% bounds must be equal\na := b\n% if they evaluate to the same values, they're equivalent\na := c\n\nvar d : array 0..0 of int\nvar e : array false..false of int\n\n% base types must be the same\nd := e\n"
 ---
-"r1"@(FileId(1), 67..69) [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of range of `int` (Unevaluated(PackageId(0), BodyId(0)) .. Expr(Unevaluated(PackageId(0), BodyId(1)), No))
-"r2"@(FileId(1), 82..84) [Type]: alias[DefId(PackageId(0), LocalDefId(1))] of range of `int` (Unevaluated(PackageId(0), BodyId(2)) .. Expr(Unevaluated(PackageId(0), BodyId(3)), No))
-"a"@(FileId(1), 97..98) [ConstVar(Var, No)]: array ( alias[DefId(PackageId(0), LocalDefId(0))] of range of `int` (Unevaluated(PackageId(0), BodyId(0)) .. Expr(Unevaluated(PackageId(0), BodyId(1)), No)), ) of int
-"b"@(FileId(1), 121..122) [ConstVar(Var, No)]: array ( alias[DefId(PackageId(0), LocalDefId(1))] of range of `int` (Unevaluated(PackageId(0), BodyId(2)) .. Expr(Unevaluated(PackageId(0), BodyId(3)), No)), ) of int
-"c"@(FileId(1), 145..146) [ConstVar(Var, No)]: array ( range of `int` (Unevaluated(PackageId(0), BodyId(4)) .. Expr(Unevaluated(PackageId(0), BodyId(5)), Yes)), ) of int
-"d"@(FileId(1), 282..283) [ConstVar(Var, No)]: array ( range of `int` (Unevaluated(PackageId(0), BodyId(6)) .. Expr(Unevaluated(PackageId(0), BodyId(7)), Yes)), ) of int
-"e"@(FileId(1), 308..309) [ConstVar(Var, No)]: array ( range of `boolean` (Unevaluated(PackageId(0), BodyId(8)) .. Expr(Unevaluated(PackageId(0), BodyId(9)), Yes)), ) of int
-"<root>"@(dummy) [Module(No)]: <error>
+"r1"@"src/main.t:67..69" [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of range of `int` (Unevaluated(PackageId(0), BodyId(0)) .. Expr(Unevaluated(PackageId(0), BodyId(1)), No))
+"r2"@"src/main.t:82..84" [Type]: alias[DefId(PackageId(0), LocalDefId(1))] of range of `int` (Unevaluated(PackageId(0), BodyId(2)) .. Expr(Unevaluated(PackageId(0), BodyId(3)), No))
+"a"@"src/main.t:97..98" [ConstVar(Var, No)]: array ( alias[DefId(PackageId(0), LocalDefId(0))] of range of `int` (Unevaluated(PackageId(0), BodyId(0)) .. Expr(Unevaluated(PackageId(0), BodyId(1)), No)), ) of int
+"b"@"src/main.t:121..122" [ConstVar(Var, No)]: array ( alias[DefId(PackageId(0), LocalDefId(1))] of range of `int` (Unevaluated(PackageId(0), BodyId(2)) .. Expr(Unevaluated(PackageId(0), BodyId(3)), No)), ) of int
+"c"@"src/main.t:145..146" [ConstVar(Var, No)]: array ( range of `int` (Unevaluated(PackageId(0), BodyId(4)) .. Expr(Unevaluated(PackageId(0), BodyId(5)), Yes)), ) of int
+"d"@"src/main.t:282..283" [ConstVar(Var, No)]: array ( range of `int` (Unevaluated(PackageId(0), BodyId(6)) .. Expr(Unevaluated(PackageId(0), BodyId(7)), Yes)), ) of int
+"e"@"src/main.t:308..309" [ConstVar(Var, No)]: array ( range of `boolean` (Unevaluated(PackageId(0), BodyId(8)) .. Expr(Unevaluated(PackageId(0), BodyId(9)), Yes)), ) of int
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 207..209): mismatched types
-| note for (FileId(1), 210..211): this is of type `array 3 .. 4 of int`
-| note for (FileId(1), 205..206): this is of type `array 1 .. 2 of int`
+error at src/main.t:207..209: mismatched types
+| note for src/main.t:210..211: this is of type `array 3 .. 4 of int`
+| note for src/main.t:205..206: this is of type `array 1 .. 2 of int`
 | info: `array 3 .. 4 of int` is not assignable into `array 1 .. 2 of int`
-error at (FileId(1), 371..373): mismatched types
-| note for (FileId(1), 374..375): this is of type `array false .. false of int`
-| note for (FileId(1), 369..370): this is of type `array 0 .. 0 of int`
+error at src/main.t:371..373: mismatched types
+| note for src/main.t:374..375: this is of type `array false .. false of int`
+| note for src/main.t:369..370: this is of type `array 0 .. 0 of int`
 | info: `array false .. false of int` is not assignable into `array 0 .. 0 of int`
