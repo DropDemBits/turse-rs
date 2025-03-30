@@ -1,11 +1,15 @@
 //! Constructed messages
 
-use std::collections::BTreeSet;
-use std::fmt;
+use std::fmt::{self, Display};
+use std::{collections::BTreeSet, marker::PhantomData};
 
 use toc_span::Span;
 
-use crate::{AnnotateKind, Annotation, FileRange, Location, SourceAnnotation};
+use crate::WithDisplayLocations;
+use crate::{
+    AnnotateKind, Annotation, DisplayLocation, FileRange, Location, SourceAnnotation,
+    display::DisplayWithLocations, display::FileRangeDisplay, display::SpanDisplay,
+};
 
 /// A bundle of messages
 ///
@@ -188,17 +192,21 @@ impl<L: Location> ReportMessage<L> {
     }
 }
 
-impl<L: Location> fmt::Display for ReportMessage<L> {
+impl_with_display_locations!(ReportMessage);
+
+impl<M: DisplayLocation<L>, L: Location> fmt::Display
+    for DisplayWithLocations<&'_ ReportMessage<L>, M, L>
+{
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.header)?;
+        write!(f, "{}", self.item.header.display_spans(&self.mapper))?;
 
         // Report any annotations
-        for annotation in &self.annotations {
-            write!(f, "\n| {annotation:#}")?;
+        for annotation in &self.item.annotations {
+            write!(f, "\n| {:#}", annotation.display_spans(&self.mapper))?;
         }
 
         // Report any footer messages
-        for annotation in &self.footer {
+        for annotation in &self.item.footer {
             write!(f, "\n| {annotation:#}")?;
         }
 

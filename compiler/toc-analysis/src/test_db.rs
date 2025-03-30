@@ -48,4 +48,19 @@ impl TestDb {
 
         (db, package)
     }
+
+    pub(crate) fn span_to_location(&self, span: toc_span::Span) -> String {
+        span.into_parts().map_or_else(
+            || String::from("<unknown>:0..0"),
+            |(file, range)| {
+                let file = file.into_raw().raw_path(self).to_string();
+                let (start, end) = (u32::from(range.start()), u32::from(range.end()));
+                format!("{file}:{start}..{end}")
+            },
+        )
+    }
+
+    pub(crate) fn location_display(&self) -> impl toc_reporting::DisplayLocation<toc_span::Span> {
+        toc_reporting::FnDisplay::new(|loc| self.span_to_location(*loc))
+    }
 }

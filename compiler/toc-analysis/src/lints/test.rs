@@ -1,7 +1,7 @@
 //! Tests for all of the lints
 // ???: Should this just be a load of file tests, since we never make a structure?
 
-use toc_reporting::MessageBundle;
+use toc_reporting::{MessageBundle, WithDisplayLocations};
 
 use crate::{db::HirAnalysis, test_db::TestDb, ty};
 
@@ -17,17 +17,17 @@ fn do_lint(source: &str) -> String {
     let res = db.lint_package(pkg);
     res.messages().assert_no_delayed_reports();
 
-    stringify_lint_results(res.messages())
+    stringify_lint_results(&db, res.messages())
 }
 
-fn stringify_lint_results(messages: &MessageBundle) -> String {
+fn stringify_lint_results(db: &TestDb, messages: &MessageBundle) -> String {
     use std::fmt::Write;
 
     let mut s = String::new();
 
     // Pretty print the messages
     for err in messages.iter() {
-        write!(&mut s, "\n{err}").unwrap();
+        write!(&mut s, "\n{}", err.display_spans(db.location_display())).unwrap();
     }
 
     s
