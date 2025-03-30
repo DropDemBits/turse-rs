@@ -1,9 +1,10 @@
+use toc_paths::RawPath;
 use toc_span::FileId;
 
 use crate::{ArtifactKind, DependencyList, Package, RootPackages};
 
 #[derive(Default)]
-#[salsa::db(crate::Jar)]
+#[salsa::db(crate::Jar, toc_paths::Jar)]
 struct TestDb {
     storage: salsa::Storage<Self>,
 }
@@ -14,11 +15,16 @@ impl salsa::Database for TestDb {}
 fn no_dedup_source_roots() {
     let db = &mut TestDb::default();
     let roots = vec![
-        FileId::dummy(3),
-        FileId::dummy(2),
-        FileId::dummy(2),
-        FileId::dummy(1),
+        FileId::from(RawPath::new(db, "a".into())),
+        FileId::from(RawPath::new(db, "b".into())),
+        FileId::from(RawPath::new(db, "b".into())),
+        FileId::from(RawPath::new(db, "c".into())),
     ];
+    let expected_roots = {
+        let mut roots = roots.clone();
+        roots.reverse();
+        roots
+    };
     let roots = roots
         .into_iter()
         .map(|root| {
@@ -44,12 +50,7 @@ fn no_dedup_source_roots() {
             .iter()
             .map(|pkg| pkg.root(db).into())
             .collect::<Vec<FileId>>(),
-        vec![
-            FileId::dummy(3),
-            FileId::dummy(2),
-            FileId::dummy(2),
-            FileId::dummy(1),
-        ]
+        expected_roots
     );
 }
 

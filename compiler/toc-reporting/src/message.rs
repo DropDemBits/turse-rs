@@ -5,7 +5,7 @@ use std::fmt;
 
 use toc_span::Span;
 
-use crate::{AnnotateKind, Annotation, Location, SourceAnnotation};
+use crate::{AnnotateKind, Annotation, FileRange, Location, SourceAnnotation};
 
 /// A bundle of messages
 ///
@@ -385,13 +385,10 @@ mod tests {
     #[test]
     #[should_panic]
     fn assert_no_delayed_reports() {
-        let mut reporter = MessageSink::default();
+        let mut reporter = MessageSink::<FileRange>::default();
 
         reporter
-            .error_detailed(
-                "oops",
-                Span::new(toc_span::FileId::dummy(1), Default::default()),
-            )
+            .error_detailed("oops", Default::default())
             .report_delayed()
             .finish();
 
