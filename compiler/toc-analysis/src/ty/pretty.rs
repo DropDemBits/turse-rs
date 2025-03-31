@@ -121,7 +121,7 @@ fn emit_debug_ty(
                 for variant in variants {
                     let def_info = package.local_def(variant.1);
                     let name = def_info.name;
-                    let span = def_info.def_at.lookup_in(&package);
+                    let span = def_info.def_at;
 
                     write!(out, "{name:?}@{span:?}, ")?;
                 }
