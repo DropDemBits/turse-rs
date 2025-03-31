@@ -8,7 +8,7 @@ use toc_hir::{
     stmt,
 };
 use toc_paths::RawPath;
-use toc_reporting::CompileResult;
+use toc_reporting::{CompileResult, WithDisplayLocations};
 use toc_source_graph::RootPackages;
 use toc_span::FileId;
 use toc_vfs_db::VfsDbExt;
@@ -67,9 +67,20 @@ fn do_lower(src: &str) -> (String, LowerResult) {
 
     let lowered = toc_hir_lowering::lower_package(db, package);
 
-    let mut s = toc_hir_pretty::tree::pretty_print_tree(lowered.result());
+    let mut s = toc_hir_pretty::tree::pretty_print_tree(db, lowered.result());
+    let mapper = &toc_reporting::FnDisplay::new(|span: &toc_span::Span| -> String {
+        span.into_parts().map_or_else(
+            || String::from("<unknown>:0..0"),
+            |(file, range)| {
+                let file = file.into_raw().raw_path(db).to_string();
+                let (start, end) = (u32::from(range.start()), u32::from(range.end()));
+                format!("{file}:{start}..{end}")
+            },
+        )
+    });
+
     for err in lowered.messages().iter() {
-        writeln!(&mut s, "{err}").unwrap();
+        writeln!(&mut s, "{}", err.display_spans(mapper)).unwrap();
     }
 
     (

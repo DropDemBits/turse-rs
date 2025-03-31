@@ -78,7 +78,10 @@ fn main() {
                     let file = package.root(&db);
                     println!(
                         "{file:?}: {tree}",
-                        tree = toc_hir_pretty::tree::pretty_print_tree(&db.package(package.into()))
+                        tree = toc_hir_pretty::tree::pretty_print_tree(
+                            &db,
+                            &db.package(package.into())
+                        )
                     );
                 }
             }
