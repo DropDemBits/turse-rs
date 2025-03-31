@@ -20,11 +20,7 @@ fn no_dedup_source_roots() {
         FileId::from(RawPath::new(db, "b".into())),
         FileId::from(RawPath::new(db, "c".into())),
     ];
-    let expected_roots = {
-        let mut roots = roots.clone();
-        roots.reverse();
-        roots
-    };
+    let expected_roots = roots.clone();
     let roots = roots
         .into_iter()
         .map(|root| {
@@ -42,16 +38,16 @@ fn no_dedup_source_roots() {
     RootPackages::new(db, roots);
 
     // Don't dedup roots, since they're different packages
-    assert_eq!(
-        crate::source_graph(db)
-            .as_ref()
-            .unwrap()
-            .all_packages(db)
-            .iter()
-            .map(|pkg| pkg.root(db).into())
-            .collect::<Vec<FileId>>(),
-        expected_roots
-    );
+    let mut actual_roots: Vec<FileId> = crate::source_graph(db)
+        .as_ref()
+        .unwrap()
+        .all_packages(db)
+        .iter()
+        .map(|pkg| pkg.root(db).into())
+        .collect();
+    actual_roots.sort_by(|a, b| a.into_raw().raw_path(db).cmp(b.into_raw().raw_path(db)));
+
+    assert_eq!(actual_roots, expected_roots);
 }
 
 // FIXME: add test for dep exploring
