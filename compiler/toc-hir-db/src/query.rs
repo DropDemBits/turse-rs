@@ -19,7 +19,7 @@ use crate::{Db, db::InsideModule};
 /// Get the package associated with the given id
 #[salsa::tracked]
 pub fn hir_package(db: &dyn Db, package: SourcePackage) -> LoweredPackage {
-    toc_hir_lowering::lower_package(db.up(), package)
+    toc_hir_lowering::lower_package(db, package)
         .result()
         .clone()
 }

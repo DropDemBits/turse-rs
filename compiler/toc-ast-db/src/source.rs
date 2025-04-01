@@ -6,6 +6,7 @@ use std::{
 };
 
 use toc_parser::ExternalLinks;
+use toc_paths::RawPath;
 use toc_reporting::CompileResult;
 use toc_span::{FileId, Span};
 use toc_vfs_db::SourceFile;
@@ -13,45 +14,42 @@ use toc_vfs_db::SourceFile;
 use crate::Db;
 
 /// What other files a given file refers to
-#[salsa::tracked]
-pub fn file_links(db: &dyn Db, source: SourceFile) -> Arc<toc_parser::ExternalLinks> {
+#[salsa::tracked(return_ref)]
+pub fn file_links<'db>(db: &'db dyn Db, source: SourceFile) -> toc_parser::ExternalLinks {
     let mut links = ExternalLinks::default();
     let deps = crate::parse_depends(db, source);
     for dep in deps.result().dependencies() {
         // Get the target file
-        let child =
-            toc_vfs_db::resolve_path(db.up(), source.path(db.up()), dep.relative_path.clone());
+        let child = toc_vfs_db::resolve_path(db, source.path(db), dep.relative_path.clone());
+        let child = RawPath::new(db, child);
 
         links.bind(dep.link_from.clone(), child.into());
     }
 
-    Arc::new(links)
+    links
 }
 
 /// Parses the given file
-#[salsa::tracked]
+#[salsa::tracked(return_ref)]
 pub fn parse_file(db: &dyn Db, source: SourceFile) -> CompileResult<toc_parser::ParseTree> {
     // FIXME: If a load error is present, then add it to the parse result / create a new one
-    let file_id: FileId = source.path(db.up()).into();
-    toc_parser::parse(source.contents(db.up())).remap_spans(|range| Span::new(file_id, range.0))
+    let file_id: FileId = RawPath::new(db, source.path(db)).into();
+    toc_parser::parse(source.contents(db)).remap_spans(|range| Span::new(file_id, range.0))
 }
 
 /// Validates the file according to grammar validation rules
 #[salsa::tracked]
 pub fn validate_file(db: &dyn Db, source: SourceFile) -> CompileResult<()> {
-    let file_id: FileId = source.path(db.up()).into();
+    let file_id: FileId = RawPath::new(db, source.path(db)).into();
     let cst = crate::parse_file(db, source);
     toc_validate::validate_ast(cst.result().syntax())
         .remap_spans(|range| Span::new(file_id, range.0))
 }
 
 /// Parse out the dependencies of a file
-#[salsa::tracked]
-pub fn parse_depends(
-    db: &dyn Db,
-    source: SourceFile,
-) -> CompileResult<Arc<toc_parser::FileDepends>> {
-    let file_id: FileId = source.path(db.up()).into();
+#[salsa::tracked(return_ref)]
+pub fn parse_depends(db: &dyn Db, source: SourceFile) -> CompileResult<toc_parser::FileDepends> {
+    let file_id: FileId = RawPath::new(db, source.path(db)).into();
     let cst = crate::parse_file(db, source);
     toc_parser::parse_depends(cst.result().syntax())
         .remap_spans(|range| Span::new(file_id, range.0))
@@ -86,7 +84,7 @@ pub fn reachable_files(db: &dyn Db, root: SourceFile) -> Arc<BTreeSet<SourceFile
         pending_queue.extend(
             crate::file_links(db, current_file)
                 .all_links()
-                .map(|path| toc_vfs_db::source_of(db.up(), path.into_raw())),
+                .map(|path| toc_vfs_db::source_of(db, path.into_raw().raw_path(db))),
         );
     }
 
@@ -114,7 +112,7 @@ pub fn reachable_imported_files(db: &dyn Db, root: SourceFile) -> Arc<BTreeSet<S
         pending_queue.extend(
             crate::file_links(db, current_file)
                 .import_links()
-                .map(|path| toc_vfs_db::source_of(db.up(), path.into_raw())),
+                .map(|path| toc_vfs_db::source_of(db, path.into_raw().raw_path(db))),
         );
     }
 

@@ -7,8 +7,8 @@ use toc_analysis::db::HirAnalysis;
 use toc_hir::package_graph::{DependencyList, SourcePackage};
 use toc_paths::RawPath;
 use toc_source_graph::RootPackages;
-use toc_span::{FileId, Span};
-use toc_vfs_db::{SourceTable, VfsBridge};
+use toc_span::Span;
+use toc_vfs_db::{SourceFile, SourceTable, VfsBridge};
 
 mod config;
 
@@ -32,7 +32,7 @@ fn main() {
     let db = MainDatabase::default();
 
     // Add the root path to the db
-    let root_file = RawPath::new(&db, path.into());
+    let root_file = RawPath::new(&db, path.to_owned());
 
     // Set the source root
     let package_id = SourcePackage::new(
@@ -49,7 +49,7 @@ fn main() {
         match dump_mode {
             config::DumpMode::Ast => {
                 // Show CST + dependencies for the current file
-                let source = toc_vfs_db::source_of(&db, root_file);
+                let source = toc_vfs_db::source_of(&db, root_file.raw_path(&db));
                 let parsed = toc_ast_db::parse_file(&db, source);
                 let tree = parsed.result();
                 let dependencies = toc_ast_db::parse_depends(&db, source);
@@ -127,11 +127,12 @@ fn emit_message(db: &MainDatabase, cache: &mut VfsCache, msg: &toc_reporting::Re
 
     fn mk_span(db: &MainDatabase, span: Span) -> Option<ReportSpan> {
         let (file, range) = span.into_parts()?;
+        let file = toc_vfs_db::source_of(db, file.into_raw().raw_path(db));
         let start: usize = range.start().into();
         let end: usize = range.end().into();
 
-        let start = toc_ast_db::map_byte_index_to_character(db, file.into_raw(), start).unwrap();
-        let end = toc_ast_db::map_byte_index_to_character(db, file.into_raw(), end).unwrap();
+        let start = toc_ast_db::map_byte_index_to_character(db, file, start).unwrap();
+        let end = toc_ast_db::map_byte_index_to_character(db, file, end).unwrap();
 
         Some(ReportSpan(file, start..end))
     }
@@ -191,10 +192,10 @@ fn emit_message(db: &MainDatabase, cache: &mut VfsCache, msg: &toc_reporting::Re
     builder.finish().eprint(cache).unwrap();
 }
 
-struct ReportSpan(FileId, Range<usize>);
+struct ReportSpan(SourceFile, Range<usize>);
 
 impl ariadne::Span for ReportSpan {
-    type SourceId = FileId;
+    type SourceId = SourceFile;
 
     fn source(&self) -> &Self::SourceId {
         &self.0
@@ -211,7 +212,7 @@ impl ariadne::Span for ReportSpan {
 
 struct VfsCache<'db> {
     db: &'db MainDatabase,
-    sources: HashMap<FileId, ariadne::Source>,
+    sources: HashMap<SourceFile, ariadne::Source>,
 }
 
 impl<'db> VfsCache<'db> {
@@ -223,57 +224,47 @@ impl<'db> VfsCache<'db> {
     }
 }
 
-impl ariadne::Cache<FileId> for VfsCache<'_> {
+impl ariadne::Cache<SourceFile> for VfsCache<'_> {
     type Storage = String;
 
-    fn fetch(&mut self, id: &FileId) -> Result<&ariadne::Source, Box<dyn std::fmt::Debug + '_>> {
+    fn fetch(
+        &mut self,
+        source: &SourceFile,
+    ) -> Result<&ariadne::Source, Box<dyn std::fmt::Debug + '_>> {
         use std::collections::hash_map::Entry;
 
-        Ok(match self.sources.entry(*id) {
+        Ok(match self.sources.entry(*source) {
             Entry::Occupied(entry) => entry.into_mut(),
             Entry::Vacant(entry) => {
-                let source = toc_vfs_db::source_of(self.db, id.into_raw());
                 let value = ariadne::Source::from(source.contents(self.db).to_owned());
                 entry.insert(value)
             }
         })
     }
 
-    fn display<'a>(&self, id: &'a FileId) -> Option<Box<dyn std::fmt::Display + 'a>> {
-        Some(Box::new(id.into_raw().raw_path(self.db).clone()))
+    fn display<'a>(&self, id: &'a SourceFile) -> Option<Box<dyn std::fmt::Display + 'a>> {
+        Some(Box::new(id.path(self.db).clone()))
     }
 }
 
-#[salsa::db(
-    toc_paths::Jar,
-    toc_vfs_db::Jar,
-    toc_source_graph::Jar,
-    toc_ast_db::Jar,
-    // old hir
-    toc_hir_lowering::Jar,
-    toc_hir_db::Jar,
-    // new hir
-    toc_hir::DefJar,
-    toc_hir::ExpandJar,
-    toc_analysis::TypeJar,
-    toc_analysis::ConstEvalJar,
-    toc_analysis::AnalysisJar
-)]
-#[derive(Default)]
+#[salsa::db]
+#[derive(Default, Clone)]
 struct MainDatabase {
     storage: salsa::Storage<Self>,
     source_table: SourceTable,
 }
 
-impl salsa::Database for MainDatabase {}
+impl salsa::Database for MainDatabase {
+    fn salsa_event(&self, _event: &dyn Fn() -> salsa::Event) {}
+}
 
 impl VfsBridge for MainDatabase {
     fn source_table(&self) -> &SourceTable {
         &self.source_table
     }
 
-    fn load_new_file(&self, path: toc_paths::RawPath) -> (String, Option<toc_vfs::LoadError>) {
-        match fs::read(path.raw_path(self).as_path()) {
+    fn load_new_file(&self, path: &Utf8Path) -> (String, Option<toc_vfs::LoadError>) {
+        match fs::read(path.as_std_path()) {
             Ok(contents) => (String::from_utf8_lossy(&contents).into_owned(), None),
             Err(err) => match err.kind() {
                 std::io::ErrorKind::NotFound => (

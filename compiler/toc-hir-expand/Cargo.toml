@@ -17,5 +17,6 @@ toc-vfs-db = { workspace = true }
 toc-ast-db = { workspace = true }
 rustc-hash.workspace = true
 
+indexmap.workspace = true
 salsa = { workspace = true }
 upcast = { workspace = true }

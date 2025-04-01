@@ -1,20 +1,20 @@
 //! Constructed messages
 
-use std::fmt::{self, Display};
-use std::{collections::BTreeSet, marker::PhantomData};
+use std::collections::BTreeSet;
+use std::fmt::{self};
 
 use toc_span::Span;
 
 use crate::WithDisplayLocations;
 use crate::{
-    AnnotateKind, Annotation, DisplayLocation, FileRange, Location, SourceAnnotation,
-    display::DisplayWithLocations, display::FileRangeDisplay, display::SpanDisplay,
+    AnnotateKind, Annotation, DisplayLocation, Location, SourceAnnotation,
+    display::DisplayWithLocations,
 };
 
 /// A bundle of messages
 ///
 /// Messages are already sorted by file, then by starting location
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, salsa::Update)]
 pub struct MessageBundle<L: Location = Span> {
     pub(crate) messages: Vec<ReportMessage<L>>,
 }
@@ -144,7 +144,7 @@ impl<L: Location> Default for MessageBundle<L> {
 }
 
 /// A reported message
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, salsa::Update)]
 pub struct ReportMessage<L: Location = Span> {
     pub(crate) header: SourceAnnotation<L>,
     pub(crate) annotations: Vec<SourceAnnotation<L>>,

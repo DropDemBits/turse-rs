@@ -1,29 +1,25 @@
-use salsa::DebugWithDb;
+use std::sync::{Arc, Mutex};
+
+use camino::Utf8PathBuf;
+use salsa::Database;
 use toc_paths::RawPath;
 use toc_source_graph::{ArtifactKind, DependencyList, Package, RootPackages};
 use toc_vfs_db::{SourceTable, VfsBridge, VfsDbExt};
 
-#[salsa::db(
-    toc_paths::Jar,
-    toc_vfs_db::Jar,
-    toc_source_graph::Jar,
-    toc_ast_db::Jar,
-    toc_hir_expand::Jar,
-    crate::Jar
-)]
-#[derive(Default)]
+#[salsa::db]
+#[derive(Default, Clone)]
 struct TestDb {
     storage: salsa::Storage<Self>,
     source_table: SourceTable,
 
-    logger: std::sync::Mutex<Option<Vec<salsa::Event>>>,
+    logger: Arc<Mutex<Option<Vec<salsa::Event>>>>,
 }
 
 impl salsa::Database for TestDb {
-    fn salsa_event(&self, event: salsa::Event) {
+    fn salsa_event(&self, event: &dyn Fn() -> salsa::Event) {
         let mut events = self.logger.lock().unwrap();
         if let Some(events) = &mut *events {
-            events.push(event);
+            events.push(event());
         }
     }
 }
@@ -40,7 +36,7 @@ impl TestDb {
         let fixture = toc_vfs::generate_vfs(source).unwrap();
         db.insert_fixture(fixture);
 
-        let root_file = RawPath::new(&db, "src/main.t".into());
+        let root_file = RawPath::new(&db, Utf8PathBuf::from("src/main.t"));
         let package = Package::new(
             &db,
             "main".into(),
@@ -54,57 +50,53 @@ impl TestDb {
     }
 
     #[allow(unused)]
-    fn log_output<R>(&self, f: impl FnOnce() -> R) -> (Vec<String>, R) {
+    fn log_output<R>(&self, f: impl FnOnce(&Self) -> R) -> (R, Vec<String>) {
         self.logger.lock().unwrap().replace(vec![]);
-        let res = f();
-        let events = self.logger.lock().unwrap().take().unwrap();
-
-        (format_events(self, events), res)
+        self.attach(|db| {
+            let res = f(db);
+            let events = self.logger.lock().unwrap().take().unwrap();
+            (res, format_events(self, events))
+        })
     }
 }
 
-fn format_events(db: &TestDb, events: Vec<salsa::Event>) -> Vec<String> {
+fn format_events(_db: &TestDb, events: Vec<salsa::Event>) -> Vec<String> {
     events
         .into_iter()
         .filter_map(|event| {
             let text = match event.kind {
                 salsa::EventKind::WillCheckCancellation => return None,
                 salsa::EventKind::DidValidateMemoizedValue { database_key } => {
-                    format!("validate {:?}", database_key.debug(db))
+                    format!("validate {:?}", database_key)
                 }
                 salsa::EventKind::WillBlockOn {
-                    other_runtime_id,
+                    other_thread_id,
                     database_key,
-                } => format!(
-                    "block_on {:?} {:?}",
-                    other_runtime_id,
-                    database_key.debug(db)
-                ),
+                } => format!("block_on {:?} {:?}", other_thread_id, database_key),
                 salsa::EventKind::WillExecute { database_key } => {
-                    format!("exec {:?}", database_key.debug(db))
+                    format!("exec {:?}", database_key)
                 }
                 salsa::EventKind::WillDiscardStaleOutput {
                     execute_key,
                     output_key,
-                } => format!(
-                    "discard_output {:?} {:?}",
-                    execute_key.debug(db),
-                    output_key.debug(db)
-                ),
+                } => format!("discard_output {:?} {:?}", execute_key, output_key),
                 salsa::EventKind::DidDiscard { key } => {
-                    format!("discard_struct {:?}", key.debug(db))
+                    format!("discard_struct {:?}", key)
                 }
                 salsa::EventKind::DidDiscardAccumulated {
                     executor_key,
                     accumulator,
-                } => format!(
-                    "discard_accum {:?} {:?}",
-                    executor_key.debug(db),
-                    accumulator.debug(db)
-                ),
+                } => format!("discard_accum {:?} {:?}", executor_key, accumulator),
+                salsa::EventKind::DidSetCancellationFlag => format!("cancel requested"),
+                salsa::EventKind::DidInternValue { id, revision } => {
+                    format!("interned {id:?} {revision:?}")
+                }
+                salsa::EventKind::DidReinternValue { id, revision } => {
+                    format!("reinterned {id:?} {revision:?}")
+                }
             };
 
-            Some(format!("{:?} -> {text}", event.runtime_id))
+            Some(format!("{:?} -> {text}", event.thread_id))
         })
         .collect()
 }

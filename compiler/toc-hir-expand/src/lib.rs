@@ -26,47 +26,16 @@ use toc_syntax::{
     ast::{self, AstNode},
 };
 use toc_vfs_db::SourceFile;
-use upcast::{Upcast, UpcastFrom};
 
-pub trait Db:
-    salsa::DbWithJar<Jar>
-    + toc_ast_db::Db
-    + toc_source_graph::Db
-    + Upcast<dyn toc_ast_db::Db>
-    + Upcast<dyn toc_source_graph::Db>
-{
-}
+#[salsa::db]
+pub trait Db: toc_ast_db::Db + toc_source_graph::Db {}
 
-impl<DB> Db for DB where
-    DB: salsa::DbWithJar<Jar>
-        + toc_ast_db::Db
-        + toc_source_graph::Db
-        + Upcast<dyn toc_ast_db::Db>
-        + Upcast<dyn toc_source_graph::Db>
-{
-}
-
-impl<'db, DB: Db + 'db> UpcastFrom<DB> for dyn Db + 'db {
-    fn up_from(value: &DB) -> &Self {
-        value
-    }
-    fn up_from_mut(value: &mut DB) -> &mut Self {
-        value
-    }
-}
-
-#[salsa::jar(db = Db)]
-pub struct Jar(
-    all_files,
-    ErasedSemanticLoc,
-    PackageFile,
-    SemanticFile,
-    SemanticFile_ast_locations,
-);
+#[salsa::db]
+impl<DB> Db for DB where DB: toc_ast_db::Db + toc_source_graph::Db {}
 
 /// An untyped reference to a location in a [`SemanticFile`]
-#[salsa::tracked]
-pub struct ErasedSemanticLoc {
+#[salsa::tracked(debug)]
+pub struct ErasedSemanticLoc<'db> {
     // Note: in order to keep consistency with the visibilities while also
     // allowing external access to the semantic file (as salsa generates the
     // getter visibility to match with the visibility of the field), this field
@@ -76,9 +45,9 @@ pub struct ErasedSemanticLoc {
     pub(crate) ptr: SyntaxNodePtr,
 }
 
-impl ErasedSemanticLoc {
+impl<'db> ErasedSemanticLoc<'db> {
     /// Yields the underlying syntax node at this location.
-    pub fn to_node(self, db: &dyn Db) -> toc_syntax::SyntaxNode {
+    pub fn to_node(self, db: &'db dyn Db) -> toc_syntax::SyntaxNode {
         let ast = self.file(db).ast(db);
         self.ptr(db).to_node(&ast)
     }
@@ -90,23 +59,23 @@ impl ErasedSemanticLoc {
 }
 
 /// A semi-stable reference to an AST node in a semantic file
-#[derive(Debug, PartialEq, Eq, Hash)]
-pub struct SemanticLoc<T: AstNode> {
-    loc: ErasedSemanticLoc,
+#[derive(Debug, PartialEq, Eq, Hash, salsa::Update)]
+pub struct SemanticLoc<'db, T: AstNode> {
+    loc: ErasedSemanticLoc<'db>,
     // `to_node` is what yields the actual AST node, rather than a `SemanticLoc`
     // owning the AST node. This also allows `SemanticLoc` to be `Send + Sync`.
     _node: PhantomData<fn() -> T>,
 }
 
-impl<T: AstNode> Clone for SemanticLoc<T> {
+impl<T: AstNode> Clone for SemanticLoc<'_, T> {
     fn clone(&self) -> Self {
         *self
     }
 }
 
-impl<T: AstNode> Copy for SemanticLoc<T> {}
+impl<T: AstNode> Copy for SemanticLoc<'_, T> {}
 
-impl<T: AstNode<Language = toc_syntax::Lang>> SemanticLoc<T> {
+impl<'db, T: AstNode<Language = toc_syntax::Lang>> SemanticLoc<'db, T> {
     /// Yields the underlying AST node at this location.
     pub fn to_node(self, db: &dyn Db) -> T {
         let node = self.loc.to_node(db);
@@ -114,7 +83,7 @@ impl<T: AstNode<Language = toc_syntax::Lang>> SemanticLoc<T> {
     }
 
     /// Gets which [`SemanticFile`] this location comes from
-    pub fn file(self, db: &dyn Db) -> SemanticFile {
+    pub fn file(self, db: &'db dyn Db) -> SemanticFile {
         self.loc.file(db)
     }
 
@@ -122,7 +91,7 @@ impl<T: AstNode<Language = toc_syntax::Lang>> SemanticLoc<T> {
     ///
     /// Primarily used so that maps can use `SemanticLocs` as a key,
     /// without having to worry about matching the exact node type.
-    pub fn into_erased(self) -> ErasedSemanticLoc {
+    pub fn into_erased(self) -> ErasedSemanticLoc<'db> {
         self.loc
     }
 
@@ -131,9 +100,9 @@ impl<T: AstNode<Language = toc_syntax::Lang>> SemanticLoc<T> {
     /// `U`'s node must have a corresponding semantic location in the file
     pub fn map<U: AstNode<Language = toc_syntax::Lang>>(
         self,
-        db: &dyn Db,
+        db: &'db dyn Db,
         f: impl FnOnce(T) -> U,
-    ) -> SemanticLoc<U> {
+    ) -> SemanticLoc<'db, U> {
         let t = self.to_node(db);
         let u = f(t);
         self.file(db).ast_locations(db).get(&u)
@@ -144,9 +113,9 @@ impl<T: AstNode<Language = toc_syntax::Lang>> SemanticLoc<T> {
     /// `U`'s node must have a corresponding semantic location in the file
     pub fn try_map<U: AstNode<Language = toc_syntax::Lang>>(
         self,
-        db: &dyn Db,
+        db: &'db dyn Db,
         f: impl FnOnce(T) -> Option<U>,
-    ) -> Option<SemanticLoc<U>> {
+    ) -> Option<SemanticLoc<'db, U>> {
         let t = self.to_node(db);
         let u = f(t)?;
         Some(self.file(db).ast_locations(db).get(&u))
@@ -158,7 +127,7 @@ impl<T: AstNode<Language = toc_syntax::Lang>> SemanticLoc<T> {
     /// but this comes with the caveat that this location is unstable
     pub fn map_unstable<U: AstNode<Language = toc_syntax::Lang>>(
         self,
-        db: &dyn Db,
+        db: &'db dyn Db,
         f: impl FnOnce(T) -> U,
     ) -> UnstableSemanticLoc<U> {
         let t = self.to_node(db);
@@ -168,7 +137,7 @@ impl<T: AstNode<Language = toc_syntax::Lang>> SemanticLoc<T> {
 
     /// Equivalent to `Into<SemanticLoc<U>> for SemanticLoc<T>`, since
     /// actually implementing the trait resulting in overlapping implementations.
-    pub fn into<U: AstNode<Language = toc_syntax::Lang> + From<T>>(self) -> SemanticLoc<U> {
+    pub fn into<U: AstNode<Language = toc_syntax::Lang> + From<T>>(self) -> SemanticLoc<'db, U> {
         SemanticLoc::from(self)
     }
 
@@ -191,7 +160,7 @@ impl<T: AstNode<Language = toc_syntax::Lang>> SemanticLoc<T> {
 ///
 /// Can refer to any node, but must be referred to stabily
 /// by another node.
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash, salsa::Update)]
 pub struct UnstableSemanticLoc<T: AstNode> {
     file: SemanticFile,
     ptr: SyntaxNodePtr,
@@ -269,7 +238,7 @@ pub struct SemanticNodePtr {
     ptr: SyntaxNodePtr,
 }
 
-impl<T: AstNode> From<UnstableSemanticLoc<T>> for SemanticNodePtr {
+impl<'db, T: AstNode> From<UnstableSemanticLoc<T>> for SemanticNodePtr {
     fn from(value: UnstableSemanticLoc<T>) -> Self {
         Self {
             file: value.file,
@@ -286,7 +255,7 @@ impl<T: AstNode> From<UnstableSemanticLoc<T>> for SemanticNodePtr {
 //
 // Why interned? Since we want to go from any SourceFile -> SemanticFile
 //
-#[salsa::interned]
+#[salsa::interned(debug, no_lifetime)]
 pub struct SemanticFile {
     pub origin: SemanticSource,
 }
@@ -301,17 +270,17 @@ impl SemanticFile {
 }
 
 impl IntoAst for SemanticFile {
-    type Db<'db> = dyn Db + 'db;
-    fn ast(self, db: &Self::Db<'_>) -> SyntaxNode {
+    type Db = dyn Db;
+    fn ast(self, db: &Self::Db) -> SyntaxNode {
         match self.origin(db) {
-            SemanticSource::PackageFile(file) => toc_ast_db::parse_file(db.up(), file.source(db))
+            SemanticSource::PackageFile(file) => toc_ast_db::parse_file(db, file.source(db))
                 .result()
                 .syntax(),
         }
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, salsa::Update)]
 pub enum SemanticSource {
     PackageFile(PackageFile),
 }
@@ -321,7 +290,7 @@ pub enum SemanticSource {
 /// Typically, a [`SourceFile`] tends to be part of one package only.
 /// However, including a single source file from multiple packages results in the source file
 /// being shared by multiple packages.
-#[salsa::interned]
+#[salsa::interned(debug, no_lifetime)]
 pub struct PackageFile {
     pub package: Package,
     pub source: SourceFile,
@@ -330,8 +299,8 @@ pub struct PackageFile {
 /// All files that are part of a specific package
 #[salsa::tracked(return_ref)]
 pub fn all_files(db: &dyn Db, package: Package) -> BTreeMap<SourceFile, PackageFile> {
-    let source = toc_vfs_db::source_of(db.up(), package.root(db.up()));
-    let mut files = (*toc_ast_db::reachable_files(db.up(), source)).clone();
+    let source = toc_vfs_db::source_of(db, package.root(db).raw_path(db));
+    let mut files = (*toc_ast_db::reachable_files(db, source)).clone();
     // `reachable_files` right now excludes the root from the reachable files list
     files.insert(source);
 
@@ -341,14 +310,28 @@ pub fn all_files(db: &dyn Db, package: Package) -> BTreeMap<SourceFile, PackageF
         .collect::<BTreeMap<_, _>>()
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct AstLocations {
-    to_locations: rustc_hash::FxHashMap<SyntaxNodePtr, ErasedSemanticLoc>,
+#[derive(Debug, Clone, PartialEq, Eq, salsa::Update)]
+pub struct AstLocations<'db> {
+    // NOTE:
+    // Any field additions/removals must also update the corresponding
+    // salsa::Update impl, at least until the newer Update derive gets merged.
+    // Ideally we'd be using the derive, but SyntaxNodePtr
+    to_locations: rustc_hash::FxHashMap<NodePtrWrapper, ErasedSemanticLoc<'db>>,
 }
 
-impl AstLocations {
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, salsa::Update)]
+#[repr(transparent)]
+struct NodePtrWrapper(SyntaxNodePtr);
+
+impl std::borrow::Borrow<SyntaxNodePtr> for NodePtrWrapper {
+    fn borrow(&self) -> &SyntaxNodePtr {
+        &self.0
+    }
+}
+
+impl<'db> AstLocations<'db> {
     /// Looks up the node's stable location
-    pub fn get<N: AstNode<Language = toc_syntax::Lang>>(&self, node: &N) -> SemanticLoc<N> {
+    pub fn get<N: AstNode<Language = toc_syntax::Lang>>(&self, node: &N) -> SemanticLoc<'db, N> {
         let ptr = SyntaxNodePtr::new(node.syntax());
         let loc = *self
             .to_locations
@@ -363,9 +346,9 @@ impl AstLocations {
 }
 
 #[salsa::tracked]
-impl SemanticFile {
+impl<'db> SemanticFile {
     #[salsa::tracked(return_ref)]
-    pub fn ast_locations(self, db: &dyn Db) -> AstLocations {
+    pub fn ast_locations(self, db: &'db dyn Db) -> AstLocations<'db> {
         let root = self.ast(db);
         let mut locs = vec![];
 
@@ -389,7 +372,12 @@ impl SemanticFile {
 
         let to_locations = locs
             .into_iter()
-            .map(|ptr| (ptr.clone(), ErasedSemanticLoc::new(db, self, ptr)))
+            .map(|ptr| {
+                (
+                    NodePtrWrapper(ptr.clone()),
+                    ErasedSemanticLoc::new(db, self, ptr),
+                )
+            })
             .collect();
 
         AstLocations { to_locations }
@@ -428,9 +416,9 @@ fn topo_visit(node: &SyntaxNode, mut filter: impl FnMut(SyntaxNode) -> bool) {
 }
 
 /// Maps from the semantic entity back to the original ast node
-pub trait HasSource {
-    type Db<'db>: Db + ?Sized + 'db;
+pub trait HasSource<'db> {
+    type Db: Db + ?Sized;
     type Ast;
 
-    fn as_ast(&self, db: &Self::Db<'_>) -> Self::Ast;
+    fn as_ast(&self, db: &'db Self::Db) -> Self::Ast;
 }

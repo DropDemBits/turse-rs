@@ -463,7 +463,7 @@ pub use rowan::WalkEvent;
 
 pub const MIN_REF_BINDING_POWER: u8 = 19;
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum InfixOp {
     /// Addition / Set Union / String Concatenation (`+`)
     Add,
@@ -549,7 +549,7 @@ impl InfixOp {
     }
 }
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum PrefixOp {
     /// Binary/boolean negation operator (`not`)
     Not,

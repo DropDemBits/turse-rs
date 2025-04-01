@@ -6,7 +6,7 @@ use std::fmt;
 pub use text_size::{TextRange, TextSize};
 
 /// A unique file id
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, salsa::Update)]
 #[repr(transparent)]
 pub struct FileId(toc_paths::RawPath);
 
@@ -35,7 +35,7 @@ mod debug_hax {
     }
 }
 
-#[derive(Default, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Default, Clone, Copy, PartialEq, Eq, Hash, salsa::Update)]
 pub struct Span {
     file: Option<FileId>,
     range: TextRange,

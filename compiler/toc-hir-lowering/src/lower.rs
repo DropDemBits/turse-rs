@@ -37,6 +37,7 @@ use toc_hir::{
     stmt::{Stmt, StmtId, StmtKind},
     symbol::LocalDefId,
 };
+use toc_paths::RawPath;
 use toc_reporting::{CompileResult, MessageBundle, MessageSink};
 use toc_span::{Span, TextRange};
 use toc_syntax::ast::{self, AstNode};
@@ -54,11 +55,11 @@ pub fn lower_package(db: &dyn Db, package: SourcePackage) -> CompileResult<Lower
     let mut messages = MessageBundle::default();
 
     // take the package from the source graph
-    let package_root = package.root(db.up());
-    let root_source = toc_vfs_db::source_of(db.up(), package_root);
+    let package_root = package.root(db);
+    let root_source = toc_vfs_db::source_of(db, package_root.raw_path(db));
 
     // Report if the root file is missing
-    if let Some(err) = root_source.errors(db.up()) {
+    if let Some(err) = root_source.errors(db) {
         // Report the missing file
         // Note: we can't lookup the path directly because we don't
         // have access to the file info table from just a source file
@@ -83,7 +84,7 @@ pub fn lower_package(db: &dyn Db, package: SourcePackage) -> CompileResult<Lower
     //
     // for now though, this just replicates the old behavior
 
-    let reachable_files = toc_ast_db::reachable_imported_files(db.up(), root_source)
+    let reachable_files = toc_ast_db::reachable_imported_files(db, root_source)
         .iter()
         .copied()
         .chain(std::iter::once(root_source))
@@ -102,7 +103,7 @@ pub fn lower_package(db: &dyn Db, package: SourcePackage) -> CompileResult<Lower
             .lower_file()
             .take();
         messages = messages.combine(msgs);
-        root_items.push((file.path(db.up()).into(), item));
+        root_items.push((RawPath::new(db, file.path(db)).into(), item));
     }
 
     let package = package.freeze_root_items(root_items);
@@ -121,12 +122,9 @@ pub fn lower_package(db: &dyn Db, package: SourcePackage) -> CompileResult<Lower
 #[salsa::tracked]
 pub fn lower_source_graph(db: &dyn Db) -> CompileResult<()> {
     let mut messages = MessageBundle::default();
-    let source_graph = toc_source_graph::source_graph(db.up())
-        .as_ref()
-        .ok()
-        .unwrap();
+    let source_graph = toc_source_graph::source_graph(db).as_ref().ok().unwrap();
 
-    for &package in source_graph.all_packages(db.up()) {
+    for &package in source_graph.all_packages(db) {
         lower_package(db, package).bundle_messages(&mut messages);
     }
 
@@ -159,8 +157,8 @@ impl<'ctx> FileLowering<'ctx> {
 
     fn lower_file(self) -> CompileResult<item::ItemId> {
         // Parse & validate file
-        let parse_res = toc_ast_db::parse_file(self.db.up(), self.file);
-        let validate_res = toc_ast_db::validate_file(self.db.up(), self.file);
+        let parse_res = toc_ast_db::parse_file(self.db, self.file);
+        let validate_res = toc_ast_db::validate_file(self.db, self.file);
 
         // Enter the actual lowering
         let mut ctx = self;
@@ -304,7 +302,7 @@ impl<'ctx> FileLowering<'ctx> {
     }
 
     fn mk_span(&self, range: toc_span::TextRange) -> Span {
-        Span::new(self.file.path(self.db.up()).into(), range)
+        Span::new(RawPath::new(self.db, self.file.path(self.db)).into(), range)
     }
 
     fn intern_range(&mut self, range: toc_span::TextRange) -> SpanId {

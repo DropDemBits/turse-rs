@@ -1,24 +1,28 @@
+use camino::Utf8PathBuf;
 use toc_paths::RawPath;
 use toc_span::FileId;
 
 use crate::{ArtifactKind, DependencyList, Package, RootPackages};
 
-#[derive(Default)]
-#[salsa::db(crate::Jar, toc_paths::Jar)]
+#[derive(Default, Clone)]
+#[salsa::db]
 struct TestDb {
     storage: salsa::Storage<Self>,
 }
 
-impl salsa::Database for TestDb {}
+#[salsa::db]
+impl salsa::Database for TestDb {
+    fn salsa_event(&self, _event: &dyn Fn() -> salsa::Event) {}
+}
 
 #[test]
 fn no_dedup_source_roots() {
     let db = &mut TestDb::default();
     let roots = vec![
-        FileId::from(RawPath::new(db, "a".into())),
-        FileId::from(RawPath::new(db, "b".into())),
-        FileId::from(RawPath::new(db, "b".into())),
-        FileId::from(RawPath::new(db, "c".into())),
+        FileId::from(RawPath::new(db, Utf8PathBuf::from("a"))),
+        FileId::from(RawPath::new(db, Utf8PathBuf::from("b"))),
+        FileId::from(RawPath::new(db, Utf8PathBuf::from("b"))),
+        FileId::from(RawPath::new(db, Utf8PathBuf::from("c"))),
     ];
     let expected_roots = roots.clone();
     let roots = roots

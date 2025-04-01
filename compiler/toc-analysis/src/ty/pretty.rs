@@ -13,13 +13,13 @@ use crate::{
 
 use super::{ArraySizing, EndBound, NotFixedLen, PassBy, TypeId, WithDef};
 
-impl<'db> fmt::Debug for TyRef<'db, dyn db::TypeDatabase + 'db> {
+impl<'db> fmt::Debug for TyRef<'db, dyn db::TypeDatabase> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         emit_debug_ty(self.db, f, self.id)
     }
 }
 
-impl<'db> fmt::Display for TyRef<'db, dyn db::ConstEval + 'db> {
+impl<'db> fmt::Display for TyRef<'db, dyn db::ConstEval> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         emit_display_ty(self.db, f, self.id, PokeAliases::No)
     }
@@ -176,20 +176,20 @@ fn emit_display_ty(
     let ty = {
         let ty = type_id;
 
-        match (poke_aliases, ty.kind(db.up())) {
+        match (poke_aliases, ty.kind(db)) {
             (PokeAliases::Yes, TypeKind::Alias(_, ty)) => *ty,
             _ => ty,
         }
     };
 
-    out.write_str(ty.kind(db.up()).prefix())?;
+    out.write_str(ty.kind(db).prefix())?;
 
     // Extra bits
     // FIXME: Change set display into `{Alias}` (`set of int`)
     // FIXME: Move `'s into here so that we can format like this: "`{Alias}` (alias of {type})"
     // FIXME: Consider how to deal with printing const errors
     // -> Consider not printing the mismatched error at all?
-    match ty.kind(db.up()) {
+    match ty.kind(db) {
         TypeKind::StringN(seq) | TypeKind::CharN(seq) => {
             out.write_char('(')?;
             match seq.fixed_len(db, Span::default()) {
@@ -219,7 +219,7 @@ fn emit_display_ty(
             let eval_params = crate::const_eval::EvalParams::default();
 
             match db.evaluate_const(start.clone(), eval_params) {
-                Ok(v) => write!(out, "{v}", v = v.display(db.up()))?,
+                Ok(v) => write!(out, "{v}", v = v.display(db))?,
                 Err(err) if err.is_not_compile_time() => out.write_str("{dynamic}")?,
                 Err(_) => out.write_str("{unknown}")?,
             };
@@ -230,7 +230,7 @@ fn emit_display_ty(
             // checking than pretty printing
             match end {
                 EndBound::Expr(end, _) => match db.evaluate_const(end.clone(), eval_params) {
-                    Ok(v) => write!(out, "{v}", v = v.display(db.up()))?,
+                    Ok(v) => write!(out, "{v}", v = v.display(db))?,
                     Err(err) if err.is_not_compile_time() => out.write_str("{dynamic}")?,
                     Err(_) => out.write_str("{unknown}")?,
                 },

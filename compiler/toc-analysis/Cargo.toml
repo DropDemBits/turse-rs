@@ -27,6 +27,7 @@ toc-ast-db = { workspace = true }
 toc-vfs = { workspace = true }
 toc-vfs-db = { workspace = true }
 
+camino.workspace = true
 insta = { workspace = true }
 unindent = { workspace = true }
 paste = { workspace = true }

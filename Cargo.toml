@@ -26,7 +26,7 @@ paste = "1.0.5"
 rowan = "0.16"
 rustc-hash = "2.1"
 # FIXME: migrate to salsa "3"/0.18.x, removes jars!
-salsa = { git = "https://github.com/salsa-rs/salsa/", rev = "a327acc126d5d760aea83a266b2c5d8c58736003", package = "salsa-2022" }
+salsa = { git = "https://github.com/salsa-rs/salsa/" }
 thiserror = "2.0"
 tracing = "0.1.37"
 tracing-subscriber = "0.3.16"
@@ -59,6 +59,9 @@ toc-vfs-db = { path = "compiler/toc-vfs-db" }
 # Instruction spec crates
 stackful-spec = { path = "spec/stackful-spec" }
 turing-bytecode = { path = "spec/turing-bytecode" }
+
+[workspace.lints.rust]
+elided_named_lifetimes = "forbid"
 
 [profile.release]
 debug = true

@@ -107,14 +107,14 @@ impl<T: Clone, L: Location> CompileResult<T, L> {
 }
 
 /// Locations to attach message annotations to
-pub trait Location: Copy + Eq + Debug + Ord {}
+pub trait Location: Copy + Eq + Debug + Ord + salsa::Update {}
 
 impl Location for toc_span::Span {}
 impl Location for FileRange {}
 
 /// Wrapper around [`TextRange`] so that it's suitable
 /// as a report location
-#[derive(Default, Clone, Copy, PartialEq, Eq)]
+#[derive(Default, Clone, Copy, PartialEq, Eq, salsa::Update)]
 #[repr(transparent)]
 pub struct FileRange(pub TextRange);
 

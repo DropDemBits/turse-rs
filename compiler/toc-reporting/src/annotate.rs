@@ -29,7 +29,7 @@ impl fmt::Display for AnnotateKind {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, salsa::Update)]
 pub struct SourceAnnotation<L: Location> {
     pub(crate) annotation: Annotation,
     pub(crate) span: L,

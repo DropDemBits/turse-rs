@@ -1,5 +1,6 @@
 //! Tests for lowering
 
+use camino::Utf8PathBuf;
 use if_chain::if_chain;
 use toc_hir::{
     body, expr, item,
@@ -13,20 +14,16 @@ use toc_source_graph::RootPackages;
 use toc_span::FileId;
 use toc_vfs_db::VfsDbExt;
 
-#[salsa::db(
-    toc_paths::Jar,
-    toc_source_graph::Jar,
-    toc_vfs_db::Jar,
-    toc_ast_db::Jar,
-    toc_hir_lowering::Jar
-)]
-#[derive(Default)]
+#[salsa::db]
+#[derive(Default, Clone)]
 struct TestHirDb {
     storage: salsa::Storage<Self>,
     source_table: toc_vfs_db::SourceTable,
 }
 
-impl salsa::Database for TestHirDb {}
+impl salsa::Database for TestHirDb {
+    fn salsa_event(&self, _event: &dyn Fn() -> salsa::Event) {}
+}
 
 impl toc_vfs_db::VfsBridge for TestHirDb {
     fn source_table(&self) -> &toc_vfs_db::SourceTable {
@@ -55,7 +52,7 @@ fn do_lower(src: &str) -> (String, LowerResult) {
     let fixture = toc_vfs::generate_vfs(src).unwrap();
     db.insert_fixture(fixture);
 
-    let root_file = RawPath::new(db, "src/main.t".into());
+    let root_file = RawPath::new(db, Utf8PathBuf::from("src/main.t"));
     let package = SourcePackage::new(
         db,
         "main".into(),

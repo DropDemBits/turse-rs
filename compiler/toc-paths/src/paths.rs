@@ -1,8 +1,11 @@
 //! Core path entities
 use camino::Utf8PathBuf;
 
+pub type RawOwnedPath = camino::Utf8PathBuf;
+pub type RawRefPath = camino::Utf8Path;
+
 /// Interned path to a source, but not anchored to any other path
-#[salsa::interned]
+#[salsa::interned(debug, no_lifetime)]
 pub struct RawPath {
     /// Path that may contain unexpanded percent prefixes
     #[return_ref]
