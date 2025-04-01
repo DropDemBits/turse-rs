@@ -1,11 +1,40 @@
 //! Common message reporting for all compiler crates
 use std::{fmt::Debug, sync::Arc};
 
+macro_rules! impl_with_display_locations {
+    ($ty:ident) => {
+        impl<L: crate::Location> crate::display::WithDisplayLocations<L> for $ty<L> {}
+
+        impl std::fmt::Display for $ty<toc_span::Span> {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                use crate::display::WithDisplayLocations as _;
+                use std::fmt::Display;
+
+                Display::fmt(&self.display_spans(crate::display::SpanDisplay), f)
+            }
+        }
+
+        impl std::fmt::Display for $ty<crate::FileRange> {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                use crate::display::WithDisplayLocations as _;
+                use std::fmt::Display;
+
+                Display::fmt(&self.display_spans(crate::display::FileRangeDisplay), f)
+            }
+        }
+    };
+}
+
 mod annotate;
+mod display;
 mod message;
 mod reporter;
 
 pub use annotate::{AnnotateKind, Annotation, SourceAnnotation};
+pub use display::{
+    DisplayLocation, DisplayWithLocations, FileRangeDisplay, FnDisplay, SpanDisplay,
+    WithDisplayLocations,
+};
 pub use message::{MessageBundle, ReportMessage, ReportWhen};
 pub use reporter::{MessageBuilder, MessageSink};
 use toc_span::{Span, TextRange, TextSize};
@@ -78,14 +107,14 @@ impl<T: Clone, L: Location> CompileResult<T, L> {
 }
 
 /// Locations to attach message annotations to
-pub trait Location: Copy + Eq + Debug + Ord {}
+pub trait Location: Copy + Eq + Debug + Ord + salsa::Update {}
 
 impl Location for toc_span::Span {}
 impl Location for FileRange {}
 
 /// Wrapper around [`TextRange`] so that it's suitable
 /// as a report location
-#[derive(Default, Clone, Copy, PartialEq, Eq)]
+#[derive(Default, Clone, Copy, PartialEq, Eq, salsa::Update)]
 #[repr(transparent)]
 pub struct FileRange(pub TextRange);
 

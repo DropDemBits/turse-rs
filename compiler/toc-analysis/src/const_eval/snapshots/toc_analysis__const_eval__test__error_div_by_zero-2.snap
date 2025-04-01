@@ -2,8 +2,7 @@
 source: compiler/toc-analysis/src/const_eval/test.rs
 expression: 1 div 0.0
 ---
-"_"@(FileId(1), 6..7) -> ConstError { kind: DivByZero, span: (FileId(1), 13..16) }
+"_"@"src/main.t:6..7" -> <error DivByZero>
 
-error at (FileId(1), 13..16): cannot compute expression at compile-time
-| error for (FileId(1), 13..16): division by zero in compile-time expression
-
+error at src/main.t:13..16: cannot compute expression at compile-time
+| error for src/main.t:13..16: division by zero in compile-time expression

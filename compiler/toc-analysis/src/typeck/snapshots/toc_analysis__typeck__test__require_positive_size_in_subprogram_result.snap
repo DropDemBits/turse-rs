@@ -2,10 +2,10 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "fcn _() : 1..0 end _"
 ---
-"_"@(FileId(1), 4..5) [Subprogram(Function)]: function ( ) -> range of `int` (Unevaluated(PackageId(0), BodyId(0)) .. Expr(Unevaluated(PackageId(0), BodyId(1)), No))
-"<unnamed>"@(dummy) [Undeclared]: <error>
-"<root>"@(dummy) [Module(No)]: <error>
+"_"@"src/main.t:4..5" [Subprogram(Function)]: function ( ) -> range of `int` (Unevaluated(PackageId(3072), BodyId(0)) .. Expr(Unevaluated(PackageId(3072), BodyId(1)), No))
+"<unnamed>"@"<unknown>:0..0" [Undeclared]: <error>
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 10..14): element range is too small
-| note for (FileId(1), 10..14): computed range size is 0
-| error for (FileId(1), 10..14): zero sized ranges cannot be used in `function` declarations
+error at src/main.t:10..14: element range is too small
+| note for src/main.t:10..14: computed range size is 0
+| error for src/main.t:10..14: zero sized ranges cannot be used in `function` declarations

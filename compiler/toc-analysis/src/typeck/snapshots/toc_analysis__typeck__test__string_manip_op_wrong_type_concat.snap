@@ -2,86 +2,86 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "\n    proc __ (var c_any : char(*), var s_any : string(*))\n    var c : char\n    var c_sz : char(6)\n    var s : string\n    var s_sz : string(6)\n    var i : int\n\n    var _e00 := c + i\n    var _e01 := c_any + i\n    var _e02 := c_sz + i\n    var _e03 := s + i\n    var _e04 := s_any + i\n    var _e05 := s_sz + i\n\n    var _e10 := i + c\n    var _e11 := i + c_any\n    var _e12 := i + c_sz\n    var _e13 := i + s\n    var _e14 := i + s_any\n    var _e15 := i + s_sz\n\n    % TODO: Uncomment to verify incompatible types\n    /*\n    var _e20 : char(13) := c_sz + c_sz\n    var _e21 : char(8) := c_sz + c\n    var _e22 : char(8) := c + c_sz\n    var _e23 : char(3) := c + c\n    var _e24 : char := c + c\n    */\n    end __\n    "
 ---
-"__"@(FileId(1), 10..12) [Subprogram(Procedure)]: procedure ( pass(var ref) char_n Any, pass(var ref) string_n Any, ) -> void
-"c_any"@(FileId(1), 18..23) [Param(Reference(Var), No)]: char_n Any
-"s_any"@(FileId(1), 39..44) [Param(Reference(Var), No)]: string_n Any
-"c"@(FileId(1), 66..67) [ConstVar(Var, No)]: char
-"c_sz"@(FileId(1), 83..87) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(0)))
-"s"@(FileId(1), 106..107) [ConstVar(Var, No)]: string
-"s_sz"@(FileId(1), 125..129) [ConstVar(Var, No)]: string_n Fixed(Unevaluated(PackageId(0), BodyId(1)))
-"i"@(FileId(1), 150..151) [ConstVar(Var, No)]: int
-"_e00"@(FileId(1), 167..171) [ConstVar(Var, No)]: <error>
-"_e01"@(FileId(1), 189..193) [ConstVar(Var, No)]: <error>
-"_e02"@(FileId(1), 215..219) [ConstVar(Var, No)]: <error>
-"_e03"@(FileId(1), 240..244) [ConstVar(Var, No)]: <error>
-"_e04"@(FileId(1), 262..266) [ConstVar(Var, No)]: <error>
-"_e05"@(FileId(1), 288..292) [ConstVar(Var, No)]: <error>
-"_e10"@(FileId(1), 314..318) [ConstVar(Var, No)]: <error>
-"_e11"@(FileId(1), 336..340) [ConstVar(Var, No)]: <error>
-"_e12"@(FileId(1), 362..366) [ConstVar(Var, No)]: <error>
-"_e13"@(FileId(1), 387..391) [ConstVar(Var, No)]: <error>
-"_e14"@(FileId(1), 409..413) [ConstVar(Var, No)]: <error>
-"_e15"@(FileId(1), 435..439) [ConstVar(Var, No)]: <error>
-"<unnamed>"@(dummy) [Undeclared]: <error>
-"<root>"@(dummy) [Module(No)]: <error>
+"__"@"src/main.t:10..12" [Subprogram(Procedure)]: procedure ( pass(var ref) char_n Any, pass(var ref) string_n Any, ) -> void
+"c_any"@"src/main.t:18..23" [Param(Reference(Var), No)]: char_n Any
+"s_any"@"src/main.t:39..44" [Param(Reference(Var), No)]: string_n Any
+"c"@"src/main.t:66..67" [ConstVar(Var, No)]: char
+"c_sz"@"src/main.t:83..87" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(3072), BodyId(0)))
+"s"@"src/main.t:106..107" [ConstVar(Var, No)]: string
+"s_sz"@"src/main.t:125..129" [ConstVar(Var, No)]: string_n Fixed(Unevaluated(PackageId(3072), BodyId(1)))
+"i"@"src/main.t:150..151" [ConstVar(Var, No)]: int
+"_e00"@"src/main.t:167..171" [ConstVar(Var, No)]: <error>
+"_e01"@"src/main.t:189..193" [ConstVar(Var, No)]: <error>
+"_e02"@"src/main.t:215..219" [ConstVar(Var, No)]: <error>
+"_e03"@"src/main.t:240..244" [ConstVar(Var, No)]: <error>
+"_e04"@"src/main.t:262..266" [ConstVar(Var, No)]: <error>
+"_e05"@"src/main.t:288..292" [ConstVar(Var, No)]: <error>
+"_e10"@"src/main.t:314..318" [ConstVar(Var, No)]: <error>
+"_e11"@"src/main.t:336..340" [ConstVar(Var, No)]: <error>
+"_e12"@"src/main.t:362..366" [ConstVar(Var, No)]: <error>
+"_e13"@"src/main.t:387..391" [ConstVar(Var, No)]: <error>
+"_e14"@"src/main.t:409..413" [ConstVar(Var, No)]: <error>
+"_e15"@"src/main.t:435..439" [ConstVar(Var, No)]: <error>
+"<unnamed>"@"<unknown>:0..0" [Undeclared]: <error>
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 177..178): mismatched types for string concatenation
-| note for (FileId(1), 179..180): this is of type `int`
-| note for (FileId(1), 175..176): this is of type `char`
-| error for (FileId(1), 177..178): `char` cannot be concatenated to `int`
+error at src/main.t:177..178: mismatched types for string concatenation
+| note for src/main.t:179..180: this is of type `int`
+| note for src/main.t:175..176: this is of type `char`
+| error for src/main.t:177..178: `char` cannot be concatenated to `int`
 | info: operands must both be numbers, strings, or sets
-error at (FileId(1), 203..204): mismatched types for string concatenation
-| note for (FileId(1), 205..206): this is of type `int`
-| note for (FileId(1), 197..202): this is of type `char(*)`
-| error for (FileId(1), 203..204): `char(*)` cannot be concatenated to `int`
+error at src/main.t:203..204: mismatched types for string concatenation
+| note for src/main.t:205..206: this is of type `int`
+| note for src/main.t:197..202: this is of type `char(*)`
+| error for src/main.t:203..204: `char(*)` cannot be concatenated to `int`
 | info: operands must both be numbers, strings, or sets
-error at (FileId(1), 228..229): mismatched types for string concatenation
-| note for (FileId(1), 230..231): this is of type `int`
-| note for (FileId(1), 223..227): this is of type `char(6)`
-| error for (FileId(1), 228..229): `char(6)` cannot be concatenated to `int`
+error at src/main.t:228..229: mismatched types for string concatenation
+| note for src/main.t:230..231: this is of type `int`
+| note for src/main.t:223..227: this is of type `char(6)`
+| error for src/main.t:228..229: `char(6)` cannot be concatenated to `int`
 | info: operands must both be numbers, strings, or sets
-error at (FileId(1), 250..251): mismatched types for string concatenation
-| note for (FileId(1), 252..253): this is of type `int`
-| note for (FileId(1), 248..249): this is of type `string`
-| error for (FileId(1), 250..251): `string` cannot be concatenated to `int`
+error at src/main.t:250..251: mismatched types for string concatenation
+| note for src/main.t:252..253: this is of type `int`
+| note for src/main.t:248..249: this is of type `string`
+| error for src/main.t:250..251: `string` cannot be concatenated to `int`
 | info: operands must both be numbers, strings, or sets
-error at (FileId(1), 276..277): mismatched types for string concatenation
-| note for (FileId(1), 278..279): this is of type `int`
-| note for (FileId(1), 270..275): this is of type `string(*)`
-| error for (FileId(1), 276..277): `string(*)` cannot be concatenated to `int`
+error at src/main.t:276..277: mismatched types for string concatenation
+| note for src/main.t:278..279: this is of type `int`
+| note for src/main.t:270..275: this is of type `string(*)`
+| error for src/main.t:276..277: `string(*)` cannot be concatenated to `int`
 | info: operands must both be numbers, strings, or sets
-error at (FileId(1), 301..302): mismatched types for string concatenation
-| note for (FileId(1), 303..304): this is of type `int`
-| note for (FileId(1), 296..300): this is of type `string(6)`
-| error for (FileId(1), 301..302): `string(6)` cannot be concatenated to `int`
+error at src/main.t:301..302: mismatched types for string concatenation
+| note for src/main.t:303..304: this is of type `int`
+| note for src/main.t:296..300: this is of type `string(6)`
+| error for src/main.t:301..302: `string(6)` cannot be concatenated to `int`
 | info: operands must both be numbers, strings, or sets
-error at (FileId(1), 324..325): mismatched types for string concatenation
-| note for (FileId(1), 326..327): this is of type `char`
-| note for (FileId(1), 322..323): this is of type `int`
-| error for (FileId(1), 324..325): `int` cannot be concatenated to `char`
+error at src/main.t:324..325: mismatched types for string concatenation
+| note for src/main.t:326..327: this is of type `char`
+| note for src/main.t:322..323: this is of type `int`
+| error for src/main.t:324..325: `int` cannot be concatenated to `char`
 | info: operands must both be numbers, strings, or sets
-error at (FileId(1), 346..347): mismatched types for string concatenation
-| note for (FileId(1), 348..353): this is of type `char(*)`
-| note for (FileId(1), 344..345): this is of type `int`
-| error for (FileId(1), 346..347): `int` cannot be concatenated to `char(*)`
+error at src/main.t:346..347: mismatched types for string concatenation
+| note for src/main.t:348..353: this is of type `char(*)`
+| note for src/main.t:344..345: this is of type `int`
+| error for src/main.t:346..347: `int` cannot be concatenated to `char(*)`
 | info: operands must both be numbers, strings, or sets
-error at (FileId(1), 372..373): mismatched types for string concatenation
-| note for (FileId(1), 374..378): this is of type `char(6)`
-| note for (FileId(1), 370..371): this is of type `int`
-| error for (FileId(1), 372..373): `int` cannot be concatenated to `char(6)`
+error at src/main.t:372..373: mismatched types for string concatenation
+| note for src/main.t:374..378: this is of type `char(6)`
+| note for src/main.t:370..371: this is of type `int`
+| error for src/main.t:372..373: `int` cannot be concatenated to `char(6)`
 | info: operands must both be numbers, strings, or sets
-error at (FileId(1), 397..398): mismatched types for string concatenation
-| note for (FileId(1), 399..400): this is of type `string`
-| note for (FileId(1), 395..396): this is of type `int`
-| error for (FileId(1), 397..398): `int` cannot be concatenated to `string`
+error at src/main.t:397..398: mismatched types for string concatenation
+| note for src/main.t:399..400: this is of type `string`
+| note for src/main.t:395..396: this is of type `int`
+| error for src/main.t:397..398: `int` cannot be concatenated to `string`
 | info: operands must both be numbers, strings, or sets
-error at (FileId(1), 419..420): mismatched types for string concatenation
-| note for (FileId(1), 421..426): this is of type `string(*)`
-| note for (FileId(1), 417..418): this is of type `int`
-| error for (FileId(1), 419..420): `int` cannot be concatenated to `string(*)`
+error at src/main.t:419..420: mismatched types for string concatenation
+| note for src/main.t:421..426: this is of type `string(*)`
+| note for src/main.t:417..418: this is of type `int`
+| error for src/main.t:419..420: `int` cannot be concatenated to `string(*)`
 | info: operands must both be numbers, strings, or sets
-error at (FileId(1), 445..446): mismatched types for string concatenation
-| note for (FileId(1), 447..451): this is of type `string(6)`
-| note for (FileId(1), 443..444): this is of type `int`
-| error for (FileId(1), 445..446): `int` cannot be concatenated to `string(6)`
+error at src/main.t:445..446: mismatched types for string concatenation
+| note for src/main.t:447..451: this is of type `string(6)`
+| note for src/main.t:443..444: this is of type `int`
+| error for src/main.t:445..446: `int` cannot be concatenated to `string(6)`
 | info: operands must both be numbers, strings, or sets

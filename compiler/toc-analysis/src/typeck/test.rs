@@ -2,7 +2,7 @@
 
 use toc_hir::symbol::DefId;
 use toc_hir_db::Db;
-use toc_reporting::MessageBundle;
+use toc_reporting::{MessageBundle, WithDisplayLocations};
 use unindent::unindent;
 
 use crate::{
@@ -60,6 +60,7 @@ fn stringify_typeck_results(
     use std::fmt::Write;
 
     let mut s = String::new();
+
     // Pretty print typectx
     // Want: `type_of` all reachable DefIds
     // - Printed type nodes because we wanted to see the full type
@@ -67,7 +68,7 @@ fn stringify_typeck_results(
     for did in package.local_defs() {
         let def_info = package.local_def(did);
         let name = def_info.name;
-        let name_span = def_info.def_at.lookup_in(&package);
+        let name_span = db.span_to_location(def_info.def_at.lookup_in(&package));
         let sym_kind = match def_info.kind {
             Some(kind) => format!("{kind:?}"),
             None => "Undeclared".to_string(),
@@ -79,7 +80,7 @@ fn stringify_typeck_results(
 
     // Pretty print the messages
     for err in messages.iter() {
-        write!(&mut s, "\n{err}").unwrap();
+        write!(&mut s, "\n{}", err.display_spans(db.location_display())).unwrap();
     }
 
     s

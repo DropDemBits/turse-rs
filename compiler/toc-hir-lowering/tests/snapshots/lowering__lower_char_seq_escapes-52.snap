@@ -3,15 +3,14 @@ source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "var _ : int _ := \"\\u3fffffff\""
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(1)
-    Module@(FileId(1), 0..29): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..29): []
-        StmtItem@(FileId(1), 0..11): ItemId(0)
-          ConstVar@(FileId(1), 0..11): var "_"@(FileId(1), 4..5)
-            Primitive@(FileId(1), 8..11): Int
-        Assign@(FileId(1), 12..29)
-          Name@(FileId(1), 12..13): "_"@(FileId(1), 4..5)
-          Literal@(FileId(1), 17..29): String("�")
-error at (FileId(1), 17..29): invalid string literal
-| error for (FileId(1), 18..28): unicode codepoint value is greater than U+10FFFF
-
+  Root@(dummy): src/main.t -> ItemId(1)
+    Module@(src/main.t:0..29): "<root>"@(dummy)
+      StmtBody@(src/main.t:0..29): []
+        StmtItem@(src/main.t:0..11): ItemId(0)
+          ConstVar@(src/main.t:0..11): var "_"@(src/main.t:4..5)
+            Primitive@(src/main.t:8..11): Int
+        Assign@(src/main.t:12..29)
+          Name@(src/main.t:12..13): "_"@(src/main.t:4..5)
+          Literal@(src/main.t:17..29): String("�")
+error at src/main.t:17..29: invalid string literal
+| error for src/main.t:18..28: unicode codepoint value is greater than U+10FFFF

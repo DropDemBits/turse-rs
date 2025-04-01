@@ -2,16 +2,16 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "module a export b, var c\n    var b : int\n    const c : int := 1\nend a\na.b := 1\na.c := 2\n"
 ---
-"a"@(FileId(1), 7..8) [Module(No)]: <error>
-"b"@(FileId(1), 33..34) [ConstVar(Var, No)]: int
-"c"@(FileId(1), 51..52) [ConstVar(Const, No)]: int
-"b"@(FileId(1), 16..17) [Export]: int
-"c"@(FileId(1), 23..24) [Export]: int
-"<root>"@(dummy) [Module(No)]: <error>
+"a"@"src/main.t:7..8" [Module(No)]: <error>
+"b"@"src/main.t:33..34" [ConstVar(Var, No)]: int
+"c"@"src/main.t:51..52" [ConstVar(Const, No)]: int
+"b"@"src/main.t:16..17" [Export]: int
+"c"@"src/main.t:23..24" [Export]: int
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 74..76): cannot assign into `b`
-| error for (FileId(1), 70..73): `b` is not exported as `var`
-| note for (FileId(1), 16..17): `b` exported from here
-error at (FileId(1), 83..85): cannot assign into `c`
-| error for (FileId(1), 79..82): `c` is a reference to a constant, not a variable
-| note for (FileId(1), 51..52): `c` declared here
+error at src/main.t:74..76: cannot assign into `b`
+| error for src/main.t:70..73: `b` is not exported as `var`
+| note for src/main.t:16..17: `b` exported from here
+error at src/main.t:83..85: cannot assign into `c`
+| error for src/main.t:79..82: `c` is a reference to a constant, not a variable
+| note for src/main.t:51..52: `c` declared here

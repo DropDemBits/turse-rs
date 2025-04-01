@@ -2,51 +2,51 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "\n    var b : boolean\n    var r : real\n    var i : int\n    var n : nat\n    var _br := b * r\n    var _bi := b * i\n    var _bn := b * n\n    var _rb := r * b\n    var _ib := i * b\n    var _nb := n * b\n    var _bb := b * b\n"
 ---
-"b"@(FileId(1), 9..10) [ConstVar(Var, No)]: boolean
-"r"@(FileId(1), 29..30) [ConstVar(Var, No)]: real
-"i"@(FileId(1), 46..47) [ConstVar(Var, No)]: int
-"n"@(FileId(1), 62..63) [ConstVar(Var, No)]: nat
-"_br"@(FileId(1), 78..81) [ConstVar(Var, No)]: <error>
-"_bi"@(FileId(1), 99..102) [ConstVar(Var, No)]: <error>
-"_bn"@(FileId(1), 120..123) [ConstVar(Var, No)]: <error>
-"_rb"@(FileId(1), 141..144) [ConstVar(Var, No)]: <error>
-"_ib"@(FileId(1), 162..165) [ConstVar(Var, No)]: <error>
-"_nb"@(FileId(1), 183..186) [ConstVar(Var, No)]: <error>
-"_bb"@(FileId(1), 204..207) [ConstVar(Var, No)]: <error>
-"<root>"@(dummy) [Module(No)]: <error>
+"b"@"src/main.t:9..10" [ConstVar(Var, No)]: boolean
+"r"@"src/main.t:29..30" [ConstVar(Var, No)]: real
+"i"@"src/main.t:46..47" [ConstVar(Var, No)]: int
+"n"@"src/main.t:62..63" [ConstVar(Var, No)]: nat
+"_br"@"src/main.t:78..81" [ConstVar(Var, No)]: <error>
+"_bi"@"src/main.t:99..102" [ConstVar(Var, No)]: <error>
+"_bn"@"src/main.t:120..123" [ConstVar(Var, No)]: <error>
+"_rb"@"src/main.t:141..144" [ConstVar(Var, No)]: <error>
+"_ib"@"src/main.t:162..165" [ConstVar(Var, No)]: <error>
+"_nb"@"src/main.t:183..186" [ConstVar(Var, No)]: <error>
+"_bb"@"src/main.t:204..207" [ConstVar(Var, No)]: <error>
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 87..88): mismatched types for multiplication
-| note for (FileId(1), 89..90): this is of type `real`
-| note for (FileId(1), 85..86): this is of type `boolean`
-| error for (FileId(1), 87..88): `boolean` cannot be multiplied by `real`
+error at src/main.t:87..88: mismatched types for multiplication
+| note for src/main.t:89..90: this is of type `real`
+| note for src/main.t:85..86: this is of type `boolean`
+| error for src/main.t:87..88: `boolean` cannot be multiplied by `real`
 | info: operands must both be numbers or sets
-error at (FileId(1), 108..109): mismatched types for multiplication
-| note for (FileId(1), 110..111): this is of type `int`
-| note for (FileId(1), 106..107): this is of type `boolean`
-| error for (FileId(1), 108..109): `boolean` cannot be multiplied by `int`
+error at src/main.t:108..109: mismatched types for multiplication
+| note for src/main.t:110..111: this is of type `int`
+| note for src/main.t:106..107: this is of type `boolean`
+| error for src/main.t:108..109: `boolean` cannot be multiplied by `int`
 | info: operands must both be numbers or sets
-error at (FileId(1), 129..130): mismatched types for multiplication
-| note for (FileId(1), 131..132): this is of type `nat`
-| note for (FileId(1), 127..128): this is of type `boolean`
-| error for (FileId(1), 129..130): `boolean` cannot be multiplied by `nat`
+error at src/main.t:129..130: mismatched types for multiplication
+| note for src/main.t:131..132: this is of type `nat`
+| note for src/main.t:127..128: this is of type `boolean`
+| error for src/main.t:129..130: `boolean` cannot be multiplied by `nat`
 | info: operands must both be numbers or sets
-error at (FileId(1), 150..151): mismatched types for multiplication
-| note for (FileId(1), 152..153): this is of type `boolean`
-| note for (FileId(1), 148..149): this is of type `real`
-| error for (FileId(1), 150..151): `real` cannot be multiplied by `boolean`
+error at src/main.t:150..151: mismatched types for multiplication
+| note for src/main.t:152..153: this is of type `boolean`
+| note for src/main.t:148..149: this is of type `real`
+| error for src/main.t:150..151: `real` cannot be multiplied by `boolean`
 | info: operands must both be numbers or sets
-error at (FileId(1), 171..172): mismatched types for multiplication
-| note for (FileId(1), 173..174): this is of type `boolean`
-| note for (FileId(1), 169..170): this is of type `int`
-| error for (FileId(1), 171..172): `int` cannot be multiplied by `boolean`
+error at src/main.t:171..172: mismatched types for multiplication
+| note for src/main.t:173..174: this is of type `boolean`
+| note for src/main.t:169..170: this is of type `int`
+| error for src/main.t:171..172: `int` cannot be multiplied by `boolean`
 | info: operands must both be numbers or sets
-error at (FileId(1), 192..193): mismatched types for multiplication
-| note for (FileId(1), 194..195): this is of type `boolean`
-| note for (FileId(1), 190..191): this is of type `nat`
-| error for (FileId(1), 192..193): `nat` cannot be multiplied by `boolean`
+error at src/main.t:192..193: mismatched types for multiplication
+| note for src/main.t:194..195: this is of type `boolean`
+| note for src/main.t:190..191: this is of type `nat`
+| error for src/main.t:192..193: `nat` cannot be multiplied by `boolean`
 | info: operands must both be numbers or sets
-error at (FileId(1), 213..214): mismatched types for multiplication
-| note for (FileId(1), 215..216): this is of type `boolean`
-| note for (FileId(1), 211..212): this is of type `boolean`
-| error for (FileId(1), 213..214): `boolean` cannot be multiplied by `boolean`
+error at src/main.t:213..214: mismatched types for multiplication
+| note for src/main.t:215..216: this is of type `boolean`
+| note for src/main.t:211..212: this is of type `boolean`
+| error for src/main.t:213..214: `boolean` cannot be multiplied by `boolean`
 | info: operands must both be numbers or sets

@@ -2,10 +2,10 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "type _ : function () : string(*)"
 ---
-"_"@(FileId(1), 5..6) [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of function ( ) -> string_n Any
-"<unnamed>"@(dummy) [Undeclared]: <error>
-"<root>"@(dummy) [Module(No)]: <error>
+"_"@"src/main.t:5..6" [Type]: alias[DefId(PackageId(3072), LocalDefId(0))] of function ( ) -> string_n Any
+"<unnamed>"@"<unknown>:0..0" [Undeclared]: <error>
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 23..32): invalid storage type
-| error for (FileId(1), 23..32): cannot use `string(*)` in `function` types
+error at src/main.t:23..32: invalid storage type
+| error for src/main.t:23..32: cannot use `string(*)` in `function` types
 | info: `string(*)`'s refer to strings that do not have a fixed size known at compile-time

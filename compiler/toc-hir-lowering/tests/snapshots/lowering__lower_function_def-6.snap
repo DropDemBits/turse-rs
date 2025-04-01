@@ -3,30 +3,29 @@ source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "\n    function pars(a, a : int, a : int1) : int\n        var a : int2\n    end pars"
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(2)
-    Module@(FileId(1), 0..80): "<root>"@(dummy)
-      StmtBody@(FileId(1), 5..80): []
-        StmtItem@(FileId(1), 5..80): ItemId(1)
-          Subprogram@(FileId(1), 5..80): "pars"@(FileId(1), 14..18) [
-            "a"@(FileId(1), 19..20),
-            "a"@(FileId(1), 22..23),
-            "a"@(FileId(1), 31..32)
+  Root@(dummy): src/main.t -> ItemId(2)
+    Module@(src/main.t:0..80): "<root>"@(dummy)
+      StmtBody@(src/main.t:5..80): []
+        StmtItem@(src/main.t:5..80): ItemId(1)
+          Subprogram@(src/main.t:5..80): "pars"@(src/main.t:14..18) [
+            "a"@(src/main.t:19..20),
+            "a"@(src/main.t:22..23),
+            "a"@(src/main.t:31..32)
           ]
-            Primitive@(FileId(1), 26..29): Int
-            Primitive@(FileId(1), 26..29): Int
-            Primitive@(FileId(1), 35..39): Int1
-            Primitive@(FileId(1), 43..46): Int
-            StmtBody@(FileId(1), 55..67): ["a"@(FileId(1), 19..20), "a"@(FileId(1), 22..23), "a"@(FileId(1), 31..32)]
-              StmtItem@(FileId(1), 55..67): ItemId(0)
-                ConstVar@(FileId(1), 55..67): var "a"@(FileId(1), 59..60)
-                  Primitive@(FileId(1), 63..67): Int2
-error at (FileId(1), 22..23): `a` is already declared in this scope
-| note for (FileId(1), 19..20): `a` previously declared here
-| error for (FileId(1), 22..23): `a` redeclared here
-error at (FileId(1), 31..32): `a` is already declared in this scope
-| note for (FileId(1), 22..23): `a` previously declared here
-| error for (FileId(1), 31..32): `a` redeclared here
-error at (FileId(1), 59..60): `a` is already declared in this scope
-| note for (FileId(1), 31..32): `a` previously declared here
-| error for (FileId(1), 59..60): `a` redeclared here
-
+            Primitive@(src/main.t:26..29): Int
+            Primitive@(src/main.t:26..29): Int
+            Primitive@(src/main.t:35..39): Int1
+            Primitive@(src/main.t:43..46): Int
+            StmtBody@(src/main.t:55..67): ["a"@(src/main.t:19..20), "a"@(src/main.t:22..23), "a"@(src/main.t:31..32)]
+              StmtItem@(src/main.t:55..67): ItemId(0)
+                ConstVar@(src/main.t:55..67): var "a"@(src/main.t:59..60)
+                  Primitive@(src/main.t:63..67): Int2
+error at src/main.t:22..23: `a` is already declared in this scope
+| note for src/main.t:19..20: `a` previously declared here
+| error for src/main.t:22..23: `a` redeclared here
+error at src/main.t:31..32: `a` is already declared in this scope
+| note for src/main.t:22..23: `a` previously declared here
+| error for src/main.t:31..32: `a` redeclared here
+error at src/main.t:59..60: `a` is already declared in this scope
+| note for src/main.t:31..32: `a` previously declared here
+| error for src/main.t:59..60: `a` redeclared here

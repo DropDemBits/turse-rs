@@ -12,3 +12,4 @@ edition.workspace = true
 toc-span = { workspace = true }
 
 drop_bomb = "0.1.5"
+salsa.workspace = true

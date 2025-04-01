@@ -1,24 +1,21 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
-assertion_line: 59
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "\n    function a shambles : int end a\n    function b() quoi : int end b\n    function c(k : int) weh : int end c\n    "
-
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(3)
-    Module@(FileId(1), 0..115): "<root>"@(dummy)
-      StmtBody@(FileId(1), 5..110): []
-        StmtItem@(FileId(1), 5..36): ItemId(0)
-          Subprogram@(FileId(1), 5..36): "a"@(FileId(1), 14..15) -> "shambles"@(FileId(1), 16..24)
-            Primitive@(FileId(1), 27..30): Int
-            StmtBody@(FileId(1), 31..31): [] -> "shambles"@(FileId(1), 16..24)
-        StmtItem@(FileId(1), 41..70): ItemId(1)
-          Subprogram@(FileId(1), 41..70): "b"@(FileId(1), 50..51) [] -> "quoi"@(FileId(1), 54..58)
-            Primitive@(FileId(1), 61..64): Int
-            StmtBody@(FileId(1), 65..65): [] -> "quoi"@(FileId(1), 54..58)
-        StmtItem@(FileId(1), 75..110): ItemId(2)
-          Subprogram@(FileId(1), 75..110): "c"@(FileId(1), 84..85) ["k"@(FileId(1), 86..87)] -> "weh"@(FileId(1), 95..98)
-            Primitive@(FileId(1), 90..93): Int
-            Primitive@(FileId(1), 101..104): Int
-            StmtBody@(FileId(1), 105..105): ["k"@(FileId(1), 86..87)] -> "weh"@(FileId(1), 95..98)
-
+  Root@(dummy): src/main.t -> ItemId(3)
+    Module@(src/main.t:0..115): "<root>"@(dummy)
+      StmtBody@(src/main.t:5..110): []
+        StmtItem@(src/main.t:5..36): ItemId(0)
+          Subprogram@(src/main.t:5..36): "a"@(src/main.t:14..15) -> "shambles"@(src/main.t:16..24)
+            Primitive@(src/main.t:27..30): Int
+            StmtBody@(src/main.t:31..31): [] -> "shambles"@(src/main.t:16..24)
+        StmtItem@(src/main.t:41..70): ItemId(1)
+          Subprogram@(src/main.t:41..70): "b"@(src/main.t:50..51) [] -> "quoi"@(src/main.t:54..58)
+            Primitive@(src/main.t:61..64): Int
+            StmtBody@(src/main.t:65..65): [] -> "quoi"@(src/main.t:54..58)
+        StmtItem@(src/main.t:75..110): ItemId(2)
+          Subprogram@(src/main.t:75..110): "c"@(src/main.t:84..85) ["k"@(src/main.t:86..87)] -> "weh"@(src/main.t:95..98)
+            Primitive@(src/main.t:90..93): Int
+            Primitive@(src/main.t:101..104): Int
+            StmtBody@(src/main.t:105..105): ["k"@(src/main.t:86..87)] -> "weh"@(src/main.t:95..98)

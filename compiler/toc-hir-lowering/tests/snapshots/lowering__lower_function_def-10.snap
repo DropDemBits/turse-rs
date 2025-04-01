@@ -3,12 +3,11 @@ source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: fcn end
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(1)
-    Module@(FileId(1), 0..7): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..7): []
-        StmtItem@(FileId(1), 0..7): ItemId(0)
-          Subprogram@(FileId(1), 0..7): "<unnamed>"@(FileId(1), 0..7)
-            StmtBody@(FileId(1), 4..4): []
-error at (FileId(1), 4..7): unexpected token
-| error for (FileId(1), 4..7): expected identifier, but found `end`
-
+  Root@(dummy): src/main.t -> ItemId(1)
+    Module@(src/main.t:0..7): "<root>"@(dummy)
+      StmtBody@(src/main.t:0..7): []
+        StmtItem@(src/main.t:0..7): ItemId(0)
+          Subprogram@(src/main.t:0..7): "<unnamed>"@(src/main.t:0..7)
+            StmtBody@(src/main.t:4..4): []
+error at src/main.t:4..7: unexpected token
+| error for src/main.t:4..7: expected identifier, but found `end`

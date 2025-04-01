@@ -1,23 +1,21 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "var _ := 0 _ := 1 _ := 2 _ := 3"
-
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(1)
-    Module@(FileId(1), 0..31): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..31): []
-        StmtItem@(FileId(1), 0..10): ItemId(0)
-          ConstVar@(FileId(1), 0..10): var "_"@(FileId(1), 4..5)
-            ExprBody@(FileId(1), 9..10)
-              Literal@(FileId(1), 9..10): Integer(0)
-        Assign@(FileId(1), 11..17)
-          Name@(FileId(1), 11..12): "_"@(FileId(1), 4..5)
-          Literal@(FileId(1), 16..17): Integer(1)
-        Assign@(FileId(1), 18..24)
-          Name@(FileId(1), 18..19): "_"@(FileId(1), 4..5)
-          Literal@(FileId(1), 23..24): Integer(2)
-        Assign@(FileId(1), 25..31)
-          Name@(FileId(1), 25..26): "_"@(FileId(1), 4..5)
-          Literal@(FileId(1), 30..31): Integer(3)
-
+  Root@(dummy): src/main.t -> ItemId(1)
+    Module@(src/main.t:0..31): "<root>"@(dummy)
+      StmtBody@(src/main.t:0..31): []
+        StmtItem@(src/main.t:0..10): ItemId(0)
+          ConstVar@(src/main.t:0..10): var "_"@(src/main.t:4..5)
+            ExprBody@(src/main.t:9..10)
+              Literal@(src/main.t:9..10): Integer(0)
+        Assign@(src/main.t:11..17)
+          Name@(src/main.t:11..12): "_"@(src/main.t:4..5)
+          Literal@(src/main.t:16..17): Integer(1)
+        Assign@(src/main.t:18..24)
+          Name@(src/main.t:18..19): "_"@(src/main.t:4..5)
+          Literal@(src/main.t:23..24): Integer(2)
+        Assign@(src/main.t:25..31)
+          Name@(src/main.t:25..26): "_"@(src/main.t:4..5)
+          Literal@(src/main.t:30..31): Integer(3)

@@ -1,12 +1,11 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "\n    % Compatibility with all variant of integers\n    var i : int\n    var n : nat\n    var _ii := i and i\n    var _in := i and n\n    var _ni := n and i\n    var _nn := n and n\n"
 ---
-"i"@(FileId(1), 58..59) [ConstVar(Var, No)]: int
-"n"@(FileId(1), 74..75) [ConstVar(Var, No)]: nat
-"_ii"@(FileId(1), 90..93) [ConstVar(Var, No)]: nat
-"_in"@(FileId(1), 113..116) [ConstVar(Var, No)]: nat
-"_ni"@(FileId(1), 136..139) [ConstVar(Var, No)]: nat
-"_nn"@(FileId(1), 159..162) [ConstVar(Var, No)]: nat
-"<root>"@(dummy) [Module(No)]: <error>
-
+"i"@"src/main.t:58..59" [ConstVar(Var, No)]: int
+"n"@"src/main.t:74..75" [ConstVar(Var, No)]: nat
+"_ii"@"src/main.t:90..93" [ConstVar(Var, No)]: nat
+"_in"@"src/main.t:113..116" [ConstVar(Var, No)]: nat
+"_ni"@"src/main.t:136..139" [ConstVar(Var, No)]: nat
+"_nn"@"src/main.t:159..162" [ConstVar(Var, No)]: nat
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>

@@ -2,10 +2,10 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "type _ : set of 1..0"
 ---
-"_"@(FileId(1), 5..6) [Type]: set[DefId(PackageId(0), LocalDefId(1))] of range of `int` (Unevaluated(PackageId(0), BodyId(0)) .. Expr(Unevaluated(PackageId(0), BodyId(1)), No))
-"_"@(FileId(1), 9..20) [Set]: <error>
-"<root>"@(dummy) [Module(No)]: <error>
+"_"@"src/main.t:5..6" [Type]: set[DefId(PackageId(3072), LocalDefId(1))] of range of `int` (Unevaluated(PackageId(3072), BodyId(0)) .. Expr(Unevaluated(PackageId(3072), BodyId(1)), No))
+"_"@"src/main.t:9..20" [Set]: <error>
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 16..20): element range is too small
-| note for (FileId(1), 16..20): computed range size is 0
-| error for (FileId(1), 16..20): zero sized ranges cannot be used in `set` element types
+error at src/main.t:16..20: element range is too small
+| note for src/main.t:16..20: computed range size is 0
+| error for src/main.t:16..20: zero sized ranges cannot be used in `set` element types

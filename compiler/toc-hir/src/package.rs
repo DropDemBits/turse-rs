@@ -62,7 +62,7 @@ where
 /// (`Item`, `Body`, `DefInfo`, and `Type`).
 /// `Package` also stores a mapping between the package files, and the
 /// associated root `ItemId`s.
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, salsa::Update)]
 pub struct Package {
     /// Map between package files and root items
     pub root_items: IndexMap<FileId, item::ItemId>,

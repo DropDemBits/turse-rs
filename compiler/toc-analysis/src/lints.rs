@@ -14,7 +14,7 @@ use crate::{db, ty};
 #[cfg(test)]
 mod test;
 
-#[salsa::tracked(jar = crate::db::AnalysisJar)]
+#[salsa::tracked]
 pub(crate) fn lint_package(
     db: &dyn db::HirAnalysis,
     package_id: SourcePackage,

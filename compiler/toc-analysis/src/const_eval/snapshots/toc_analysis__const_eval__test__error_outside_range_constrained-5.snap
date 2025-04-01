@@ -2,9 +2,8 @@
 source: compiler/toc-analysis/src/const_eval/test.rs
 expression: "const a : false .. false := true  const _:=a"
 ---
-"a"@(FileId(1), 6..7) -> Bool(true)
-"_"@(FileId(1), 40..41) -> ConstError { kind: OutsideRange, span: (FileId(1), 28..32) }
+"a"@"src/main.t:6..7" -> Bool(true)
+"_"@"src/main.t:40..41" -> <error OutsideRange>
 
-error at (FileId(1), 28..32): cannot compute expression at compile-time
-| error for (FileId(1), 28..32): value is outside of the type's range
-
+error at src/main.t:28..32: cannot compute expression at compile-time
+| error for src/main.t:28..32: value is outside of the type's range

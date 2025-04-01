@@ -1,19 +1,16 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
-assertion_line: 59
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "\n    begin\n    var a : int\n    bind b to a\n    end"
-
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(2)
-    Module@(FileId(1), 0..50): "<root>"@(dummy)
-      StmtBody@(FileId(1), 5..50): []
-        Block@(FileId(1), 5..50): Normal
-          StmtItem@(FileId(1), 15..26): ItemId(0)
-            ConstVar@(FileId(1), 15..26): var "a"@(FileId(1), 19..20)
-              Primitive@(FileId(1), 23..26): Int
-          StmtItem@(FileId(1), 31..42): ItemId(1)
-            Bind@(FileId(1), 36..42): const "b"@(FileId(1), 36..37)
-              ExprBody@(FileId(1), 41..42)
-                Name@(FileId(1), 41..42): "a"@(FileId(1), 19..20)
-
+  Root@(dummy): src/main.t -> ItemId(2)
+    Module@(src/main.t:0..50): "<root>"@(dummy)
+      StmtBody@(src/main.t:5..50): []
+        Block@(src/main.t:5..50): Normal
+          StmtItem@(src/main.t:15..26): ItemId(0)
+            ConstVar@(src/main.t:15..26): var "a"@(src/main.t:19..20)
+              Primitive@(src/main.t:23..26): Int
+          StmtItem@(src/main.t:31..42): ItemId(1)
+            Bind@(src/main.t:36..42): const "b"@(src/main.t:36..37)
+              ExprBody@(src/main.t:41..42)
+                Name@(src/main.t:41..42): "a"@(src/main.t:19..20)

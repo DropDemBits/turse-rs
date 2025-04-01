@@ -2,10 +2,10 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "begin var k : char := 'baz' end"
 ---
-"k"@(FileId(1), 10..11) [ConstVar(Var, No)]: char
-"<root>"@(dummy) [Module(No)]: <error>
+"k"@"src/main.t:10..11" [ConstVar(Var, No)]: char
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 22..27): mismatched types
-| note for (FileId(1), 22..27): this is of type `char(3)`
-| note for (FileId(1), 14..18): this is of type `char`
+error at src/main.t:22..27: mismatched types
+| note for src/main.t:22..27: this is of type `char(3)`
+| note for src/main.t:14..18: this is of type `char`
 | info: `char(3)` is not assignable into `char`

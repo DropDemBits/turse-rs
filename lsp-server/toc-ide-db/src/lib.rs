@@ -4,7 +4,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use camino::Utf8PathBuf;
+use camino::{Utf8Path, Utf8PathBuf};
 use lsp_types::{Diagnostic, DiagnosticRelatedInformation, DiagnosticSeverity, Location, Position};
 use ropey::Rope;
 use toc_analysis::db::HirAnalysis;
@@ -71,6 +71,8 @@ impl ServerState {
     }
 
     fn update_file(&mut self, path: &Path, removed: bool) {
+        use salsa::Setter;
+
         let db = &mut self.db;
 
         // Add the root path to the file db
@@ -82,7 +84,8 @@ impl ServerState {
         } else {
             Err(LoadError::new(path, toc_vfs::ErrorKind::NotFound))
         };
-        db.update_file(root_file, load_status);
+        let file_id = root_file.raw_path(db).clone();
+        db.update_file(&file_id, load_status);
 
         // Setup source graph
         let roots_modified = if !removed {
@@ -242,9 +245,10 @@ impl ServerState {
         let (file, range) = span.into_parts()?;
         let (start, end) = (u32::from(range.start()), u32::from(range.end()));
         let path = file.into_raw();
+        let file = toc_vfs_db::source_of(db, path.raw_path(db));
 
-        let start = toc_ast_db::map_byte_index_to_position(db, path, start as usize)?;
-        let end = toc_ast_db::map_byte_index_to_position(db, path, end as usize)?;
+        let start = toc_ast_db::map_byte_index_to_position(db, file, start as usize)?;
+        let end = toc_ast_db::map_byte_index_to_position(db, file, end as usize)?;
 
         let path = path.raw_path(db);
 
@@ -265,31 +269,23 @@ impl IntoPosition for toc_ast_db::span::LspPosition {
     }
 }
 
-#[salsa::db(
-    toc_paths::Jar,
-    toc_vfs_db::Jar,
-    toc_source_graph::Jar,
-    toc_ast_db::Jar,
-    toc_hir_lowering::Jar,
-    toc_hir_db::Jar,
-    toc_analysis::TypeJar,
-    toc_analysis::ConstEvalJar,
-    toc_analysis::AnalysisJar
-)]
-#[derive(Default)]
+#[salsa::db]
+#[derive(Default, Clone)]
 struct LspDatabase {
     storage: salsa::Storage<Self>,
     source_table: SourceTable,
 }
 
-impl salsa::Database for LspDatabase {}
+impl salsa::Database for LspDatabase {
+    fn salsa_event(&self, _event: &dyn Fn() -> salsa::Event) {}
+}
 
 impl VfsBridge for LspDatabase {
     fn source_table(&self) -> &SourceTable {
         &self.source_table
     }
 
-    fn load_new_file(&self, _path: toc_paths::RawPath) -> (String, Option<LoadError>) {
+    fn load_new_file(&self, _path: &Utf8Path) -> (String, Option<LoadError>) {
         // Don't actually load in file sources
         // TODO: Send a message to load in new file sources, and indicate that we're tracking changes to them
         (

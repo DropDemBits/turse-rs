@@ -1,19 +1,16 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
-assertion_line: 61
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "var a : int var _ := ^(a) "
-
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(2)
-    Module@(FileId(1), 0..26): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..25): []
-        StmtItem@(FileId(1), 0..11): ItemId(0)
-          ConstVar@(FileId(1), 0..11): var "a"@(FileId(1), 4..5)
-            Primitive@(FileId(1), 8..11): Int
-        StmtItem@(FileId(1), 12..25): ItemId(1)
-          ConstVar@(FileId(1), 12..25): var "_"@(FileId(1), 16..17)
-            ExprBody@(FileId(1), 21..25)
-              Deref@(FileId(1), 21..25)
-                Name@(FileId(1), 23..24): "a"@(FileId(1), 4..5)
-
+  Root@(dummy): src/main.t -> ItemId(2)
+    Module@(src/main.t:0..26): "<root>"@(dummy)
+      StmtBody@(src/main.t:0..25): []
+        StmtItem@(src/main.t:0..11): ItemId(0)
+          ConstVar@(src/main.t:0..11): var "a"@(src/main.t:4..5)
+            Primitive@(src/main.t:8..11): Int
+        StmtItem@(src/main.t:12..25): ItemId(1)
+          ConstVar@(src/main.t:12..25): var "_"@(src/main.t:16..17)
+            ExprBody@(src/main.t:21..25)
+              Deref@(src/main.t:21..25)
+                Name@(src/main.t:23..24): "a"@(src/main.t:4..5)

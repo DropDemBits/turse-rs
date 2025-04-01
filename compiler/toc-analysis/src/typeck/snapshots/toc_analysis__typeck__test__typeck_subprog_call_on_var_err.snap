@@ -2,9 +2,9 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var sha : int sha()"
 ---
-"sha"@(FileId(1), 4..7) [ConstVar(Var, No)]: int
-"<root>"@(dummy) [Module(No)]: <error>
+"sha"@"src/main.t:4..7" [ConstVar(Var, No)]: int
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 14..17): cannot call or subscript `sha`
-| note for (FileId(1), 14..17): this is of type `int`
-| error for (FileId(1), 14..17): `int` is not callable
+error at src/main.t:14..17: cannot call or subscript `sha`
+| note for src/main.t:14..17: this is of type `int`
+| error for src/main.t:14..17: `int` is not callable

@@ -1,20 +1,18 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "var _ := 1 + 2 * 3 + 4"
-
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(1)
-    Module@(FileId(1), 0..22): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..22): []
-        StmtItem@(FileId(1), 0..22): ItemId(0)
-          ConstVar@(FileId(1), 0..22): var "_"@(FileId(1), 4..5)
-            ExprBody@(FileId(1), 9..22)
-              Binary@(FileId(1), 9..22): Add
-                Binary@(FileId(1), 9..18): Add
-                  Literal@(FileId(1), 9..10): Integer(1)
-                  Binary@(FileId(1), 13..18): Mul
-                    Literal@(FileId(1), 13..14): Integer(2)
-                    Literal@(FileId(1), 17..18): Integer(3)
-                Literal@(FileId(1), 21..22): Integer(4)
-
+  Root@(dummy): src/main.t -> ItemId(1)
+    Module@(src/main.t:0..22): "<root>"@(dummy)
+      StmtBody@(src/main.t:0..22): []
+        StmtItem@(src/main.t:0..22): ItemId(0)
+          ConstVar@(src/main.t:0..22): var "_"@(src/main.t:4..5)
+            ExprBody@(src/main.t:9..22)
+              Binary@(src/main.t:9..22): Add
+                Binary@(src/main.t:9..18): Add
+                  Literal@(src/main.t:9..10): Integer(1)
+                  Binary@(src/main.t:13..18): Mul
+                    Literal@(src/main.t:13..14): Integer(2)
+                    Literal@(src/main.t:17..18): Integer(3)
+                Literal@(src/main.t:21..22): Integer(4)

@@ -1,14 +1,11 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
-assertion_line: 61
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "type _ : enum(a, b, c, d)"
-
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(1)
-    Module@(FileId(1), 0..25): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..25): []
-        StmtItem@(FileId(1), 0..25): ItemId(0)
-          Type@(FileId(1), 0..25): "_"@(FileId(1), 5..6)
-            Enum@(FileId(1), 9..25): "_"@(FileId(1), 9..25) [ a,b,c,d ]
-
+  Root@(dummy): src/main.t -> ItemId(1)
+    Module@(src/main.t:0..25): "<root>"@(dummy)
+      StmtBody@(src/main.t:0..25): []
+        StmtItem@(src/main.t:0..25): ItemId(0)
+          Type@(src/main.t:0..25): "_"@(src/main.t:5..6)
+            Enum@(src/main.t:9..25): "_"@(src/main.t:9..25) [ a,b,c,d ]

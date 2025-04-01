@@ -104,45 +104,40 @@ pub(crate) mod query {
     //! Span query impls
     use std::sync::Arc;
 
+    use toc_vfs_db::SourceFile;
+
     use crate::{
         Db,
         span::{LineInfo, LineMapping, LspPosition},
     };
 
     /// FIXME: Would be better to use SourceFile directly
-    #[salsa::tracked]
-    pub fn line_mapping(db: &dyn Db, file_id: toc_paths::RawPath) -> Arc<LineMapping> {
-        let source = toc_vfs_db::source_of(db.up(), file_id);
-        Arc::new(LineMapping::from_source(Arc::new(
-            source.contents(db.up()).clone(),
-        )))
+    #[salsa::tracked(return_ref)]
+    pub fn line_mapping(db: &dyn Db, source: SourceFile) -> LineMapping {
+        LineMapping::from_source(Arc::new(source.contents(db).clone()))
     }
 
     #[salsa::tracked]
-    pub fn map_byte_index(
-        db: &dyn Db,
-        file_id: toc_paths::RawPath,
-        index: usize,
-    ) -> Option<LineInfo> {
-        line_mapping(db, file_id).map_index(index)
+    pub fn map_byte_index(db: &dyn Db, source: SourceFile, index: usize) -> Option<LineInfo> {
+        line_mapping(db, source).map_index(index)
     }
 
     #[salsa::tracked]
     pub fn map_byte_index_to_position(
         db: &dyn Db,
-        file_id: toc_paths::RawPath,
+        source: SourceFile,
         index: usize,
     ) -> Option<LspPosition> {
-        line_mapping(db, file_id).map_index_to_position(index)
+        line_mapping(db, source).map_index_to_position(index)
     }
 
     #[salsa::tracked]
     pub fn map_byte_index_to_character(
         db: &dyn Db,
-        file_id: toc_paths::RawPath,
+        source: SourceFile,
         index: usize,
     ) -> Option<usize> {
-        line_mapping(db, file_id).map_index_to_character(index)
+        line_mapping(db, source).map_index_to_character(index)
     }
 }
 

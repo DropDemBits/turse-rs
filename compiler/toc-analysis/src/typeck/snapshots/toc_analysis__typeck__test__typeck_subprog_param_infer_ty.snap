@@ -1,12 +1,11 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "type tyres : string\nfunction own(me : nat, pie : real) sammy : tyres\nend own"
 ---
-"tyres"@(FileId(1), 5..10) [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of string
-"own"@(FileId(1), 29..32) [Subprogram(Function)]: function ( pass(value) nat, pass(value) real, ) -> alias[DefId(PackageId(0), LocalDefId(0))] of string
-"me"@(FileId(1), 33..35) [Param(Value, No)]: nat
-"pie"@(FileId(1), 43..46) [Param(Value, No)]: real
-"sammy"@(FileId(1), 55..60) [Param(Value, No)]: alias[DefId(PackageId(0), LocalDefId(0))] of string
-"<unnamed>"@(dummy) [Undeclared]: <error>
-"<root>"@(dummy) [Module(No)]: <error>
-
+"tyres"@"src/main.t:5..10" [Type]: alias[DefId(PackageId(3072), LocalDefId(0))] of string
+"own"@"src/main.t:29..32" [Subprogram(Function)]: function ( pass(value) nat, pass(value) real, ) -> alias[DefId(PackageId(3072), LocalDefId(0))] of string
+"me"@"src/main.t:33..35" [Param(Value, No)]: nat
+"pie"@"src/main.t:43..46" [Param(Value, No)]: real
+"sammy"@"src/main.t:55..60" [Param(Value, No)]: alias[DefId(PackageId(3072), LocalDefId(0))] of string
+"<unnamed>"@"<unknown>:0..0" [Undeclared]: <error>
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>

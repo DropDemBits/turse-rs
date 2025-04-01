@@ -6,8 +6,6 @@ mod parser;
 mod sink;
 mod source;
 
-use std::sync::Arc;
-
 use source::Source;
 use toc_reporting::{CompileResult, FileRange};
 use toc_scanner::Scanner;
@@ -32,11 +30,11 @@ pub fn parse(source: &str) -> CompileResult<ParseTree, FileRange> {
 }
 
 /// Parse the dependencies of a file
-pub fn parse_depends(syntax: SyntaxNode) -> CompileResult<Arc<FileDepends>, FileRange> {
+pub fn parse_depends(syntax: SyntaxNode) -> CompileResult<FileDepends, FileRange> {
     depends::gather_dependencies(syntax)
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, salsa::Update)]
 pub struct ParseTree {
     node: GreenNode,
 }

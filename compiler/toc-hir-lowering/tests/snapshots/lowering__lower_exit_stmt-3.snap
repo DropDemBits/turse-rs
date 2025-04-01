@@ -3,10 +3,9 @@ source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: exit
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(0)
-    Module@(FileId(1), 0..4): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..4): []
-        Exit@(FileId(1), 0..4)
-error at (FileId(1), 0..4): cannot use `exit` statement here
-| error for (FileId(1), 0..4): can only be used inside of `loop` and `for` statements
-
+  Root@(dummy): src/main.t -> ItemId(0)
+    Module@(src/main.t:0..4): "<root>"@(dummy)
+      StmtBody@(src/main.t:0..4): []
+        Exit@(src/main.t:0..4)
+error at src/main.t:0..4: cannot use `exit` statement here
+| error for src/main.t:0..4: can only be used inside of `loop` and `for` statements

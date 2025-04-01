@@ -1,9 +1,5 @@
 ---
-source: compiler/toc_analysis/src/const_eval/test.rs
-assertion_line: 12
+source: compiler/toc-analysis/src/const_eval/test.rs
 expression: "type e : enum(a, b) const _ := e.a >= e.a"
-
 ---
-"_"@(FileId(1), 26..27) -> Bool(true)
-
-
+"_"@"src/main.t:26..27" -> Bool(true)

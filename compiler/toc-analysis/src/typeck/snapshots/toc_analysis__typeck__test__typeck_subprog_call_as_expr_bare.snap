@@ -1,8 +1,7 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "function key : int end key\nvar res := key\n"
 ---
-"key"@(FileId(1), 9..12) [Subprogram(Function)]: function -> int
-"res"@(FileId(1), 31..34) [ConstVar(Var, No)]: int
-"<root>"@(dummy) [Module(No)]: <error>
-
+"key"@"src/main.t:9..12" [Subprogram(Function)]: function -> int
+"res"@"src/main.t:31..34" [ConstVar(Var, No)]: int
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>

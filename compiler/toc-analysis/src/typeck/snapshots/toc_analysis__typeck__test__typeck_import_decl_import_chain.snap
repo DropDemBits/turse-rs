@@ -1,14 +1,13 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var outer : int\nmodule a\n    import outer\n\n    module b\n        import outer\n\n        module c\n            import outer\n\n            var k := outer\n        end c\n    end b\n\nend a\n"
 ---
-"outer"@(FileId(1), 4..9) [ConstVar(Var, No)]: int
-"a"@(FileId(1), 23..24) [Module(No)]: <error>
-"outer"@(FileId(1), 36..41) [Import]: int
-"b"@(FileId(1), 54..55) [Module(No)]: <error>
-"outer"@(FileId(1), 71..76) [Import]: int
-"c"@(FileId(1), 93..94) [Module(No)]: <error>
-"outer"@(FileId(1), 114..119) [Import]: int
-"k"@(FileId(1), 137..138) [ConstVar(Var, No)]: int
-"<root>"@(dummy) [Module(No)]: <error>
-
+"outer"@"src/main.t:4..9" [ConstVar(Var, No)]: int
+"a"@"src/main.t:23..24" [Module(No)]: <error>
+"outer"@"src/main.t:36..41" [Import]: int
+"b"@"src/main.t:54..55" [Module(No)]: <error>
+"outer"@"src/main.t:71..76" [Import]: int
+"c"@"src/main.t:93..94" [Module(No)]: <error>
+"outer"@"src/main.t:114..119" [Import]: int
+"k"@"src/main.t:137..138" [ConstVar(Var, No)]: int
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>

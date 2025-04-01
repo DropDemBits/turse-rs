@@ -1,13 +1,11 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: loop exit when true end loop
-
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(0)
-    Module@(FileId(1), 0..28): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..28): []
-        Loop@(FileId(1), 0..28)
-          Exit@(FileId(1), 5..19)
-            Literal@(FileId(1), 15..19): Boolean(true)
-
+  Root@(dummy): src/main.t -> ItemId(0)
+    Module@(src/main.t:0..28): "<root>"@(dummy)
+      StmtBody@(src/main.t:0..28): []
+        Loop@(src/main.t:0..28)
+          Exit@(src/main.t:5..19)
+            Literal@(src/main.t:15..19): Boolean(true)

@@ -2,28 +2,28 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "\n    type s1 : set of boolean\n    type s2 : set of boolean\n    var a : s1\n    var b : s2\n    var i : int\n\n    % should all produce the left set\n    var _v_res : s1\n\n    _v_res := a - b\n\n    % error types\n    _v_res := a - i\n    _v_res := i - a\n    "
 ---
-"s1"@(FileId(1), 10..12) [Type]: set[DefId(PackageId(0), LocalDefId(1))] of boolean
-"s1"@(FileId(1), 15..29) [Set]: <error>
-"s2"@(FileId(1), 39..41) [Type]: set[DefId(PackageId(0), LocalDefId(3))] of boolean
-"s2"@(FileId(1), 44..58) [Set]: <error>
-"a"@(FileId(1), 67..68) [ConstVar(Var, No)]: set[DefId(PackageId(0), LocalDefId(1))] of boolean
-"b"@(FileId(1), 82..83) [ConstVar(Var, No)]: set[DefId(PackageId(0), LocalDefId(3))] of boolean
-"i"@(FileId(1), 97..98) [ConstVar(Var, No)]: int
-"_v_res"@(FileId(1), 152..158) [ConstVar(Var, No)]: set[DefId(PackageId(0), LocalDefId(1))] of boolean
-"<root>"@(dummy) [Module(No)]: <error>
+"s1"@"src/main.t:10..12" [Type]: set[DefId(PackageId(3072), LocalDefId(1))] of boolean
+"s1"@"src/main.t:15..29" [Set]: <error>
+"s2"@"src/main.t:39..41" [Type]: set[DefId(PackageId(3072), LocalDefId(3))] of boolean
+"s2"@"src/main.t:44..58" [Set]: <error>
+"a"@"src/main.t:67..68" [ConstVar(Var, No)]: set[DefId(PackageId(3072), LocalDefId(1))] of boolean
+"b"@"src/main.t:82..83" [ConstVar(Var, No)]: set[DefId(PackageId(3072), LocalDefId(3))] of boolean
+"i"@"src/main.t:97..98" [ConstVar(Var, No)]: int
+"_v_res"@"src/main.t:152..158" [ConstVar(Var, No)]: set[DefId(PackageId(3072), LocalDefId(1))] of boolean
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 181..182): mismatched types for subtraction
-| note for (FileId(1), 183..184): this is of type `set s2 (of boolean)`
-| note for (FileId(1), 179..180): this is of type `set s1 (of boolean)`
-| error for (FileId(1), 181..182): `set s1 (of boolean)` cannot be subtracted by `set s2 (of boolean)`
+error at src/main.t:181..182: mismatched types for subtraction
+| note for src/main.t:183..184: this is of type `set s2 (of boolean)`
+| note for src/main.t:179..180: this is of type `set s1 (of boolean)`
+| error for src/main.t:181..182: `set s1 (of boolean)` cannot be subtracted by `set s2 (of boolean)`
 | info: operands must both be numbers or sets
-error at (FileId(1), 220..221): mismatched types for subtraction
-| note for (FileId(1), 222..223): this is of type `int`
-| note for (FileId(1), 218..219): this is of type `set s1 (of boolean)`
-| error for (FileId(1), 220..221): `set s1 (of boolean)` cannot be subtracted by `int`
+error at src/main.t:220..221: mismatched types for subtraction
+| note for src/main.t:222..223: this is of type `int`
+| note for src/main.t:218..219: this is of type `set s1 (of boolean)`
+| error for src/main.t:220..221: `set s1 (of boolean)` cannot be subtracted by `int`
 | info: operands must both be numbers or sets
-error at (FileId(1), 240..241): mismatched types for subtraction
-| note for (FileId(1), 242..243): this is of type `set s1 (of boolean)`
-| note for (FileId(1), 238..239): this is of type `int`
-| error for (FileId(1), 240..241): `int` cannot be subtracted by `set s1 (of boolean)`
+error at src/main.t:240..241: mismatched types for subtraction
+| note for src/main.t:242..243: this is of type `set s1 (of boolean)`
+| note for src/main.t:238..239: this is of type `int`
+| error for src/main.t:240..241: `int` cannot be subtracted by `set s1 (of boolean)`
 | info: operands must both be numbers or sets

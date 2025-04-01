@@ -2,8 +2,6 @@
 
 use std::fmt;
 
-use upcast::{Upcast, UpcastFrom};
-
 pub(crate) mod internals {
     /// Helper for creating wrapper types of [`la_arena::Idx`].
     ///
@@ -39,28 +37,61 @@ pub(crate) mod internals {
 
             $crate::arena_id_wrapper!(@impl_rest, $id, $wrap);
         };
+
+        // Newtype + type alias for the index with a lifetime
+        (
+            $(#[$attrs_wrap:meta])*
+            $vis_wrap:vis struct $id:ident<$id_lt:lifetime>($wrap:path);
+            $(#[$attrs_alias:meta])*
+            $vis_alias:vis type $index_alias:ident<$index_lt:lifetime> = Index;
+        ) => {
+            #[derive(Clone, Copy, PartialEq, Eq, Hash)]
+            #[repr(transparent)]
+            $(#[$attrs_wrap])*
+            $vis_wrap struct $id<$id_lt>(pub(crate) $index_alias<$id_lt>);
+
+            $(#[$attrs_alias])*
+            $vis_alias type $index_alias<$index_lt> = ::la_arena::Idx<$wrap>;
+
+            $crate::arena_id_wrapper!(@impl_rest, $id, $wrap, $id_lt);
+        };
         // Other impls
         (
-            @impl_rest, $id:ident, $wrap:path
+            @impl_rest, $id:ident, $wrap:path $(, $id_lt:lifetime)?
         ) => {
-            impl From<$id> for ::la_arena::Idx<$wrap> {
-                fn from(id: $id) -> Self {
+            impl$(<$id_lt>)? From<$id$(::<$id_lt>)?> for ::la_arena::Idx<$wrap> {
+                fn from(id: $id$(::<$id_lt>)?) -> Self {
                     id.0
                 }
             }
 
-            impl From<&$id> for ::la_arena::Idx<$wrap> {
-                fn from(id: &$id) -> Self {
+            impl$(<$id_lt>)? From<&$id$(::<$id_lt>)?> for ::la_arena::Idx<$wrap> {
+                fn from(id: &$id$(::<$id_lt>)?) -> Self {
                     id.0
                 }
             }
 
-            impl ::std::fmt::Debug for $id {
+            impl$(<$id_lt>)?::std::fmt::Debug for $id$(<$id_lt>)? {
                 fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
                     let raw: u32 = self.0.into_raw().into();
                     f.debug_tuple(stringify!($id))
                         .field(&raw)
                         .finish()
+                }
+            }
+
+            unsafe impl$(<$id_lt>)? salsa::Update for $id$(<$id_lt>)? {
+                unsafe fn maybe_update(old_pointer: *mut Self, new_value: Self) -> bool {
+                    // SAFETY: old_pointer is required to satisfy both the safety and validity invariants
+                    let old_id = unsafe { &mut *old_pointer };
+                    let new_id = new_value;
+
+                    if old_id.0 != new_id.0 {
+                        old_id.0 = new_id.0;
+                        true
+                    } else {
+                        false
+                    }
                 }
             }
         };
@@ -107,51 +138,14 @@ pub mod stmt;
 
 pub mod item;
 
-pub trait Db: salsa::DbWithJar<Jar> + toc_hir_expand::Db + Upcast<dyn toc_hir_expand::Db> {}
+#[salsa::db]
+pub trait Db: toc_hir_expand::Db {}
 
-impl<DB> Db for DB where
-    DB: salsa::DbWithJar<Jar> + toc_hir_expand::Db + Upcast<dyn toc_hir_expand::Db>
-{
-}
-
-impl<'db, DB: Db + 'db> UpcastFrom<DB> for dyn Db + 'db {
-    fn up_from(value: &DB) -> &Self {
-        value
-    }
-    fn up_from_mut(value: &mut DB) -> &mut Self {
-        value
-    }
-}
-
-#[salsa::jar(db = Db)]
-pub struct Jar(
-    Symbol,
-    item::ItemCollection,
-    item::ConstVar,
-    item::ConstVar_item_attrs,
-    item::ConstVar_parent_constvar,
-    item::root_module,
-    item::RootModule,
-    item::RootModule_body,
-    item::RootModule_collect_items,
-    item::RootModule_stmt_list,
-    item::UnitModule,
-    item::UnitModule__stmt_list,
-    item::Module,
-    item::Module_body,
-    item::Module_collect_items,
-    item::Module_stmt_list,
-    item::Module_item_attrs,
-    item::module_block_collect_items,
-    body::Body,
-    body::Body_top_level_stmts,
-    body::Body_contents,
-    body::Body_lower_contents,
-    body::ModuleBlock,
-);
+#[salsa::db]
+impl<DB> Db for DB where DB: toc_hir_expand::Db {}
 
 // Not in salsa so we make one ourselves
-pub trait DisplayWithDb<'db, Db: ?Sized + 'db> {
+pub trait DisplayWithDb<'db, Db: ?Sized> {
     fn display<'me>(&'me self, db: &'db Db) -> DisplayWith<'me, 'db, Db>
     where
         'db: 'me,
@@ -163,7 +157,7 @@ pub trait DisplayWithDb<'db, Db: ?Sized + 'db> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>, db: &Db) -> fmt::Result;
 }
 
-pub struct DisplayWith<'me, 'db: 'me, Db: ?Sized + 'db> {
+pub struct DisplayWith<'me, 'db: 'me, Db: ?Sized> {
     value: &'me (dyn DisplayWithDb<'db, Db> + 'me),
     db: &'db Db,
 }
@@ -174,7 +168,7 @@ impl<'me, 'db: 'me, Db: ?Sized> fmt::Display for DisplayWith<'me, 'db, Db> {
     }
 }
 
-#[salsa::interned]
+#[salsa::interned(debug, no_lifetime)]
 pub struct Symbol {
     #[return_ref]
     pub text: String,

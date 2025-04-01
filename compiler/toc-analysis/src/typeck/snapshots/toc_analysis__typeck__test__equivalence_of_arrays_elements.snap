@@ -2,12 +2,12 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "% over array elements\nvar a : array 0+1..1 of int\nvar b : array 0+1..1 of int1\nvar c : array 0+1..1 of int % trying to make unique types\n\n% element types must be equivalent\na := b\na := c\n"
 ---
-"a"@(FileId(1), 26..27) [ConstVar(Var, No)]: array ( range of `int` (Unevaluated(PackageId(0), BodyId(0)) .. Expr(Unevaluated(PackageId(0), BodyId(1)), Yes)), ) of int
-"b"@(FileId(1), 54..55) [ConstVar(Var, No)]: array ( range of `int` (Unevaluated(PackageId(0), BodyId(2)) .. Expr(Unevaluated(PackageId(0), BodyId(3)), Yes)), ) of int1
-"c"@(FileId(1), 83..84) [ConstVar(Var, No)]: array ( range of `int` (Unevaluated(PackageId(0), BodyId(4)) .. Expr(Unevaluated(PackageId(0), BodyId(5)), Yes)), ) of int
-"<root>"@(dummy) [Module(No)]: <error>
+"a"@"src/main.t:26..27" [ConstVar(Var, No)]: array ( range of `int` (Unevaluated(PackageId(3072), BodyId(0)) .. Expr(Unevaluated(PackageId(3072), BodyId(1)), Yes)), ) of int
+"b"@"src/main.t:54..55" [ConstVar(Var, No)]: array ( range of `int` (Unevaluated(PackageId(3072), BodyId(2)) .. Expr(Unevaluated(PackageId(3072), BodyId(3)), Yes)), ) of int1
+"c"@"src/main.t:83..84" [ConstVar(Var, No)]: array ( range of `int` (Unevaluated(PackageId(3072), BodyId(4)) .. Expr(Unevaluated(PackageId(3072), BodyId(5)), Yes)), ) of int
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 175..177): mismatched types
-| note for (FileId(1), 178..179): this is of type `array 1 .. 1 of int1`
-| note for (FileId(1), 173..174): this is of type `array 1 .. 1 of int`
+error at src/main.t:175..177: mismatched types
+| note for src/main.t:178..179: this is of type `array 1 .. 1 of int1`
+| note for src/main.t:173..174: this is of type `array 1 .. 1 of int`
 | info: `array 1 .. 1 of int1` is not assignable into `array 1 .. 1 of int`

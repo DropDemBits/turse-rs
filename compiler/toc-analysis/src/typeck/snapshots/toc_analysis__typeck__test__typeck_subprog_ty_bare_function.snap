@@ -1,7 +1,6 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "function a : int end a"
 ---
-"a"@(FileId(1), 9..10) [Subprogram(Function)]: function -> int
-"<root>"@(dummy) [Module(No)]: <error>
-
+"a"@"src/main.t:9..10" [Subprogram(Function)]: function -> int
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>

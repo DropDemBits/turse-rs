@@ -2,12 +2,12 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "const N := 255\nvar c256 : char(256)\n\nvar _e00 : string(N) := c256 % [not captured by ctc]\n"
 ---
-"N"@(FileId(1), 6..7) [ConstVar(Const, No)]: int
-"c256"@(FileId(1), 19..23) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(1)))
-"_e00"@(FileId(1), 41..45) [ConstVar(Var, No)]: string_n Fixed(Unevaluated(PackageId(0), BodyId(2)))
-"<root>"@(dummy) [Module(No)]: <error>
+"N"@"src/main.t:6..7" [ConstVar(Const, No)]: int
+"c256"@"src/main.t:19..23" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(3072), BodyId(1)))
+"_e00"@"src/main.t:41..45" [ConstVar(Var, No)]: string_n Fixed(Unevaluated(PackageId(3072), BodyId(2)))
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 61..65): mismatched types
-| note for (FileId(1), 61..65): this is of type `char(256)`
-| note for (FileId(1), 48..57): this is of type `string(255)`
+error at src/main.t:61..65: mismatched types
+| note for src/main.t:61..65: this is of type `char(256)`
+| note for src/main.t:48..57: this is of type `string(255)`
 | info: `char(256)` is not assignable into `string(255)`

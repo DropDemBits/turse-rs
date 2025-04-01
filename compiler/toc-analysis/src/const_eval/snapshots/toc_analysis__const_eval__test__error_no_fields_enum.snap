@@ -2,8 +2,7 @@
 source: compiler/toc-analysis/src/const_eval/test.rs
 expression: "type e : enum(a) const _ := e.o"
 ---
-"_"@(FileId(1), 23..24) -> ConstError { kind: NoFields("o"), span: (FileId(1), 30..31) }
+"_"@"src/main.t:23..24" -> <error NoFields("o")>
 
-error at (FileId(1), 30..31): cannot compute expression at compile-time
-| error for (FileId(1), 30..31): no field `o` in expression
-
+error at src/main.t:30..31: cannot compute expression at compile-time
+| error for src/main.t:30..31: no field `o` in expression

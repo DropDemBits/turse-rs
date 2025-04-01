@@ -2,8 +2,8 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "fcn oeuf : int return end oeuf"
 ---
-"oeuf"@(FileId(1), 4..8) [Subprogram(Function)]: function -> int
-"<root>"@(dummy) [Module(No)]: <error>
+"oeuf"@"src/main.t:4..8" [Subprogram(Function)]: function -> int
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 15..21): cannot use `return` here
-| error for (FileId(1), 15..21): `result` statement is used to return values in function bodies
+error at src/main.t:15..21: cannot use `return` here
+| error for src/main.t:15..21: `result` statement is used to return values in function bodies

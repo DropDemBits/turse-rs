@@ -2,9 +2,9 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "function _ : string(*) end _"
 ---
-"_"@(FileId(1), 9..10) [Subprogram(Function)]: function -> string_n Any
-"<root>"@(dummy) [Module(No)]: <error>
+"_"@"src/main.t:9..10" [Subprogram(Function)]: function -> string_n Any
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 13..22): invalid storage type
-| error for (FileId(1), 13..22): cannot use `string(*)` in `function` declarations
+error at src/main.t:13..22: invalid storage type
+| error for src/main.t:13..22: cannot use `string(*)` in `function` declarations
 | info: `string(*)`'s refer to strings that do not have a fixed size known at compile-time

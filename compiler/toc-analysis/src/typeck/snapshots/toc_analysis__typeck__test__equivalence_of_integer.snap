@@ -2,18 +2,18 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var n : nat\nvar i : int\nvar r : real\n\nfor : 1 .. n end for\nfor : 1 .. i end for\nfor : 1 .. r end for\nfor : n .. 1 end for\nfor : i .. 1 end for\nfor : r .. 1 end for\n"
 ---
-"n"@(FileId(1), 4..5) [ConstVar(Var, No)]: nat
-"i"@(FileId(1), 16..17) [ConstVar(Var, No)]: int
-"r"@(FileId(1), 28..29) [ConstVar(Var, No)]: real
-"<root>"@(dummy) [Module(No)]: <error>
+"n"@"src/main.t:4..5" [ConstVar(Var, No)]: nat
+"i"@"src/main.t:16..17" [ConstVar(Var, No)]: int
+"r"@"src/main.t:28..29" [ConstVar(Var, No)]: real
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 86..92): mismatched types
-| note for (FileId(1), 91..92): this is of type `real`
-| note for (FileId(1), 86..87): this is of type `{integer}`
-| error for (FileId(1), 86..92): expected index types
+error at src/main.t:86..92: mismatched types
+| note for src/main.t:91..92: this is of type `real`
+| note for src/main.t:86..87: this is of type `{integer}`
+| error for src/main.t:86..92: expected index types
 | info: range bounds types must both be index types (an integer, `boolean`, `char`, enumerated type, or a range)
-error at (FileId(1), 149..155): mismatched types
-| note for (FileId(1), 154..155): this is of type `{integer}`
-| note for (FileId(1), 149..150): this is of type `real`
-| error for (FileId(1), 149..155): expected index types
+error at src/main.t:149..155: mismatched types
+| note for src/main.t:154..155: this is of type `{integer}`
+| note for src/main.t:149..150: this is of type `real`
+| error for src/main.t:149..155: expected index types
 | info: range bounds types must both be index types (an integer, `boolean`, `char`, enumerated type, or a range)

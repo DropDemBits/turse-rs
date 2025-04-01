@@ -1,8 +1,6 @@
 ---
-source: compiler/toc_analysis/src/const_eval/test.rs
+source: compiler/toc-analysis/src/const_eval/test.rs
 expression: "type e : enum(a, b, c) const a : e.a .. e.b := e.a const _:=a"
 ---
-"a"@(FileId(1), 29..30) -> EnumVariant(TypeId(Id { value: 2 }), 0)
-"_"@(FileId(1), 57..58) -> EnumVariant(TypeId(Id { value: 2 }), 0)
-
-
+"a"@"src/main.t:29..30" -> EnumVariant(TypeId(Id(1401)), 0)
+"_"@"src/main.t:57..58" -> EnumVariant(TypeId(Id(1401)), 0)

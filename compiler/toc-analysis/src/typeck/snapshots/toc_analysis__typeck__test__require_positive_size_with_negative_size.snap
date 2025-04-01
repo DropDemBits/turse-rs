@@ -2,9 +2,9 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var _ : 2 .. 0"
 ---
-"_"@(FileId(1), 4..5) [ConstVar(Var, No)]: range of `int` (Unevaluated(PackageId(0), BodyId(0)) .. Expr(Unevaluated(PackageId(0), BodyId(1)), No))
-"<root>"@(dummy) [Module(No)]: <error>
+"_"@"src/main.t:4..5" [ConstVar(Var, No)]: range of `int` (Unevaluated(PackageId(3072), BodyId(0)) .. Expr(Unevaluated(PackageId(3072), BodyId(1)), No))
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 8..14): element range is too small
-| note for (FileId(1), 8..14): computed range size is -1
-| error for (FileId(1), 8..14): negative sized ranges cannot be used in `var` declarations
+error at src/main.t:8..14: element range is too small
+| note for src/main.t:8..14: computed range size is -1
+| error for src/main.t:8..14: negative sized ranges cannot be used in `var` declarations

@@ -2,14 +2,14 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "procedure boop(a, b, c : int) end boop\nboop(1, 2)\nboop(1)\n"
 ---
-"boop"@(FileId(1), 10..14) [Subprogram(Procedure)]: procedure ( pass(value) int, pass(value) int, pass(value) int, ) -> void
-"a"@(FileId(1), 15..16) [Param(Value, No)]: int
-"b"@(FileId(1), 18..19) [Param(Value, No)]: int
-"c"@(FileId(1), 21..22) [Param(Value, No)]: int
-"<unnamed>"@(dummy) [Undeclared]: <error>
-"<root>"@(dummy) [Module(No)]: <error>
+"boop"@"src/main.t:10..14" [Subprogram(Procedure)]: procedure ( pass(value) int, pass(value) int, pass(value) int, ) -> void
+"a"@"src/main.t:15..16" [Param(Value, No)]: int
+"b"@"src/main.t:18..19" [Param(Value, No)]: int
+"c"@"src/main.t:21..22" [Param(Value, No)]: int
+"<unnamed>"@"<unknown>:0..0" [Undeclared]: <error>
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 39..43): expected 3 arguments, found 2
-| error for (FileId(1), 39..43): call is missing 1 argument
-error at (FileId(1), 50..54): expected 3 arguments, found 1
-| error for (FileId(1), 50..54): call is missing 2 arguments
+error at src/main.t:39..43: expected 3 arguments, found 2
+| error for src/main.t:39..43: call is missing 1 argument
+error at src/main.t:50..54: expected 3 arguments, found 1
+| error for src/main.t:50..54: call is missing 2 arguments

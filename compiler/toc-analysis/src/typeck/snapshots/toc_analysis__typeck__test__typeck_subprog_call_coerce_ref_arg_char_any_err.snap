@@ -2,13 +2,13 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "procedure p(var a : char(*)) end p\nvar c : string\np(c)\n"
 ---
-"p"@(FileId(1), 10..11) [Subprogram(Procedure)]: procedure ( pass(var ref) char_n Any, ) -> void
-"a"@(FileId(1), 16..17) [Param(Reference(Var), No)]: char_n Any
-"c"@(FileId(1), 39..40) [ConstVar(Var, No)]: string
-"<unnamed>"@(dummy) [Undeclared]: <error>
-"<root>"@(dummy) [Module(No)]: <error>
+"p"@"src/main.t:10..11" [Subprogram(Procedure)]: procedure ( pass(var ref) char_n Any, ) -> void
+"a"@"src/main.t:16..17" [Param(Reference(Var), No)]: char_n Any
+"c"@"src/main.t:39..40" [ConstVar(Var, No)]: string
+"<unnamed>"@"<unknown>:0..0" [Undeclared]: <error>
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 52..53): mismatched types
-| note for (FileId(1), 52..53): this is of type `string`
-| note for (FileId(1), 52..53): parameter expects type `char(*)`
+error at src/main.t:52..53: mismatched types
+| note for src/main.t:52..53: this is of type `string`
+| note for src/main.t:52..53: parameter expects type `char(*)`
 | info: `string` is not equivalent to `char(*)`

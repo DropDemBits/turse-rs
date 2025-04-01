@@ -2,13 +2,13 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "function key() : int end key\nprocedure lime() end lime\n% can't be used like this, need paren\nkey lime\n"
 ---
-"key"@(FileId(1), 9..12) [Subprogram(Function)]: function ( ) -> int
-"lime"@(FileId(1), 39..43) [Subprogram(Procedure)]: procedure ( ) -> void
-"<unnamed>"@(dummy) [Undeclared]: <error>
-"<unnamed>"@(dummy) [Undeclared]: <error>
-"<root>"@(dummy) [Module(No)]: <error>
+"key"@"src/main.t:9..12" [Subprogram(Function)]: function ( ) -> int
+"lime"@"src/main.t:39..43" [Subprogram(Procedure)]: procedure ( ) -> void
+"<unnamed>"@"<unknown>:0..0" [Undeclared]: <error>
+"<unnamed>"@"<unknown>:0..0" [Undeclared]: <error>
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 93..96): cannot use `key` as a statement
-| error for (FileId(1), 93..96): `key` is callable, but requires adding `()` after here
-error at (FileId(1), 97..101): cannot use `lime` as a statement
-| error for (FileId(1), 97..101): `lime` is callable, but requires adding `()` after here
+error at src/main.t:93..96: cannot use `key` as a statement
+| error for src/main.t:93..96: `key` is callable, but requires adding `()` after here
+error at src/main.t:97..101: cannot use `lime` as a statement
+| error for src/main.t:97..101: `lime` is callable, but requires adding `()` after here

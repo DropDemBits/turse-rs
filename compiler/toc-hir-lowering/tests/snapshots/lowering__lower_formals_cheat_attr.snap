@@ -1,16 +1,13 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
-assertion_line: 59
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "proc u (j : cheat int) end u"
-
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(1)
-    Module@(FileId(1), 0..28): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..28): []
-        StmtItem@(FileId(1), 0..28): ItemId(0)
-          Subprogram@(FileId(1), 0..28): "u"@(FileId(1), 5..6) [cheat "j"@(FileId(1), 8..9)]
-            Primitive@(FileId(1), 18..21): Int
-            Void@(FileId(1), 0..22)
-            StmtBody@(FileId(1), 23..23): ["j"@(FileId(1), 8..9)]
-
+  Root@(dummy): src/main.t -> ItemId(1)
+    Module@(src/main.t:0..28): "<root>"@(dummy)
+      StmtBody@(src/main.t:0..28): []
+        StmtItem@(src/main.t:0..28): ItemId(0)
+          Subprogram@(src/main.t:0..28): "u"@(src/main.t:5..6) [cheat "j"@(src/main.t:8..9)]
+            Primitive@(src/main.t:18..21): Int
+            Void@(src/main.t:0..22)
+            StmtBody@(src/main.t:23..23): ["j"@(src/main.t:8..9)]

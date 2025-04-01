@@ -1,29 +1,27 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "\n    if true then\n        var a := 1\n    elsif false then\n        var a := 2\n    else\n        var a := 3\n    end if\n    "
-
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(3)
-    Module@(FileId(1), 0..120): "<root>"@(dummy)
-      StmtBody@(FileId(1), 5..115): []
-        If@(FileId(1), 5..115)
-          Literal@(FileId(1), 8..12): Boolean(true)
-          Block@(FileId(1), 26..36): Normal
-            StmtItem@(FileId(1), 26..36): ItemId(0)
-              ConstVar@(FileId(1), 26..36): var "a"@(FileId(1), 30..31)
-                ExprBody@(FileId(1), 35..36)
-                  Literal@(FileId(1), 35..36): Integer(1)
-          If@(FileId(1), 41..104)
-            Literal@(FileId(1), 47..52): Boolean(false)
-            Block@(FileId(1), 66..76): Normal
-              StmtItem@(FileId(1), 66..76): ItemId(1)
-                ConstVar@(FileId(1), 66..76): var "a"@(FileId(1), 70..71)
-                  ExprBody@(FileId(1), 75..76)
-                    Literal@(FileId(1), 75..76): Integer(2)
-            Block@(FileId(1), 94..104): Normal
-              StmtItem@(FileId(1), 94..104): ItemId(2)
-                ConstVar@(FileId(1), 94..104): var "a"@(FileId(1), 98..99)
-                  ExprBody@(FileId(1), 103..104)
-                    Literal@(FileId(1), 103..104): Integer(3)
-
+  Root@(dummy): src/main.t -> ItemId(3)
+    Module@(src/main.t:0..120): "<root>"@(dummy)
+      StmtBody@(src/main.t:5..115): []
+        If@(src/main.t:5..115)
+          Literal@(src/main.t:8..12): Boolean(true)
+          Block@(src/main.t:26..36): Normal
+            StmtItem@(src/main.t:26..36): ItemId(0)
+              ConstVar@(src/main.t:26..36): var "a"@(src/main.t:30..31)
+                ExprBody@(src/main.t:35..36)
+                  Literal@(src/main.t:35..36): Integer(1)
+          If@(src/main.t:41..104)
+            Literal@(src/main.t:47..52): Boolean(false)
+            Block@(src/main.t:66..76): Normal
+              StmtItem@(src/main.t:66..76): ItemId(1)
+                ConstVar@(src/main.t:66..76): var "a"@(src/main.t:70..71)
+                  ExprBody@(src/main.t:75..76)
+                    Literal@(src/main.t:75..76): Integer(2)
+            Block@(src/main.t:94..104): Normal
+              StmtItem@(src/main.t:94..104): ItemId(2)
+                ConstVar@(src/main.t:94..104): var "a"@(src/main.t:98..99)
+                  ExprBody@(src/main.t:103..104)
+                    Literal@(src/main.t:103..104): Integer(3)

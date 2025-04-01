@@ -2,9 +2,8 @@
 source: compiler/toc-analysis/src/const_eval/test.rs
 expression: "type a : int\nconst b := a\n"
 ---
-"b"@(FileId(1), 19..20) -> ConstError { kind: NotConstExpr(Def(DefId(PackageId(0), LocalDefId(0)))), span: (FileId(1), 24..25) }
+"b"@"src/main.t:19..20" -> <error NotConstExpr(Def(DefId(PackageId(3072), LocalDefId(0))))>
 
-error at (FileId(1), 24..25): cannot compute `a` at compile-time
-| error for (FileId(1), 24..25): `a` is a reference to a type, not a constant
-| note for (FileId(1), 5..6): `a` declared here
-
+error at src/main.t:24..25: cannot compute `a` at compile-time
+| error for src/main.t:24..25: `a` is a reference to a type, not a constant
+| note for src/main.t:5..6: `a` declared here

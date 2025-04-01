@@ -17,14 +17,14 @@ use crate::{
 
 use super::{Body, BodyContents, BodySpans};
 
-pub(crate) fn module_body(
-    db: &dyn Db,
-    body: Body,
-    stmt_list: SemanticLoc<ast::StmtList>,
-) -> (BodyContents, BodySpans, Vec<BodyLowerError>) {
-    let file = stmt_list.file(db.up());
-    let ast_locations = file.ast_locations(db.up());
-    let stmt_list = stmt_list.to_node(db.up());
+pub(crate) fn module_body<'db>(
+    db: &'db dyn Db,
+    body: Body<'db>,
+    stmt_list: SemanticLoc<'db, ast::StmtList>,
+) -> (BodyContents<'db>, BodySpans<'db>, Vec<BodyLowerError>) {
+    let file = stmt_list.file(db);
+    let ast_locations = file.ast_locations(db);
+    let stmt_list = stmt_list.to_node(db);
     BodyLower::new(db, file, ast_locations, body, BodyMode::Module).lower_from_stmts(stmt_list)
 }
 
@@ -36,12 +36,12 @@ pub(crate) enum BodyMode {
 struct BodyLower<'db> {
     db: &'db dyn Db,
     file: SemanticFile,
-    ast_locations: &'db AstLocations,
+    ast_locations: &'db AstLocations<'db>,
 
-    body: Body,
+    body: Body<'db>,
     mode: BodyMode,
-    contents: BodyContents,
-    spans: BodySpans,
+    contents: BodyContents<'db>,
+    spans: BodySpans<'db>,
 
     errors: Vec<BodyLowerError>,
 }
@@ -51,7 +51,7 @@ impl<'db> BodyLower<'db> {
         db: &'db dyn Db,
         file: SemanticFile,
         ast_locations: &'db AstLocations,
-        body: Body,
+        body: Body<'db>,
         mode: BodyMode,
     ) -> Self {
         Self {
@@ -69,7 +69,7 @@ impl<'db> BodyLower<'db> {
     fn lower_from_stmts(
         mut self,
         root: ast::StmtList,
-    ) -> (BodyContents, BodySpans, Vec<BodyLowerError>) {
+    ) -> (BodyContents<'db>, BodySpans<'db>, Vec<BodyLowerError>) {
         let has_items = root.stmts().any(|node| {
             let kind = node.syntax().kind();
             ast::Item::can_cast(kind) || ast::PreprocGlob::can_cast(kind)
@@ -103,7 +103,7 @@ impl<'db> BodyLower<'db> {
         (contents, spans, errors)
     }
 
-    fn lower_statement(&mut self, stmt: ast::Stmt) -> Option<LocalStmt> {
+    fn lower_statement(&mut self, stmt: ast::Stmt) -> Option<LocalStmt<'db>> {
         // only needed for pointing to unhandled statements
         let ptr: SemanticNodePtr = UnstableSemanticLoc::new(self.file, &stmt).into();
 
@@ -176,7 +176,7 @@ impl<'db> BodyLower<'db> {
         id
     }
 
-    fn lower_constvar_init(&mut self, node: ast::ConstVarDecl) -> LocalStmt {
+    fn lower_constvar_init(&mut self, node: ast::ConstVarDecl) -> LocalStmt<'db> {
         // for now: treat all constvars and items the same (get referenced as stmts)
         // and then lower them differently later
 
@@ -189,7 +189,7 @@ impl<'db> BodyLower<'db> {
         self.alloc_stmt(stmt::Stmt::InitializeConstVar(loc, init), node)
     }
 
-    fn lower_assign_stmt(&mut self, node: ast::AssignStmt) -> LocalStmt {
+    fn lower_assign_stmt(&mut self, node: ast::AssignStmt) -> LocalStmt<'db> {
         let op = node
             .asn_op()
             .and_then(|op| op.asn_kind())
@@ -201,7 +201,7 @@ impl<'db> BodyLower<'db> {
         self.alloc_stmt(stmt::Stmt::Assign(stmt::Assign { lhs, op, rhs }), node)
     }
 
-    fn lower_put_stmt(&mut self, node: ast::PutStmt) -> LocalStmt {
+    fn lower_put_stmt(&mut self, node: ast::PutStmt) -> LocalStmt<'db> {
         let stream_num = node
             .stream_num()
             .and_then(|stream| Some(self.lower_expr(stream.expr()?)));
@@ -264,7 +264,7 @@ impl<'db> BodyLower<'db> {
         )
     }
 
-    fn lower_block_stmt(&mut self, node: ast::BlockStmt) -> LocalStmt {
+    fn lower_block_stmt(&mut self, node: ast::BlockStmt) -> LocalStmt<'db> {
         let stmts = node.stmt_list().unwrap();
 
         let has_items = stmts.stmts().any(|node| {
@@ -293,7 +293,7 @@ impl<'db> BodyLower<'db> {
         )
     }
 
-    fn alloc_stmt(&mut self, stmt: stmt::Stmt, node: impl Into<ast::Stmt>) -> LocalStmt {
+    fn alloc_stmt(&mut self, stmt: stmt::Stmt<'db>, node: impl Into<ast::Stmt>) -> LocalStmt<'db> {
         let place = self.contents.stmts.alloc(stmt);
         self.spans
             .stmts
@@ -302,20 +302,20 @@ impl<'db> BodyLower<'db> {
         LocalStmt(place)
     }
 
-    fn lower_expr_opt(&mut self, node: Option<ast::Expr>) -> LocalExpr {
+    fn lower_expr_opt(&mut self, node: Option<ast::Expr>) -> LocalExpr<'db> {
         match node {
             Some(expr) => self.lower_expr(expr),
             None => self.missing_expr(),
         }
     }
 
-    fn missing_expr(&mut self) -> LocalExpr {
+    fn missing_expr(&mut self) -> LocalExpr<'db> {
         // Missing exprs don't have a matching node to attach to
         let place = self.contents.exprs.alloc(expr::Expr::Missing);
         LocalExpr(place)
     }
 
-    fn lower_expr(&mut self, expr: ast::Expr) -> LocalExpr {
+    fn lower_expr(&mut self, expr: ast::Expr) -> LocalExpr<'db> {
         // only needed for pointing to unhandled expressions
         let ptr: SemanticNodePtr = UnstableSemanticLoc::new(self.file, &expr).into();
 
@@ -350,7 +350,7 @@ impl<'db> BodyLower<'db> {
         }
     }
 
-    fn lower_literal_expr(&mut self, node: ast::LiteralExpr) -> LocalExpr {
+    fn lower_literal_expr(&mut self, node: ast::LiteralExpr) -> LocalExpr<'db> {
         let (value, errs) = node.literal().expect("aaaa");
 
         if let Some(errors) = errs {
@@ -373,7 +373,7 @@ impl<'db> BodyLower<'db> {
         self.alloc_expr(expr::Expr::Literal(value), node)
     }
 
-    fn lower_name_expr(&mut self, node: ast::NameExpr) -> LocalExpr {
+    fn lower_name_expr(&mut self, node: ast::NameExpr) -> LocalExpr<'db> {
         let Some(name) = node
             .name_ref()
             .and_then(|name_ref| name_ref.identifier_token())
@@ -382,12 +382,15 @@ impl<'db> BodyLower<'db> {
         };
 
         self.alloc_expr(
-            expr::Expr::Name(expr::Name::Name(Symbol::new(self.db, name.text().into()))),
+            expr::Expr::Name(expr::Name::Name(Symbol::new(
+                self.db,
+                name.text().to_owned(),
+            ))),
             node,
         )
     }
 
-    fn alloc_expr(&mut self, expr: expr::Expr, node: impl Into<ast::Expr>) -> LocalExpr {
+    fn alloc_expr(&mut self, expr: expr::Expr<'db>, node: impl Into<ast::Expr>) -> LocalExpr<'db> {
         let place = self.contents.exprs.alloc(expr);
         self.spans
             .exprs

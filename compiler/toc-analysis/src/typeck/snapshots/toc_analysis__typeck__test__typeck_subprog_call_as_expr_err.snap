@@ -2,10 +2,10 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "procedure lime() end lime\nvar res := lime()\n"
 ---
-"lime"@(FileId(1), 10..14) [Subprogram(Procedure)]: procedure ( ) -> void
-"res"@(FileId(1), 30..33) [ConstVar(Var, No)]: <error>
-"<unnamed>"@(dummy) [Undeclared]: <error>
-"<root>"@(dummy) [Module(No)]: <error>
+"lime"@"src/main.t:10..14" [Subprogram(Procedure)]: procedure ( ) -> void
+"res"@"src/main.t:30..33" [ConstVar(Var, No)]: <error>
+"<unnamed>"@"<unknown>:0..0" [Undeclared]: <error>
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 37..41): cannot call procedure here
-| error for (FileId(1), 37..41): procedure calls cannot be used as expressions
+error at src/main.t:37..41: cannot call procedure here
+| error for src/main.t:37..41: procedure calls cannot be used as expressions

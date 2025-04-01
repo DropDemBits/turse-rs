@@ -2,13 +2,13 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "case 'c' of label \"cc\", \"\": end case"
 ---
-"<root>"@(dummy) [Module(No)]: <error>
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 18..22): mismatched types
-| note for (FileId(1), 18..22): this is of type `string`, of length 2
-| note for (FileId(1), 5..8): discriminant is of type `char`
+error at src/main.t:18..22: mismatched types
+| note for src/main.t:18..22: this is of type `string`, of length 2
+| note for src/main.t:5..8: discriminant is of type `char`
 | info: `char` only allows `char` or `string`s of length 1
-error at (FileId(1), 24..26): mismatched types
-| note for (FileId(1), 24..26): this is of type `string`, of length 0
-| note for (FileId(1), 5..8): discriminant is of type `char`
+error at src/main.t:24..26: mismatched types
+| note for src/main.t:24..26: this is of type `string`, of length 0
+| note for src/main.t:5..8: discriminant is of type `char`
 | info: `char` only allows `char` or `string`s of length 1

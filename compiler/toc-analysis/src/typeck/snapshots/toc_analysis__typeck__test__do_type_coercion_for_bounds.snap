@@ -1,9 +1,8 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var i1 : int1\nvar i : int\nvar _res : boolean\nfor : i .. i1 end for\n"
 ---
-"i1"@(FileId(1), 4..6) [ConstVar(Var, No)]: int1
-"i"@(FileId(1), 18..19) [ConstVar(Var, No)]: int
-"_res"@(FileId(1), 30..34) [ConstVar(Var, No)]: boolean
-"<root>"@(dummy) [Module(No)]: <error>
-
+"i1"@"src/main.t:4..6" [ConstVar(Var, No)]: int1
+"i"@"src/main.t:18..19" [ConstVar(Var, No)]: int
+"_res"@"src/main.t:30..34" [ConstVar(Var, No)]: boolean
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>

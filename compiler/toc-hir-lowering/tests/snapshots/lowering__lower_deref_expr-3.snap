@@ -3,16 +3,15 @@ source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "var a : int var _ := ^ "
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(2)
-    Module@(FileId(1), 0..23): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..22): []
-        StmtItem@(FileId(1), 0..11): ItemId(0)
-          ConstVar@(FileId(1), 0..11): var "a"@(FileId(1), 4..5)
-            Primitive@(FileId(1), 8..11): Int
-        StmtItem@(FileId(1), 12..22): ItemId(1)
-          ConstVar@(FileId(1), 12..22): var "_"@(FileId(1), 16..17)
-            ExprBody@(FileId(1), 21..22)
-              Deref@(FileId(1), 21..22)
-error at (FileId(1), 21..22): unexpected end of file
-| error for (FileId(1), 21..22): expected expression after here
-
+  Root@(dummy): src/main.t -> ItemId(2)
+    Module@(src/main.t:0..23): "<root>"@(dummy)
+      StmtBody@(src/main.t:0..22): []
+        StmtItem@(src/main.t:0..11): ItemId(0)
+          ConstVar@(src/main.t:0..11): var "a"@(src/main.t:4..5)
+            Primitive@(src/main.t:8..11): Int
+        StmtItem@(src/main.t:12..22): ItemId(1)
+          ConstVar@(src/main.t:12..22): var "_"@(src/main.t:16..17)
+            ExprBody@(src/main.t:21..22)
+              Deref@(src/main.t:21..22)
+error at src/main.t:21..22: unexpected end of file
+| error for src/main.t:21..22: expected expression after here

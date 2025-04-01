@@ -2,10 +2,10 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "for : \"no\" .. \"yes\" end for"
 ---
-"<root>"@(dummy) [Module(No)]: <error>
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 6..19): mismatched types
-| note for (FileId(1), 14..19): this is of type `string`
-| note for (FileId(1), 6..10): this is also of type `string`
-| error for (FileId(1), 6..19): expected index types
+error at src/main.t:6..19: mismatched types
+| note for src/main.t:14..19: this is of type `string`
+| note for src/main.t:6..10: this is also of type `string`
+| error for src/main.t:6..19: expected index types
 | info: range bounds types must both be index types (an integer, `boolean`, `char`, enumerated type, or a range)

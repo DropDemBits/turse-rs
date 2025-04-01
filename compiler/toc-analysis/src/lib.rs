@@ -11,4 +11,4 @@ pub mod ty;
 #[cfg(test)]
 mod test_db;
 
-pub use db::{AnalysisJar, ConstEvalJar, TypeJar};
+pub use db::{ConstEval, HirAnalysis, TypeDatabase};

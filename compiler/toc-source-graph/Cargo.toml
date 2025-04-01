@@ -13,5 +13,9 @@ toc-span = { workspace = true }
 toc-paths = { workspace = true }
 toc-salsa-collections = { workspace = true }
 
+rustc-hash.workspace = true
 salsa = { workspace = true }
 upcast = { workspace = true }
+
+[dev-dependencies]
+camino.workspace = true

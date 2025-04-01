@@ -1,18 +1,17 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "% FIXME: Add corresponding test for range types\ntype r : char\ntype e : enum(v)\ntype _a : set of r\ntype _b : set of boolean\ntype _c : set of char\ntype _d : set of e\n"
 ---
-"r"@(FileId(1), 53..54) [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of char
-"e"@(FileId(1), 67..68) [Type]: enum[DefId(PackageId(0), LocalDefId(2))] ( "v"@(FileId(1), 76..77), )
-"e"@(FileId(1), 71..78) [Enum]: <error>
-"v"@(FileId(1), 76..77) [EnumVariant]: enum[DefId(PackageId(0), LocalDefId(2))] ( "v"@(FileId(1), 76..77), )
-"_a"@(FileId(1), 84..86) [Type]: set[DefId(PackageId(0), LocalDefId(5))] of alias[DefId(PackageId(0), LocalDefId(0))] of char
-"_a"@(FileId(1), 89..97) [Set]: <error>
-"_b"@(FileId(1), 103..105) [Type]: set[DefId(PackageId(0), LocalDefId(7))] of boolean
-"_b"@(FileId(1), 108..122) [Set]: <error>
-"_c"@(FileId(1), 128..130) [Type]: set[DefId(PackageId(0), LocalDefId(9))] of char
-"_c"@(FileId(1), 133..144) [Set]: <error>
-"_d"@(FileId(1), 150..152) [Type]: set[DefId(PackageId(0), LocalDefId(11))] of enum[DefId(PackageId(0), LocalDefId(2))] ( "v"@(FileId(1), 76..77), )
-"_d"@(FileId(1), 155..163) [Set]: <error>
-"<root>"@(dummy) [Module(No)]: <error>
-
+"r"@"src/main.t:53..54" [Type]: alias[DefId(PackageId(3072), LocalDefId(0))] of char
+"e"@"src/main.t:67..68" [Type]: enum[DefId(PackageId(3072), LocalDefId(2))] ( "v"@SpanId(5), )
+"e"@"src/main.t:71..78" [Enum]: <error>
+"v"@"src/main.t:76..77" [EnumVariant]: enum[DefId(PackageId(3072), LocalDefId(2))] ( "v"@SpanId(5), )
+"_a"@"src/main.t:84..86" [Type]: set[DefId(PackageId(3072), LocalDefId(5))] of alias[DefId(PackageId(3072), LocalDefId(0))] of char
+"_a"@"src/main.t:89..97" [Set]: <error>
+"_b"@"src/main.t:103..105" [Type]: set[DefId(PackageId(3072), LocalDefId(7))] of boolean
+"_b"@"src/main.t:108..122" [Set]: <error>
+"_c"@"src/main.t:128..130" [Type]: set[DefId(PackageId(3072), LocalDefId(9))] of char
+"_c"@"src/main.t:133..144" [Set]: <error>
+"_d"@"src/main.t:150..152" [Type]: set[DefId(PackageId(3072), LocalDefId(11))] of enum[DefId(PackageId(3072), LocalDefId(2))] ( "v"@SpanId(5), )
+"_d"@"src/main.t:155..163" [Set]: <error>
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>

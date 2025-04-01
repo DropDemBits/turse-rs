@@ -3,12 +3,11 @@ source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "type _ : set of "
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(1)
-    Module@(FileId(1), 0..16): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..15): []
-        StmtItem@(FileId(1), 0..15): ItemId(0)
-          Type@(FileId(1), 0..15): "_"@(FileId(1), 5..6)
-            Set@(FileId(1), 9..15): "_"@(FileId(1), 9..15)
-error at (FileId(1), 13..15): unexpected end of file
-| error for (FileId(1), 13..15): expected type specifier after here
-
+  Root@(dummy): src/main.t -> ItemId(1)
+    Module@(src/main.t:0..16): "<root>"@(dummy)
+      StmtBody@(src/main.t:0..15): []
+        StmtItem@(src/main.t:0..15): ItemId(0)
+          Type@(src/main.t:0..15): "_"@(src/main.t:5..6)
+            Set@(src/main.t:9..15): "_"@(src/main.t:9..15)
+error at src/main.t:13..15: unexpected end of file
+| error for src/main.t:13..15: expected type specifier after here

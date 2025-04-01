@@ -1,11 +1,10 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "type a0 : int\ntype a1 : int\nvar i : int\nvar ia0 : a0\nvar ia1 : a1\n\n% base type & alias\nfor : i .. ia0 end for\nfor : i .. ia1 end for\nfor : ia0 .. i end for\nfor : ia1 .. i end for\n% alias with same base type\nfor : ia0 .. ia1 end for\nfor : ia1 .. ia0 end for\n"
 ---
-"a0"@(FileId(1), 5..7) [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of int
-"a1"@(FileId(1), 19..21) [Type]: alias[DefId(PackageId(0), LocalDefId(1))] of int
-"i"@(FileId(1), 32..33) [ConstVar(Var, No)]: int
-"ia0"@(FileId(1), 44..47) [ConstVar(Var, No)]: alias[DefId(PackageId(0), LocalDefId(0))] of int
-"ia1"@(FileId(1), 57..60) [ConstVar(Var, No)]: alias[DefId(PackageId(0), LocalDefId(1))] of int
-"<root>"@(dummy) [Module(No)]: <error>
-
+"a0"@"src/main.t:5..7" [Type]: alias[DefId(PackageId(3072), LocalDefId(0))] of int
+"a1"@"src/main.t:19..21" [Type]: alias[DefId(PackageId(3072), LocalDefId(1))] of int
+"i"@"src/main.t:32..33" [ConstVar(Var, No)]: int
+"ia0"@"src/main.t:44..47" [ConstVar(Var, No)]: alias[DefId(PackageId(3072), LocalDefId(0))] of int
+"ia1"@"src/main.t:57..60" [ConstVar(Var, No)]: alias[DefId(PackageId(3072), LocalDefId(1))] of int
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>

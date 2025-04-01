@@ -30,49 +30,32 @@ mod sources;
 mod test;
 
 use camino::Utf8PathBuf;
-use toc_paths::RawPath;
-use upcast::{Upcast, UpcastFrom};
+use toc_paths::{RawOwnedPath, RawRefPath};
 
 pub use crate::db_ext::VfsDbExt;
 pub use crate::sources::{SourceFile, SourceTable, VfsBridge, source_of};
 
-#[salsa::jar(db = Db)]
-pub struct Jar(sources::SourceFile, sources::source_of, resolve_path);
+#[salsa::db]
+pub trait Db: salsa::Database + toc_paths::Db + VfsBridge {}
 
-pub trait Db:
-    salsa::DbWithJar<Jar> + toc_paths::Db + Upcast<dyn toc_paths::Db> + VfsBridge
-{
-}
-
-impl<DB> Db for DB where
-    DB: salsa::DbWithJar<Jar> + toc_paths::Db + Upcast<dyn toc_paths::Db> + VfsBridge
-{
-}
-
-impl<'db, DB: Db + 'db> UpcastFrom<DB> for dyn Db + 'db {
-    fn up_from(value: &DB) -> &Self {
-        value
-    }
-    fn up_from_mut(value: &mut DB) -> &mut Self {
-        value
-    }
-}
+#[salsa::db]
+impl<DB> Db for DB where DB: salsa::Database + toc_paths::Db + VfsBridge {}
 
 /// Resolves a path relative to a given [`RawPath`].
 /// If `path` expands into an absolute path, then `relative_to` is ignored.
 ///
 /// Performs path normalization using [`VfsBridge::normalize_path`]
 #[salsa::tracked]
-pub fn resolve_path(db: &dyn Db, anchor: RawPath, path: String) -> RawPath {
+pub fn resolve_path<'db>(db: &'db dyn Db, anchor: &'db RawRefPath, path: String) -> RawOwnedPath {
     // Convert `path` into an absolute one
-    let path = toc_paths::expand_path(db.up(), Utf8PathBuf::from(path));
+    let path = toc_paths::expand_path(db, Utf8PathBuf::from(path));
 
     let full_path = if path.is_absolute() {
         // Already an absolute path
         path
     } else {
         // Tack on the parent path
-        let mut parent_path = anchor.raw_path(db.up()).clone();
+        let mut parent_path = anchor.to_owned();
         assert!(parent_path.pop(), "parent path for file was empty");
 
         // Join paths together, applying path de-dotting
@@ -82,5 +65,5 @@ pub fn resolve_path(db: &dyn Db, anchor: RawPath, path: String) -> RawPath {
     // Use the provided path normalizer to guarantee that we have a uniform path representation
     let full_path = db.normalize_path(&full_path);
 
-    RawPath::new(db.up(), full_path)
+    full_path
 }

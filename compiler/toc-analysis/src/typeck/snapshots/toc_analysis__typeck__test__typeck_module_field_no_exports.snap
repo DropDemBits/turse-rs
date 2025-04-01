@@ -2,9 +2,9 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "module no end no\nvar k := no.exports\n"
 ---
-"no"@(FileId(1), 7..9) [Module(No)]: <error>
-"k"@(FileId(1), 21..22) [ConstVar(Var, No)]: <error>
-"<root>"@(dummy) [Module(No)]: <error>
+"no"@"src/main.t:7..9" [Module(No)]: <error>
+"k"@"src/main.t:21..22" [ConstVar(Var, No)]: <error>
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 29..36): no field named `exports` in expression
-| error for (FileId(1), 29..36): no field named `exports` in here
+error at src/main.t:29..36: no field named `exports` in expression
+| error for src/main.t:29..36: no field named `exports` in here

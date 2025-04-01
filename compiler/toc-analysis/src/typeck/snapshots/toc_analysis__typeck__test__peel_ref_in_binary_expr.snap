@@ -1,8 +1,7 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var a : int var k := a + a"
 ---
-"a"@(FileId(1), 4..5) [ConstVar(Var, No)]: int
-"k"@(FileId(1), 16..17) [ConstVar(Var, No)]: int
-"<root>"@(dummy) [Module(No)]: <error>
-
+"a"@"src/main.t:4..5" [ConstVar(Var, No)]: int
+"k"@"src/main.t:16..17" [ConstVar(Var, No)]: int
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>

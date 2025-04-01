@@ -1,17 +1,16 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "type i : int proc u (j : i) end u"
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(2)
-    Module@(FileId(1), 0..33): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..33): []
-        StmtItem@(FileId(1), 0..12): ItemId(0)
-          Type@(FileId(1), 0..12): "i"@(FileId(1), 5..6)
-            Primitive@(FileId(1), 9..12): Int
-        StmtItem@(FileId(1), 13..33): ItemId(1)
-          Subprogram@(FileId(1), 13..33): "u"@(FileId(1), 18..19) ["j"@(FileId(1), 21..22)]
-            Alias@(FileId(1), 25..26): "i"@(FileId(1), 5..6)
-            Void@(FileId(1), 13..27)
-            StmtBody@(FileId(1), 28..28): ["j"@(FileId(1), 21..22)]
-
+  Root@(dummy): src/main.t -> ItemId(2)
+    Module@(src/main.t:0..33): "<root>"@(dummy)
+      StmtBody@(src/main.t:0..33): []
+        StmtItem@(src/main.t:0..12): ItemId(0)
+          Type@(src/main.t:0..12): "i"@(src/main.t:5..6)
+            Primitive@(src/main.t:9..12): Int
+        StmtItem@(src/main.t:13..33): ItemId(1)
+          Subprogram@(src/main.t:13..33): "u"@(src/main.t:18..19) ["j"@(src/main.t:21..22)]
+            Alias@(src/main.t:25..26): "i"@(src/main.t:5..6)
+            Void@(src/main.t:13..27)
+            StmtBody@(src/main.t:28..28): ["j"@(src/main.t:21..22)]

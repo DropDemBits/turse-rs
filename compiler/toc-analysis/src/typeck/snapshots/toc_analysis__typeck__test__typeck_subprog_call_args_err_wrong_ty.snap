@@ -2,15 +2,15 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var tree : string\nprocedure boop(a, b : int, var c : int) end boop\nboop(1, 2, tree)\n"
 ---
-"tree"@(FileId(1), 4..8) [ConstVar(Var, No)]: string
-"boop"@(FileId(1), 28..32) [Subprogram(Procedure)]: procedure ( pass(value) int, pass(value) int, pass(var ref) int, ) -> void
-"a"@(FileId(1), 33..34) [Param(Value, No)]: int
-"b"@(FileId(1), 36..37) [Param(Value, No)]: int
-"c"@(FileId(1), 49..50) [Param(Reference(Var), No)]: int
-"<unnamed>"@(dummy) [Undeclared]: <error>
-"<root>"@(dummy) [Module(No)]: <error>
+"tree"@"src/main.t:4..8" [ConstVar(Var, No)]: string
+"boop"@"src/main.t:28..32" [Subprogram(Procedure)]: procedure ( pass(value) int, pass(value) int, pass(var ref) int, ) -> void
+"a"@"src/main.t:33..34" [Param(Value, No)]: int
+"b"@"src/main.t:36..37" [Param(Value, No)]: int
+"c"@"src/main.t:49..50" [Param(Reference(Var), No)]: int
+"<unnamed>"@"<unknown>:0..0" [Undeclared]: <error>
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 78..82): mismatched types
-| note for (FileId(1), 78..82): this is of type `string`
-| note for (FileId(1), 78..82): parameter expects type `int`
+error at src/main.t:78..82: mismatched types
+| note for src/main.t:78..82: this is of type `string`
+| note for src/main.t:78..82: parameter expects type `int`
 | info: `string` is not equivalent to `int`

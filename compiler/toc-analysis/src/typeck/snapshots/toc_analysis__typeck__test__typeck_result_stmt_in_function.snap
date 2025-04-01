@@ -1,7 +1,6 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "fcn oeuf : int result 0 end oeuf"
 ---
-"oeuf"@(FileId(1), 4..8) [Subprogram(Function)]: function -> int
-"<root>"@(dummy) [Module(No)]: <error>
-
+"oeuf"@"src/main.t:4..8" [Subprogram(Function)]: function -> int
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>

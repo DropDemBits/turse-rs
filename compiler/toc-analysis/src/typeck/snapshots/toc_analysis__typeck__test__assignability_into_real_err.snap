@@ -2,11 +2,11 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var b : boolean\n\nvar _e00 : real := b\n"
 ---
-"b"@(FileId(1), 4..5) [ConstVar(Var, No)]: boolean
-"_e00"@(FileId(1), 21..25) [ConstVar(Var, No)]: real
-"<root>"@(dummy) [Module(No)]: <error>
+"b"@"src/main.t:4..5" [ConstVar(Var, No)]: boolean
+"_e00"@"src/main.t:21..25" [ConstVar(Var, No)]: real
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 36..37): mismatched types
-| note for (FileId(1), 36..37): this is of type `boolean`
-| note for (FileId(1), 28..32): this is of type `real`
+error at src/main.t:36..37: mismatched types
+| note for src/main.t:36..37: this is of type `boolean`
+| note for src/main.t:28..32: this is of type `real`
 | info: `boolean` is not assignable into `real`

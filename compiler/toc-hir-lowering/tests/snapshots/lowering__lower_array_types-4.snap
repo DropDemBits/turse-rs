@@ -1,16 +1,13 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
-assertion_line: 61
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "var _ : array boolean of int"
-
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(1)
-    Module@(FileId(1), 0..28): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..28): []
-        StmtItem@(FileId(1), 0..28): ItemId(0)
-          ConstVar@(FileId(1), 0..28): var "_"@(FileId(1), 4..5)
-            Array@(FileId(1), 8..28): MaybeDyn
-              Primitive@(FileId(1), 14..21): Boolean
-              Primitive@(FileId(1), 25..28): Int
-
+  Root@(dummy): src/main.t -> ItemId(1)
+    Module@(src/main.t:0..28): "<root>"@(dummy)
+      StmtBody@(src/main.t:0..28): []
+        StmtItem@(src/main.t:0..28): ItemId(0)
+          ConstVar@(src/main.t:0..28): var "_"@(src/main.t:4..5)
+            Array@(src/main.t:8..28): MaybeDyn
+              Primitive@(src/main.t:14..21): Boolean
+              Primitive@(src/main.t:25..28): Int

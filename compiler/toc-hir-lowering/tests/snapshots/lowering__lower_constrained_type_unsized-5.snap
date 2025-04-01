@@ -3,14 +3,13 @@ source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "type _ : 1 .. *"
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(1)
-    Module@(FileId(1), 0..15): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..15): []
-        StmtItem@(FileId(1), 0..15): ItemId(0)
-          Type@(FileId(1), 0..15): "_"@(FileId(1), 5..6)
-            Constrained@(FileId(1), 9..15): end => Unsized(None)
-              ExprBody@(FileId(1), 9..10)
-                Literal@(FileId(1), 9..10): Integer(1)
-error at (FileId(1), 9..15): cannot use unsized range type here
-| error for (FileId(1), 9..15): unsized range types can only be used in array ranges
-
+  Root@(dummy): src/main.t -> ItemId(1)
+    Module@(src/main.t:0..15): "<root>"@(dummy)
+      StmtBody@(src/main.t:0..15): []
+        StmtItem@(src/main.t:0..15): ItemId(0)
+          Type@(src/main.t:0..15): "_"@(src/main.t:5..6)
+            Constrained@(src/main.t:9..15): end => Unsized(None)
+              ExprBody@(src/main.t:9..10)
+                Literal@(src/main.t:9..10): Integer(1)
+error at src/main.t:9..15: cannot use unsized range type here
+| error for src/main.t:9..15: unsized range types can only be used in array ranges

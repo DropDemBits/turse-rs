@@ -2,11 +2,11 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "const min : int4 := -16#7FFFFFFF - 1\nvar _ : min..(16#7FFFFFFF + 1)\n"
 ---
-"min"@(FileId(1), 6..9) [ConstVar(Const, No)]: int4
-"_"@(FileId(1), 41..42) [ConstVar(Var, No)]: range of `int4` (Unevaluated(PackageId(0), BodyId(1)) .. Expr(Unevaluated(PackageId(0), BodyId(2)), No))
-"<root>"@(dummy) [Module(No)]: <error>
+"min"@"src/main.t:6..9" [ConstVar(Const, No)]: int4
+"_"@"src/main.t:41..42" [ConstVar(Var, No)]: range of `int4` (Unevaluated(PackageId(3072), BodyId(1)) .. Expr(Unevaluated(PackageId(3072), BodyId(2)), No))
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 45..67): invalid range size
-| error for (FileId(1), 45..67): range size is too large
-error at (FileId(1), 51..66): computed value is outside the type's range
-| error for (FileId(1), 51..66): `2147483648` is larger than the largest possible `int4`
+error at src/main.t:45..67: invalid range size
+| error for src/main.t:45..67: range size is too large
+error at src/main.t:51..66: computed value is outside the type's range
+| error for src/main.t:51..66: `2147483648` is larger than the largest possible `int4`
