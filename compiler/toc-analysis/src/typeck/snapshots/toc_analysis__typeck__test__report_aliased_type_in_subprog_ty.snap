@@ -2,15 +2,15 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "type i : int\ntype am_in : real\ntype misery : char(*)\ntype eat_em_up : string\ntype f : function(c : i, p : am_in, r : misery) : eat_em_up\n\nvar y : f\nvar _ : int := y\n"
 ---
-"i"@"src/main.t:5..6" [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of int
-"am_in"@"src/main.t:18..23" [Type]: alias[DefId(PackageId(0), LocalDefId(1))] of real
-"misery"@"src/main.t:36..42" [Type]: alias[DefId(PackageId(0), LocalDefId(2))] of char_n Any
-"eat_em_up"@"src/main.t:58..67" [Type]: alias[DefId(PackageId(0), LocalDefId(3))] of string
-"f"@"src/main.t:82..83" [Type]: alias[DefId(PackageId(0), LocalDefId(4))] of function ( pass(value) alias[DefId(PackageId(0), LocalDefId(0))] of int, pass(value) alias[DefId(PackageId(0), LocalDefId(1))] of real, pass(value) alias[DefId(PackageId(0), LocalDefId(2))] of char_n Any, ) -> alias[DefId(PackageId(0), LocalDefId(3))] of string
+"i"@"src/main.t:5..6" [Type]: alias[DefId(PackageId(3072), LocalDefId(0))] of int
+"am_in"@"src/main.t:18..23" [Type]: alias[DefId(PackageId(3072), LocalDefId(1))] of real
+"misery"@"src/main.t:36..42" [Type]: alias[DefId(PackageId(3072), LocalDefId(2))] of char_n Any
+"eat_em_up"@"src/main.t:58..67" [Type]: alias[DefId(PackageId(3072), LocalDefId(3))] of string
+"f"@"src/main.t:82..83" [Type]: alias[DefId(PackageId(3072), LocalDefId(4))] of function ( pass(value) alias[DefId(PackageId(3072), LocalDefId(0))] of int, pass(value) alias[DefId(PackageId(3072), LocalDefId(1))] of real, pass(value) alias[DefId(PackageId(3072), LocalDefId(2))] of char_n Any, ) -> alias[DefId(PackageId(3072), LocalDefId(3))] of string
 "c"@"src/main.t:95..96" [Param(Value, No)]: <error>
 "p"@"src/main.t:102..103" [Param(Value, No)]: <error>
 "r"@"src/main.t:113..114" [Param(Value, No)]: <error>
-"y"@"src/main.t:142..143" [ConstVar(Var, No)]: alias[DefId(PackageId(0), LocalDefId(4))] of function ( pass(value) alias[DefId(PackageId(0), LocalDefId(0))] of int, pass(value) alias[DefId(PackageId(0), LocalDefId(1))] of real, pass(value) alias[DefId(PackageId(0), LocalDefId(2))] of char_n Any, ) -> alias[DefId(PackageId(0), LocalDefId(3))] of string
+"y"@"src/main.t:142..143" [ConstVar(Var, No)]: alias[DefId(PackageId(3072), LocalDefId(4))] of function ( pass(value) alias[DefId(PackageId(3072), LocalDefId(0))] of int, pass(value) alias[DefId(PackageId(3072), LocalDefId(1))] of real, pass(value) alias[DefId(PackageId(3072), LocalDefId(2))] of char_n Any, ) -> alias[DefId(PackageId(3072), LocalDefId(3))] of string
 "_"@"src/main.t:152..153" [ConstVar(Var, No)]: int
 "<unnamed>"@"<unknown>:0..0" [Undeclared]: <error>
 "<root>"@"<unknown>:0..0" [Module(No)]: <error>

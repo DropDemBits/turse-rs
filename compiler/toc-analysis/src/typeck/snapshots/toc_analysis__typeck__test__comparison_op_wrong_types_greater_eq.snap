@@ -7,18 +7,18 @@ expression: "\n    % Numerics\n    var r : real\n    var i : int\n    var n : na
 "n"@"src/main.t:57..58" [ConstVar(Var, No)]: nat
 "b"@"src/main.t:94..95" [ConstVar(Var, No)]: boolean
 "c"@"src/main.t:136..137" [ConstVar(Var, No)]: char
-"c_sz"@"src/main.t:153..157" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(0)))
+"c_sz"@"src/main.t:153..157" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(3072), BodyId(0)))
 "s"@"src/main.t:176..177" [ConstVar(Var, No)]: string
-"s_sz"@"src/main.t:195..199" [ConstVar(Var, No)]: string_n Fixed(Unevaluated(PackageId(0), BodyId(1)))
-"s1"@"src/main.t:243..245" [Type]: set[DefId(PackageId(0), LocalDefId(9))] of boolean
+"s_sz"@"src/main.t:195..199" [ConstVar(Var, No)]: string_n Fixed(Unevaluated(PackageId(3072), BodyId(1)))
+"s1"@"src/main.t:243..245" [Type]: set[DefId(PackageId(3072), LocalDefId(9))] of boolean
 "s1"@"src/main.t:248..262" [Set]: <error>
-"s2"@"src/main.t:272..274" [Type]: set[DefId(PackageId(0), LocalDefId(11))] of boolean
+"s2"@"src/main.t:272..274" [Type]: set[DefId(PackageId(3072), LocalDefId(11))] of boolean
 "s2"@"src/main.t:277..291" [Set]: <error>
-"as1"@"src/main.t:300..303" [ConstVar(Var, No)]: set[DefId(PackageId(0), LocalDefId(9))] of boolean
-"as2"@"src/main.t:305..308" [ConstVar(Var, No)]: set[DefId(PackageId(0), LocalDefId(9))] of boolean
-"bs1"@"src/main.t:322..325" [ConstVar(Var, No)]: set[DefId(PackageId(0), LocalDefId(11))] of boolean
-"bs2"@"src/main.t:327..330" [ConstVar(Var, No)]: set[DefId(PackageId(0), LocalDefId(11))] of boolean
-"aas"@"src/main.t:344..347" [ConstVar(Var, No)]: set[DefId(PackageId(0), LocalDefId(17))] of boolean
+"as1"@"src/main.t:300..303" [ConstVar(Var, No)]: set[DefId(PackageId(3072), LocalDefId(9))] of boolean
+"as2"@"src/main.t:305..308" [ConstVar(Var, No)]: set[DefId(PackageId(3072), LocalDefId(9))] of boolean
+"bs1"@"src/main.t:322..325" [ConstVar(Var, No)]: set[DefId(PackageId(3072), LocalDefId(11))] of boolean
+"bs2"@"src/main.t:327..330" [ConstVar(Var, No)]: set[DefId(PackageId(3072), LocalDefId(11))] of boolean
+"aas"@"src/main.t:344..347" [ConstVar(Var, No)]: set[DefId(PackageId(3072), LocalDefId(17))] of boolean
 "<anonymous>"@"src/main.t:350..364" [Set]: <error>
 "_v_res"@"src/main.t:414..420" [ConstVar(Var, No)]: boolean
 "<root>"@"<unknown>:0..0" [Module(No)]: <error>

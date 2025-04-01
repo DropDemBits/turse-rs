@@ -3,12 +3,12 @@ source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var c : char\nvar c1 : char(1)\nvar c5 : char(5)\nvar c255 : char(255)\nvar s : string\nvar s1 : string(1)\nvar s5 : string(5)\n\nvar _v00 : string := c\nvar _v01 : string := c1\nvar _v02 : string := c5\nvar _v03 : string := c255\nvar _v04 : string := s\nvar _v05 : string := s1\nvar _v06 : string := s5\n"
 ---
 "c"@"src/main.t:4..5" [ConstVar(Var, No)]: char
-"c1"@"src/main.t:17..19" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(0)))
-"c5"@"src/main.t:34..36" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(1)))
-"c255"@"src/main.t:51..55" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(2)))
+"c1"@"src/main.t:17..19" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(3072), BodyId(0)))
+"c5"@"src/main.t:34..36" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(3072), BodyId(1)))
+"c255"@"src/main.t:51..55" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(3072), BodyId(2)))
 "s"@"src/main.t:72..73" [ConstVar(Var, No)]: string
-"s1"@"src/main.t:87..89" [ConstVar(Var, No)]: string_n Fixed(Unevaluated(PackageId(0), BodyId(3)))
-"s5"@"src/main.t:106..108" [ConstVar(Var, No)]: string_n Fixed(Unevaluated(PackageId(0), BodyId(4)))
+"s1"@"src/main.t:87..89" [ConstVar(Var, No)]: string_n Fixed(Unevaluated(PackageId(3072), BodyId(3)))
+"s5"@"src/main.t:106..108" [ConstVar(Var, No)]: string_n Fixed(Unevaluated(PackageId(3072), BodyId(4)))
 "_v00"@"src/main.t:126..130" [ConstVar(Var, No)]: string
 "_v01"@"src/main.t:149..153" [ConstVar(Var, No)]: string
 "_v02"@"src/main.t:173..177" [ConstVar(Var, No)]: string

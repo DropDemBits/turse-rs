@@ -2,4 +2,4 @@
 source: compiler/toc-analysis/src/const_eval/test.rs
 expression: "type u : enum(wu)\nconst _ := u.wu"
 ---
-"_"@"src/main.t:24..25" -> EnumVariant(TypeId(Id { value: 2 }), 0)
+"_"@"src/main.t:24..25" -> EnumVariant(TypeId(Id(1401)), 0)

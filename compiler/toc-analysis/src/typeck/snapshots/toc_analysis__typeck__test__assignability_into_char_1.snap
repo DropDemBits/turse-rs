@@ -4,13 +4,13 @@ expression: "const N := 1\nvar c : char\nvar c1 : char(1)\nvar s : string\nvar s
 ---
 "N"@"src/main.t:6..7" [ConstVar(Const, No)]: int
 "c"@"src/main.t:17..18" [ConstVar(Var, No)]: char
-"c1"@"src/main.t:30..32" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(1)))
+"c1"@"src/main.t:30..32" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(3072), BodyId(1)))
 "s"@"src/main.t:47..48" [ConstVar(Var, No)]: string
-"s1"@"src/main.t:62..64" [ConstVar(Var, No)]: string_n Fixed(Unevaluated(PackageId(0), BodyId(2)))
-"s5"@"src/main.t:81..83" [ConstVar(Var, No)]: string_n Fixed(Unevaluated(PackageId(0), BodyId(3)))
-"_v00"@"src/main.t:101..105" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(4)))
-"_v01"@"src/main.t:125..129" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(6)))
-"_v02"@"src/main.t:150..154" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(8)))
-"_v03"@"src/main.t:192..196" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(10)))
-"_v04"@"src/main.t:217..221" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(12)))
+"s1"@"src/main.t:62..64" [ConstVar(Var, No)]: string_n Fixed(Unevaluated(PackageId(3072), BodyId(2)))
+"s5"@"src/main.t:81..83" [ConstVar(Var, No)]: string_n Fixed(Unevaluated(PackageId(3072), BodyId(3)))
+"_v00"@"src/main.t:101..105" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(3072), BodyId(4)))
+"_v01"@"src/main.t:125..129" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(3072), BodyId(6)))
+"_v02"@"src/main.t:150..154" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(3072), BodyId(8)))
+"_v03"@"src/main.t:192..196" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(3072), BodyId(10)))
+"_v04"@"src/main.t:217..221" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(3072), BodyId(12)))
 "<root>"@"<unknown>:0..0" [Module(No)]: <error>

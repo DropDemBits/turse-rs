@@ -3,12 +3,12 @@ source: compiler/toc-analysis/src/typeck/test.rs
 expression: "module m\n    export opaque t, v\n    type t : int\n    var v : t\n    for _ : v .. v end for\nend m\n\nfor _ : m.v .. m.v end for\n"
 ---
 "m"@"src/main.t:7..8" [Module(No)]: <error>
-"t"@"src/main.t:41..42" [Type]: opaque[DefId(PackageId(0), LocalDefId(1))] type to int
-"v"@"src/main.t:57..58" [ConstVar(Var, No)]: opaque[DefId(PackageId(0), LocalDefId(1))] type to int
-"_"@"src/main.t:71..72" [ConstVar(Const, No)]: alias[DefId(PackageId(0), LocalDefId(1))] of int
-"_"@"src/main.t:101..102" [ConstVar(Const, No)]: opaque[DefId(PackageId(0), LocalDefId(1))] type to int
-"t"@"src/main.t:27..28" [Export]: opaque[DefId(PackageId(0), LocalDefId(1))] type to int
-"v"@"src/main.t:30..31" [Export]: opaque[DefId(PackageId(0), LocalDefId(1))] type to int
+"t"@"src/main.t:41..42" [Type]: opaque[DefId(PackageId(3072), LocalDefId(1))] type to int
+"v"@"src/main.t:57..58" [ConstVar(Var, No)]: opaque[DefId(PackageId(3072), LocalDefId(1))] type to int
+"_"@"src/main.t:71..72" [ConstVar(Const, No)]: alias[DefId(PackageId(3072), LocalDefId(1))] of int
+"_"@"src/main.t:101..102" [ConstVar(Const, No)]: opaque[DefId(PackageId(3072), LocalDefId(1))] type to int
+"t"@"src/main.t:27..28" [Export]: opaque[DefId(PackageId(3072), LocalDefId(1))] type to int
+"v"@"src/main.t:30..31" [Export]: opaque[DefId(PackageId(3072), LocalDefId(1))] type to int
 "<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
 error at src/main.t:105..115: mismatched types

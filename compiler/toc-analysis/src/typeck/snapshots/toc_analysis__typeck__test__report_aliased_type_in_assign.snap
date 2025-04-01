@@ -2,10 +2,10 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "type a0 : real\ntype a1 : int\nvar k : a0\nvar i : a1\ni := k"
 ---
-"a0"@"src/main.t:5..7" [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of real
-"a1"@"src/main.t:20..22" [Type]: alias[DefId(PackageId(0), LocalDefId(1))] of int
-"k"@"src/main.t:33..34" [ConstVar(Var, No)]: alias[DefId(PackageId(0), LocalDefId(0))] of real
-"i"@"src/main.t:44..45" [ConstVar(Var, No)]: alias[DefId(PackageId(0), LocalDefId(1))] of int
+"a0"@"src/main.t:5..7" [Type]: alias[DefId(PackageId(3072), LocalDefId(0))] of real
+"a1"@"src/main.t:20..22" [Type]: alias[DefId(PackageId(3072), LocalDefId(1))] of int
+"k"@"src/main.t:33..34" [ConstVar(Var, No)]: alias[DefId(PackageId(3072), LocalDefId(0))] of real
+"i"@"src/main.t:44..45" [ConstVar(Var, No)]: alias[DefId(PackageId(3072), LocalDefId(1))] of int
 "<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
 error at src/main.t:53..55: mismatched types

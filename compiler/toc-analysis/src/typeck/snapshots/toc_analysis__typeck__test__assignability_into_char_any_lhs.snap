@@ -15,11 +15,11 @@ expression: "proc __(var c_any : char(*), var s_any : string(*), var _v00, _v01,
 "_v07"@"src/main.t:98..102" [Param(Reference(Var), No)]: char_n Any
 "_v08"@"src/main.t:104..108" [Param(Reference(Var), No)]: char_n Any
 "c"@"src/main.t:146..147" [ConstVar(Var, No)]: char
-"c1"@"src/main.t:159..161" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(0)))
-"c5"@"src/main.t:176..178" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(1)))
-"c255"@"src/main.t:193..197" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(2)))
+"c1"@"src/main.t:159..161" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(3072), BodyId(0)))
+"c5"@"src/main.t:176..178" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(3072), BodyId(1)))
+"c255"@"src/main.t:193..197" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(3072), BodyId(2)))
 "s"@"src/main.t:214..215" [ConstVar(Var, No)]: string
-"s1"@"src/main.t:229..231" [ConstVar(Var, No)]: string_n Fixed(Unevaluated(PackageId(0), BodyId(3)))
-"s5"@"src/main.t:248..250" [ConstVar(Var, No)]: string_n Fixed(Unevaluated(PackageId(0), BodyId(4)))
+"s1"@"src/main.t:229..231" [ConstVar(Var, No)]: string_n Fixed(Unevaluated(PackageId(3072), BodyId(3)))
+"s5"@"src/main.t:248..250" [ConstVar(Var, No)]: string_n Fixed(Unevaluated(PackageId(3072), BodyId(4)))
 "<unnamed>"@"<unknown>:0..0" [Undeclared]: <error>
 "<root>"@"<unknown>:0..0" [Module(No)]: <error>

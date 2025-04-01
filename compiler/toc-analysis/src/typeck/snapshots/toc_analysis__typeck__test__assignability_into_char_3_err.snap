@@ -4,13 +4,13 @@ expression: "const N := 3\nvar c : char\nvar c1 : char(1)\nvar c5 : char(5)\nvar
 ---
 "N"@"src/main.t:6..7" [ConstVar(Const, No)]: int
 "c"@"src/main.t:17..18" [ConstVar(Var, No)]: char
-"c1"@"src/main.t:30..32" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(1)))
-"c5"@"src/main.t:47..49" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(2)))
-"s1"@"src/main.t:64..66" [ConstVar(Var, No)]: string_n Fixed(Unevaluated(PackageId(0), BodyId(3)))
-"_e00"@"src/main.t:84..88" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(4)))
-"_e01"@"src/main.t:108..112" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(6)))
-"_e02"@"src/main.t:133..137" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(8)))
-"_e03"@"src/main.t:158..162" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(10)))
+"c1"@"src/main.t:30..32" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(3072), BodyId(1)))
+"c5"@"src/main.t:47..49" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(3072), BodyId(2)))
+"s1"@"src/main.t:64..66" [ConstVar(Var, No)]: string_n Fixed(Unevaluated(PackageId(3072), BodyId(3)))
+"_e00"@"src/main.t:84..88" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(3072), BodyId(4)))
+"_e01"@"src/main.t:108..112" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(3072), BodyId(6)))
+"_e02"@"src/main.t:133..137" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(3072), BodyId(8)))
+"_e03"@"src/main.t:158..162" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(3072), BodyId(10)))
 "<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
 error at src/main.t:102..103: mismatched types

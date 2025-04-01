@@ -2,7 +2,7 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "fcn _() : 1..0 end _"
 ---
-"_"@"src/main.t:4..5" [Subprogram(Function)]: function ( ) -> range of `int` (Unevaluated(PackageId(0), BodyId(0)) .. Expr(Unevaluated(PackageId(0), BodyId(1)), No))
+"_"@"src/main.t:4..5" [Subprogram(Function)]: function ( ) -> range of `int` (Unevaluated(PackageId(3072), BodyId(0)) .. Expr(Unevaluated(PackageId(3072), BodyId(1)), No))
 "<unnamed>"@"<unknown>:0..0" [Undeclared]: <error>
 "<root>"@"<unknown>:0..0" [Module(No)]: <error>
 

@@ -2,9 +2,9 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "type c : 1 .. 2\nvar a, b : c := 2\nvar i : int\nvar n : nat\n% can be coerced into the base type\na := b\na := 1\na := i\na := n\n% coercible into the base type\ni := a\nn := a\n"
 ---
-"c"@"src/main.t:5..6" [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of range of `int` (Unevaluated(PackageId(0), BodyId(0)) .. Expr(Unevaluated(PackageId(0), BodyId(1)), No))
-"a"@"src/main.t:20..21" [ConstVar(Var, No)]: alias[DefId(PackageId(0), LocalDefId(0))] of range of `int` (Unevaluated(PackageId(0), BodyId(0)) .. Expr(Unevaluated(PackageId(0), BodyId(1)), No))
-"b"@"src/main.t:23..24" [ConstVar(Var, No)]: alias[DefId(PackageId(0), LocalDefId(0))] of range of `int` (Unevaluated(PackageId(0), BodyId(0)) .. Expr(Unevaluated(PackageId(0), BodyId(1)), No))
+"c"@"src/main.t:5..6" [Type]: alias[DefId(PackageId(3072), LocalDefId(0))] of range of `int` (Unevaluated(PackageId(3072), BodyId(0)) .. Expr(Unevaluated(PackageId(3072), BodyId(1)), No))
+"a"@"src/main.t:20..21" [ConstVar(Var, No)]: alias[DefId(PackageId(3072), LocalDefId(0))] of range of `int` (Unevaluated(PackageId(3072), BodyId(0)) .. Expr(Unevaluated(PackageId(3072), BodyId(1)), No))
+"b"@"src/main.t:23..24" [ConstVar(Var, No)]: alias[DefId(PackageId(3072), LocalDefId(0))] of range of `int` (Unevaluated(PackageId(3072), BodyId(0)) .. Expr(Unevaluated(PackageId(3072), BodyId(1)), No))
 "i"@"src/main.t:38..39" [ConstVar(Var, No)]: int
 "n"@"src/main.t:50..51" [ConstVar(Var, No)]: nat
 "<root>"@"<unknown>:0..0" [Module(No)]: <error>

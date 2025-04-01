@@ -3,15 +3,15 @@ source: compiler/toc-analysis/src/typeck/test.rs
 expression: "module m\n    export opaque t, a, p\n    type t : int\n    proc p(a : t) end p\n    var a : t\n\n    % should be coercible\n    m.p(a)\n    m.p(69)\nend m\n\n% should be fine\nvar a := m.a\nm.p(a)\n% shouldn't be fine\nm.p(2)\n"
 ---
 "m"@"src/main.t:7..8" [Module(No)]: <error>
-"t"@"src/main.t:44..45" [Type]: opaque[DefId(PackageId(0), LocalDefId(1))] type to int
-"p"@"src/main.t:61..62" [Subprogram(Procedure)]: procedure ( pass(value) opaque[DefId(PackageId(0), LocalDefId(1))] type to int, ) -> void
-"a"@"src/main.t:63..64" [Param(Value, No)]: opaque[DefId(PackageId(0), LocalDefId(1))] type to int
-"a"@"src/main.t:84..85" [ConstVar(Var, No)]: opaque[DefId(PackageId(0), LocalDefId(1))] type to int
-"a"@"src/main.t:168..169" [ConstVar(Var, No)]: opaque[DefId(PackageId(0), LocalDefId(1))] type to int
+"t"@"src/main.t:44..45" [Type]: opaque[DefId(PackageId(3072), LocalDefId(1))] type to int
+"p"@"src/main.t:61..62" [Subprogram(Procedure)]: procedure ( pass(value) opaque[DefId(PackageId(3072), LocalDefId(1))] type to int, ) -> void
+"a"@"src/main.t:63..64" [Param(Value, No)]: opaque[DefId(PackageId(3072), LocalDefId(1))] type to int
+"a"@"src/main.t:84..85" [ConstVar(Var, No)]: opaque[DefId(PackageId(3072), LocalDefId(1))] type to int
+"a"@"src/main.t:168..169" [ConstVar(Var, No)]: opaque[DefId(PackageId(3072), LocalDefId(1))] type to int
 "<unnamed>"@"<unknown>:0..0" [Undeclared]: <error>
-"t"@"src/main.t:27..28" [Export]: opaque[DefId(PackageId(0), LocalDefId(1))] type to int
-"a"@"src/main.t:30..31" [Export]: opaque[DefId(PackageId(0), LocalDefId(1))] type to int
-"p"@"src/main.t:33..34" [Export]: procedure ( pass(value) opaque[DefId(PackageId(0), LocalDefId(1))] type to int, ) -> void
+"t"@"src/main.t:27..28" [Export]: opaque[DefId(PackageId(3072), LocalDefId(1))] type to int
+"a"@"src/main.t:30..31" [Export]: opaque[DefId(PackageId(3072), LocalDefId(1))] type to int
+"p"@"src/main.t:33..34" [Export]: procedure ( pass(value) opaque[DefId(PackageId(3072), LocalDefId(1))] type to int, ) -> void
 "<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
 error at src/main.t:208..209: mismatched types

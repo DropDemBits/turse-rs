@@ -3,11 +3,11 @@ source: compiler/toc-analysis/src/typeck/test.rs
 expression: "module m\n    export opaque t, ~.* a\n    type t : char\n\n    var a : t := 'c'\nend m\n\n% Hidden type shouldn't be leaked\nvar b := a\nb := 'c'\n"
 ---
 "m"@"src/main.t:7..8" [Module(No)]: <error>
-"t"@"src/main.t:45..46" [Type]: opaque[DefId(PackageId(0), LocalDefId(1))] type to char
-"a"@"src/main.t:63..64" [ConstVar(Var, No)]: opaque[DefId(PackageId(0), LocalDefId(1))] type to char
-"b"@"src/main.t:121..122" [ConstVar(Var, No)]: opaque[DefId(PackageId(0), LocalDefId(1))] type to char
-"t"@"src/main.t:27..28" [Export]: opaque[DefId(PackageId(0), LocalDefId(1))] type to char
-"a"@"src/main.t:34..35" [Export]: opaque[DefId(PackageId(0), LocalDefId(1))] type to char
+"t"@"src/main.t:45..46" [Type]: opaque[DefId(PackageId(3072), LocalDefId(1))] type to char
+"a"@"src/main.t:63..64" [ConstVar(Var, No)]: opaque[DefId(PackageId(3072), LocalDefId(1))] type to char
+"b"@"src/main.t:121..122" [ConstVar(Var, No)]: opaque[DefId(PackageId(3072), LocalDefId(1))] type to char
+"t"@"src/main.t:27..28" [Export]: opaque[DefId(PackageId(3072), LocalDefId(1))] type to char
+"a"@"src/main.t:34..35" [Export]: opaque[DefId(PackageId(3072), LocalDefId(1))] type to char
 "<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
 error at src/main.t:130..132: mismatched types

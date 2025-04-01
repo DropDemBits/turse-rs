@@ -3,12 +3,12 @@ source: compiler/toc-analysis/src/typeck/test.rs
 expression: "module m\n    export opaque t, f\n    type t : int\n    fcn f : t loop end loop end f\n\n    var a : int := f\nend m\n\n% should fail\nvar b : int := m.f\n"
 ---
 "m"@"src/main.t:7..8" [Module(No)]: <error>
-"t"@"src/main.t:41..42" [Type]: opaque[DefId(PackageId(0), LocalDefId(1))] type to int
-"f"@"src/main.t:57..58" [Subprogram(Function)]: function -> opaque[DefId(PackageId(0), LocalDefId(1))] type to int
+"t"@"src/main.t:41..42" [Type]: opaque[DefId(PackageId(3072), LocalDefId(1))] type to int
+"f"@"src/main.t:57..58" [Subprogram(Function)]: function -> opaque[DefId(PackageId(3072), LocalDefId(1))] type to int
 "a"@"src/main.t:92..93" [ConstVar(Var, No)]: int
 "b"@"src/main.t:130..131" [ConstVar(Var, No)]: int
-"t"@"src/main.t:27..28" [Export]: opaque[DefId(PackageId(0), LocalDefId(1))] type to int
-"f"@"src/main.t:30..31" [Export]: function -> opaque[DefId(PackageId(0), LocalDefId(1))] type to int
+"t"@"src/main.t:27..28" [Export]: opaque[DefId(PackageId(3072), LocalDefId(1))] type to int
+"f"@"src/main.t:30..31" [Export]: function -> opaque[DefId(PackageId(3072), LocalDefId(1))] type to int
 "<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
 error at src/main.t:141..144: mismatched types

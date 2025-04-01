@@ -2,9 +2,9 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "\n    type ts : set of boolean\n    var s : ts\n\n    % should all produce booleans\n    var _v_res : boolean\n\n    % not a set\n    _v_res := true ~in true\n    % incompatible element types\n    _v_res := 1 ~in s\n    "
 ---
-"ts"@"src/main.t:10..12" [Type]: set[DefId(PackageId(0), LocalDefId(1))] of boolean
+"ts"@"src/main.t:10..12" [Type]: set[DefId(PackageId(3072), LocalDefId(1))] of boolean
 "ts"@"src/main.t:15..29" [Set]: <error>
-"s"@"src/main.t:38..39" [ConstVar(Var, No)]: set[DefId(PackageId(0), LocalDefId(1))] of boolean
+"s"@"src/main.t:38..39" [ConstVar(Var, No)]: set[DefId(PackageId(3072), LocalDefId(1))] of boolean
 "_v_res"@"src/main.t:88..94" [ConstVar(Var, No)]: boolean
 "<root>"@"<unknown>:0..0" [Module(No)]: <error>
 

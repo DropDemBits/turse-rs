@@ -2,10 +2,10 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "type a0 : char\ntype a1 : char(6)\nvar ca0 : a0\nconst cna1 : a1 := 'aaaaaa'\n\ncase ca0 of\nlabel cna1:\nend case\n"
 ---
-"a0"@"src/main.t:5..7" [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of char
-"a1"@"src/main.t:20..22" [Type]: alias[DefId(PackageId(0), LocalDefId(1))] of char_n Fixed(Unevaluated(PackageId(0), BodyId(0)))
-"ca0"@"src/main.t:37..40" [ConstVar(Var, No)]: alias[DefId(PackageId(0), LocalDefId(0))] of char
-"cna1"@"src/main.t:52..56" [ConstVar(Const, No)]: alias[DefId(PackageId(0), LocalDefId(1))] of char_n Fixed(Unevaluated(PackageId(0), BodyId(0)))
+"a0"@"src/main.t:5..7" [Type]: alias[DefId(PackageId(3072), LocalDefId(0))] of char
+"a1"@"src/main.t:20..22" [Type]: alias[DefId(PackageId(3072), LocalDefId(1))] of char_n Fixed(Unevaluated(PackageId(3072), BodyId(0)))
+"ca0"@"src/main.t:37..40" [ConstVar(Var, No)]: alias[DefId(PackageId(3072), LocalDefId(0))] of char
+"cna1"@"src/main.t:52..56" [ConstVar(Const, No)]: alias[DefId(PackageId(3072), LocalDefId(1))] of char_n Fixed(Unevaluated(PackageId(3072), BodyId(0)))
 "<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
 error at src/main.t:93..97: mismatched types

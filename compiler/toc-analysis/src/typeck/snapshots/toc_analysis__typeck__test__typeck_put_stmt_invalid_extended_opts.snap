@@ -3,14 +3,14 @@ source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var c : char\nvar cn : char(4)\nvar s : string\nvar sn : string(4)\ntype en: enum(a, b) var ef : en\n\nput c : 0 : 0 : 0\nput cn : 0 : 0 : 0\nput s : 0 : 0 : 0\nput sn : 0 : 0 : 0\nput ef : 0 : 0 : 0\n"
 ---
 "c"@"src/main.t:4..5" [ConstVar(Var, No)]: char
-"cn"@"src/main.t:17..19" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(0)))
+"cn"@"src/main.t:17..19" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(3072), BodyId(0)))
 "s"@"src/main.t:34..35" [ConstVar(Var, No)]: string
-"sn"@"src/main.t:49..51" [ConstVar(Var, No)]: string_n Fixed(Unevaluated(PackageId(0), BodyId(1)))
-"en"@"src/main.t:69..71" [Type]: enum[DefId(PackageId(0), LocalDefId(5))] ( "a"@SpanId(8), "b"@SpanId(9), )
+"sn"@"src/main.t:49..51" [ConstVar(Var, No)]: string_n Fixed(Unevaluated(PackageId(3072), BodyId(1)))
+"en"@"src/main.t:69..71" [Type]: enum[DefId(PackageId(3072), LocalDefId(5))] ( "a"@SpanId(8), "b"@SpanId(9), )
 "en"@"src/main.t:73..83" [Enum]: <error>
-"a"@"src/main.t:78..79" [EnumVariant]: enum[DefId(PackageId(0), LocalDefId(5))] ( "a"@SpanId(8), "b"@SpanId(9), )
-"b"@"src/main.t:81..82" [EnumVariant]: enum[DefId(PackageId(0), LocalDefId(5))] ( "a"@SpanId(8), "b"@SpanId(9), )
-"ef"@"src/main.t:88..90" [ConstVar(Var, No)]: enum[DefId(PackageId(0), LocalDefId(5))] ( "a"@SpanId(8), "b"@SpanId(9), )
+"a"@"src/main.t:78..79" [EnumVariant]: enum[DefId(PackageId(3072), LocalDefId(5))] ( "a"@SpanId(8), "b"@SpanId(9), )
+"b"@"src/main.t:81..82" [EnumVariant]: enum[DefId(PackageId(3072), LocalDefId(5))] ( "a"@SpanId(8), "b"@SpanId(9), )
+"ef"@"src/main.t:88..90" [ConstVar(Var, No)]: enum[DefId(PackageId(3072), LocalDefId(5))] ( "a"@SpanId(8), "b"@SpanId(9), )
 "<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
 error at src/main.t:109..110: invalid put option

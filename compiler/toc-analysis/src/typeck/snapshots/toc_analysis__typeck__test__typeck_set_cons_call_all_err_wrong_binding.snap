@@ -2,10 +2,10 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "type s : set of boolean\ntype b : boolean\nvar _ := s(all, b)\n"
 ---
-"s"@"src/main.t:5..6" [Type]: set[DefId(PackageId(0), LocalDefId(1))] of boolean
+"s"@"src/main.t:5..6" [Type]: set[DefId(PackageId(3072), LocalDefId(1))] of boolean
 "s"@"src/main.t:9..23" [Set]: <error>
-"b"@"src/main.t:29..30" [Type]: alias[DefId(PackageId(0), LocalDefId(2))] of boolean
-"_"@"src/main.t:45..46" [ConstVar(Var, No)]: set[DefId(PackageId(0), LocalDefId(1))] of boolean
+"b"@"src/main.t:29..30" [Type]: alias[DefId(PackageId(3072), LocalDefId(2))] of boolean
+"_"@"src/main.t:45..46" [ConstVar(Var, No)]: set[DefId(PackageId(3072), LocalDefId(1))] of boolean
 "<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
 error at src/main.t:50..51: constructor call has extra arguments

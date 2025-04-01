@@ -2,7 +2,7 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var cmx : char(256)\n\nproc __(var _e00 : string(*))\n_e00 := cmx % [not captured by ctc]\nend __\n"
 ---
-"cmx"@"src/main.t:4..7" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(0)))
+"cmx"@"src/main.t:4..7" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(3072), BodyId(0)))
 "__"@"src/main.t:26..28" [Subprogram(Procedure)]: procedure ( pass(var ref) string_n Any, ) -> void
 "_e00"@"src/main.t:33..37" [Param(Reference(Var), No)]: string_n Any
 "<unnamed>"@"<unknown>:0..0" [Undeclared]: <error>

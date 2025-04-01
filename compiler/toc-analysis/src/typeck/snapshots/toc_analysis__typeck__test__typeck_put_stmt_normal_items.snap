@@ -6,12 +6,12 @@ expression: "var i : int\nvar n : nat\nvar r : real\nvar c : char\nvar cn : char
 "n"@"src/main.t:16..17" [ConstVar(Var, No)]: nat
 "r"@"src/main.t:28..29" [ConstVar(Var, No)]: real
 "c"@"src/main.t:41..42" [ConstVar(Var, No)]: char
-"cn"@"src/main.t:54..56" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(0)))
+"cn"@"src/main.t:54..56" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(3072), BodyId(0)))
 "s"@"src/main.t:71..72" [ConstVar(Var, No)]: string
-"sn"@"src/main.t:86..88" [ConstVar(Var, No)]: string_n Fixed(Unevaluated(PackageId(0), BodyId(1)))
-"en"@"src/main.t:106..108" [Type]: enum[DefId(PackageId(0), LocalDefId(8))] ( "a"@SpanId(11), "b"@SpanId(12), )
+"sn"@"src/main.t:86..88" [ConstVar(Var, No)]: string_n Fixed(Unevaluated(PackageId(3072), BodyId(1)))
+"en"@"src/main.t:106..108" [Type]: enum[DefId(PackageId(3072), LocalDefId(8))] ( "a"@SpanId(11), "b"@SpanId(12), )
 "en"@"src/main.t:110..120" [Enum]: <error>
-"a"@"src/main.t:115..116" [EnumVariant]: enum[DefId(PackageId(0), LocalDefId(8))] ( "a"@SpanId(11), "b"@SpanId(12), )
-"b"@"src/main.t:118..119" [EnumVariant]: enum[DefId(PackageId(0), LocalDefId(8))] ( "a"@SpanId(11), "b"@SpanId(12), )
-"ef"@"src/main.t:125..127" [ConstVar(Var, No)]: enum[DefId(PackageId(0), LocalDefId(8))] ( "a"@SpanId(11), "b"@SpanId(12), )
+"a"@"src/main.t:115..116" [EnumVariant]: enum[DefId(PackageId(3072), LocalDefId(8))] ( "a"@SpanId(11), "b"@SpanId(12), )
+"b"@"src/main.t:118..119" [EnumVariant]: enum[DefId(PackageId(3072), LocalDefId(8))] ( "a"@SpanId(11), "b"@SpanId(12), )
+"ef"@"src/main.t:125..127" [ConstVar(Var, No)]: enum[DefId(PackageId(3072), LocalDefId(8))] ( "a"@SpanId(11), "b"@SpanId(12), )
 "<root>"@"<unknown>:0..0" [Module(No)]: <error>

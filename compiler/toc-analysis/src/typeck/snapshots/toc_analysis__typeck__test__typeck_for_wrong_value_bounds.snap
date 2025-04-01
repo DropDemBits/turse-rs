@@ -2,7 +2,7 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "type k : string\nfor : k .. k end for\nfor : 1 .. k end for\nfor : k .. 1 end for\n"
 ---
-"k"@"src/main.t:5..6" [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of string
+"k"@"src/main.t:5..6" [Type]: alias[DefId(PackageId(3072), LocalDefId(0))] of string
 "<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
 error at src/main.t:22..23: cannot use `k` as an expression

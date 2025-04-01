@@ -3,7 +3,7 @@ source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var k : int type _ : char(k)"
 ---
 "k"@"src/main.t:4..5" [ConstVar(Var, No)]: int
-"_"@"src/main.t:17..18" [Type]: alias[DefId(PackageId(0), LocalDefId(1))] of char_n Fixed(Unevaluated(PackageId(0), BodyId(0)))
+"_"@"src/main.t:17..18" [Type]: alias[DefId(PackageId(3072), LocalDefId(1))] of char_n Fixed(Unevaluated(PackageId(3072), BodyId(0)))
 "<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
 error at src/main.t:21..28: unsupported type

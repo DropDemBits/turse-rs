@@ -3,17 +3,17 @@ source: compiler/toc-analysis/src/typeck/test.rs
 expression: "module m\n    export opaque t, ~.* s, make\n    type t : char\n    type s : set of t\n\n    fcn make(c : char) : t\n        result c\n    end mk\n\n    % both should succeed\n    var a : s := s('6', '9')\n    a := s(make('i'))\nend m\n\n% should fail\nvar vs : s := s('i')\n% should succeed\nvs := s(m.make('i'))\n"
 ---
 "m"@"src/main.t:7..8" [Module(No)]: <error>
-"t"@"src/main.t:51..52" [Type]: opaque[DefId(PackageId(0), LocalDefId(1))] type to char
-"s"@"src/main.t:69..70" [Type]: set[DefId(PackageId(0), LocalDefId(3))] of opaque[DefId(PackageId(0), LocalDefId(1))] type to char
+"t"@"src/main.t:51..52" [Type]: opaque[DefId(PackageId(3072), LocalDefId(1))] type to char
+"s"@"src/main.t:69..70" [Type]: set[DefId(PackageId(3072), LocalDefId(3))] of opaque[DefId(PackageId(3072), LocalDefId(1))] type to char
 "s"@"src/main.t:73..81" [Set]: <error>
-"make"@"src/main.t:91..95" [Subprogram(Function)]: function ( pass(value) char, ) -> opaque[DefId(PackageId(0), LocalDefId(1))] type to char
+"make"@"src/main.t:91..95" [Subprogram(Function)]: function ( pass(value) char, ) -> opaque[DefId(PackageId(3072), LocalDefId(1))] type to char
 "c"@"src/main.t:96..97" [Param(Value, No)]: char
-"a"@"src/main.t:173..174" [ConstVar(Var, No)]: set[DefId(PackageId(0), LocalDefId(3))] of opaque[DefId(PackageId(0), LocalDefId(1))] type to char
-"vs"@"src/main.t:241..243" [ConstVar(Var, No)]: set[DefId(PackageId(0), LocalDefId(3))] of opaque[DefId(PackageId(0), LocalDefId(1))] type to char
+"a"@"src/main.t:173..174" [ConstVar(Var, No)]: set[DefId(PackageId(3072), LocalDefId(3))] of opaque[DefId(PackageId(3072), LocalDefId(1))] type to char
+"vs"@"src/main.t:241..243" [ConstVar(Var, No)]: set[DefId(PackageId(3072), LocalDefId(3))] of opaque[DefId(PackageId(3072), LocalDefId(1))] type to char
 "<unnamed>"@"<unknown>:0..0" [Undeclared]: <error>
-"t"@"src/main.t:27..28" [Export]: opaque[DefId(PackageId(0), LocalDefId(1))] type to char
-"s"@"src/main.t:34..35" [Export]: set[DefId(PackageId(0), LocalDefId(3))] of opaque[DefId(PackageId(0), LocalDefId(1))] type to char
-"make"@"src/main.t:37..41" [Export]: function ( pass(value) char, ) -> opaque[DefId(PackageId(0), LocalDefId(1))] type to char
+"t"@"src/main.t:27..28" [Export]: opaque[DefId(PackageId(3072), LocalDefId(1))] type to char
+"s"@"src/main.t:34..35" [Export]: set[DefId(PackageId(3072), LocalDefId(3))] of opaque[DefId(PackageId(3072), LocalDefId(1))] type to char
+"make"@"src/main.t:37..41" [Export]: function ( pass(value) char, ) -> opaque[DefId(PackageId(3072), LocalDefId(1))] type to char
 "<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
 error at src/main.t:253..256: mismatched types

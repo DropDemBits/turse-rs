@@ -2,7 +2,7 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "type _ : char(32768)"
 ---
-"_"@"src/main.t:5..6" [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of char_n Fixed(Unevaluated(PackageId(0), BodyId(0)))
+"_"@"src/main.t:5..6" [Type]: alias[DefId(PackageId(3072), LocalDefId(0))] of char_n Fixed(Unevaluated(PackageId(3072), BodyId(0)))
 "<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
 error at src/main.t:14..19: invalid character count size

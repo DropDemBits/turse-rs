@@ -2,10 +2,10 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "type bogos : int\ntype _si : set of bogos\ntype _sn : set of nat\n"
 ---
-"bogos"@"src/main.t:5..10" [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of int
-"_si"@"src/main.t:22..25" [Type]: set[DefId(PackageId(0), LocalDefId(2))] of alias[DefId(PackageId(0), LocalDefId(0))] of int
+"bogos"@"src/main.t:5..10" [Type]: alias[DefId(PackageId(3072), LocalDefId(0))] of int
+"_si"@"src/main.t:22..25" [Type]: set[DefId(PackageId(3072), LocalDefId(2))] of alias[DefId(PackageId(3072), LocalDefId(0))] of int
 "_si"@"src/main.t:28..40" [Set]: <error>
-"_sn"@"src/main.t:46..49" [Type]: set[DefId(PackageId(0), LocalDefId(4))] of nat
+"_sn"@"src/main.t:46..49" [Type]: set[DefId(PackageId(3072), LocalDefId(4))] of nat
 "_sn"@"src/main.t:52..62" [Set]: <error>
 "<root>"@"<unknown>:0..0" [Module(No)]: <error>
 

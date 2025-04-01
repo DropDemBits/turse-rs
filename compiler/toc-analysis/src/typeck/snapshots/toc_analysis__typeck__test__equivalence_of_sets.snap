@@ -2,19 +2,19 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "type sb : set of boolean\ntype sc : set of char\ntype sc2 : set of char\n\nvar v_sb : sb\nvar v_sc : sc\nvar v_sc2 : sc2\nvar v_anon : set of char\n\n% compat\nv_sb := v_sb\nv_sc := v_sc\nv_sc2 := v_sc2\n\n% incompatible - different elem types\nv_sc := v_sb\n% incompatible - different def locations\nv_sc := v_sc2\nv_sc := v_anon\n\n% compatible through aliases\ntype asc : sc\nvar v_asc : asc\nv_sc := v_asc\n"
 ---
-"sb"@"src/main.t:5..7" [Type]: set[DefId(PackageId(0), LocalDefId(1))] of boolean
+"sb"@"src/main.t:5..7" [Type]: set[DefId(PackageId(3072), LocalDefId(1))] of boolean
 "sb"@"src/main.t:10..24" [Set]: <error>
-"sc"@"src/main.t:30..32" [Type]: set[DefId(PackageId(0), LocalDefId(3))] of char
+"sc"@"src/main.t:30..32" [Type]: set[DefId(PackageId(3072), LocalDefId(3))] of char
 "sc"@"src/main.t:35..46" [Set]: <error>
-"sc2"@"src/main.t:52..55" [Type]: set[DefId(PackageId(0), LocalDefId(5))] of char
+"sc2"@"src/main.t:52..55" [Type]: set[DefId(PackageId(3072), LocalDefId(5))] of char
 "sc2"@"src/main.t:58..69" [Set]: <error>
-"v_sb"@"src/main.t:75..79" [ConstVar(Var, No)]: set[DefId(PackageId(0), LocalDefId(1))] of boolean
-"v_sc"@"src/main.t:89..93" [ConstVar(Var, No)]: set[DefId(PackageId(0), LocalDefId(3))] of char
-"v_sc2"@"src/main.t:103..108" [ConstVar(Var, No)]: set[DefId(PackageId(0), LocalDefId(5))] of char
-"v_anon"@"src/main.t:119..125" [ConstVar(Var, No)]: set[DefId(PackageId(0), LocalDefId(10))] of char
+"v_sb"@"src/main.t:75..79" [ConstVar(Var, No)]: set[DefId(PackageId(3072), LocalDefId(1))] of boolean
+"v_sc"@"src/main.t:89..93" [ConstVar(Var, No)]: set[DefId(PackageId(3072), LocalDefId(3))] of char
+"v_sc2"@"src/main.t:103..108" [ConstVar(Var, No)]: set[DefId(PackageId(3072), LocalDefId(5))] of char
+"v_anon"@"src/main.t:119..125" [ConstVar(Var, No)]: set[DefId(PackageId(3072), LocalDefId(10))] of char
 "<anonymous>"@"src/main.t:128..139" [Set]: <error>
-"asc"@"src/main.t:348..351" [Type]: alias[DefId(PackageId(0), LocalDefId(11))] of set[DefId(PackageId(0), LocalDefId(3))] of char
-"v_asc"@"src/main.t:361..366" [ConstVar(Var, No)]: alias[DefId(PackageId(0), LocalDefId(11))] of set[DefId(PackageId(0), LocalDefId(3))] of char
+"asc"@"src/main.t:348..351" [Type]: alias[DefId(PackageId(3072), LocalDefId(11))] of set[DefId(PackageId(3072), LocalDefId(3))] of char
+"v_asc"@"src/main.t:361..366" [ConstVar(Var, No)]: alias[DefId(PackageId(3072), LocalDefId(11))] of set[DefId(PackageId(3072), LocalDefId(3))] of char
 "<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
 error at src/main.t:235..237: mismatched types

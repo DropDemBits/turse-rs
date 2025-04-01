@@ -2,5 +2,5 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var _ : flexible array 1..1 of int"
 ---
-"_"@"src/main.t:4..5" [ConstVar(Var, No)]: flexible array ( range of `int` (Unevaluated(PackageId(0), BodyId(0)) .. Expr(Unevaluated(PackageId(0), BodyId(1)), Yes)), ) of int
+"_"@"src/main.t:4..5" [ConstVar(Var, No)]: flexible array ( range of `int` (Unevaluated(PackageId(3072), BodyId(0)) .. Expr(Unevaluated(PackageId(3072), BodyId(1)), Yes)), ) of int
 "<root>"@"<unknown>:0..0" [Module(No)]: <error>

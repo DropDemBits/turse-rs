@@ -5,9 +5,9 @@ expression: "module m\n    export ~.* n\n    module n\n        export o, p\n    
 "m"@"src/main.t:7..8" [Module(No)]: <error>
 "n"@"src/main.t:37..38" [Module(No)]: <error>
 "o"@"src/main.t:71..72" [ConstVar(Var, No)]: int
-"p"@"src/main.t:92..93" [Type]: alias[DefId(PackageId(0), LocalDefId(3))] of int
-"c"@"src/main.t:129..130" [ConstVar(Var, No)]: alias[DefId(PackageId(0), LocalDefId(3))] of int
+"p"@"src/main.t:92..93" [Type]: alias[DefId(PackageId(3072), LocalDefId(3))] of int
+"c"@"src/main.t:129..130" [ConstVar(Var, No)]: alias[DefId(PackageId(3072), LocalDefId(3))] of int
 "o"@"src/main.t:54..55" [Export]: int
-"p"@"src/main.t:57..58" [Export]: alias[DefId(PackageId(0), LocalDefId(3))] of int
+"p"@"src/main.t:57..58" [Export]: alias[DefId(PackageId(3072), LocalDefId(3))] of int
 "n"@"src/main.t:24..25" [Export]: <error>
 "<root>"@"<unknown>:0..0" [Module(No)]: <error>

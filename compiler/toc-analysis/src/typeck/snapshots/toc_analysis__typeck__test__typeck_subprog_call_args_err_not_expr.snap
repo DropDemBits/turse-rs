@@ -2,7 +2,7 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "type a : int\nprocedure boop(a, b : int, var c : int) end boop\nboop(1, a, a)\n"
 ---
-"a"@"src/main.t:5..6" [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of int
+"a"@"src/main.t:5..6" [Type]: alias[DefId(PackageId(3072), LocalDefId(0))] of int
 "boop"@"src/main.t:23..27" [Subprogram(Procedure)]: procedure ( pass(value) int, pass(value) int, pass(var ref) int, ) -> void
 "a"@"src/main.t:28..29" [Param(Value, No)]: int
 "b"@"src/main.t:31..32" [Param(Value, No)]: int

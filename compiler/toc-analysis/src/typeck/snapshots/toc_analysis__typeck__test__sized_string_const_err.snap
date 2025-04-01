@@ -2,7 +2,7 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var _ : string(1.0 div 0.0)"
 ---
-"_"@"src/main.t:4..5" [ConstVar(Var, No)]: string_n Fixed(Unevaluated(PackageId(0), BodyId(0)))
+"_"@"src/main.t:4..5" [ConstVar(Var, No)]: string_n Fixed(Unevaluated(PackageId(3072), BodyId(0)))
 "<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
 error at src/main.t:19..22: cannot compute expression at compile-time

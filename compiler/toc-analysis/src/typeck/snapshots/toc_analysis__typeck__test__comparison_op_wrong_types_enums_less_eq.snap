@@ -2,20 +2,20 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "\n    % Different enums\n    type e1 : enum(v)\n    type e2 : enum(v)\n    var ae : e1\n    var be : e2\n    var aA : enum(v)\n    var bA : enum(v)\n\n    % should all produce boolean anyway\n    var _v_res : boolean\n\n    _v_res := ae <= be\n    _v_res := be <= ae\n    _v_res := aA <= ae\n    _v_res := ae <= aA\n    _v_res := aA <= bA\n    "
 ---
-"e1"@"src/main.t:32..34" [Type]: enum[DefId(PackageId(0), LocalDefId(1))] ( "v"@SpanId(4), )
+"e1"@"src/main.t:32..34" [Type]: enum[DefId(PackageId(3072), LocalDefId(1))] ( "v"@SpanId(4), )
 "e1"@"src/main.t:37..44" [Enum]: <error>
-"v"@"src/main.t:42..43" [EnumVariant]: enum[DefId(PackageId(0), LocalDefId(1))] ( "v"@SpanId(4), )
-"e2"@"src/main.t:54..56" [Type]: enum[DefId(PackageId(0), LocalDefId(4))] ( "v"@SpanId(7), )
+"v"@"src/main.t:42..43" [EnumVariant]: enum[DefId(PackageId(3072), LocalDefId(1))] ( "v"@SpanId(4), )
+"e2"@"src/main.t:54..56" [Type]: enum[DefId(PackageId(3072), LocalDefId(4))] ( "v"@SpanId(7), )
 "e2"@"src/main.t:59..66" [Enum]: <error>
-"v"@"src/main.t:64..65" [EnumVariant]: enum[DefId(PackageId(0), LocalDefId(4))] ( "v"@SpanId(7), )
-"ae"@"src/main.t:75..77" [ConstVar(Var, No)]: enum[DefId(PackageId(0), LocalDefId(1))] ( "v"@SpanId(4), )
-"be"@"src/main.t:91..93" [ConstVar(Var, No)]: enum[DefId(PackageId(0), LocalDefId(4))] ( "v"@SpanId(7), )
-"aA"@"src/main.t:107..109" [ConstVar(Var, No)]: enum[DefId(PackageId(0), LocalDefId(9))] ( "v"@SpanId(12), )
+"v"@"src/main.t:64..65" [EnumVariant]: enum[DefId(PackageId(3072), LocalDefId(4))] ( "v"@SpanId(7), )
+"ae"@"src/main.t:75..77" [ConstVar(Var, No)]: enum[DefId(PackageId(3072), LocalDefId(1))] ( "v"@SpanId(4), )
+"be"@"src/main.t:91..93" [ConstVar(Var, No)]: enum[DefId(PackageId(3072), LocalDefId(4))] ( "v"@SpanId(7), )
+"aA"@"src/main.t:107..109" [ConstVar(Var, No)]: enum[DefId(PackageId(3072), LocalDefId(9))] ( "v"@SpanId(12), )
 "<anonymous>"@"src/main.t:112..119" [Enum]: <error>
-"v"@"src/main.t:117..118" [EnumVariant]: enum[DefId(PackageId(0), LocalDefId(9))] ( "v"@SpanId(12), )
-"bA"@"src/main.t:128..130" [ConstVar(Var, No)]: enum[DefId(PackageId(0), LocalDefId(12))] ( "v"@SpanId(15), )
+"v"@"src/main.t:117..118" [EnumVariant]: enum[DefId(PackageId(3072), LocalDefId(9))] ( "v"@SpanId(12), )
+"bA"@"src/main.t:128..130" [ConstVar(Var, No)]: enum[DefId(PackageId(3072), LocalDefId(12))] ( "v"@SpanId(15), )
 "<anonymous>"@"src/main.t:133..140" [Enum]: <error>
-"v"@"src/main.t:138..139" [EnumVariant]: enum[DefId(PackageId(0), LocalDefId(12))] ( "v"@SpanId(15), )
+"v"@"src/main.t:138..139" [EnumVariant]: enum[DefId(PackageId(3072), LocalDefId(12))] ( "v"@SpanId(15), )
 "_v_res"@"src/main.t:190..196" [ConstVar(Var, No)]: boolean
 "<root>"@"<unknown>:0..0" [Module(No)]: <error>
 

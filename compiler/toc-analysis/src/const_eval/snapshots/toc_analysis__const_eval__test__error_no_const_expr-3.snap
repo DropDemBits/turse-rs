@@ -2,7 +2,7 @@
 source: compiler/toc-analysis/src/const_eval/test.rs
 expression: "type a : int\nconst b := a\n"
 ---
-"b"@"src/main.t:19..20" -> <error NotConstExpr(Def(DefId(PackageId(0), LocalDefId(0))))>
+"b"@"src/main.t:19..20" -> <error NotConstExpr(Def(DefId(PackageId(3072), LocalDefId(0))))>
 
 error at src/main.t:24..25: cannot compute `a` at compile-time
 | error for src/main.t:24..25: `a` is a reference to a type, not a constant

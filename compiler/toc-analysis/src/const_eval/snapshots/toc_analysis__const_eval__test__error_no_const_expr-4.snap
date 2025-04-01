@@ -2,4 +2,4 @@
 source: compiler/toc-analysis/src/const_eval/test.rs
 expression: "const b := a"
 ---
-"b"@"src/main.t:6..7" -> <error NotConstExpr(Binding(PackageId(0), Spanned("a", SpanId(4))))>
+"b"@"src/main.t:6..7" -> <error NotConstExpr(Binding(PackageId(3072), Spanned("a", SpanId(4))))>

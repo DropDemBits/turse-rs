@@ -2,7 +2,7 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var c1 : char(1)\nvar c : char\nvar _res : boolean\n_res := c = c1\n"
 ---
-"c1"@"src/main.t:4..6" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(0)))
+"c1"@"src/main.t:4..6" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(3072), BodyId(0)))
 "c"@"src/main.t:21..22" [ConstVar(Var, No)]: char
 "_res"@"src/main.t:34..38" [ConstVar(Var, No)]: boolean
 "<root>"@"<unknown>:0..0" [Module(No)]: <error>

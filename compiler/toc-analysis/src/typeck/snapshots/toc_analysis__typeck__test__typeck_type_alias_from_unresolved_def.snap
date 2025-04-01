@@ -4,5 +4,5 @@ expression: "module _\n    import tail\n    type _t : tail\nend _\n"
 ---
 "_"@"src/main.t:7..8" [Module(No)]: <error>
 "tail"@"src/main.t:20..24" [Import]: <error>
-"_t"@"src/main.t:34..36" [Type]: alias[DefId(PackageId(0), LocalDefId(2))] of <error>
+"_t"@"src/main.t:34..36" [Type]: alias[DefId(PackageId(3072), LocalDefId(2))] of <error>
 "<root>"@"<unknown>:0..0" [Module(No)]: <error>

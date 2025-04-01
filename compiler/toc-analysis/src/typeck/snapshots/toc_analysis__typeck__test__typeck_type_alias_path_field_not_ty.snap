@@ -2,9 +2,9 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "type e : enum(v)\nvar a : e.v\n"
 ---
-"e"@"src/main.t:5..6" [Type]: enum[DefId(PackageId(0), LocalDefId(1))] ( "v"@SpanId(4), )
+"e"@"src/main.t:5..6" [Type]: enum[DefId(PackageId(3072), LocalDefId(1))] ( "v"@SpanId(4), )
 "e"@"src/main.t:9..16" [Enum]: <error>
-"v"@"src/main.t:14..15" [EnumVariant]: enum[DefId(PackageId(0), LocalDefId(1))] ( "v"@SpanId(4), )
+"v"@"src/main.t:14..15" [EnumVariant]: enum[DefId(PackageId(3072), LocalDefId(1))] ( "v"@SpanId(4), )
 "a"@"src/main.t:21..22" [ConstVar(Var, No)]: <error>
 "<root>"@"<unknown>:0..0" [Module(No)]: <error>
 

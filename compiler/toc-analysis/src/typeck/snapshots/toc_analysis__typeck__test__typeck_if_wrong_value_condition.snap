@@ -2,7 +2,7 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "type b : boolean\nif b then\nelsif b then\nend if"
 ---
-"b"@"src/main.t:5..6" [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of boolean
+"b"@"src/main.t:5..6" [Type]: alias[DefId(PackageId(3072), LocalDefId(0))] of boolean
 "<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
 error at src/main.t:20..21: cannot use `b` as an expression

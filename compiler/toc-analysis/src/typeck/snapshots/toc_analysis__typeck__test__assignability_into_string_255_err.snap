@@ -3,8 +3,8 @@ source: compiler/toc-analysis/src/typeck/test.rs
 expression: "const N := 255\nvar c256 : char(256)\n\nvar _e00 : string(N) := c256 % [not captured by ctc]\n"
 ---
 "N"@"src/main.t:6..7" [ConstVar(Const, No)]: int
-"c256"@"src/main.t:19..23" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(1)))
-"_e00"@"src/main.t:41..45" [ConstVar(Var, No)]: string_n Fixed(Unevaluated(PackageId(0), BodyId(2)))
+"c256"@"src/main.t:19..23" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(3072), BodyId(1)))
+"_e00"@"src/main.t:41..45" [ConstVar(Var, No)]: string_n Fixed(Unevaluated(PackageId(3072), BodyId(2)))
 "<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
 error at src/main.t:61..65: mismatched types

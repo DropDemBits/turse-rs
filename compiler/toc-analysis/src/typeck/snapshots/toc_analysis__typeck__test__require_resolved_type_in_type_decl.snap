@@ -2,7 +2,7 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "type fowo : forward type _ : fowo"
 ---
-"fowo"@"src/main.t:5..9" [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of forward
+"fowo"@"src/main.t:5..9" [Type]: alias[DefId(PackageId(3072), LocalDefId(0))] of forward
 "_"@"src/main.t:25..26" [Type]: <error>
 "<root>"@"<unknown>:0..0" [Module(No)]: <error>
 

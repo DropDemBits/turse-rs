@@ -4,15 +4,15 @@ expression: "var *_ : boolean\n\nmodule m\n    export opaque e, var a\n    type 
 ---
 "_"@"src/main.t:5..6" [ConstVar(Var, No)]: boolean
 "m"@"src/main.t:25..26" [Module(No)]: <error>
-"e"@"src/main.t:63..64" [Type]: opaque[DefId(PackageId(0), LocalDefId(2))] type to enum[DefId(PackageId(0), LocalDefId(3))] ( "a"@SpanId(6), )
+"e"@"src/main.t:63..64" [Type]: opaque[DefId(PackageId(3072), LocalDefId(2))] type to enum[DefId(PackageId(3072), LocalDefId(3))] ( "a"@SpanId(6), )
 "e"@"src/main.t:67..74" [Enum]: <error>
-"a"@"src/main.t:72..73" [EnumVariant]: enum[DefId(PackageId(0), LocalDefId(3))] ( "a"@SpanId(6), )
-"a"@"src/main.t:83..84" [ConstVar(Var, No)]: opaque[DefId(PackageId(0), LocalDefId(2))] type to enum[DefId(PackageId(0), LocalDefId(3))] ( "a"@SpanId(6), )
-"not_ty"@"src/main.t:167..173" [Type]: alias[DefId(PackageId(0), LocalDefId(6))] of <error>
-"u"@"src/main.t:191..192" [ConstVar(Var, No)]: opaque[DefId(PackageId(0), LocalDefId(2))] type to enum[DefId(PackageId(0), LocalDefId(3))] ( "a"@SpanId(6), )
-"no_field"@"src/main.t:228..236" [Type]: alias[DefId(PackageId(0), LocalDefId(8))] of <error>
-"e"@"src/main.t:45..46" [Export]: opaque[DefId(PackageId(0), LocalDefId(2))] type to enum[DefId(PackageId(0), LocalDefId(3))] ( "a"@SpanId(6), )
-"a"@"src/main.t:52..53" [Export]: opaque[DefId(PackageId(0), LocalDefId(2))] type to enum[DefId(PackageId(0), LocalDefId(3))] ( "a"@SpanId(6), )
+"a"@"src/main.t:72..73" [EnumVariant]: enum[DefId(PackageId(3072), LocalDefId(3))] ( "a"@SpanId(6), )
+"a"@"src/main.t:83..84" [ConstVar(Var, No)]: opaque[DefId(PackageId(3072), LocalDefId(2))] type to enum[DefId(PackageId(3072), LocalDefId(3))] ( "a"@SpanId(6), )
+"not_ty"@"src/main.t:167..173" [Type]: alias[DefId(PackageId(3072), LocalDefId(6))] of <error>
+"u"@"src/main.t:191..192" [ConstVar(Var, No)]: opaque[DefId(PackageId(3072), LocalDefId(2))] type to enum[DefId(PackageId(3072), LocalDefId(3))] ( "a"@SpanId(6), )
+"no_field"@"src/main.t:228..236" [Type]: alias[DefId(PackageId(3072), LocalDefId(8))] of <error>
+"e"@"src/main.t:45..46" [Export]: opaque[DefId(PackageId(3072), LocalDefId(2))] type to enum[DefId(PackageId(3072), LocalDefId(3))] ( "a"@SpanId(6), )
+"a"@"src/main.t:52..53" [Export]: opaque[DefId(PackageId(3072), LocalDefId(2))] type to enum[DefId(PackageId(3072), LocalDefId(3))] ( "a"@SpanId(6), )
 "<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
 error at src/main.t:178..179: cannot use `a` as a type alias

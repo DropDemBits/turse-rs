@@ -3,7 +3,7 @@ source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var c := 1\ntype _ : c .. c"
 ---
 "c"@"src/main.t:4..5" [ConstVar(Var, No)]: int
-"_"@"src/main.t:16..17" [Type]: alias[DefId(PackageId(0), LocalDefId(1))] of range of `int` (Unevaluated(PackageId(0), BodyId(1)) .. Expr(Unevaluated(PackageId(0), BodyId(2)), No))
+"_"@"src/main.t:16..17" [Type]: alias[DefId(PackageId(3072), LocalDefId(1))] of range of `int` (Unevaluated(PackageId(3072), BodyId(1)) .. Expr(Unevaluated(PackageId(3072), BodyId(2)), No))
 "<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
 error at src/main.t:20..21: cannot compute `c` at compile-time

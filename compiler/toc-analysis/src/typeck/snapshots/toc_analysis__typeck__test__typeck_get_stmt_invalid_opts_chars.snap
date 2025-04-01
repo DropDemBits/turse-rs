@@ -7,11 +7,11 @@ expression: "var i : int\nvar n : nat\nvar r : real\nvar c : char\nvar b: boolea
 "r"@"src/main.t:28..29" [ConstVar(Var, No)]: real
 "c"@"src/main.t:41..42" [ConstVar(Var, No)]: char
 "b"@"src/main.t:54..55" [ConstVar(Var, No)]: boolean
-"en"@"src/main.t:70..72" [Type]: enum[DefId(PackageId(0), LocalDefId(6))] ( "a"@SpanId(9), "b"@SpanId(10), )
+"en"@"src/main.t:70..72" [Type]: enum[DefId(PackageId(3072), LocalDefId(6))] ( "a"@SpanId(9), "b"@SpanId(10), )
 "en"@"src/main.t:74..84" [Enum]: <error>
-"a"@"src/main.t:79..80" [EnumVariant]: enum[DefId(PackageId(0), LocalDefId(6))] ( "a"@SpanId(9), "b"@SpanId(10), )
-"b"@"src/main.t:82..83" [EnumVariant]: enum[DefId(PackageId(0), LocalDefId(6))] ( "a"@SpanId(9), "b"@SpanId(10), )
-"ef"@"src/main.t:89..91" [ConstVar(Var, No)]: enum[DefId(PackageId(0), LocalDefId(6))] ( "a"@SpanId(9), "b"@SpanId(10), )
+"a"@"src/main.t:79..80" [EnumVariant]: enum[DefId(PackageId(3072), LocalDefId(6))] ( "a"@SpanId(9), "b"@SpanId(10), )
+"b"@"src/main.t:82..83" [EnumVariant]: enum[DefId(PackageId(3072), LocalDefId(6))] ( "a"@SpanId(9), "b"@SpanId(10), )
+"ef"@"src/main.t:89..91" [ConstVar(Var, No)]: enum[DefId(PackageId(3072), LocalDefId(6))] ( "a"@SpanId(9), "b"@SpanId(10), )
 "<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
 error at src/main.t:106..107: invalid get option

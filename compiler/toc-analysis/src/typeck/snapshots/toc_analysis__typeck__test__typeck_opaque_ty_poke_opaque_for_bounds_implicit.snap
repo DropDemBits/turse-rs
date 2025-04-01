@@ -3,10 +3,10 @@ source: compiler/toc-analysis/src/typeck/test.rs
 expression: "module m\n    export opaque t\n    type t : 1 .. 2\n    for _ : t end for\nend m\n\nfor _ : m.t end for\n"
 ---
 "m"@"src/main.t:7..8" [Module(No)]: <error>
-"t"@"src/main.t:38..39" [Type]: opaque[DefId(PackageId(0), LocalDefId(1))] type to range of `int` (Unevaluated(PackageId(0), BodyId(0)) .. Expr(Unevaluated(PackageId(0), BodyId(1)), No))
-"_"@"src/main.t:57..58" [ConstVar(Const, No)]: alias[DefId(PackageId(0), LocalDefId(1))] of range of `int` (Unevaluated(PackageId(0), BodyId(0)) .. Expr(Unevaluated(PackageId(0), BodyId(1)), No))
-"_"@"src/main.t:82..83" [ConstVar(Const, No)]: opaque[DefId(PackageId(0), LocalDefId(1))] type to range of `int` (Unevaluated(PackageId(0), BodyId(0)) .. Expr(Unevaluated(PackageId(0), BodyId(1)), No))
-"t"@"src/main.t:27..28" [Export]: opaque[DefId(PackageId(0), LocalDefId(1))] type to range of `int` (Unevaluated(PackageId(0), BodyId(0)) .. Expr(Unevaluated(PackageId(0), BodyId(1)), No))
+"t"@"src/main.t:38..39" [Type]: opaque[DefId(PackageId(3072), LocalDefId(1))] type to range of `int` (Unevaluated(PackageId(3072), BodyId(0)) .. Expr(Unevaluated(PackageId(3072), BodyId(1)), No))
+"_"@"src/main.t:57..58" [ConstVar(Const, No)]: alias[DefId(PackageId(3072), LocalDefId(1))] of range of `int` (Unevaluated(PackageId(3072), BodyId(0)) .. Expr(Unevaluated(PackageId(3072), BodyId(1)), No))
+"_"@"src/main.t:82..83" [ConstVar(Const, No)]: opaque[DefId(PackageId(3072), LocalDefId(1))] type to range of `int` (Unevaluated(PackageId(3072), BodyId(0)) .. Expr(Unevaluated(PackageId(3072), BodyId(1)), No))
+"t"@"src/main.t:27..28" [Export]: opaque[DefId(PackageId(3072), LocalDefId(1))] type to range of `int` (Unevaluated(PackageId(3072), BodyId(0)) .. Expr(Unevaluated(PackageId(3072), BodyId(1)), No))
 "<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
 error at src/main.t:86..89: mismatched types

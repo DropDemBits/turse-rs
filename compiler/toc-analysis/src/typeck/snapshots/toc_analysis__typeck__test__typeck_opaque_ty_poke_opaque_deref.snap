@@ -3,13 +3,13 @@ source: compiler/toc-analysis/src/typeck/test.rs
 expression: "module m\n    export opaque t, a\n    type t : int\n    var a : ^t\n    var b : int := ^a\nend m\n\nvar b := m.a\n% should fail\nvar c : int := ^b\n"
 ---
 "m"@"src/main.t:7..8" [Module(No)]: <error>
-"t"@"src/main.t:41..42" [Type]: opaque[DefId(PackageId(0), LocalDefId(1))] type to int
-"a"@"src/main.t:57..58" [ConstVar(Var, No)]: pointer to opaque[DefId(PackageId(0), LocalDefId(1))] type to int
+"t"@"src/main.t:41..42" [Type]: opaque[DefId(PackageId(3072), LocalDefId(1))] type to int
+"a"@"src/main.t:57..58" [ConstVar(Var, No)]: pointer to opaque[DefId(PackageId(3072), LocalDefId(1))] type to int
 "b"@"src/main.t:72..73" [ConstVar(Var, No)]: int
-"b"@"src/main.t:97..98" [ConstVar(Var, No)]: pointer to opaque[DefId(PackageId(0), LocalDefId(1))] type to int
+"b"@"src/main.t:97..98" [ConstVar(Var, No)]: pointer to opaque[DefId(PackageId(3072), LocalDefId(1))] type to int
 "c"@"src/main.t:124..125" [ConstVar(Var, No)]: int
-"t"@"src/main.t:27..28" [Export]: opaque[DefId(PackageId(0), LocalDefId(1))] type to int
-"a"@"src/main.t:30..31" [Export]: pointer to opaque[DefId(PackageId(0), LocalDefId(1))] type to int
+"t"@"src/main.t:27..28" [Export]: opaque[DefId(PackageId(3072), LocalDefId(1))] type to int
+"a"@"src/main.t:30..31" [Export]: pointer to opaque[DefId(PackageId(3072), LocalDefId(1))] type to int
 "<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
 error at src/main.t:135..137: mismatched types

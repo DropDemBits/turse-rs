@@ -2,7 +2,7 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var _ : enum(nice)"
 ---
-"_"@"src/main.t:4..5" [ConstVar(Var, No)]: enum[DefId(PackageId(0), LocalDefId(1))] ( "nice"@SpanId(4), )
+"_"@"src/main.t:4..5" [ConstVar(Var, No)]: enum[DefId(PackageId(3072), LocalDefId(1))] ( "nice"@SpanId(4), )
 "<anonymous>"@"src/main.t:8..18" [Enum]: <error>
-"nice"@"src/main.t:13..17" [EnumVariant]: enum[DefId(PackageId(0), LocalDefId(1))] ( "nice"@SpanId(4), )
+"nice"@"src/main.t:13..17" [EnumVariant]: enum[DefId(PackageId(3072), LocalDefId(1))] ( "nice"@SpanId(4), )
 "<root>"@"<unknown>:0..0" [Module(No)]: <error>

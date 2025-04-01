@@ -3,7 +3,7 @@ source: compiler/toc-analysis/src/typeck/test.rs
 expression: "fcn b : int type k : int result k end b"
 ---
 "b"@"src/main.t:4..5" [Subprogram(Function)]: function -> int
-"k"@"src/main.t:17..18" [Type]: alias[DefId(PackageId(0), LocalDefId(1))] of int
+"k"@"src/main.t:17..18" [Type]: alias[DefId(PackageId(3072), LocalDefId(1))] of int
 "<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
 error at src/main.t:32..33: cannot use `k` as an expression

@@ -2,5 +2,5 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var a : array 1..* of int := init(1)\na(1) := 1"
 ---
-"a"@"src/main.t:4..5" [ConstVar(Var, No)]: array ( range of `int` (Unevaluated(PackageId(0), BodyId(0)) .. Unsized(1)), ) of int
+"a"@"src/main.t:4..5" [ConstVar(Var, No)]: array ( range of `int` (Unevaluated(PackageId(3072), BodyId(0)) .. Unsized(1)), ) of int
 "<root>"@"<unknown>:0..0" [Module(No)]: <error>

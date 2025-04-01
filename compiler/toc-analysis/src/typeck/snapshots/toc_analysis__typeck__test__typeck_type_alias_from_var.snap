@@ -3,7 +3,7 @@ source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var a : int type k : a"
 ---
 "a"@"src/main.t:4..5" [ConstVar(Var, No)]: int
-"k"@"src/main.t:17..18" [Type]: alias[DefId(PackageId(0), LocalDefId(1))] of <error>
+"k"@"src/main.t:17..18" [Type]: alias[DefId(PackageId(3072), LocalDefId(1))] of <error>
 "<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
 error at src/main.t:21..22: cannot use `a` as a type alias

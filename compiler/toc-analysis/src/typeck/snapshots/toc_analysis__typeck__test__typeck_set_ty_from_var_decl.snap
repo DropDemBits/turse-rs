@@ -2,6 +2,6 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var _ : set of boolean"
 ---
-"_"@"src/main.t:4..5" [ConstVar(Var, No)]: set[DefId(PackageId(0), LocalDefId(1))] of boolean
+"_"@"src/main.t:4..5" [ConstVar(Var, No)]: set[DefId(PackageId(3072), LocalDefId(1))] of boolean
 "<anonymous>"@"src/main.t:8..22" [Set]: <error>
 "<root>"@"<unknown>:0..0" [Module(No)]: <error>

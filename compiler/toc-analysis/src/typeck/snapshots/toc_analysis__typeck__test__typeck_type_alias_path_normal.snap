@@ -4,8 +4,8 @@ expression: "module a export b module b export c type c : int end b end a\nvar d
 ---
 "a"@"src/main.t:7..8" [Module(No)]: <error>
 "b"@"src/main.t:25..26" [Module(No)]: <error>
-"c"@"src/main.t:41..42" [Type]: alias[DefId(PackageId(0), LocalDefId(2))] of int
-"d"@"src/main.t:65..66" [ConstVar(Var, No)]: alias[DefId(PackageId(0), LocalDefId(2))] of int
-"c"@"src/main.t:34..35" [Export]: alias[DefId(PackageId(0), LocalDefId(2))] of int
+"c"@"src/main.t:41..42" [Type]: alias[DefId(PackageId(3072), LocalDefId(2))] of int
+"d"@"src/main.t:65..66" [ConstVar(Var, No)]: alias[DefId(PackageId(3072), LocalDefId(2))] of int
+"c"@"src/main.t:34..35" [Export]: alias[DefId(PackageId(3072), LocalDefId(2))] of int
 "b"@"src/main.t:16..17" [Export]: <error>
 "<root>"@"<unknown>:0..0" [Module(No)]: <error>
