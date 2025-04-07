@@ -21,7 +21,6 @@ toc-vfs-db = { workspace = true }
 
 salsa = { workspace = true }
 indexmap = { workspace = true }
-upcast = { workspace = true }
 
 [dev-dependencies]
 toc-hir-pretty = { workspace = true }

@@ -19,7 +19,6 @@ toc-span = { workspace = true }
 salsa = { workspace = true }
 indexmap = { workspace = true }
 thiserror.workspace = true
-upcast = { workspace = true }
 
 [dev-dependencies]
 toc-paths = { workspace = true }

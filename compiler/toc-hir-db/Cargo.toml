@@ -13,4 +13,3 @@ toc-hir = { workspace = true }
 toc-hir-lowering = { workspace = true }
 
 salsa = { workspace = true }
-upcast = { workspace = true }

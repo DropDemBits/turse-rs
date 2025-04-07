@@ -22,7 +22,6 @@ bitflags = "2.3.2"
 toc-hir-expand.workspace = true
 
 salsa = { workspace = true }
-upcast = { workspace = true }
 
 [dev-dependencies]
 toc-paths.workspace = true

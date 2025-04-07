@@ -18,4 +18,3 @@ toc-ast-db = { workspace = true }
 rustc-hash.workspace = true
 
 salsa = { workspace = true }
-upcast = { workspace = true }

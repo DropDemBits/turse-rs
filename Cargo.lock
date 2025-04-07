@@ -1760,7 +1760,6 @@ dependencies = [
  "toc-vfs",
  "toc-vfs-db",
  "unindent",
- "upcast",
 ]
 
 [[package]]
@@ -1776,7 +1775,6 @@ dependencies = [
  "toc-validate",
  "toc-vfs",
  "toc-vfs-db",
- "upcast",
 ]
 
 [[package]]
@@ -1843,7 +1841,6 @@ dependencies = [
  "salsa",
  "toc-hir",
  "toc-hir-lowering",
- "upcast",
 ]
 
 [[package]]
@@ -1865,7 +1862,6 @@ dependencies = [
  "toc-syntax",
  "toc-vfs",
  "toc-vfs-db",
- "upcast",
 ]
 
 [[package]]
@@ -1878,7 +1874,6 @@ dependencies = [
  "toc-source-graph",
  "toc-syntax",
  "toc-vfs-db",
- "upcast",
 ]
 
 [[package]]
@@ -1903,7 +1898,6 @@ dependencies = [
  "toc-vfs",
  "toc-vfs-db",
  "unindent",
- "upcast",
 ]
 
 [[package]]
@@ -1974,7 +1968,6 @@ version = "0.1.0"
 dependencies = [
  "camino",
  "salsa",
- "upcast",
 ]
 
 [[package]]
@@ -2016,7 +2009,6 @@ dependencies = [
  "toc-paths",
  "toc-salsa-collections",
  "toc-span",
- "upcast",
 ]
 
 [[package]]
@@ -2070,7 +2062,6 @@ dependencies = [
  "toc-paths",
  "toc-salsa-collections",
  "toc-vfs",
- "upcast",
 ]
 
 [[package]]
@@ -2278,12 +2269,6 @@ name = "unindent"
 version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7264e107f553ccae879d21fbea1d6724ac785e8c3bfc762137959b5802826ef3"
-
-[[package]]
-name = "upcast"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f4a8a88129e2b27efd729ed3f7f79c532946051f6268c6a87e8617c4decf01ce"
 
 [[package]]
 name = "url"

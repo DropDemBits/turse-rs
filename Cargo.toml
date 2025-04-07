@@ -25,14 +25,11 @@ proc-macro2 = "1.0.93"
 paste = "1.0.5"
 rowan = "0.16"
 rustc-hash = "2.1"
-# FIXME: migrate to salsa "3"/0.18.x, removes jars!
 salsa = { git = "https://github.com/salsa-rs/salsa/" }
 thiserror = "2.0"
 tracing = "0.1.37"
 tracing-subscriber = "0.3.16"
 unindent = "0.2"
-# FIXME(rust-1.86): stable upcasting!
-upcast = "0.1.0"
 
 # Compiler crates
 toc-analysis = { path = "compiler/toc-analysis" }
