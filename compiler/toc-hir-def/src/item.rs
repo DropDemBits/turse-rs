@@ -92,7 +92,7 @@ pub mod item_loc_map {
         }
 
         pub(crate) fn shrink_to_fit(&mut self) {
-            // no-op unless we get a vec-based backing storage
+            self.to_items.shrink_to_fit();
         }
 
         /// Looks up the stable location's item
@@ -244,6 +244,7 @@ impl<'db> HasItems<'db> for RootModule<'db> {
 /// Always corresponds to a file on the file system
 #[salsa::tracked(debug)]
 pub struct UnitModule<'db> {
+    #[salsa::tracked]
     origin: SourceFile,
 }
 

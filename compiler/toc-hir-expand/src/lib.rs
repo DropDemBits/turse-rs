@@ -312,13 +312,10 @@ pub fn all_files(db: &dyn Db, package: Package) -> BTreeMap<SourceFile, PackageF
 
 #[derive(Debug, Clone, PartialEq, Eq, salsa::Update)]
 pub struct AstLocations<'db> {
-    // NOTE:
-    // Any field additions/removals must also update the corresponding
-    // salsa::Update impl, at least until the newer Update derive gets merged.
-    // Ideally we'd be using the derive, but SyntaxNodePtr
     to_locations: rustc_hash::FxHashMap<NodePtrWrapper, ErasedSemanticLoc<'db>>,
 }
 
+/// Wrapper to ensure that `SyntaxNodePtr` can be updated through salsa::Update.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, salsa::Update)]
 #[repr(transparent)]
 struct NodePtrWrapper(SyntaxNodePtr);

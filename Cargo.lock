@@ -1872,7 +1872,6 @@ dependencies = [
 name = "toc-hir-expand"
 version = "0.1.0"
 dependencies = [
- "indexmap",
  "rustc-hash 2.1.1",
  "salsa",
  "toc-ast-db",
@@ -1962,7 +1961,6 @@ dependencies = [
  "expect-test",
  "indexmap",
  "rowan",
- "salsa",
  "toc-paths",
  "toc-reporting",
  "toc-scanner",

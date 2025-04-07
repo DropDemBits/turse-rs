@@ -44,13 +44,6 @@ impl fmt::Debug for DefId {
     }
 }
 
-// crate::arena_id_wrapper!(
-//     /// A package local reference to an item.
-//     pub struct ItemId(item::Item);
-//     /// Alias for the item arena index
-//     pub(crate) type ItemIndex = Index;
-// );
-
 crate::arena_id_wrapper!(
     /// A package local reference to an item.
     pub struct ItemId(item::Item);

@@ -3,7 +3,7 @@ use std::{collections::VecDeque, fmt::Write};
 use toc_source_graph::Package;
 
 use crate::{
-    Db,
+    Db, DisplayWithDb,
     expr::{Expr, ExprId, Name},
     item::{AnyItem, HasItems},
     stmt::{Stmt, StmtId},
@@ -54,21 +54,12 @@ pub fn render_item_body<'db>(db: &'db dyn Db, item: AnyItem<'db>) -> String {
     let body = match item {
         AnyItem::ConstVar(item) => panic!("exploring {item:?} which doesn't have a body"),
         AnyItem::RootModule(item) => {
-            let it = {
-                let this = &item;
-                crate::DisplayWith { value: this, db }
-            };
-            writeln!(&mut out, "body of {it}").unwrap();
+            writeln!(&mut out, "body of {}", item.display(db)).unwrap();
             item.body(db)
         }
         AnyItem::UnitModule(_) => unimplemented!(),
         AnyItem::Module(item) => {
-            let it = {
-                let this = &item;
-                crate::DisplayWith { value: this, db }
-            };
-            let res = (&mut out).write_fmt(core::format_args!("body of {it}\n"));
-            res.unwrap();
+            writeln!(&mut out, "body of {}", item.display(db)).unwrap();
             item.body(db)
         }
     };

@@ -13,6 +13,7 @@ pub mod pretty;
 /// Executable block of code
 #[salsa::tracked(debug)]
 pub struct Body<'db> {
+    #[tracked]
     origin: BodyOrigin<'db>,
 }
 
@@ -67,7 +68,7 @@ pub(crate) struct BodyLowerResult<'db> {
 
 #[salsa::tracked]
 impl<'db> Body<'db> {
-    // // Top-level stmts
+    // Top-level stmts
     pub fn top_level_stmts(self, db: &'db dyn Db) -> &'db [StmtId<'db>] {
         &self.contents(db).top_level
     }
@@ -96,6 +97,7 @@ impl<'db> Body<'db> {
 /// A block that contains items
 #[salsa::tracked(debug)]
 pub struct ModuleBlock<'db> {
+    #[tracked]
     origin: SemanticLoc<'db, ast::StmtList>,
 }
 

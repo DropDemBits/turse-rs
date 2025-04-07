@@ -16,7 +16,6 @@ toc-syntax = { workspace = true }
 toc-span = { workspace = true }
 
 rowan.workspace = true
-salsa.workspace = true
 drop_bomb = "0.1.5"
 indexmap = { workspace = true }
 

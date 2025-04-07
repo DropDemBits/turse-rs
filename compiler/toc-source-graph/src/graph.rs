@@ -1,6 +1,6 @@
 //! Roots to build the implicit source graph
 
-use std::collections::BTreeMap;
+use toc_salsa_collections::FxIndexMap;
 
 use crate::{Db, DependencyList, Package};
 
@@ -26,8 +26,9 @@ pub fn source_graph<'db>(db: &'db dyn Db) -> Result<SourceGraph<'db>, CyclicDepe
 
 #[salsa::tracked]
 pub struct SourceGraph<'db> {
+    #[tracked]
     #[return_ref]
-    graph: BTreeMap<Package, DependencyList>,
+    graph: FxIndexMap<Package, DependencyList>,
 }
 
 #[salsa::tracked]

@@ -34,7 +34,7 @@ pub fn parse_depends(syntax: SyntaxNode) -> CompileResult<FileDepends, FileRange
     depends::gather_dependencies(syntax)
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, salsa::Update)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ParseTree {
     node: GreenNode,
 }

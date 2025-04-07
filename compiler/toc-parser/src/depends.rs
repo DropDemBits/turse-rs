@@ -9,7 +9,7 @@ use toc_syntax::{
 };
 
 /// What other file sources a given file depends on
-#[derive(Debug, Clone, PartialEq, Eq, salsa::Update)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FileDepends {
     depends: Vec<Dependency>,
 }
