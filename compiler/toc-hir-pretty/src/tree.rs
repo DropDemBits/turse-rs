@@ -18,11 +18,11 @@ use toc_hir::{
     visitor::{HirVisitor, WalkEvent, Walker},
 };
 
-pub fn pretty_print_tree(lowered: &LoweredPackage) -> String {
+pub fn pretty_print_tree(db: &dyn toc_paths::Db, lowered: &LoweredPackage) -> String {
     let mut output = String::new();
     let mut walker = Walker::from_package(lowered);
 
-    let pretty = PrettyVisitor::new(&mut output, lowered);
+    let pretty = PrettyVisitor::new(db, &mut output, lowered);
 
     while let Some(event) = walker.next_event() {
         match event {
@@ -43,14 +43,20 @@ struct PrettyVisitor<'out, 'hir> {
     out: RefCell<&'out mut dyn fmt::Write>,
     indent_level: Cell<usize>,
     package: &'hir package::Package,
+    db: &'hir dyn toc_paths::Db,
 }
 
 impl<'out, 'hir> PrettyVisitor<'out, 'hir> {
-    fn new(out: &'out mut dyn fmt::Write, package: &'hir package::Package) -> Self {
+    fn new(
+        db: &'hir dyn toc_paths::Db,
+        out: &'out mut dyn fmt::Write,
+        package: &'hir package::Package,
+    ) -> Self {
         Self {
             out: RefCell::new(out),
             indent_level: Cell::new(0),
             package,
+            db,
         }
     }
 
@@ -92,7 +98,10 @@ impl<'out, 'hir> PrettyVisitor<'out, 'hir> {
         let span = span.lookup_in(self.package);
 
         if let Some((file_id, range)) = span.into_parts() {
-            format!("({file_id:?}, {range:?})")
+            let file = file_id.into_raw().raw_path(self.db);
+            let (start, end) = (u32::from(range.start()), u32::from(range.end()));
+
+            format!("({file}:{start}..{end})")
         } else {
             "(dummy)".to_string()
         }
@@ -204,10 +213,11 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
     }
 
     fn visit_file_root(&self, file: toc_span::FileId, id: item::ItemId) {
+        let file = file.into_raw().raw_path(self.db);
         self.emit_node(
             "Root",
             self.package.span_table().dummy_span(),
-            Some(format_args!("{file:?} -> {id:?}")),
+            Some(format_args!("{file} -> {id:?}")),
         );
     }
 

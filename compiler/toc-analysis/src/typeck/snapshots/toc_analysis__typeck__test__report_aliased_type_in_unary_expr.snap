@@ -2,12 +2,12 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "type a0 : real\nvar k : a0\nvar _ := not k % unchanged\n"
 ---
-"a0"@(FileId(1), 5..7) [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of real
-"k"@(FileId(1), 19..20) [ConstVar(Var, No)]: alias[DefId(PackageId(0), LocalDefId(0))] of real
-"_"@(FileId(1), 30..31) [ConstVar(Var, No)]: <error>
-"<root>"@(dummy) [Module(No)]: <error>
+"a0"@"src/main.t:5..7" [Type]: alias[DefId(PackageId(3072), LocalDefId(0))] of real
+"k"@"src/main.t:19..20" [ConstVar(Var, No)]: alias[DefId(PackageId(3072), LocalDefId(0))] of real
+"_"@"src/main.t:30..31" [ConstVar(Var, No)]: <error>
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 35..38): mismatched types for logical `not`
-| note for (FileId(1), 39..40): this is of type `a0 (alias of real)`
-| error for (FileId(1), 35..38): cannot apply logical `not` to `real`
+error at src/main.t:35..38: mismatched types for logical `not`
+| note for src/main.t:39..40: this is of type `a0 (alias of real)`
+| error for src/main.t:35..38: cannot apply logical `not` to `real`
 | info: operand must be an integer or boolean

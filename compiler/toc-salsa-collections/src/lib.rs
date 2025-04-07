@@ -1,331 +1,175 @@
-//! Collections that depend on salsa structs
+//! Random useful collection types, which may or may not support salsa::Update
 
-use std::marker::PhantomData;
+use indexmap::{IndexMap, IndexSet};
 
-/// A map from salsa [`Ids`](salsa::Id) to some other type.
-/// Space requirement is O(highest index).
-///
-/// Heavily inspired by `la_arena`'s `ArenaMap`.
-#[derive(Debug, Clone)]
-pub struct IdMap<K, V> {
-    v: Vec<Option<V>>,
-    _idx: PhantomData<K>,
-}
+pub type FxIndexMap<K, V> = IndexMap<K, V, rustc_hash::FxBuildHasher>;
+pub type FxIndexSet<V> = IndexSet<V, rustc_hash::FxBuildHasher>;
 
-impl<K, V> IdMap<K, V> {
-    /// Creates a new map
-    pub const fn new() -> Self {
-        Self {
-            v: Vec::new(),
-            _idx: PhantomData,
+pub mod arena {
+    use std::ops::{Deref, DerefMut};
+
+    use la_arena::{Arena, ArenaMap, Idx};
+
+    /// Wrapper around [`la_arena::Arena`] that implements [`salsa::Update`].
+    #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+    #[repr(transparent)]
+    pub struct SalsaArena<V>(Arena<V>);
+
+    impl<V> SalsaArena<V> {
+        /// Creates a new empty arena.
+        ///
+        /// ```
+        /// let arena: la_arena::Arena<i32> = la_arena::Arena::new();
+        /// assert!(arena.is_empty());
+        /// ```
+        pub const fn new() -> Self {
+            Self(Arena::new())
+        }
+
+        /// Create a new empty arena with specific capacity.
+        ///
+        /// ```
+        /// let arena: la_arena::Arena<i32> = la_arena::Arena::with_capacity(42);
+        /// assert!(arena.is_empty());
+        /// ```
+        pub fn with_capacity(capacity: usize) -> Self {
+            Self(Arena::with_capacity(capacity))
         }
     }
 
-    /// Creates a new map with the given capacity
-    pub fn with_capacity(capacity: usize) -> Self {
-        Self {
-            v: Vec::with_capacity(capacity),
-            _idx: Default::default(),
+    impl<V> From<Arena<V>> for SalsaArena<V> {
+        fn from(value: Arena<V>) -> Self {
+            Self(value)
         }
     }
 
-    /// Reserves capacity for at least additional more elements to be inserted in the map.
-    pub fn reserve(&mut self, additional: usize) {
-        self.v.reserve(additional);
-    }
-
-    /// Clears the map, removing all elements.
-    pub fn clear(&mut self) {
-        self.v.clear();
-    }
-
-    /// Shrinks the capacity of the map as much as possible.
-    pub fn shrink_to_fit(&mut self) {
-        let min_len = self
-            .v
-            .iter()
-            .rposition(|slot| slot.is_some())
-            .map_or(0, |i| i + 1);
-        self.v.truncate(min_len);
-        self.v.shrink_to_fit();
-    }
-}
-
-impl<K: salsa::AsId, V> IdMap<K, V> {
-    /// Returns whether the map contains a value for the specified id.
-    pub fn contains_id(&self, id: K) -> bool {
-        matches!(self.v.get(Self::to_idx(id)), Some(Some(_)))
-    }
-
-    /// Removes an id from the map, returning the value at the id if the id was previously in the map.
-    pub fn remove(&mut self, id: K) -> Option<V> {
-        self.v.get_mut(Self::to_idx(id))?.take()
-    }
-
-    /// Inserts a value associated with a given salsa id into the map.
-    ///
-    /// If the map did not have this id present, None is returned.
-    /// Otherwise, the value is updated, and the old value is returned.
-    pub fn insert(&mut self, id: K, value: V) -> Option<V> {
-        let idx = Self::to_idx(id);
-
-        // resize truncates, so make sure that we don't go below the source length
-        // add one since we want the number of elements instead of the index
-        let len = self.v.len();
-        self.v.resize_with((idx + 1).max(len), || None);
-        self.v[idx].replace(value)
-    }
-
-    /// Returns a reference to the value associated with the provided id
-    /// if it is present.
-    pub fn get(&self, id: K) -> Option<&V> {
-        let idx = Self::to_idx(id);
-        self.v.get(idx)?.as_ref()
-    }
-
-    /// Returns a mutable reference to the value associated with the provided id
-    /// if it is present.
-    pub fn get_mut(&mut self, id: K) -> Option<&mut V> {
-        self.v.get_mut(Self::to_idx(id)).and_then(|it| it.as_mut())
-    }
-
-    /// Returns an iterator over the keys in the map.
-    pub fn keys(&self) -> impl Iterator<Item = K> + '_ {
-        self.v
-            .iter()
-            .enumerate()
-            .filter_map(|(id, v)| v.is_some().then_some(Self::from_idx(id)))
-    }
-
-    /// Returns an iterator over the values in the map.
-    pub fn values(&self) -> impl Iterator<Item = &V> {
-        self.v.iter().filter_map(|o| o.as_ref())
-    }
-
-    /// Returns an iterator over mutable references to the values in the map.
-    pub fn values_mut(&mut self) -> impl Iterator<Item = &mut V> {
-        self.v.iter_mut().filter_map(|o| o.as_mut())
-    }
-
-    /// Returns an iterator over the salsa ids and values in the map.
-    pub fn iter(&self) -> impl Iterator<Item = (K, &V)> {
-        self.v
-            .iter()
-            .enumerate()
-            .filter_map(|(idx, o)| Some((Self::from_idx(idx), o.as_ref()?)))
-    }
-
-    /// Returns an iterator over the salsa ids and values in the map.
-    pub fn iter_mut(&mut self) -> impl Iterator<Item = (K, &mut V)> {
-        self.v
-            .iter_mut()
-            .enumerate()
-            .filter_map(|(idx, o)| Some((Self::from_idx(idx), o.as_mut()?)))
-    }
-
-    /// Gets the given key's corresponding entry in the map for in-place manipulation.
-    pub fn entry(&mut self, id: K) -> Entry<'_, K, V> {
-        let idx = Self::to_idx(id);
-        self.v.resize_with((idx + 1).max(self.v.len()), || None);
-        match &mut self.v[idx] {
-            slot @ Some(_) => Entry::Occupied(OccupiedEntry {
-                slot,
-                _ty: PhantomData,
-            }),
-            slot @ None => Entry::Vacant(VacantEntry {
-                slot,
-                _ty: PhantomData,
-            }),
+    impl<V> Default for SalsaArena<V> {
+        fn default() -> Self {
+            Self(Arena::default())
         }
     }
 
-    fn to_idx(id: K) -> usize {
-        usize::from(id.as_id())
-    }
+    impl<V> Deref for SalsaArena<V> {
+        type Target = la_arena::Arena<V>;
 
-    fn from_idx(idx: usize) -> K {
-        K::from_id(salsa::Id::from(idx))
-    }
-}
-
-impl<K, V> PartialEq for IdMap<K, V>
-where
-    V: PartialEq,
-{
-    fn eq(&self, other: &Self) -> bool {
-        self.v.eq(&other.v)
-    }
-}
-
-impl<K, V> Eq for IdMap<K, V> where V: Eq {}
-
-impl<K: salsa::AsId, V> std::ops::Index<K> for IdMap<K, V> {
-    type Output = V;
-    fn index(&self, idx: K) -> &V {
-        self.v[Self::to_idx(idx)].as_ref().unwrap()
-    }
-}
-
-impl<K: salsa::AsId, V> std::ops::IndexMut<K> for IdMap<K, V> {
-    fn index_mut(&mut self, idx: K) -> &mut V {
-        self.v[Self::to_idx(idx)].as_mut().unwrap()
-    }
-}
-
-impl<K, V> Default for IdMap<K, V> {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl<K: salsa::AsId, V> Extend<(K, V)> for IdMap<K, V> {
-    fn extend<I: IntoIterator<Item = (K, V)>>(&mut self, iter: I) {
-        iter.into_iter().for_each(move |(k, v)| {
-            self.insert(k, v);
-        });
-    }
-}
-
-impl<K: salsa::AsId, V> FromIterator<(K, V)> for IdMap<K, V> {
-    fn from_iter<I: IntoIterator<Item = (K, V)>>(iter: I) -> Self {
-        let mut this = Self::new();
-        this.extend(iter);
-        this
-    }
-}
-
-/// A view into a single entry in a map, which may either be vacant or occupied.
-///
-/// This `enum` is constructed from the [`entry`] method on [`IdMap`].
-///
-/// [`entry`]: IdMap::entry
-pub enum Entry<'a, IDX, V> {
-    /// A vacant entry.
-    Vacant(VacantEntry<'a, IDX, V>),
-    /// An occupied entry.
-    Occupied(OccupiedEntry<'a, IDX, V>),
-}
-
-impl<'a, K, V> Entry<'a, K, V> {
-    /// Ensures a value is in the entry by inserting the default if empty, and returns a mutable reference to
-    /// the value in the entry.
-    pub fn or_insert(self, default: V) -> &'a mut V {
-        match self {
-            Self::Vacant(ent) => ent.insert(default),
-            Self::Occupied(ent) => ent.into_mut(),
+        fn deref(&self) -> &Self::Target {
+            &self.0
         }
     }
 
-    /// Ensures a value is in the entry by inserting the result of the default function if empty, and returns
-    /// a mutable reference to the value in the entry.
-    pub fn or_insert_with<F: FnOnce() -> V>(self, default: F) -> &'a mut V {
-        match self {
-            Self::Vacant(ent) => ent.insert(default()),
-            Self::Occupied(ent) => ent.into_mut(),
+    impl<V> DerefMut for SalsaArena<V> {
+        fn deref_mut(&mut self) -> &mut Self::Target {
+            &mut self.0
         }
     }
 
-    /// Provides in-place mutable access to an occupied entry before any potential inserts into the map.
-    pub fn and_modify<F: FnOnce(&mut V)>(mut self, f: F) -> Self {
-        if let Self::Occupied(ent) = &mut self {
-            f(ent.get_mut());
-        }
-        self
-    }
-}
+    unsafe impl<V> salsa::Update for SalsaArena<V>
+    where
+        V: salsa::Update,
+    {
+        unsafe fn maybe_update(old_pointer: *mut Self, new_value: Self) -> bool {
+            let new_arena = new_value.0;
+            // SAFETY: old pointer given to us is required to meet both the safety & validity invariants.
+            let old_arena: &mut Self = unsafe { &mut *old_pointer };
 
-impl<'a, K, V> Entry<'a, K, V>
-where
-    V: Default,
-{
-    /// Ensures a value is in the entry by inserting the default value if empty, and returns a mutable reference
-    /// to the value in the entry.
-    pub fn or_default(self) -> &'a mut V {
-        match self {
-            Entry::Vacant(ent) => ent.insert(Default::default()),
-            Entry::Occupied(ent) => ent.into_mut(),
-        }
-    }
-}
+            // Must be the same length to have the chance of being considered equal.
+            if old_arena.len() != new_arena.len() {
+                old_arena.clear();
+                old_arena.extend(new_arena.into_iter().map(|(_, it)| it));
+                return true;
+            }
 
-/// A view into an vacant entry in an [`IdMap`]. It is part of the [`Entry`] enum.
-pub struct VacantEntry<'a, K, V> {
-    slot: &'a mut Option<V>,
-    _ty: PhantomData<K>,
-}
+            // Update values recursively.
+            let mut changed = false;
+            for (old_element, new_element) in old_arena
+                .values_mut()
+                .zip(new_arena.into_iter().map(|(_, it)| it))
+            {
+                changed |= unsafe { V::maybe_update(old_element, new_element) };
+            }
 
-impl<'a, IDX, V> VacantEntry<'a, IDX, V> {
-    /// Sets the value of the entry with the `VacantEntry`’s key, and returns a mutable reference to it.
-    pub fn insert(self, value: V) -> &'a mut V {
-        self.slot.insert(value)
-    }
-}
-
-/// A view into an occupied entry in an [`IdMap`]. It is part of the [`Entry`] enum.
-pub struct OccupiedEntry<'a, IDX, V> {
-    slot: &'a mut Option<V>,
-    _ty: PhantomData<IDX>,
-}
-
-impl<'a, K, V> OccupiedEntry<'a, K, V> {
-    /// Gets a reference to the value in the entry.
-    pub fn get(&self) -> &V {
-        self.slot.as_ref().expect("Occupied")
-    }
-
-    /// Gets a mutable reference to the value in the entry.
-    pub fn get_mut(&mut self) -> &mut V {
-        self.slot.as_mut().expect("Occupied")
-    }
-
-    /// Converts the entry into a mutable reference to its value.
-    pub fn into_mut(self) -> &'a mut V {
-        self.slot.as_mut().expect("Occupied")
-    }
-
-    /// Sets the value of the entry with the `OccupiedEntry`’s key, and returns the entry’s old value.
-    pub fn insert(&mut self, value: V) -> V {
-        self.slot.replace(value).expect("Occupied")
-    }
-
-    /// Takes the value of the entry out of the map, and returns it.
-    pub fn remove(self) -> V {
-        self.slot.take().expect("Occupied")
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-
-    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-    struct Entity(salsa::Id);
-
-    impl Entity {
-        fn new(id: u32) -> Self {
-            Self(salsa::Id::from_u32(id))
+            changed
         }
     }
 
-    impl salsa::AsId for Entity {
-        fn as_id(self) -> salsa::Id {
-            self.0
+    /// Wrapper around [`la_arena::ArenaMap`] that implements [`salsa::Update`].
+    #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+    #[repr(transparent)]
+    pub struct SalsaArenaMap<IDX, V>(ArenaMap<IDX, V>);
+
+    impl<T, V> SalsaArenaMap<Idx<T>, V> {
+        /// Creates a new empty map.
+        pub const fn new() -> Self {
+            Self(ArenaMap::new())
         }
 
-        fn from_id(id: salsa::Id) -> Self {
-            Self(id)
+        /// Create a new empty map with specific capacity.
+        pub fn with_capacity(capacity: usize) -> Self {
+            Self(ArenaMap::with_capacity(capacity))
         }
     }
 
-    #[test]
-    fn id_map_reverse_insert() {
-        // Don't accidentally truncate the map
-        let mut map = IdMap::new();
+    impl<T, V> From<ArenaMap<Idx<T>, V>> for SalsaArenaMap<Idx<T>, V> {
+        fn from(value: ArenaMap<Idx<T>, V>) -> Self {
+            Self(value)
+        }
+    }
 
-        map.insert(Entity::new(3), 3);
-        map.insert(Entity::new(2), 2);
-        map.insert(Entity::new(1), 1);
+    impl<T, V> Default for SalsaArenaMap<Idx<T>, V> {
+        fn default() -> Self {
+            Self(ArenaMap::default())
+        }
+    }
 
-        assert_eq!(map.get(Entity::new(3)), Some(&3));
+    impl<T, V> Deref for SalsaArenaMap<Idx<T>, V> {
+        type Target = la_arena::ArenaMap<Idx<T>, V>;
+
+        fn deref(&self) -> &Self::Target {
+            &self.0
+        }
+    }
+
+    impl<T, V> DerefMut for SalsaArenaMap<Idx<T>, V> {
+        fn deref_mut(&mut self) -> &mut Self::Target {
+            &mut self.0
+        }
+    }
+
+    unsafe impl<T, V> salsa::Update for SalsaArenaMap<Idx<T>, V>
+    where
+        T: salsa::Update,
+        V: salsa::Update,
+    {
+        unsafe fn maybe_update(old_pointer: *mut Self, new_value: Self) -> bool {
+            'function: {
+                let old_pointer = old_pointer;
+                let new_map = new_value.0;
+                let old_map: &mut Self = unsafe { &mut *old_pointer };
+
+                // To be considered "equal", the set of keys
+                // must be the same between the two maps.
+                let same_keys = old_map.iter().count() == new_map.iter().count()
+                    && old_map.iter().all(|(k, _)| new_map.contains_idx(k));
+
+                // If the set of keys has changed, then just pull in the new values
+                // from new_map and discard the old ones.
+                if !same_keys {
+                    old_map.clear();
+                    old_map.extend(new_map);
+                    break 'function true;
+                }
+
+                // Otherwise, recursively descend to the values.
+                // We do not invoke `K::update` because we assume
+                // that if the values are `Eq` they must not need
+                // updating (see the trait criteria).
+                let mut changed = false;
+                for (key, new_value) in new_map.into_iter() {
+                    let old_value = old_map.get_mut(key).unwrap();
+                    changed |= unsafe { V::maybe_update(old_value, new_value) };
+                }
+                changed
+            }
+        }
     }
 }

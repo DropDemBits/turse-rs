@@ -3,37 +3,36 @@ source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "\n        var u, w, U : int\n        module a\n            export ~.all\n            var u, w, U : int\n        end a\n        "
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(7)
-    Module@(FileId(1), 0..121): "<root>"@(dummy)
-      StmtBody@(FileId(1), 9..112): []
-        StmtItem@(FileId(1), 9..26): ItemId(0)
-          ConstVar@(FileId(1), 9..26): var "u"@(FileId(1), 13..14)
-            Primitive@(FileId(1), 23..26): Int
-        StmtItem@(FileId(1), 9..26): ItemId(1)
-          ConstVar@(FileId(1), 9..26): var "w"@(FileId(1), 16..17)
-            Primitive@(FileId(1), 23..26): Int
-        StmtItem@(FileId(1), 9..26): ItemId(2)
-          ConstVar@(FileId(1), 9..26): var "U"@(FileId(1), 19..20)
-            Primitive@(FileId(1), 23..26): Int
-        StmtItem@(FileId(1), 35..112): ItemId(6)
-          Module@(FileId(1), 35..112): "a"@(FileId(1), 42..43), exports [Const Unqualified local("u"@(FileId(1), 85..86)), Const Unqualified local("w"@(FileId(1), 88..89)), Const Unqualified local("U"@(FileId(1), 91..92))]
-            StmtBody@(FileId(1), 81..98): []
-              StmtItem@(FileId(1), 81..98): ItemId(3)
-                ConstVar@(FileId(1), 81..98): var "u"@(FileId(1), 85..86)
-                  Primitive@(FileId(1), 95..98): Int
-              StmtItem@(FileId(1), 81..98): ItemId(4)
-                ConstVar@(FileId(1), 81..98): var "w"@(FileId(1), 88..89)
-                  Primitive@(FileId(1), 95..98): Int
-              StmtItem@(FileId(1), 81..98): ItemId(5)
-                ConstVar@(FileId(1), 81..98): var "U"@(FileId(1), 91..92)
-                  Primitive@(FileId(1), 95..98): Int
-error at (FileId(1), 85..86): `u` is already declared in the parent scope
-| note for (FileId(1), 13..14): `u` previously declared here
-| error for (FileId(1), 65..68): `u` exported unqualified from here
-error at (FileId(1), 88..89): `w` is already declared in the parent scope
-| note for (FileId(1), 16..17): `w` previously declared here
-| error for (FileId(1), 65..68): `w` exported unqualified from here
-error at (FileId(1), 91..92): `U` is already declared in the parent scope
-| note for (FileId(1), 19..20): `U` previously declared here
-| error for (FileId(1), 65..68): `U` exported unqualified from here
-
+  Root@(dummy): src/main.t -> ItemId(7)
+    Module@(src/main.t:0..121): "<root>"@(dummy)
+      StmtBody@(src/main.t:9..112): []
+        StmtItem@(src/main.t:9..26): ItemId(0)
+          ConstVar@(src/main.t:9..26): var "u"@(src/main.t:13..14)
+            Primitive@(src/main.t:23..26): Int
+        StmtItem@(src/main.t:9..26): ItemId(1)
+          ConstVar@(src/main.t:9..26): var "w"@(src/main.t:16..17)
+            Primitive@(src/main.t:23..26): Int
+        StmtItem@(src/main.t:9..26): ItemId(2)
+          ConstVar@(src/main.t:9..26): var "U"@(src/main.t:19..20)
+            Primitive@(src/main.t:23..26): Int
+        StmtItem@(src/main.t:35..112): ItemId(6)
+          Module@(src/main.t:35..112): "a"@(src/main.t:42..43), exports [Const Unqualified local("u"@(src/main.t:85..86)), Const Unqualified local("w"@(src/main.t:88..89)), Const Unqualified local("U"@(src/main.t:91..92))]
+            StmtBody@(src/main.t:81..98): []
+              StmtItem@(src/main.t:81..98): ItemId(3)
+                ConstVar@(src/main.t:81..98): var "u"@(src/main.t:85..86)
+                  Primitive@(src/main.t:95..98): Int
+              StmtItem@(src/main.t:81..98): ItemId(4)
+                ConstVar@(src/main.t:81..98): var "w"@(src/main.t:88..89)
+                  Primitive@(src/main.t:95..98): Int
+              StmtItem@(src/main.t:81..98): ItemId(5)
+                ConstVar@(src/main.t:81..98): var "U"@(src/main.t:91..92)
+                  Primitive@(src/main.t:95..98): Int
+error at src/main.t:85..86: `u` is already declared in the parent scope
+| note for src/main.t:13..14: `u` previously declared here
+| error for src/main.t:65..68: `u` exported unqualified from here
+error at src/main.t:88..89: `w` is already declared in the parent scope
+| note for src/main.t:16..17: `w` previously declared here
+| error for src/main.t:65..68: `w` exported unqualified from here
+error at src/main.t:91..92: `U` is already declared in the parent scope
+| note for src/main.t:19..20: `U` previously declared here
+| error for src/main.t:65..68: `U` exported unqualified from here

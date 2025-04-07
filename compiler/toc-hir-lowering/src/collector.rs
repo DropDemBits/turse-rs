@@ -10,6 +10,7 @@ use toc_hir::{
     },
     ty::PassBy,
 };
+use toc_paths::RawPath;
 use toc_reporting::{CompileResult, MessageSink};
 use toc_span::{FileId, Span, TextRange};
 use toc_syntax::{
@@ -20,7 +21,7 @@ use toc_vfs_db::SourceFile;
 
 use crate::Db;
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, salsa::Update)]
 pub(crate) struct CollectRes {
     pub(crate) defs: DefInfoTable,
     pub(crate) node_defs: HashMap<NodeSpan, LocalDefId>,
@@ -35,9 +36,13 @@ pub(crate) fn collect_defs(
     let mut messages = MessageSink::default();
 
     for &file in reachable_files {
-        let root =
-            ast::Source::cast(toc_ast_db::parse_file(db.up(), file).result().syntax()).unwrap();
-        FileCollector::collect(file.path(db.up()).into(), root, &mut res, &mut messages);
+        let root = ast::Source::cast(toc_ast_db::parse_file(db, file).result().syntax()).unwrap();
+        FileCollector::collect(
+            RawPath::new(db, file.path(db)).into(),
+            root,
+            &mut res,
+            &mut messages,
+        );
     }
 
     CompileResult::new(res, messages.finish())

@@ -2,8 +2,8 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "for : false .. true by false end for"
 ---
-"<root>"@(dummy) [Module(No)]: <error>
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 23..28): mismatched types
-| note for (FileId(1), 23..28): this is of type `boolean`
+error at src/main.t:23..28: mismatched types
+| note for src/main.t:23..28: this is of type `boolean`
 | info: `boolean` is not an integer type

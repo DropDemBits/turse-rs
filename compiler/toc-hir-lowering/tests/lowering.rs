@@ -1,5 +1,6 @@
 //! Tests for lowering
 
+use camino::Utf8PathBuf;
 use if_chain::if_chain;
 use toc_hir::{
     body, expr, item,
@@ -8,25 +9,21 @@ use toc_hir::{
     stmt,
 };
 use toc_paths::RawPath;
-use toc_reporting::CompileResult;
+use toc_reporting::{CompileResult, WithDisplayLocations};
 use toc_source_graph::RootPackages;
 use toc_span::FileId;
 use toc_vfs_db::VfsDbExt;
 
-#[salsa::db(
-    toc_paths::Jar,
-    toc_source_graph::Jar,
-    toc_vfs_db::Jar,
-    toc_ast_db::Jar,
-    toc_hir_lowering::Jar
-)]
-#[derive(Default)]
+#[salsa::db]
+#[derive(Default, Clone)]
 struct TestHirDb {
     storage: salsa::Storage<Self>,
     source_table: toc_vfs_db::SourceTable,
 }
 
-impl salsa::Database for TestHirDb {}
+impl salsa::Database for TestHirDb {
+    fn salsa_event(&self, _event: &dyn Fn() -> salsa::Event) {}
+}
 
 impl toc_vfs_db::VfsBridge for TestHirDb {
     fn source_table(&self) -> &toc_vfs_db::SourceTable {
@@ -55,7 +52,7 @@ fn do_lower(src: &str) -> (String, LowerResult) {
     let fixture = toc_vfs::generate_vfs(src).unwrap();
     db.insert_fixture(fixture);
 
-    let root_file = RawPath::new(db, "src/main.t".into());
+    let root_file = RawPath::new(db, Utf8PathBuf::from("src/main.t"));
     let package = SourcePackage::new(
         db,
         "main".into(),
@@ -67,9 +64,20 @@ fn do_lower(src: &str) -> (String, LowerResult) {
 
     let lowered = toc_hir_lowering::lower_package(db, package);
 
-    let mut s = toc_hir_pretty::tree::pretty_print_tree(lowered.result());
+    let mut s = toc_hir_pretty::tree::pretty_print_tree(db, lowered.result());
+    let mapper = &toc_reporting::FnDisplay::new(|span: &toc_span::Span| -> String {
+        span.into_parts().map_or_else(
+            || String::from("<unknown>:0..0"),
+            |(file, range)| {
+                let file = file.into_raw().raw_path(db).to_string();
+                let (start, end) = (u32::from(range.start()), u32::from(range.end()));
+                format!("{file}:{start}..{end}")
+            },
+        )
+    });
+
     for err in lowered.messages().iter() {
-        writeln!(&mut s, "{err}").unwrap();
+        writeln!(&mut s, "{}", err.display_spans(mapper)).unwrap();
     }
 
     (

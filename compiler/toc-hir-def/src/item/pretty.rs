@@ -9,7 +9,7 @@ use crate::{
     item::{AnyItem, ConstVar, HasItems, Module, RootModule, UnitModule, root_module},
 };
 
-impl<'db> DisplayWithDb<'db, dyn crate::Db + 'db> for ConstVar {
+impl<'db> DisplayWithDb<'db, dyn crate::Db> for ConstVar<'db> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>, db: &dyn crate::Db) -> fmt::Result {
         let name = self.name(db).text(db).to_owned();
         let id = self.0.as_u32();
@@ -22,7 +22,7 @@ impl<'db> DisplayWithDb<'db, dyn crate::Db + 'db> for ConstVar {
     }
 }
 
-impl<'db> DisplayWithDb<'db, dyn crate::Db + 'db> for RootModule {
+impl<'db> DisplayWithDb<'db, dyn crate::Db> for RootModule<'db> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>, db: &dyn crate::Db) -> fmt::Result {
         let name = self.name(db).text(db).to_owned();
         let id = self.0.as_u32();
@@ -31,13 +31,13 @@ impl<'db> DisplayWithDb<'db, dyn crate::Db + 'db> for RootModule {
     }
 }
 
-impl<'db> DisplayWithDb<'db, dyn crate::Db + 'db> for UnitModule {
+impl<'db> DisplayWithDb<'db, dyn crate::Db> for UnitModule<'db> {
     fn fmt(&self, _f: &mut fmt::Formatter<'_>, _db: &dyn crate::Db) -> fmt::Result {
         unimplemented!()
     }
 }
 
-impl<'db> DisplayWithDb<'db, dyn crate::Db + 'db> for Module {
+impl<'db> DisplayWithDb<'db, dyn crate::Db> for Module<'db> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>, db: &dyn crate::Db) -> fmt::Result {
         let name = self.name(db).text(db).to_owned();
         let id = self.0.as_u32();
@@ -46,7 +46,7 @@ impl<'db> DisplayWithDb<'db, dyn crate::Db + 'db> for Module {
     }
 }
 
-impl<'db> DisplayWithDb<'db, dyn crate::Db + 'db> for AnyItem {
+impl<'db> DisplayWithDb<'db, dyn crate::Db> for AnyItem<'db> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>, db: &dyn crate::Db) -> fmt::Result {
         match self {
             AnyItem::ConstVar(it) => it.fmt(f, db),
@@ -58,12 +58,12 @@ impl<'db> DisplayWithDb<'db, dyn crate::Db + 'db> for AnyItem {
 }
 
 pub struct PrettyTree<'db> {
-    db: &'db (dyn Db + 'db),
-    root: PrettyItem,
+    db: &'db dyn Db,
+    root: PrettyItem<'db>,
 }
 
-pub fn render_item_tree(db: &dyn Db, root: Package) -> PrettyTree {
-    fn render_sub_tree(db: &dyn Db, item: AnyItem) -> PrettyItem {
+pub fn render_item_tree<'db>(db: &'db dyn Db, root: Package) -> PrettyTree<'db> {
+    fn render_sub_tree<'db>(db: &'db dyn Db, item: AnyItem<'db>) -> PrettyItem<'db> {
         let children = match item {
             AnyItem::ConstVar(_) => {
                 vec![]
@@ -91,7 +91,7 @@ pub fn render_item_tree(db: &dyn Db, root: Package) -> PrettyTree {
     }
 }
 
-impl PrettyTree<'_> {
+impl<'db> PrettyTree<'db> {
     pub fn ensure_sorted(mut self) -> Self {
         fn sort_child(child: &mut PrettyItem) {
             child.children.sort_by_key(|item| item.item);
@@ -114,7 +114,7 @@ impl PrettyTree<'_> {
         &self,
         out: &mut dyn fmt::Write,
         level: usize,
-        item: &PrettyItem,
+        item: &PrettyItem<'db>,
     ) -> fmt::Result {
         let indent = "  ".repeat(level);
         writeln!(out, "{indent}{}", item.item.display(self.db))?;
@@ -127,7 +127,7 @@ impl PrettyTree<'_> {
     }
 }
 
-struct PrettyItem {
-    item: AnyItem,
-    children: Vec<PrettyItem>,
+struct PrettyItem<'db> {
+    item: AnyItem<'db>,
+    children: Vec<PrettyItem<'db>>,
 }

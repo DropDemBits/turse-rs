@@ -1,15 +1,12 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
-assertion_line: 61
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "type _ : unchecked pointer to int"
-
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(1)
-    Module@(FileId(1), 0..33): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..33): []
-        StmtItem@(FileId(1), 0..33): ItemId(0)
-          Type@(FileId(1), 0..33): "_"@(FileId(1), 5..6)
-            Pointer@(FileId(1), 9..33): Unchecked
-              Primitive@(FileId(1), 30..33): Int
-
+  Root@(dummy): src/main.t -> ItemId(1)
+    Module@(src/main.t:0..33): "<root>"@(dummy)
+      StmtBody@(src/main.t:0..33): []
+        StmtItem@(src/main.t:0..33): ItemId(0)
+          Type@(src/main.t:0..33): "_"@(src/main.t:5..6)
+            Pointer@(src/main.t:9..33): Unchecked
+              Primitive@(src/main.t:30..33): Int

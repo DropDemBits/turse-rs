@@ -2,10 +2,10 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "type s : int\nvar k : int\nget : s, k\n"
 ---
-"s"@(FileId(1), 5..6) [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of int
-"k"@(FileId(1), 17..18) [ConstVar(Var, No)]: int
-"<root>"@(dummy) [Module(No)]: <error>
+"s"@"src/main.t:5..6" [Type]: alias[DefId(PackageId(3072), LocalDefId(0))] of int
+"k"@"src/main.t:17..18" [ConstVar(Var, No)]: int
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 31..32): cannot use `s` as an expression
-| error for (FileId(1), 31..32): `s` is a reference to a type, not a variable
-| note for (FileId(1), 5..6): `s` declared here
+error at src/main.t:31..32: cannot use `s` as an expression
+| error for src/main.t:31..32: `s` is a reference to a type, not a variable
+| note for src/main.t:5..6: `s` declared here

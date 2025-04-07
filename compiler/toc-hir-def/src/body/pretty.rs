@@ -48,7 +48,7 @@ pub fn render_package_bodies(db: &dyn Db, package: Package) -> String {
     out
 }
 
-pub fn render_item_body(db: &dyn Db, item: AnyItem) -> String {
+pub fn render_item_body<'db>(db: &'db dyn Db, item: AnyItem<'db>) -> String {
     let mut out = String::new();
 
     let body = match item {
@@ -64,14 +64,14 @@ pub fn render_item_body(db: &dyn Db, item: AnyItem) -> String {
         }
     };
 
-    for stmt in &**body.top_level_stmts(db) {
+    for stmt in body.top_level_stmts(db) {
         writeln!(&mut out, "{}", render_stmt(db, *stmt, 1)).unwrap();
     }
 
     out
 }
 
-fn render_stmt(db: &dyn Db, stmt: StmtId, indent: usize) -> String {
+fn render_stmt<'db>(db: &'db dyn Db, stmt: StmtId<'db>, indent: usize) -> String {
     let (body, stmt) = (stmt.body(), stmt.stmt());
     let mut out = String::new();
 
@@ -79,10 +79,10 @@ fn render_stmt(db: &dyn Db, stmt: StmtId, indent: usize) -> String {
     out.push_str(&indent_text);
 
     match body.contents(db).stmt(stmt) {
-        Stmt::InitializeConstVar(item, expr) => {
+        Stmt::InitializeConstVar(_item, _expr) => {
             write!(&mut out, "/* constvar initializer */").unwrap();
         }
-        Stmt::InitializeBindItem(item, expr) => {
+        Stmt::InitializeBindItem(_item, _expr) => {
             write!(&mut out, "/* bind initializer */").unwrap();
         }
         Stmt::Assign(stmt) => {

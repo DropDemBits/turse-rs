@@ -1,3 +1,4 @@
+use camino::{Utf8Path, Utf8PathBuf};
 use toc_analysis::db::HirAnalysis;
 use toc_paths::RawPath;
 use toc_source_graph::{DependencyList, RootPackages};
@@ -39,7 +40,7 @@ fn run(source: &str) {
 
     db.insert_fixture(fixture);
 
-    let root_file = RawPath::new(&db, "src/main.t".into());
+    let root_file = RawPath::new(&db, Utf8PathBuf::from("src/main.t"));
     let root_package = toc_hir::package_graph::SourcePackage::new(
         &db,
         "main".into(),
@@ -53,31 +54,23 @@ fn run(source: &str) {
     db.analyze_packages();
 }
 
-#[salsa::db(
-    toc_paths::Jar,
-    toc_vfs_db::Jar,
-    toc_source_graph::Jar,
-    toc_ast_db::Jar,
-    toc_hir_lowering::Jar,
-    toc_hir_db::Jar,
-    toc_analysis::TypeJar,
-    toc_analysis::ConstEvalJar,
-    toc_analysis::AnalysisJar
-)]
-#[derive(Default)]
+#[salsa::db]
+#[derive(Default, Clone)]
 struct FuzzDb {
     storage: salsa::Storage<Self>,
     source_table: SourceTable,
 }
 
-impl salsa::Database for FuzzDb {}
+impl salsa::Database for FuzzDb {
+    fn salsa_event(&self, _event: &dyn Fn() -> salsa::Event) {}
+}
 
 impl VfsBridge for FuzzDb {
     fn source_table(&self) -> &SourceTable {
         &self.source_table
     }
 
-    fn load_new_file(&self, _path: RawPath) -> (String, Option<toc_vfs::LoadError>) {
+    fn load_new_file(&self, _path: &Utf8Path) -> (String, Option<toc_vfs::LoadError>) {
         // Error out any escaped files so that we don't get false-positive crashes
         (
             String::new(),

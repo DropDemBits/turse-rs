@@ -3,22 +3,21 @@ source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "var _ : array 1 .. *, char of int := init(1)"
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(1)
-    Module@(FileId(1), 0..44): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..44): []
-        StmtItem@(FileId(1), 0..44): ItemId(0)
-          ConstVar@(FileId(1), 0..44): var "_"@(FileId(1), 4..5)
-            Array@(FileId(1), 8..33): MaybeDyn
-              Constrained@(FileId(1), 14..20): end => Unsized(Some(1))
-                ExprBody@(FileId(1), 14..15)
-                  Literal@(FileId(1), 14..15): Integer(1)
-              Primitive@(FileId(1), 30..33): Int
-            ExprBody@(FileId(1), 37..44)
-              InitExpr@(FileId(1), 37..44)
-                ExprBody@(FileId(1), 42..43)
-                  Literal@(FileId(1), 42..43): Integer(1)
-error at (FileId(1), 14..20): extra ranges specified
-| error for (FileId(1), 22..26): extra ranges after
-| note for (FileId(1), 14..20): this must be the only range present
+  Root@(dummy): src/main.t -> ItemId(1)
+    Module@(src/main.t:0..44): "<root>"@(dummy)
+      StmtBody@(src/main.t:0..44): []
+        StmtItem@(src/main.t:0..44): ItemId(0)
+          ConstVar@(src/main.t:0..44): var "_"@(src/main.t:4..5)
+            Array@(src/main.t:8..33): MaybeDyn
+              Constrained@(src/main.t:14..20): end => Unsized(Some(1))
+                ExprBody@(src/main.t:14..15)
+                  Literal@(src/main.t:14..15): Integer(1)
+              Primitive@(src/main.t:30..33): Int
+            ExprBody@(src/main.t:37..44)
+              InitExpr@(src/main.t:37..44)
+                ExprBody@(src/main.t:42..43)
+                  Literal@(src/main.t:42..43): Integer(1)
+error at src/main.t:14..20: extra ranges specified
+| error for src/main.t:22..26: extra ranges after
+| note for src/main.t:14..20: this must be the only range present
 | info: `init`-sized arrays must have this range be the only range present
-

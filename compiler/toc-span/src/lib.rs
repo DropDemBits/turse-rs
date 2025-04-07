@@ -6,7 +6,7 @@ use std::fmt;
 pub use text_size::{TextRange, TextSize};
 
 /// A unique file id
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, salsa::Update)]
 #[repr(transparent)]
 pub struct FileId(toc_paths::RawPath);
 
@@ -17,11 +17,6 @@ mod debug_hax {
     use toc_paths::RawPath;
 
     impl FileId {
-        /// See [`toc_paths::RawPath::dummy`]
-        pub fn dummy(id: u32) -> Self {
-            Self(RawPath::dummy(id))
-        }
-
         pub fn into_raw(self) -> RawPath {
             self.0
         }
@@ -29,9 +24,7 @@ mod debug_hax {
 
     impl fmt::Debug for FileId {
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-            f.debug_tuple("FileId")
-                .field(&(self.0.into_raw() + 1))
-                .finish()
+            f.debug_tuple("FileId").field(&self.0).finish()
         }
     }
 
@@ -42,7 +35,7 @@ mod debug_hax {
     }
 }
 
-#[derive(Default, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Default, Clone, Copy, PartialEq, Eq, Hash, salsa::Update)]
 pub struct Span {
     file: Option<FileId>,
     range: TextRange,

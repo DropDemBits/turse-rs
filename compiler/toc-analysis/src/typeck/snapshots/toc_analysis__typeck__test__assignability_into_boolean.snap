@@ -1,8 +1,7 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var b : boolean\n\nvar _v00 : boolean := b\n"
 ---
-"b"@(FileId(1), 4..5) [ConstVar(Var, No)]: boolean
-"_v00"@(FileId(1), 21..25) [ConstVar(Var, No)]: boolean
-"<root>"@(dummy) [Module(No)]: <error>
-
+"b"@"src/main.t:4..5" [ConstVar(Var, No)]: boolean
+"_v00"@"src/main.t:21..25" [ConstVar(Var, No)]: boolean
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>

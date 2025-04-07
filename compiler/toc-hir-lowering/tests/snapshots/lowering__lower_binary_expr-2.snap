@@ -3,15 +3,14 @@ source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "const a := () + "
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(1)
-    Module@(FileId(1), 0..16): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..15): []
-        StmtItem@(FileId(1), 0..15): ItemId(0)
-          ConstVar@(FileId(1), 0..15): const "a"@(FileId(1), 6..7)
-            ExprBody@(FileId(1), 11..15)
-              Binary@(FileId(1), 11..15): Add
-error at (FileId(1), 12..13): unexpected token
-| error for (FileId(1), 12..13): expected expression, but found `)`
-error at (FileId(1), 14..15): unexpected end of file
-| error for (FileId(1), 14..15): expected expression after here
-
+  Root@(dummy): src/main.t -> ItemId(1)
+    Module@(src/main.t:0..16): "<root>"@(dummy)
+      StmtBody@(src/main.t:0..15): []
+        StmtItem@(src/main.t:0..15): ItemId(0)
+          ConstVar@(src/main.t:0..15): const "a"@(src/main.t:6..7)
+            ExprBody@(src/main.t:11..15)
+              Binary@(src/main.t:11..15): Add
+error at src/main.t:12..13: unexpected token
+| error for src/main.t:12..13: expected expression, but found `)`
+error at src/main.t:14..15: unexpected end of file
+| error for src/main.t:14..15: expected expression after here

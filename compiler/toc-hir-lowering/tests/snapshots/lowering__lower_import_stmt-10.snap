@@ -3,15 +3,14 @@ source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "\n    module *_\n        import _\n    end _\n    "
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(2)
-    Module@(FileId(1), 0..46): "<root>"@(dummy)
-      StmtBody@(FileId(1), 5..41): []
-        StmtItem@(FileId(1), 5..41): ItemId(1)
-          Module@(FileId(1), 5..41): "_"@(FileId(1), 13..14)
-            Import@(FileId(1), 30..31): SameAsItem local("_"@(FileId(1), 13..14))
-            StmtBody@(FileId(1), 36..36): []
-error at (FileId(1), 30..31): `_` is already imported in this scope
-| note for (FileId(1), 13..14): `_` declared pervasive here
-| error for (FileId(1), 30..31): `_` re-imported here
+  Root@(dummy): src/main.t -> ItemId(2)
+    Module@(src/main.t:0..46): "<root>"@(dummy)
+      StmtBody@(src/main.t:5..41): []
+        StmtItem@(src/main.t:5..41): ItemId(1)
+          Module@(src/main.t:5..41): "_"@(src/main.t:13..14)
+            Import@(src/main.t:30..31): SameAsItem local("_"@(src/main.t:13..14))
+            StmtBody@(src/main.t:36..36): []
+error at src/main.t:30..31: `_` is already imported in this scope
+| note for src/main.t:13..14: `_` declared pervasive here
+| error for src/main.t:30..31: `_` re-imported here
 | info: `_` was declared pervasively, so it's already imported
-

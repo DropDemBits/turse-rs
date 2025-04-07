@@ -3,14 +3,13 @@ source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "get a : a*a"
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(0)
-    Module@(FileId(1), 0..11): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..11): []
-        Get@(FileId(1), 0..11)
-          Name@(FileId(1), 4..5): "a"@(FileId(1), 4..5), undeclared
-          Binary@(FileId(1), 8..11): Mul
-            Name@(FileId(1), 8..9): "a"@(FileId(1), 8..9), undeclared
-            Name@(FileId(1), 10..11): "a"@(FileId(1), 10..11), undeclared
-error at (FileId(1), 4..5): `a` is undeclared
-| error for (FileId(1), 4..5): no definitions of `a` are in scope
-
+  Root@(dummy): src/main.t -> ItemId(0)
+    Module@(src/main.t:0..11): "<root>"@(dummy)
+      StmtBody@(src/main.t:0..11): []
+        Get@(src/main.t:0..11)
+          Name@(src/main.t:4..5): "a"@(src/main.t:4..5), undeclared
+          Binary@(src/main.t:8..11): Mul
+            Name@(src/main.t:8..9): "a"@(src/main.t:8..9), undeclared
+            Name@(src/main.t:10..11): "a"@(src/main.t:10..11), undeclared
+error at src/main.t:4..5: `a` is undeclared
+| error for src/main.t:4..5: no definitions of `a` are in scope

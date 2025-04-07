@@ -2,17 +2,16 @@
 source: compiler/toc-analysis/src/const_eval/test.rs
 expression: "const v0 : int := -16#80000000\nconst v1 : int := -16#7fffffff\nconst v2 : int := 16#7fffffff\nconst v3 : int := 16#80000000\nconst _ := v0\nconst _ := v1\nconst _ := v2\nconst _ := v3\n"
 ---
-"v0"@(FileId(1), 6..8) -> Integer(ConstInt { magnitude: 2147483648, sign: Negative, width: As32 })
-"v1"@(FileId(1), 37..39) -> Integer(ConstInt { magnitude: 2147483647, sign: Negative, width: As32 })
-"v2"@(FileId(1), 68..70) -> Integer(ConstInt { magnitude: 2147483647, sign: Positive, width: As32 })
-"v3"@(FileId(1), 98..100) -> Integer(ConstInt { magnitude: 2147483648, sign: Positive, width: As32 })
-"_"@(FileId(1), 128..129) -> ConstError { kind: OutsideRange, span: (FileId(1), 18..30) }
-"_"@(FileId(1), 142..143) -> Integer(ConstInt { magnitude: 2147483647, sign: Negative, width: As32 })
-"_"@(FileId(1), 156..157) -> Integer(ConstInt { magnitude: 2147483647, sign: Positive, width: As32 })
-"_"@(FileId(1), 170..171) -> ConstError { kind: OutsideRange, span: (FileId(1), 110..121) }
+"v0"@"src/main.t:6..8" -> Integer(ConstInt { magnitude: 2147483648, sign: Negative, width: As32 })
+"v1"@"src/main.t:37..39" -> Integer(ConstInt { magnitude: 2147483647, sign: Negative, width: As32 })
+"v2"@"src/main.t:68..70" -> Integer(ConstInt { magnitude: 2147483647, sign: Positive, width: As32 })
+"v3"@"src/main.t:98..100" -> Integer(ConstInt { magnitude: 2147483648, sign: Positive, width: As32 })
+"_"@"src/main.t:128..129" -> <error OutsideRange>
+"_"@"src/main.t:142..143" -> Integer(ConstInt { magnitude: 2147483647, sign: Negative, width: As32 })
+"_"@"src/main.t:156..157" -> Integer(ConstInt { magnitude: 2147483647, sign: Positive, width: As32 })
+"_"@"src/main.t:170..171" -> <error OutsideRange>
 
-error at (FileId(1), 18..30): cannot compute expression at compile-time
-| error for (FileId(1), 18..30): value is outside of the type's range
-error at (FileId(1), 110..121): cannot compute expression at compile-time
-| error for (FileId(1), 110..121): value is outside of the type's range
-
+error at src/main.t:18..30: cannot compute expression at compile-time
+| error for src/main.t:18..30: value is outside of the type's range
+error at src/main.t:110..121: cannot compute expression at compile-time
+| error for src/main.t:110..121: value is outside of the type's range

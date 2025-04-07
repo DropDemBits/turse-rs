@@ -3,17 +3,16 @@ source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "\n    function pars() res : int\n        var res : int1\n    end pars"
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(2)
-    Module@(FileId(1), 0..66): "<root>"@(dummy)
-      StmtBody@(FileId(1), 5..66): []
-        StmtItem@(FileId(1), 5..66): ItemId(1)
-          Subprogram@(FileId(1), 5..66): "pars"@(FileId(1), 14..18) [] -> "res"@(FileId(1), 21..24)
-            Primitive@(FileId(1), 27..30): Int
-            StmtBody@(FileId(1), 39..53): [] -> "res"@(FileId(1), 21..24)
-              StmtItem@(FileId(1), 39..53): ItemId(0)
-                ConstVar@(FileId(1), 39..53): var "res"@(FileId(1), 43..46)
-                  Primitive@(FileId(1), 49..53): Int1
-error at (FileId(1), 43..46): `res` is already declared in this scope
-| note for (FileId(1), 21..24): `res` previously declared here
-| error for (FileId(1), 43..46): `res` redeclared here
-
+  Root@(dummy): src/main.t -> ItemId(2)
+    Module@(src/main.t:0..66): "<root>"@(dummy)
+      StmtBody@(src/main.t:5..66): []
+        StmtItem@(src/main.t:5..66): ItemId(1)
+          Subprogram@(src/main.t:5..66): "pars"@(src/main.t:14..18) [] -> "res"@(src/main.t:21..24)
+            Primitive@(src/main.t:27..30): Int
+            StmtBody@(src/main.t:39..53): [] -> "res"@(src/main.t:21..24)
+              StmtItem@(src/main.t:39..53): ItemId(0)
+                ConstVar@(src/main.t:39..53): var "res"@(src/main.t:43..46)
+                  Primitive@(src/main.t:49..53): Int1
+error at src/main.t:43..46: `res` is already declared in this scope
+| note for src/main.t:21..24: `res` previously declared here
+| error for src/main.t:43..46: `res` redeclared here

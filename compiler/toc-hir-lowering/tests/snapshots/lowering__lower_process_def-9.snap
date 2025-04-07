@@ -1,18 +1,17 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "var lmao : int process uwu : lmao end uwu"
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(2)
-    Module@(FileId(1), 0..41): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..41): []
-        StmtItem@(FileId(1), 0..14): ItemId(0)
-          ConstVar@(FileId(1), 0..14): var "lmao"@(FileId(1), 4..8)
-            Primitive@(FileId(1), 11..14): Int
-        StmtItem@(FileId(1), 15..41): ItemId(1)
-          Subprogram@(FileId(1), 15..41): "uwu"@(FileId(1), 23..26)
-            ExprBody@(FileId(1), 29..33)
-              Name@(FileId(1), 29..33): "lmao"@(FileId(1), 4..8)
-            Void@(FileId(1), 15..33)
-            StmtBody@(FileId(1), 34..34): []
-
+  Root@(dummy): src/main.t -> ItemId(2)
+    Module@(src/main.t:0..41): "<root>"@(dummy)
+      StmtBody@(src/main.t:0..41): []
+        StmtItem@(src/main.t:0..14): ItemId(0)
+          ConstVar@(src/main.t:0..14): var "lmao"@(src/main.t:4..8)
+            Primitive@(src/main.t:11..14): Int
+        StmtItem@(src/main.t:15..41): ItemId(1)
+          Subprogram@(src/main.t:15..41): "uwu"@(src/main.t:23..26)
+            ExprBody@(src/main.t:29..33)
+              Name@(src/main.t:29..33): "lmao"@(src/main.t:4..8)
+            Void@(src/main.t:15..33)
+            StmtBody@(src/main.t:34..34): []

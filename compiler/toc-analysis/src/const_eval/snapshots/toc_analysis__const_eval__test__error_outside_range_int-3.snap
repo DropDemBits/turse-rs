@@ -2,13 +2,12 @@
 source: compiler/toc-analysis/src/const_eval/test.rs
 expression: "%const v0 : int4 := -16#80000001\nconst v1 : int4 := -16#80000000\nconst v2 : int4 := 16#7fffffff\nconst v3 : int4 := 16#80000000\n%const _ := v0\nconst _ := v1\nconst _ := v2\nconst _ := v3\n"
 ---
-"v1"@(FileId(1), 39..41) -> Integer(ConstInt { magnitude: 2147483648, sign: Negative, width: As32 })
-"v2"@(FileId(1), 71..73) -> Integer(ConstInt { magnitude: 2147483647, sign: Positive, width: As32 })
-"v3"@(FileId(1), 102..104) -> Integer(ConstInt { magnitude: 2147483648, sign: Positive, width: As32 })
-"_"@(FileId(1), 148..149) -> Integer(ConstInt { magnitude: 2147483648, sign: Negative, width: As32 })
-"_"@(FileId(1), 162..163) -> Integer(ConstInt { magnitude: 2147483647, sign: Positive, width: As32 })
-"_"@(FileId(1), 176..177) -> ConstError { kind: OutsideRange, span: (FileId(1), 115..126) }
+"v1"@"src/main.t:39..41" -> Integer(ConstInt { magnitude: 2147483648, sign: Negative, width: As32 })
+"v2"@"src/main.t:71..73" -> Integer(ConstInt { magnitude: 2147483647, sign: Positive, width: As32 })
+"v3"@"src/main.t:102..104" -> Integer(ConstInt { magnitude: 2147483648, sign: Positive, width: As32 })
+"_"@"src/main.t:148..149" -> Integer(ConstInt { magnitude: 2147483648, sign: Negative, width: As32 })
+"_"@"src/main.t:162..163" -> Integer(ConstInt { magnitude: 2147483647, sign: Positive, width: As32 })
+"_"@"src/main.t:176..177" -> <error OutsideRange>
 
-error at (FileId(1), 115..126): cannot compute expression at compile-time
-| error for (FileId(1), 115..126): value is outside of the type's range
-
+error at src/main.t:115..126: cannot compute expression at compile-time
+| error for src/main.t:115..126: value is outside of the type's range

@@ -2,10 +2,10 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "fcn b : int type k : int result k end b"
 ---
-"b"@(FileId(1), 4..5) [Subprogram(Function)]: function -> int
-"k"@(FileId(1), 17..18) [Type]: alias[DefId(PackageId(0), LocalDefId(1))] of int
-"<root>"@(dummy) [Module(No)]: <error>
+"b"@"src/main.t:4..5" [Subprogram(Function)]: function -> int
+"k"@"src/main.t:17..18" [Type]: alias[DefId(PackageId(3072), LocalDefId(1))] of int
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 32..33): cannot use `k` as an expression
-| error for (FileId(1), 32..33): `k` is a reference to a type, not a variable
-| note for (FileId(1), 17..18): `k` declared here
+error at src/main.t:32..33: cannot use `k` as an expression
+| error for src/main.t:32..33: `k` is a reference to a type, not a variable
+| note for src/main.t:17..18: `k` declared here

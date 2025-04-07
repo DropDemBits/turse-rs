@@ -2,8 +2,7 @@
 source: compiler/toc-analysis/src/const_eval/test.rs
 expression: 1 in 1
 ---
-"_"@(FileId(1), 6..7) -> ConstError { kind: UnsupportedOp, span: (FileId(1), 13..15) }
+"_"@"src/main.t:6..7" -> <error UnsupportedOp>
 
-error at (FileId(1), 13..15): cannot compute expression at compile-time
-| error for (FileId(1), 13..15): operation is currently not implemented for compile-time evaluation
-
+error at src/main.t:13..15: cannot compute expression at compile-time
+| error for src/main.t:13..15: operation is currently not implemented for compile-time evaluation

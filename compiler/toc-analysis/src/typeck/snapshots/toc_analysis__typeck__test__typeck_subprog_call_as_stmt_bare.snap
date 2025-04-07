@@ -1,8 +1,7 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "function key : int end key\nprocedure lime end lime\nkey lime\nkey() lime()\n"
 ---
-"key"@(FileId(1), 9..12) [Subprogram(Function)]: function -> int
-"lime"@(FileId(1), 37..41) [Subprogram(Procedure)]: procedure -> void
-"<root>"@(dummy) [Module(No)]: <error>
-
+"key"@"src/main.t:9..12" [Subprogram(Function)]: function -> int
+"lime"@"src/main.t:37..41" [Subprogram(Procedure)]: procedure -> void
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>

@@ -2,10 +2,10 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var c : int\ntype _ : array 1 .. c of int"
 ---
-"c"@(FileId(1), 4..5) [ConstVar(Var, No)]: int
-"_"@(FileId(1), 17..18) [Type]: alias[DefId(PackageId(0), LocalDefId(1))] of array ( range of `int` (Unevaluated(PackageId(0), BodyId(0)) .. Expr(Unevaluated(PackageId(0), BodyId(1)), No)), ) of int
-"<root>"@(dummy) [Module(No)]: <error>
+"c"@"src/main.t:4..5" [ConstVar(Var, No)]: int
+"_"@"src/main.t:17..18" [Type]: alias[DefId(PackageId(3072), LocalDefId(1))] of array ( range of `int` (Unevaluated(PackageId(3072), BodyId(0)) .. Expr(Unevaluated(PackageId(3072), BodyId(1)), No)), ) of int
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 32..33): cannot compute `c` at compile-time
-| error for (FileId(1), 32..33): `c` is a reference to a variable, not a constant
-| note for (FileId(1), 4..5): `c` declared here
+error at src/main.t:32..33: cannot compute `c` at compile-time
+| error for src/main.t:32..33: `c` is a reference to a variable, not a constant
+| note for src/main.t:4..5: `c` declared here

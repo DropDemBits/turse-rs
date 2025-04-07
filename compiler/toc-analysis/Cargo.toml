@@ -19,7 +19,6 @@ toc-span = { workspace = true }
 salsa = { workspace = true }
 indexmap = { workspace = true }
 thiserror.workspace = true
-upcast = { workspace = true }
 
 [dev-dependencies]
 toc-paths = { workspace = true }
@@ -27,6 +26,7 @@ toc-ast-db = { workspace = true }
 toc-vfs = { workspace = true }
 toc-vfs-db = { workspace = true }
 
+camino.workspace = true
 insta = { workspace = true }
 unindent = { workspace = true }
 paste = { workspace = true }

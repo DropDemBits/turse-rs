@@ -1,19 +1,16 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
-assertion_line: 59
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "type _ : procedure pisp (a : int, b : string, c : procedure _ ())"
-
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(1)
-    Module@(FileId(1), 0..65): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..65): []
-        StmtItem@(FileId(1), 0..65): ItemId(0)
-          Type@(FileId(1), 0..65): "_"@(FileId(1), 5..6)
-            Procedure@(FileId(1), 9..65): [...]
-              Primitive@(FileId(1), 29..32): Int
-              Primitive@(FileId(1), 38..44): String
-              Procedure@(FileId(1), 50..64): [...]
-                Void@(FileId(1), 50..64)
-              Void@(FileId(1), 9..65)
-
+  Root@(dummy): src/main.t -> ItemId(1)
+    Module@(src/main.t:0..65): "<root>"@(dummy)
+      StmtBody@(src/main.t:0..65): []
+        StmtItem@(src/main.t:0..65): ItemId(0)
+          Type@(src/main.t:0..65): "_"@(src/main.t:5..6)
+            Procedure@(src/main.t:9..65): [...]
+              Primitive@(src/main.t:29..32): Int
+              Primitive@(src/main.t:38..44): String
+              Procedure@(src/main.t:50..64): [...]
+                Void@(src/main.t:50..64)
+              Void@(src/main.t:9..65)

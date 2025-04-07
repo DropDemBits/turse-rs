@@ -1,20 +1,17 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
-assertion_line: 61
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "type _ : proc uwu(_ : array 1 .. * of int)"
-
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(1)
-    Module@(FileId(1), 0..42): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..42): []
-        StmtItem@(FileId(1), 0..42): ItemId(0)
-          Type@(FileId(1), 0..42): "_"@(FileId(1), 5..6)
-            Procedure@(FileId(1), 9..42): [...]
-              Array@(FileId(1), 22..41): Static
-                Constrained@(FileId(1), 28..34): end => Any
-                  ExprBody@(FileId(1), 28..29)
-                    Literal@(FileId(1), 28..29): Integer(1)
-                Primitive@(FileId(1), 38..41): Int
-              Void@(FileId(1), 9..42)
-
+  Root@(dummy): src/main.t -> ItemId(1)
+    Module@(src/main.t:0..42): "<root>"@(dummy)
+      StmtBody@(src/main.t:0..42): []
+        StmtItem@(src/main.t:0..42): ItemId(0)
+          Type@(src/main.t:0..42): "_"@(src/main.t:5..6)
+            Procedure@(src/main.t:9..42): [...]
+              Array@(src/main.t:22..41): Static
+                Constrained@(src/main.t:28..34): end => Any
+                  ExprBody@(src/main.t:28..29)
+                    Literal@(src/main.t:28..29): Integer(1)
+                Primitive@(src/main.t:38..41): Int
+              Void@(src/main.t:9..42)

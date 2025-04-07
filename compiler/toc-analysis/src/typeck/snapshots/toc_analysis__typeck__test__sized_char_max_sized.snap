@@ -2,9 +2,9 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var _ : char(32768)"
 ---
-"_"@(FileId(1), 4..5) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(0)))
-"<root>"@(dummy) [Module(No)]: <error>
+"_"@"src/main.t:4..5" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(3072), BodyId(0)))
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 13..18): invalid character count size
-| error for (FileId(1), 13..18): computed count is 32768
+error at src/main.t:13..18: invalid character count size
+| error for src/main.t:13..18: computed count is 32768
 | info: valid sizes are between 1 to 32767

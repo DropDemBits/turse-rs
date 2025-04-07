@@ -3,13 +3,12 @@ source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "const a := \"abcd "
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(1)
-    Module@(FileId(1), 0..17): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..17): []
-        StmtItem@(FileId(1), 0..17): ItemId(0)
-          ConstVar@(FileId(1), 0..17): const "a"@(FileId(1), 6..7)
-            ExprBody@(FileId(1), 11..17)
-              Literal@(FileId(1), 11..17): String("abcd ")
-error at (FileId(1), 11..17): invalid string literal
-| error for (FileId(1), 11..17): missing terminator character
-
+  Root@(dummy): src/main.t -> ItemId(1)
+    Module@(src/main.t:0..17): "<root>"@(dummy)
+      StmtBody@(src/main.t:0..17): []
+        StmtItem@(src/main.t:0..17): ItemId(0)
+          ConstVar@(src/main.t:0..17): const "a"@(src/main.t:6..7)
+            ExprBody@(src/main.t:11..17)
+              Literal@(src/main.t:11..17): String("abcd ")
+error at src/main.t:11..17: invalid string literal
+| error for src/main.t:11..17: missing terminator character

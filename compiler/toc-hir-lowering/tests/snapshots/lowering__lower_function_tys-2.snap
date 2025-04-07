@@ -1,16 +1,13 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
-assertion_line: 59
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "type _ : function p1   (a : int) : string"
-
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(1)
-    Module@(FileId(1), 0..41): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..41): []
-        StmtItem@(FileId(1), 0..41): ItemId(0)
-          Type@(FileId(1), 0..41): "_"@(FileId(1), 5..6)
-            Function@(FileId(1), 9..41): [...]
-              Primitive@(FileId(1), 28..31): Int
-              Primitive@(FileId(1), 35..41): String
-
+  Root@(dummy): src/main.t -> ItemId(1)
+    Module@(src/main.t:0..41): "<root>"@(dummy)
+      StmtBody@(src/main.t:0..41): []
+        StmtItem@(src/main.t:0..41): ItemId(0)
+          Type@(src/main.t:0..41): "_"@(src/main.t:5..6)
+            Function@(src/main.t:9..41): [...]
+              Primitive@(src/main.t:28..31): Int
+              Primitive@(src/main.t:35..41): String

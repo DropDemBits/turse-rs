@@ -2,9 +2,9 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "function _ : char(*) end _"
 ---
-"_"@(FileId(1), 9..10) [Subprogram(Function)]: function -> char_n Any
-"<root>"@(dummy) [Module(No)]: <error>
+"_"@"src/main.t:9..10" [Subprogram(Function)]: function -> char_n Any
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 13..20): invalid storage type
-| error for (FileId(1), 13..20): cannot use `char(*)` in `function` declarations
+error at src/main.t:13..20: invalid storage type
+| error for src/main.t:13..20: cannot use `char(*)` in `function` declarations
 | info: `char(*)`'s refer to character sequences that do not have a fixed size known at compile-time

@@ -2,7 +2,7 @@
 
 use std::fmt;
 
-use crate::Location;
+use crate::{DisplayLocation, Location, display::DisplayWithLocations};
 
 /// Type of annotation added to a message
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -29,7 +29,7 @@ impl fmt::Display for AnnotateKind {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, salsa::Update)]
 pub struct SourceAnnotation<L: Location> {
     pub(crate) annotation: Annotation,
     pub(crate) span: L,
@@ -59,15 +59,19 @@ impl<L: Location> SourceAnnotation<L> {
     }
 }
 
-impl<L: Location> fmt::Display for SourceAnnotation<L> {
+impl_with_display_locations!(SourceAnnotation);
+
+impl<M: DisplayLocation<L>, L: Location> fmt::Display
+    for DisplayWithLocations<&SourceAnnotation<L>, M, L>
+{
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let Annotation { kind, msg } = &self.annotation;
-        let loc = self.span();
+        let Annotation { kind, msg } = &self.item.annotation;
+        let loc = self.mapper.display_location(&self.item.span());
 
         if f.alternate() {
-            write!(f, "{kind} for {loc:?}: {msg}")?;
+            write!(f, "{kind} for {loc}: {msg}")?;
         } else {
-            write!(f, "{kind} at {loc:?}: {msg}")?;
+            write!(f, "{kind} at {loc}: {msg}")?;
         }
 
         Ok(())

@@ -169,12 +169,8 @@ pub(crate) fn evaluate_const(
                         let right_ty = db.type_of((package_id, body).into());
 
                         // FIXME: add tests with opaque tys once module exports are in const eval
-                        let left_ty = left_ty
-                            .peel_opaque(db.up(), in_module)
-                            .peel_aliases(db.up());
-                        let right_ty = right_ty
-                            .peel_opaque(db.up(), in_module)
-                            .peel_aliases(db.up());
+                        let left_ty = left_ty.peel_opaque(db, in_module).peel_aliases(db);
+                        let right_ty = right_ty.peel_opaque(db, in_module).peel_aliases(db);
 
                         if !ty::rules::is_assignable(db, left_ty, right_ty) {
                             // Wrong types
@@ -201,7 +197,7 @@ pub(crate) fn evaluate_const(
                         }
 
                         // Cast into the canonical value
-                        let value = match left_ty.to_base_type(db.up()).kind(db.up()) {
+                        let value = match left_ty.to_base_type(db).kind(db) {
                             ty::TypeKind::Char => value.cast_into_char().map_or_else(
                                 |err| {
                                     // Definitely the wrong type
@@ -233,10 +229,10 @@ pub(crate) fn evaluate_const(
                 let lhs_expr = (package_id, body_id, expr.lhs);
                 let lhs_tyref = db
                     .type_of(lhs_expr.into())
-                    .peel_opaque(db.up(), in_module)
-                    .peel_aliases(db.up());
+                    .peel_opaque(db, in_module)
+                    .peel_aliases(db);
 
-                match lhs_tyref.kind(db.up()) {
+                match lhs_tyref.kind(db) {
                     ty::TypeKind::Enum(_, variants) => {
                         // Enum variants
                         let Some(package_id) = variants.first().map(|def| def.package()) else {

@@ -3,19 +3,18 @@ source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "\n    begin\n    bind to 1, k to\n    end"
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(2)
-    Module@(FileId(1), 0..38): "<root>"@(dummy)
-      StmtBody@(FileId(1), 5..38): []
-        Block@(FileId(1), 5..38): Normal
-          StmtItem@(FileId(1), 15..30): ItemId(0)
-            Bind@(FileId(1), 20..24): const "<unnamed>"@(FileId(1), 20..24)
-              ExprBody@(FileId(1), 23..24)
-                Literal@(FileId(1), 23..24): Integer(1)
-          StmtItem@(FileId(1), 15..30): ItemId(1)
-            Bind@(FileId(1), 26..30): const "k"@(FileId(1), 26..27)
+  Root@(dummy): src/main.t -> ItemId(2)
+    Module@(src/main.t:0..38): "<root>"@(dummy)
+      StmtBody@(src/main.t:5..38): []
+        Block@(src/main.t:5..38): Normal
+          StmtItem@(src/main.t:15..30): ItemId(0)
+            Bind@(src/main.t:20..24): const "<unnamed>"@(src/main.t:20..24)
+              ExprBody@(src/main.t:23..24)
+                Literal@(src/main.t:23..24): Integer(1)
+          StmtItem@(src/main.t:15..30): ItemId(1)
+            Bind@(src/main.t:26..30): const "k"@(src/main.t:26..27)
               ExprBody@(dummy)
-error at (FileId(1), 20..22): unexpected token
-| error for (FileId(1), 20..22): expected identifier, but found `to`
-error at (FileId(1), 35..38): unexpected token
-| error for (FileId(1), 35..38): expected expression, but found `end`
-
+error at src/main.t:20..22: unexpected token
+| error for src/main.t:20..22: expected identifier, but found `to`
+error at src/main.t:35..38: unexpected token
+| error for src/main.t:35..38: expected expression, but found `end`

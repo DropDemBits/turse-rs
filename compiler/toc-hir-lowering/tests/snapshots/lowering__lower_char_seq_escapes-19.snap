@@ -1,16 +1,14 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "var _ : int _ := \"\\101\""
-
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(1)
-    Module@(FileId(1), 0..23): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..23): []
-        StmtItem@(FileId(1), 0..11): ItemId(0)
-          ConstVar@(FileId(1), 0..11): var "_"@(FileId(1), 4..5)
-            Primitive@(FileId(1), 8..11): Int
-        Assign@(FileId(1), 12..23)
-          Name@(FileId(1), 12..13): "_"@(FileId(1), 4..5)
-          Literal@(FileId(1), 17..23): String("A")
-
+  Root@(dummy): src/main.t -> ItemId(1)
+    Module@(src/main.t:0..23): "<root>"@(dummy)
+      StmtBody@(src/main.t:0..23): []
+        StmtItem@(src/main.t:0..11): ItemId(0)
+          ConstVar@(src/main.t:0..11): var "_"@(src/main.t:4..5)
+            Primitive@(src/main.t:8..11): Int
+        Assign@(src/main.t:12..23)
+          Name@(src/main.t:12..13): "_"@(src/main.t:4..5)
+          Literal@(src/main.t:17..23): String("A")

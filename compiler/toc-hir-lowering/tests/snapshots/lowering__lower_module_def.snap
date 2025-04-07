@@ -1,18 +1,15 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
-assertion_line: 61
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "module a var c := 2 end a"
-
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(2)
-    Module@(FileId(1), 0..25): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..25): []
-        StmtItem@(FileId(1), 0..25): ItemId(1)
-          Module@(FileId(1), 0..25): "a"@(FileId(1), 7..8)
-            StmtBody@(FileId(1), 9..19): []
-              StmtItem@(FileId(1), 9..19): ItemId(0)
-                ConstVar@(FileId(1), 9..19): var "c"@(FileId(1), 13..14)
-                  ExprBody@(FileId(1), 18..19)
-                    Literal@(FileId(1), 18..19): Integer(2)
-
+  Root@(dummy): src/main.t -> ItemId(2)
+    Module@(src/main.t:0..25): "<root>"@(dummy)
+      StmtBody@(src/main.t:0..25): []
+        StmtItem@(src/main.t:0..25): ItemId(1)
+          Module@(src/main.t:0..25): "a"@(src/main.t:7..8)
+            StmtBody@(src/main.t:9..19): []
+              StmtItem@(src/main.t:9..19): ItemId(0)
+                ConstVar@(src/main.t:9..19): var "c"@(src/main.t:13..14)
+                  ExprBody@(src/main.t:18..19)
+                    Literal@(src/main.t:18..19): Integer(2)

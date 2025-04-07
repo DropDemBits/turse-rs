@@ -9,6 +9,7 @@ edition.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+toc-paths.workspace = true
 toc-reporting = { workspace = true }
 toc-scanner = { workspace = true }
 toc-syntax = { workspace = true }

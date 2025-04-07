@@ -3,49 +3,48 @@ source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "\n    case s of\n    label 1:\n        var a := a + 1\n    label 2, 3:\n        var a := a + 2\n    label 4:\n        var a := a + 3\n    label :\n        var a := a + 4\n    label :\n        var a := a + 5\n    end case\n    "
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(5)
-    Module@(FileId(1), 0..213): "<root>"@(dummy)
-      StmtBody@(FileId(1), 5..208): []
-        Case@(FileId(1), 5..208)
-          Name@(FileId(1), 10..11): "s"@(FileId(1), 10..11), undeclared
-          Literal@(FileId(1), 25..26): Integer(1)
-          StmtItem@(FileId(1), 36..50): ItemId(0)
-            ConstVar@(FileId(1), 36..50): var "a"@(FileId(1), 40..41)
-              ExprBody@(FileId(1), 45..50)
-                Binary@(FileId(1), 45..50): Add
-                  Name@(FileId(1), 45..46): "a"@(FileId(1), 45..46), undeclared
-                  Literal@(FileId(1), 49..50): Integer(1)
-          Literal@(FileId(1), 61..62): Integer(2)
-          Literal@(FileId(1), 64..65): Integer(3)
-          StmtItem@(FileId(1), 75..89): ItemId(1)
-            ConstVar@(FileId(1), 75..89): var "a"@(FileId(1), 79..80)
-              ExprBody@(FileId(1), 84..89)
-                Binary@(FileId(1), 84..89): Add
-                  Name@(FileId(1), 84..85): "a"@(FileId(1), 84..85), undeclared
-                  Literal@(FileId(1), 88..89): Integer(2)
-          Literal@(FileId(1), 100..101): Integer(4)
-          StmtItem@(FileId(1), 111..125): ItemId(2)
-            ConstVar@(FileId(1), 111..125): var "a"@(FileId(1), 115..116)
-              ExprBody@(FileId(1), 120..125)
-                Binary@(FileId(1), 120..125): Add
-                  Name@(FileId(1), 120..121): "a"@(FileId(1), 120..121), undeclared
-                  Literal@(FileId(1), 124..125): Integer(3)
-          StmtItem@(FileId(1), 146..160): ItemId(3)
-            ConstVar@(FileId(1), 146..160): var "a"@(FileId(1), 150..151)
-              ExprBody@(FileId(1), 155..160)
-                Binary@(FileId(1), 155..160): Add
-                  Name@(FileId(1), 155..156): "a"@(FileId(1), 155..156), undeclared
-                  Literal@(FileId(1), 159..160): Integer(4)
-          StmtItem@(FileId(1), 181..195): ItemId(4)
-            ConstVar@(FileId(1), 181..195): var "a"@(FileId(1), 185..186)
-              ExprBody@(FileId(1), 190..195)
-                Binary@(FileId(1), 190..195): Add
-                  Name@(FileId(1), 190..191): "a"@(FileId(1), 190..191), undeclared
-                  Literal@(FileId(1), 194..195): Integer(5)
-error at (FileId(1), 10..11): `s` is undeclared
-| error for (FileId(1), 10..11): no definitions of `s` are in scope
-error at (FileId(1), 45..46): `a` is undeclared
-| error for (FileId(1), 45..46): no definitions of `a` are in scope
-error at (FileId(1), 165..195): extra `label` arm found after default arm
-| error for (FileId(1), 165..195): extra `label` arm
-
+  Root@(dummy): src/main.t -> ItemId(5)
+    Module@(src/main.t:0..213): "<root>"@(dummy)
+      StmtBody@(src/main.t:5..208): []
+        Case@(src/main.t:5..208)
+          Name@(src/main.t:10..11): "s"@(src/main.t:10..11), undeclared
+          Literal@(src/main.t:25..26): Integer(1)
+          StmtItem@(src/main.t:36..50): ItemId(0)
+            ConstVar@(src/main.t:36..50): var "a"@(src/main.t:40..41)
+              ExprBody@(src/main.t:45..50)
+                Binary@(src/main.t:45..50): Add
+                  Name@(src/main.t:45..46): "a"@(src/main.t:45..46), undeclared
+                  Literal@(src/main.t:49..50): Integer(1)
+          Literal@(src/main.t:61..62): Integer(2)
+          Literal@(src/main.t:64..65): Integer(3)
+          StmtItem@(src/main.t:75..89): ItemId(1)
+            ConstVar@(src/main.t:75..89): var "a"@(src/main.t:79..80)
+              ExprBody@(src/main.t:84..89)
+                Binary@(src/main.t:84..89): Add
+                  Name@(src/main.t:84..85): "a"@(src/main.t:84..85), undeclared
+                  Literal@(src/main.t:88..89): Integer(2)
+          Literal@(src/main.t:100..101): Integer(4)
+          StmtItem@(src/main.t:111..125): ItemId(2)
+            ConstVar@(src/main.t:111..125): var "a"@(src/main.t:115..116)
+              ExprBody@(src/main.t:120..125)
+                Binary@(src/main.t:120..125): Add
+                  Name@(src/main.t:120..121): "a"@(src/main.t:120..121), undeclared
+                  Literal@(src/main.t:124..125): Integer(3)
+          StmtItem@(src/main.t:146..160): ItemId(3)
+            ConstVar@(src/main.t:146..160): var "a"@(src/main.t:150..151)
+              ExprBody@(src/main.t:155..160)
+                Binary@(src/main.t:155..160): Add
+                  Name@(src/main.t:155..156): "a"@(src/main.t:155..156), undeclared
+                  Literal@(src/main.t:159..160): Integer(4)
+          StmtItem@(src/main.t:181..195): ItemId(4)
+            ConstVar@(src/main.t:181..195): var "a"@(src/main.t:185..186)
+              ExprBody@(src/main.t:190..195)
+                Binary@(src/main.t:190..195): Add
+                  Name@(src/main.t:190..191): "a"@(src/main.t:190..191), undeclared
+                  Literal@(src/main.t:194..195): Integer(5)
+error at src/main.t:10..11: `s` is undeclared
+| error for src/main.t:10..11: no definitions of `s` are in scope
+error at src/main.t:45..46: `a` is undeclared
+| error for src/main.t:45..46: no definitions of `a` are in scope
+error at src/main.t:165..195: extra `label` arm found after default arm
+| error for src/main.t:165..195: extra `label` arm

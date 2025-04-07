@@ -2,8 +2,8 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var i : int := 1\nget i + i\n"
 ---
-"i"@(FileId(1), 4..5) [ConstVar(Var, No)]: int
-"<root>"@(dummy) [Module(No)]: <error>
+"i"@"src/main.t:4..5" [ConstVar(Var, No)]: int
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 21..26): cannot assign into expression
-| error for (FileId(1), 21..26): not a reference to a variable
+error at src/main.t:21..26: cannot assign into expression
+| error for src/main.t:21..26: not a reference to a variable

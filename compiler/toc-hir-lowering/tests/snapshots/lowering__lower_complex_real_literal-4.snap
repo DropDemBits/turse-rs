@@ -1,17 +1,14 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
-assertion_line: 59
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "var _ : int _ := 179769313486231580793728971405303415079934132710037826936173778980444968292764750946649017977587207096330286416692887910946555547851940402630657488671505820681908902000708383676273854845817711531764475730270069855571366959622842914819860834936475292719074168444365510704342711559699508093042880177904174497791.9999999999999999999999999999999999999999999999999999999999999999999999"
-
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(1)
-    Module@(FileId(1), 0..397): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..397): []
-        StmtItem@(FileId(1), 0..11): ItemId(0)
-          ConstVar@(FileId(1), 0..11): var "_"@(FileId(1), 4..5)
-            Primitive@(FileId(1), 8..11): Int
-        Assign@(FileId(1), 12..397)
-          Name@(FileId(1), 12..13): "_"@(FileId(1), 4..5)
-          Literal@(FileId(1), 17..397): Real(1.7976931348623157e308)
-
+  Root@(dummy): src/main.t -> ItemId(1)
+    Module@(src/main.t:0..397): "<root>"@(dummy)
+      StmtBody@(src/main.t:0..397): []
+        StmtItem@(src/main.t:0..11): ItemId(0)
+          ConstVar@(src/main.t:0..11): var "_"@(src/main.t:4..5)
+            Primitive@(src/main.t:8..11): Int
+        Assign@(src/main.t:12..397)
+          Name@(src/main.t:12..13): "_"@(src/main.t:4..5)
+          Literal@(src/main.t:17..397): Real(1.7976931348623157e308)

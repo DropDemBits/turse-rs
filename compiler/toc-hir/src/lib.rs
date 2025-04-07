@@ -43,28 +43,61 @@ pub(crate) mod internals {
 
             $crate::arena_id_wrapper!(@impl_rest, $id, $wrap);
         };
+
+        // Newtype + type alias for the index with a lifetime
+        (
+            $(#[$attrs_wrap:meta])*
+            $vis_wrap:vis struct $id:ident<$id_lt:lifetime>($wrap:path);
+            $(#[$attrs_alias:meta])*
+            $vis_alias:vis type $index_alias:ident<$index_lt:lifetime> = Index;
+        ) => {
+            #[derive(Clone, Copy, PartialEq, Eq, Hash)]
+            #[repr(transparent)]
+            $(#[$attrs_wrap])*
+            $vis_wrap struct $id<$id_lt>(pub(crate) $index_alias<$id_lt>);
+
+            $(#[$attrs_alias])*
+            $vis_alias type $index_alias<$index_lt> = ::la_arena::Idx<$wrap>;
+
+            $crate::arena_id_wrapper!(@impl_rest, $id, $wrap, $id_lt);
+        };
         // Other impls
         (
-            @impl_rest, $id:ident, $wrap:path
+            @impl_rest, $id:ident, $wrap:path $(, $id_lt:lifetime)?
         ) => {
-            impl From<$id> for ::la_arena::Idx<$wrap> {
-                fn from(id: $id) -> Self {
+            impl$(<$id_lt>)? From<$id$(::<$id_lt>)?> for ::la_arena::Idx<$wrap> {
+                fn from(id: $id$(::<$id_lt>)?) -> Self {
                     id.0
                 }
             }
 
-            impl From<&$id> for ::la_arena::Idx<$wrap> {
-                fn from(id: &$id) -> Self {
+            impl$(<$id_lt>)? From<&$id$(<::$id_lt>)?> for ::la_arena::Idx<$wrap> {
+                fn from(id: &$id$(::<$id_lt>)?) -> Self {
                     id.0
                 }
             }
 
-            impl ::std::fmt::Debug for $id {
+            impl$(<$id_lt>)?::std::fmt::Debug for $id$(<$id_lt>)? {
                 fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
                     let raw: u32 = self.0.into_raw().into();
                     f.debug_tuple(stringify!($id))
                         .field(&raw)
                         .finish()
+                }
+            }
+
+            unsafe impl$(<$id_lt>)? salsa::Update for $id$(<$id_lt>)? {
+                unsafe fn maybe_update(old_pointer: *mut Self, new_value: Self) -> bool {
+                    // SAFETY: old_pointer is required to satisfy both the safety and validity invariants
+                    let old_id = unsafe { &mut *old_pointer };
+                    let new_id = new_value;
+
+                    if old_id.0 != new_id.0 {
+                        old_id.0 = new_id.0;
+                        true
+                    } else {
+                        false
+                    }
                 }
             }
         };
@@ -119,11 +152,11 @@ pub mod ty;
 pub mod visitor;
 
 pub use toc_hir_expand::{
-    AstLocations, Jar as ExpandJar, SemanticFile, SemanticLoc, SemanticNodePtr, UnstableSemanticLoc,
+    AstLocations, Db as ExpandDb, SemanticFile, SemanticLoc, SemanticNodePtr, UnstableSemanticLoc,
 };
 
 pub use toc_hir_def::{
-    Db as DefDb, Jar as DefJar, Mutability,
+    Db as DefDb, Mutability,
     body::{Body, pretty::render_item_body, pretty::render_package_bodies},
     expr::*,
     item::{AnyItem, ConstVar, HasItems, Item, Module, pretty::render_item_tree, root_module},

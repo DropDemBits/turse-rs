@@ -24,35 +24,10 @@ mod resolver;
 use toc_hir::package::LoweredPackage;
 
 pub use lower::{lower_package, lower_source_graph};
-use upcast::{Upcast, UpcastFrom};
-
-#[salsa::jar(db = Db)]
-pub struct Jar(lower::lower_package, lower::lower_source_graph);
 
 /// Trait representing a database that can store a lowered HIR tree
-pub trait Db:
-    salsa::DbWithJar<Jar>
-    + toc_source_graph::Db
-    + toc_ast_db::Db
-    + Upcast<dyn toc_source_graph::Db>
-    + Upcast<dyn toc_ast_db::Db>
-{
-}
+#[salsa::db]
+pub trait Db: toc_source_graph::Db + toc_ast_db::Db {}
 
-impl<DB> Db for DB where
-    DB: salsa::DbWithJar<Jar>
-        + toc_source_graph::Db
-        + toc_ast_db::Db
-        + Upcast<dyn toc_source_graph::Db>
-        + Upcast<dyn toc_ast_db::Db>
-{
-}
-
-impl<'db, DB: Db + 'db> UpcastFrom<DB> for dyn Db + 'db {
-    fn up_from(value: &DB) -> &Self {
-        value
-    }
-    fn up_from_mut(value: &mut DB) -> &mut Self {
-        value
-    }
-}
+#[salsa::db]
+impl<DB> Db for DB where DB: toc_source_graph::Db + toc_ast_db::Db {}

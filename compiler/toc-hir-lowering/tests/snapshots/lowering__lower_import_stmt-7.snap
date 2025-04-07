@@ -3,18 +3,17 @@ source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "\n    var a : int\n    proc _\n        import a, a\n    end _"
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(3)
-    Module@(FileId(1), 0..57): "<root>"@(dummy)
-      StmtBody@(FileId(1), 5..57): []
-        StmtItem@(FileId(1), 5..16): ItemId(0)
-          ConstVar@(FileId(1), 5..16): var "a"@(FileId(1), 9..10)
-            Primitive@(FileId(1), 13..16): Int
-        StmtItem@(FileId(1), 21..57): ItemId(2)
-          Subprogram@(FileId(1), 21..57): "_"@(FileId(1), 26..27)
-            Void@(FileId(1), 21..27)
-            Import@(FileId(1), 43..44): SameAsItem local("a"@(FileId(1), 9..10))
-            StmtBody@(FileId(1), 52..52): []
-error at (FileId(1), 46..47): import item is ignored
-| error for (FileId(1), 46..47): `a` is already imported...
-| note for (FileId(1), 43..44): by this import
-
+  Root@(dummy): src/main.t -> ItemId(3)
+    Module@(src/main.t:0..57): "<root>"@(dummy)
+      StmtBody@(src/main.t:5..57): []
+        StmtItem@(src/main.t:5..16): ItemId(0)
+          ConstVar@(src/main.t:5..16): var "a"@(src/main.t:9..10)
+            Primitive@(src/main.t:13..16): Int
+        StmtItem@(src/main.t:21..57): ItemId(2)
+          Subprogram@(src/main.t:21..57): "_"@(src/main.t:26..27)
+            Void@(src/main.t:21..27)
+            Import@(src/main.t:43..44): SameAsItem local("a"@(src/main.t:9..10))
+            StmtBody@(src/main.t:52..52): []
+error at src/main.t:46..47: import item is ignored
+| error for src/main.t:46..47: `a` is already imported...
+| note for src/main.t:43..44: by this import

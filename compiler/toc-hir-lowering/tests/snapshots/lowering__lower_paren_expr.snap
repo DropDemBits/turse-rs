@@ -1,14 +1,12 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "const a := (1)"
-
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(1)
-    Module@(FileId(1), 0..14): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..14): []
-        StmtItem@(FileId(1), 0..14): ItemId(0)
-          ConstVar@(FileId(1), 0..14): const "a"@(FileId(1), 6..7)
-            ExprBody@(FileId(1), 12..13)
-              Literal@(FileId(1), 12..13): Integer(1)
-
+  Root@(dummy): src/main.t -> ItemId(1)
+    Module@(src/main.t:0..14): "<root>"@(dummy)
+      StmtBody@(src/main.t:0..14): []
+        StmtItem@(src/main.t:0..14): ItemId(0)
+          ConstVar@(src/main.t:0..14): const "a"@(src/main.t:6..7)
+            ExprBody@(src/main.t:12..13)
+              Literal@(src/main.t:12..13): Integer(1)

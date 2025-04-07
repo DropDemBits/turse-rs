@@ -2,75 +2,75 @@
 
 use crate::{Symbol, body::Body};
 
-use la_arena::ArenaMap;
+use toc_salsa_collections::arena::SalsaArenaMap;
 pub use toc_syntax::{InfixOp as BinaryOp, PrefixOp as UnaryOp};
 
 crate::arena_id_wrapper!(
     /// A [`Body`] local reference to an expression.
     ///
     /// [`Body`]: crate::body::Body
-    pub struct LocalExpr(Expr);
-    /// Alias for the expr arena index
-    pub(crate) type ExprIndex = Index;
+    pub struct LocalExpr<'db>(Expr<'db>);
+    /// Alias for the stmt arena index
+    pub(crate) type ExprIndex<'db> = Index;
 );
 
-impl LocalExpr {
-    pub fn in_body(self, body: Body) -> ExprId {
+impl<'db> LocalExpr<'db> {
+    pub fn in_body(self, body: Body<'db>) -> ExprId<'db> {
         ExprId(body, self)
     }
 }
 
 /// Uniquely identifies an expression within a package
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct ExprId(Body, LocalExpr);
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, salsa::Update)]
+pub struct ExprId<'db>(Body<'db>, LocalExpr<'db>);
 
-impl ExprId {
-    pub fn with_expr(self, expr: LocalExpr) -> Self {
+impl<'db> ExprId<'db> {
+    pub fn with_expr(self, expr: LocalExpr<'db>) -> Self {
         Self(self.0, expr)
     }
 
-    pub fn body(self) -> Body {
+    pub fn body(self) -> Body<'db> {
         self.0
     }
 
-    pub fn expr(self) -> LocalExpr {
+    pub fn expr(self) -> LocalExpr<'db> {
         self.1
     }
 }
 
-pub type ExprMap<V> = ArenaMap<ExprIndex, V>;
+pub type ExprMap<'db, V> = SalsaArenaMap<ExprIndex<'db>, V>;
 
 /// Expressions
-#[derive(Debug, PartialEq, Eq)]
-pub enum Expr {
+#[derive(Debug, PartialEq, Eq, Hash, salsa::Update)]
+pub enum Expr<'db> {
     /// Error expression, only used to represent invalid code
     Missing,
     /// Literal values
     Literal(Literal),
     //ObjClass(ObjClass),
     /// Aggregate initialization expression, containing initialization values
-    Init(Init),
+    Init(Init<'db>),
     //Nil(Nil),
     //SizeOf(SizeOf),
-    Binary(Binary),
-    Unary(Unary),
+    Binary(Binary<'db>),
+    Unary(Unary<'db>),
     /// `all` expression
     All,
     /// Range expression
-    Range(Range),
+    Range(Range<'db>),
     /// `self` is a special case of a name expression
     Name(Name),
     /// Field lookup
-    Field(Field),
+    Field(Field<'db>),
     /// Deref (`^`) Expression
-    Deref(Deref),
+    Deref(Deref<'db>),
     //Cheat(Cheat),
     //NatCheat(NatCheat),
     //Arrow(Arrow),
     //Indirect(Indirect),
     //Bits(Bits),
     /// Calling expression
-    Call(Call),
+    Call(Call<'db>),
 }
 
 /// Literal expression
@@ -79,7 +79,7 @@ pub enum Expr {
 /// treats `NaN`s of the same bitwise representation as equal.
 /// This equality relation is primarily used for memoizing HIR trees in the
 /// salsa db.
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub enum Literal {
     Integer(u64),
     Real(FloatBits),
@@ -106,6 +106,14 @@ impl PartialEq for FloatBits {
 // the raw bit representations
 impl Eq for FloatBits {}
 
+// FloatBits satisfies the requirements for `Eq` by hashing
+// the raw bit representations
+impl std::hash::Hash for FloatBits {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        state.write_u64(self.0.to_bits());
+    }
+}
+
 impl From<f64> for FloatBits {
     fn from(value: f64) -> Self {
         Self(value)
@@ -113,28 +121,28 @@ impl From<f64> for FloatBits {
 }
 
 /// Aggregate initialization
-#[derive(Debug, PartialEq, Eq)]
-pub struct Init {
-    pub exprs: Vec<Body>,
+#[derive(Debug, PartialEq, Eq, Hash, salsa::Update)]
+pub struct Init<'db> {
+    pub exprs: Vec<Body<'db>>,
 }
 
 /// Binary operator expression
-#[derive(Debug, PartialEq, Eq)]
-pub struct Binary {
-    pub lhs: LocalExpr,
+#[derive(Debug, PartialEq, Eq, Hash, salsa::Update)]
+pub struct Binary<'db> {
+    pub lhs: LocalExpr<'db>,
     pub op: BinaryOp,
-    pub rhs: LocalExpr,
+    pub rhs: LocalExpr<'db>,
 }
 
 // Unary operator expression
-#[derive(Debug, PartialEq, Eq)]
-pub struct Unary {
+#[derive(Debug, PartialEq, Eq, Hash, salsa::Update)]
+pub struct Unary<'db> {
     pub op: UnaryOp,
-    pub rhs: LocalExpr,
+    pub rhs: LocalExpr<'db>,
 }
 
 /// Name expression
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Hash)]
 pub enum Name {
     /// Normal identifier reference
     Name(Symbol),
@@ -144,45 +152,45 @@ pub enum Name {
 }
 
 /// Field lookup expression
-#[derive(Debug, PartialEq, Eq)]
-pub struct Field {
+#[derive(Debug, PartialEq, Eq, Hash, salsa::Update)]
+pub struct Field<'db> {
     /// Reference to lookup in
-    pub lhs: LocalExpr,
+    pub lhs: LocalExpr<'db>,
     /// Field to lookup
     pub field: Symbol,
 }
 
-#[derive(Debug, PartialEq, Eq)]
-pub struct Deref {
+#[derive(Debug, PartialEq, Eq, Hash, salsa::Update)]
+pub struct Deref<'db> {
     /// Right-hand side
-    pub rhs: LocalExpr,
+    pub rhs: LocalExpr<'db>,
 }
 
 /// Calling expression
-#[derive(Debug, PartialEq, Eq)]
-pub struct Call {
+#[derive(Debug, PartialEq, Eq, Hash, salsa::Update)]
+pub struct Call<'db> {
     /// Reference to the calling expression
-    pub lhs: LocalExpr,
+    pub lhs: LocalExpr<'db>,
     /// Arguments to the call
-    pub arguments: ArgList,
+    pub arguments: ArgList<'db>,
 }
 
 /// Argument list
-pub type ArgList = Vec<LocalExpr>;
+pub type ArgList<'db> = Vec<LocalExpr<'db>>;
 
 /// Range expression
-#[derive(Debug, PartialEq, Eq)]
-pub struct Range {
-    pub start: RangeBound,
-    pub end: Option<RangeBound>,
+#[derive(Debug, PartialEq, Eq, Hash, salsa::Update)]
+pub struct Range<'db> {
+    pub start: RangeBound<'db>,
+    pub end: Option<RangeBound<'db>>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum RangeBound {
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, salsa::Update)]
+pub enum RangeBound<'db> {
     /// Bound is relative to the start point (`expr`)
-    FromStart(LocalExpr),
+    FromStart(LocalExpr<'db>),
     /// Bound is relative to end point (`* - expr`)
-    FromEnd(LocalExpr),
+    FromEnd(LocalExpr<'db>),
     /// Bound is at the end point (`*`)
     AtEnd,
 }

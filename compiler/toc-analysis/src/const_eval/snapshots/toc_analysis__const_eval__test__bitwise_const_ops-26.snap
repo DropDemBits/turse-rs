@@ -1,8 +1,5 @@
 ---
-source: compiler/toc_analysis/src/const_eval/test.rs
+source: compiler/toc-analysis/src/const_eval/test.rs
 expression: 1 xor -1
-
 ---
-"_"@(FileId(1), 6..7) -> Integer(ConstInt { magnitude: 4294967294, sign: Positive, width: As32 })
-
-
+"_"@"src/main.t:6..7" -> Integer(ConstInt { magnitude: 4294967294, sign: Positive, width: As32 })

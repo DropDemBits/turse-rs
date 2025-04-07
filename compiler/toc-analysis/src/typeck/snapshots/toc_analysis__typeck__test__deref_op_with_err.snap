@@ -1,7 +1,6 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var _ := ^()\n"
 ---
-"_"@(FileId(1), 4..5) [ConstVar(Var, No)]: <error>
-"<root>"@(dummy) [Module(No)]: <error>
-
+"_"@"src/main.t:4..5" [ConstVar(Var, No)]: <error>
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>

@@ -1,8 +1,7 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "\n    % Compatibility with booleans\n    var b : boolean\n    var _bb := b => b\n"
 ---
-"b"@(FileId(1), 43..44) [ConstVar(Var, No)]: boolean
-"_bb"@(FileId(1), 63..66) [ConstVar(Var, No)]: boolean
-"<root>"@(dummy) [Module(No)]: <error>
-
+"b"@"src/main.t:43..44" [ConstVar(Var, No)]: boolean
+"_bb"@"src/main.t:63..66" [ConstVar(Var, No)]: boolean
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>

@@ -1,10 +1,9 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "type i : int\nvar o, w, u : i\nput : o, w : o : u : o..\n"
 ---
-"i"@(FileId(1), 5..6) [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of int
-"o"@(FileId(1), 17..18) [ConstVar(Var, No)]: alias[DefId(PackageId(0), LocalDefId(0))] of int
-"w"@(FileId(1), 20..21) [ConstVar(Var, No)]: alias[DefId(PackageId(0), LocalDefId(0))] of int
-"u"@(FileId(1), 23..24) [ConstVar(Var, No)]: alias[DefId(PackageId(0), LocalDefId(0))] of int
-"<root>"@(dummy) [Module(No)]: <error>
-
+"i"@"src/main.t:5..6" [Type]: alias[DefId(PackageId(3072), LocalDefId(0))] of int
+"o"@"src/main.t:17..18" [ConstVar(Var, No)]: alias[DefId(PackageId(3072), LocalDefId(0))] of int
+"w"@"src/main.t:20..21" [ConstVar(Var, No)]: alias[DefId(PackageId(3072), LocalDefId(0))] of int
+"u"@"src/main.t:23..24" [ConstVar(Var, No)]: alias[DefId(PackageId(3072), LocalDefId(0))] of int
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>

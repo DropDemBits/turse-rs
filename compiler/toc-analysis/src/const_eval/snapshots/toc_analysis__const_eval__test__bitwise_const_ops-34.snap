@@ -1,8 +1,5 @@
 ---
-source: compiler/toc_analysis/src/const_eval/test.rs
+source: compiler/toc-analysis/src/const_eval/test.rs
 expression: 8 shr 32
-
 ---
-"_"@(FileId(1), 6..7) -> Integer(ConstInt { magnitude: 8, sign: Positive, width: As32 })
-
-
+"_"@"src/main.t:6..7" -> Integer(ConstInt { magnitude: 8, sign: Positive, width: As32 })

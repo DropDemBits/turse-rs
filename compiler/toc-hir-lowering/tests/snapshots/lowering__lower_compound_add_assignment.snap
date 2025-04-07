@@ -1,21 +1,19 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "var a, b : int a += b"
-
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(2)
-    Module@(FileId(1), 0..21): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..21): []
-        StmtItem@(FileId(1), 0..14): ItemId(0)
-          ConstVar@(FileId(1), 0..14): var "a"@(FileId(1), 4..5)
-            Primitive@(FileId(1), 11..14): Int
-        StmtItem@(FileId(1), 0..14): ItemId(1)
-          ConstVar@(FileId(1), 0..14): var "b"@(FileId(1), 7..8)
-            Primitive@(FileId(1), 11..14): Int
-        Assign@(FileId(1), 15..21)
-          Name@(FileId(1), 15..16): "a"@(FileId(1), 4..5)
-          Binary@(FileId(1), 15..21): Add
-            Name@(FileId(1), 15..16): "a"@(FileId(1), 4..5)
-            Name@(FileId(1), 20..21): "b"@(FileId(1), 7..8)
-
+  Root@(dummy): src/main.t -> ItemId(2)
+    Module@(src/main.t:0..21): "<root>"@(dummy)
+      StmtBody@(src/main.t:0..21): []
+        StmtItem@(src/main.t:0..14): ItemId(0)
+          ConstVar@(src/main.t:0..14): var "a"@(src/main.t:4..5)
+            Primitive@(src/main.t:11..14): Int
+        StmtItem@(src/main.t:0..14): ItemId(1)
+          ConstVar@(src/main.t:0..14): var "b"@(src/main.t:7..8)
+            Primitive@(src/main.t:11..14): Int
+        Assign@(src/main.t:15..21)
+          Name@(src/main.t:15..16): "a"@(src/main.t:4..5)
+          Binary@(src/main.t:15..21): Add
+            Name@(src/main.t:15..16): "a"@(src/main.t:4..5)
+            Name@(src/main.t:20..21): "b"@(src/main.t:7..8)

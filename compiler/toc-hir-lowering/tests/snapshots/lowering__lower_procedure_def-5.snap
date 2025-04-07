@@ -3,38 +3,37 @@ source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "\n    procedure a : 4 + 4 end a\n    procedure b() : 6 + 8 end b\n    procedure c(k : int) : 9 + 2 end c\n    "
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(3)
-    Module@(FileId(1), 0..106): "<root>"@(dummy)
-      StmtBody@(FileId(1), 5..101): []
-        StmtItem@(FileId(1), 5..30): ItemId(0)
-          Subprogram@(FileId(1), 5..30): "a"@(FileId(1), 15..16)
-            ExprBody@(FileId(1), 19..24)
-              Binary@(FileId(1), 19..24): Add
-                Literal@(FileId(1), 19..20): Integer(4)
-                Literal@(FileId(1), 23..24): Integer(4)
-            Void@(FileId(1), 5..24)
-            StmtBody@(FileId(1), 25..25): []
-        StmtItem@(FileId(1), 35..62): ItemId(1)
-          Subprogram@(FileId(1), 35..62): "b"@(FileId(1), 45..46) []
-            ExprBody@(FileId(1), 51..56)
-              Binary@(FileId(1), 51..56): Add
-                Literal@(FileId(1), 51..52): Integer(6)
-                Literal@(FileId(1), 55..56): Integer(8)
-            Void@(FileId(1), 35..56)
-            StmtBody@(FileId(1), 57..57): []
-        StmtItem@(FileId(1), 67..101): ItemId(2)
-          Subprogram@(FileId(1), 67..101): "c"@(FileId(1), 77..78) ["k"@(FileId(1), 79..80)]
-            ExprBody@(FileId(1), 90..95)
-              Binary@(FileId(1), 90..95): Add
-                Literal@(FileId(1), 90..91): Integer(9)
-                Literal@(FileId(1), 94..95): Integer(2)
-            Primitive@(FileId(1), 83..86): Int
-            Void@(FileId(1), 67..95)
-            StmtBody@(FileId(1), 96..96): ["k"@(FileId(1), 79..80)]
-error at (FileId(1), 17..24): device specification is not allowed here
-| error for (FileId(1), 17..24): `procedure` is not in a device monitor
-error at (FileId(1), 49..56): device specification is not allowed here
-| error for (FileId(1), 49..56): `procedure` is not in a device monitor
-error at (FileId(1), 88..95): device specification is not allowed here
-| error for (FileId(1), 88..95): `procedure` is not in a device monitor
-
+  Root@(dummy): src/main.t -> ItemId(3)
+    Module@(src/main.t:0..106): "<root>"@(dummy)
+      StmtBody@(src/main.t:5..101): []
+        StmtItem@(src/main.t:5..30): ItemId(0)
+          Subprogram@(src/main.t:5..30): "a"@(src/main.t:15..16)
+            ExprBody@(src/main.t:19..24)
+              Binary@(src/main.t:19..24): Add
+                Literal@(src/main.t:19..20): Integer(4)
+                Literal@(src/main.t:23..24): Integer(4)
+            Void@(src/main.t:5..24)
+            StmtBody@(src/main.t:25..25): []
+        StmtItem@(src/main.t:35..62): ItemId(1)
+          Subprogram@(src/main.t:35..62): "b"@(src/main.t:45..46) []
+            ExprBody@(src/main.t:51..56)
+              Binary@(src/main.t:51..56): Add
+                Literal@(src/main.t:51..52): Integer(6)
+                Literal@(src/main.t:55..56): Integer(8)
+            Void@(src/main.t:35..56)
+            StmtBody@(src/main.t:57..57): []
+        StmtItem@(src/main.t:67..101): ItemId(2)
+          Subprogram@(src/main.t:67..101): "c"@(src/main.t:77..78) ["k"@(src/main.t:79..80)]
+            ExprBody@(src/main.t:90..95)
+              Binary@(src/main.t:90..95): Add
+                Literal@(src/main.t:90..91): Integer(9)
+                Literal@(src/main.t:94..95): Integer(2)
+            Primitive@(src/main.t:83..86): Int
+            Void@(src/main.t:67..95)
+            StmtBody@(src/main.t:96..96): ["k"@(src/main.t:79..80)]
+error at src/main.t:17..24: device specification is not allowed here
+| error for src/main.t:17..24: `procedure` is not in a device monitor
+error at src/main.t:49..56: device specification is not allowed here
+| error for src/main.t:49..56: `procedure` is not in a device monitor
+error at src/main.t:88..95: device specification is not allowed here
+| error for src/main.t:88..95: `procedure` is not in a device monitor

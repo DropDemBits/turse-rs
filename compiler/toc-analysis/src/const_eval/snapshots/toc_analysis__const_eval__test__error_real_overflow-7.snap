@@ -2,8 +2,7 @@
 source: compiler/toc-analysis/src/const_eval/test.rs
 expression: 1e308 / 0.1
 ---
-"_"@(FileId(1), 6..7) -> ConstError { kind: RealOverflow, span: (FileId(1), 17..18) }
+"_"@"src/main.t:6..7" -> <error RealOverflow>
 
-error at (FileId(1), 17..18): cannot compute expression at compile-time
-| error for (FileId(1), 17..18): real overflow in compile-time expression
-
+error at src/main.t:17..18: cannot compute expression at compile-time
+| error for src/main.t:17..18: real overflow in compile-time expression

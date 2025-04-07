@@ -2,10 +2,10 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var k : char := 20"
 ---
-"k"@(FileId(1), 4..5) [ConstVar(Var, No)]: char
-"<root>"@(dummy) [Module(No)]: <error>
+"k"@"src/main.t:4..5" [ConstVar(Var, No)]: char
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 16..18): mismatched types
-| note for (FileId(1), 16..18): this is of type `{integer}`
-| note for (FileId(1), 8..12): this is of type `char`
+error at src/main.t:16..18: mismatched types
+| note for src/main.t:16..18: this is of type `{integer}`
+| note for src/main.t:8..12: this is of type `char`
 | info: `{integer}` is not assignable into `char`

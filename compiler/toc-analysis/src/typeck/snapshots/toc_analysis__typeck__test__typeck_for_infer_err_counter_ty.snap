@@ -2,17 +2,17 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "% Both should fail\nfor c : 1.0 .. () var k : int := c end for\nfor c : () .. 1.0 var k : int := c end for\n"
 ---
-"c"@(FileId(1), 23..24) [ConstVar(Const, No)]: real
-"k"@(FileId(1), 41..42) [ConstVar(Var, No)]: int
-"c"@(FileId(1), 66..67) [ConstVar(Const, No)]: real
-"k"@(FileId(1), 84..85) [ConstVar(Var, No)]: int
-"<root>"@(dummy) [Module(No)]: <error>
+"c"@"src/main.t:23..24" [ConstVar(Const, No)]: real
+"k"@"src/main.t:41..42" [ConstVar(Var, No)]: int
+"c"@"src/main.t:66..67" [ConstVar(Const, No)]: real
+"k"@"src/main.t:84..85" [ConstVar(Var, No)]: int
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 52..53): mismatched types
-| note for (FileId(1), 52..53): this is of type `real`
-| note for (FileId(1), 45..48): this is of type `int`
+error at src/main.t:52..53: mismatched types
+| note for src/main.t:52..53: this is of type `real`
+| note for src/main.t:45..48: this is of type `int`
 | info: `real` is not assignable into `int`
-error at (FileId(1), 95..96): mismatched types
-| note for (FileId(1), 95..96): this is of type `real`
-| note for (FileId(1), 88..91): this is of type `int`
+error at src/main.t:95..96: mismatched types
+| note for src/main.t:95..96: this is of type `real`
+| note for src/main.t:88..91: this is of type `int`
 | info: `real` is not assignable into `int`

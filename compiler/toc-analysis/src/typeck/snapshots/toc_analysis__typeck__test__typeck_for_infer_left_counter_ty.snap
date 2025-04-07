@@ -2,13 +2,13 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "% Biased towards left inference\nvar i : int\nfor c : i .. 1.0 var k : int := c end for\n"
 ---
-"i"@(FileId(1), 36..37) [ConstVar(Var, No)]: int
-"c"@(FileId(1), 48..49) [ConstVar(Const, No)]: int
-"k"@(FileId(1), 65..66) [ConstVar(Var, No)]: int
-"<root>"@(dummy) [Module(No)]: <error>
+"i"@"src/main.t:36..37" [ConstVar(Var, No)]: int
+"c"@"src/main.t:48..49" [ConstVar(Const, No)]: int
+"k"@"src/main.t:65..66" [ConstVar(Var, No)]: int
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 52..60): mismatched types
-| note for (FileId(1), 57..60): this is of type `real`
-| note for (FileId(1), 52..53): this is of type `int`
-| error for (FileId(1), 52..60): expected index types
+error at src/main.t:52..60: mismatched types
+| note for src/main.t:57..60: this is of type `real`
+| note for src/main.t:52..53: this is of type `int`
+| error for src/main.t:52..60: expected index types
 | info: range bounds types must both be index types (an integer, `boolean`, `char`, enumerated type, or a range)

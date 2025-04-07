@@ -2,10 +2,10 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "module base\n    export ~. tail\nend base\n\nmodule target\n    import tail\n    tail.truce\nend target\n"
 ---
-"base"@(FileId(1), 7..11) [Module(No)]: <error>
-"target"@(FileId(1), 48..54) [Module(No)]: <error>
-"tail"@(FileId(1), 66..70) [Import]: <error>
-"<root>"@(dummy) [Module(No)]: <error>
+"base"@"src/main.t:7..11" [Module(No)]: <error>
+"target"@"src/main.t:48..54" [Module(No)]: <error>
+"tail"@"src/main.t:66..70" [Import]: <error>
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 80..85): no field named `truce` in expression
-| error for (FileId(1), 80..85): no field named `truce` in here
+error at src/main.t:80..85: no field named `truce` in expression
+| error for src/main.t:80..85: no field named `truce` in here

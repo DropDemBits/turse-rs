@@ -3,17 +3,16 @@ source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "var _ : int _ := '\\777\\ud800\\!'"
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(1)
-    Module@(FileId(1), 0..31): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..31): []
-        StmtItem@(FileId(1), 0..11): ItemId(0)
-          ConstVar@(FileId(1), 0..11): var "_"@(FileId(1), 4..5)
-            Primitive@(FileId(1), 8..11): Int
-        Assign@(FileId(1), 12..31)
-          Name@(FileId(1), 12..13): "_"@(FileId(1), 4..5)
-          Literal@(FileId(1), 17..31): CharSeq("��!")
-error at (FileId(1), 17..31): invalid char literal
-| error for (FileId(1), 18..22): octal character value is greater than \377 (decimal 255)
-| error for (FileId(1), 22..28): surrogate chars are not allowed in char sequences
-| error for (FileId(1), 28..30): unknown backslash escape
-
+  Root@(dummy): src/main.t -> ItemId(1)
+    Module@(src/main.t:0..31): "<root>"@(dummy)
+      StmtBody@(src/main.t:0..31): []
+        StmtItem@(src/main.t:0..11): ItemId(0)
+          ConstVar@(src/main.t:0..11): var "_"@(src/main.t:4..5)
+            Primitive@(src/main.t:8..11): Int
+        Assign@(src/main.t:12..31)
+          Name@(src/main.t:12..13): "_"@(src/main.t:4..5)
+          Literal@(src/main.t:17..31): CharSeq("��!")
+error at src/main.t:17..31: invalid char literal
+| error for src/main.t:18..22: octal character value is greater than \377 (decimal 255)
+| error for src/main.t:22..28: surrogate chars are not allowed in char sequences
+| error for src/main.t:28..30: unknown backslash escape

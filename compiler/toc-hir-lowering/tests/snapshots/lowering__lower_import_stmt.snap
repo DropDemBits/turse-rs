@@ -1,24 +1,23 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "\n    var a, b, c : int\n    module _\n        import a, var b, const c\n    end _"
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(7)
-    Module@(FileId(1), 0..78): "<root>"@(dummy)
-      StmtBody@(FileId(1), 5..78): []
-        StmtItem@(FileId(1), 5..22): ItemId(0)
-          ConstVar@(FileId(1), 5..22): var "a"@(FileId(1), 9..10)
-            Primitive@(FileId(1), 19..22): Int
-        StmtItem@(FileId(1), 5..22): ItemId(1)
-          ConstVar@(FileId(1), 5..22): var "b"@(FileId(1), 12..13)
-            Primitive@(FileId(1), 19..22): Int
-        StmtItem@(FileId(1), 5..22): ItemId(2)
-          ConstVar@(FileId(1), 5..22): var "c"@(FileId(1), 15..16)
-            Primitive@(FileId(1), 19..22): Int
-        StmtItem@(FileId(1), 27..78): ItemId(6)
-          Module@(FileId(1), 27..78): "_"@(FileId(1), 34..35)
-            Import@(FileId(1), 51..52): SameAsItem local("a"@(FileId(1), 9..10))
-            Import@(FileId(1), 54..59): Explicit(Var, SpanId(12)) local("b"@(FileId(1), 12..13))
-            Import@(FileId(1), 61..68): Explicit(Const, SpanId(14)) local("c"@(FileId(1), 15..16))
-            StmtBody@(FileId(1), 73..73): []
-
+  Root@(dummy): src/main.t -> ItemId(7)
+    Module@(src/main.t:0..78): "<root>"@(dummy)
+      StmtBody@(src/main.t:5..78): []
+        StmtItem@(src/main.t:5..22): ItemId(0)
+          ConstVar@(src/main.t:5..22): var "a"@(src/main.t:9..10)
+            Primitive@(src/main.t:19..22): Int
+        StmtItem@(src/main.t:5..22): ItemId(1)
+          ConstVar@(src/main.t:5..22): var "b"@(src/main.t:12..13)
+            Primitive@(src/main.t:19..22): Int
+        StmtItem@(src/main.t:5..22): ItemId(2)
+          ConstVar@(src/main.t:5..22): var "c"@(src/main.t:15..16)
+            Primitive@(src/main.t:19..22): Int
+        StmtItem@(src/main.t:27..78): ItemId(6)
+          Module@(src/main.t:27..78): "_"@(src/main.t:34..35)
+            Import@(src/main.t:51..52): SameAsItem local("a"@(src/main.t:9..10))
+            Import@(src/main.t:54..59): Explicit(Var, SpanId(12)) local("b"@(src/main.t:12..13))
+            Import@(src/main.t:61..68): Explicit(Const, SpanId(14)) local("c"@(src/main.t:15..16))
+            StmtBody@(src/main.t:73..73): []

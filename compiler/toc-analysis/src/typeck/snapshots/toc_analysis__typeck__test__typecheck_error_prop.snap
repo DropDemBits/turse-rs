@@ -2,14 +2,14 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var a : int\nvar b : string\nvar c := a + b\nvar j := c + a\n"
 ---
-"a"@(FileId(1), 4..5) [ConstVar(Var, No)]: int
-"b"@(FileId(1), 16..17) [ConstVar(Var, No)]: string
-"c"@(FileId(1), 31..32) [ConstVar(Var, No)]: <error>
-"j"@(FileId(1), 46..47) [ConstVar(Var, No)]: <error>
-"<root>"@(dummy) [Module(No)]: <error>
+"a"@"src/main.t:4..5" [ConstVar(Var, No)]: int
+"b"@"src/main.t:16..17" [ConstVar(Var, No)]: string
+"c"@"src/main.t:31..32" [ConstVar(Var, No)]: <error>
+"j"@"src/main.t:46..47" [ConstVar(Var, No)]: <error>
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 38..39): mismatched types for string concatenation
-| note for (FileId(1), 40..41): this is of type `string`
-| note for (FileId(1), 36..37): this is of type `int`
-| error for (FileId(1), 38..39): `int` cannot be concatenated to `string`
+error at src/main.t:38..39: mismatched types for string concatenation
+| note for src/main.t:40..41: this is of type `string`
+| note for src/main.t:36..37: this is of type `int`
+| error for src/main.t:38..39: `int` cannot be concatenated to `string`
 | info: operands must both be numbers, strings, or sets

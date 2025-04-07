@@ -3,17 +3,16 @@ source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "\n    function pars() res : int\n        var use := res\n    end pars"
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(2)
-    Module@(FileId(1), 0..66): "<root>"@(dummy)
-      StmtBody@(FileId(1), 5..66): []
-        StmtItem@(FileId(1), 5..66): ItemId(1)
-          Subprogram@(FileId(1), 5..66): "pars"@(FileId(1), 14..18) [] -> "res"@(FileId(1), 21..24)
-            Primitive@(FileId(1), 27..30): Int
-            StmtBody@(FileId(1), 39..53): [] -> "res"@(FileId(1), 21..24)
-              StmtItem@(FileId(1), 39..53): ItemId(0)
-                ConstVar@(FileId(1), 39..53): var "use"@(FileId(1), 43..46)
-                  ExprBody@(FileId(1), 50..53)
-                    Name@(FileId(1), 50..53): "res"@(FileId(1), 21..24)
-error at (FileId(1), 50..53): `cannot use res` here
-| error for (FileId(1), 50..53): `res` can only be used in a `post` statement
-
+  Root@(dummy): src/main.t -> ItemId(2)
+    Module@(src/main.t:0..66): "<root>"@(dummy)
+      StmtBody@(src/main.t:5..66): []
+        StmtItem@(src/main.t:5..66): ItemId(1)
+          Subprogram@(src/main.t:5..66): "pars"@(src/main.t:14..18) [] -> "res"@(src/main.t:21..24)
+            Primitive@(src/main.t:27..30): Int
+            StmtBody@(src/main.t:39..53): [] -> "res"@(src/main.t:21..24)
+              StmtItem@(src/main.t:39..53): ItemId(0)
+                ConstVar@(src/main.t:39..53): var "use"@(src/main.t:43..46)
+                  ExprBody@(src/main.t:50..53)
+                    Name@(src/main.t:50..53): "res"@(src/main.t:21..24)
+error at src/main.t:50..53: `cannot use res` here
+| error for src/main.t:50..53: `res` can only be used in a `post` statement

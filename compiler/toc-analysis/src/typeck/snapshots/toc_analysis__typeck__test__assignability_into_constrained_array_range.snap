@@ -2,15 +2,15 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "type tp : proc(var _ : array 1 .. * of int)\nvar a : array 1 .. 3 of int\nvar b : array 2 .. 3 of int\nvar p : tp\n\n% only coercible if start bound is the same\np(a) % success\np(b) % fail\n"
 ---
-"tp"@(FileId(1), 5..7) [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of procedure ( pass(var ref) array ( range of `int` (Unevaluated(PackageId(0), BodyId(0)) .. Any), ) of int, ) -> void
-"_"@(FileId(1), 19..20) [Param(Reference(Var), No)]: <error>
-"a"@(FileId(1), 48..49) [ConstVar(Var, No)]: array ( range of `int` (Unevaluated(PackageId(0), BodyId(1)) .. Expr(Unevaluated(PackageId(0), BodyId(2)), Yes)), ) of int
-"b"@(FileId(1), 76..77) [ConstVar(Var, No)]: array ( range of `int` (Unevaluated(PackageId(0), BodyId(3)) .. Expr(Unevaluated(PackageId(0), BodyId(4)), Yes)), ) of int
-"p"@(FileId(1), 104..105) [ConstVar(Var, No)]: alias[DefId(PackageId(0), LocalDefId(0))] of procedure ( pass(var ref) array ( range of `int` (Unevaluated(PackageId(0), BodyId(0)) .. Any), ) of int, ) -> void
-"<unnamed>"@(dummy) [Undeclared]: <error>
-"<root>"@(dummy) [Module(No)]: <error>
+"tp"@"src/main.t:5..7" [Type]: alias[DefId(PackageId(3072), LocalDefId(0))] of procedure ( pass(var ref) array ( range of `int` (Unevaluated(PackageId(3072), BodyId(0)) .. Any), ) of int, ) -> void
+"_"@"src/main.t:19..20" [Param(Reference(Var), No)]: <error>
+"a"@"src/main.t:48..49" [ConstVar(Var, No)]: array ( range of `int` (Unevaluated(PackageId(3072), BodyId(1)) .. Expr(Unevaluated(PackageId(3072), BodyId(2)), Yes)), ) of int
+"b"@"src/main.t:76..77" [ConstVar(Var, No)]: array ( range of `int` (Unevaluated(PackageId(3072), BodyId(3)) .. Expr(Unevaluated(PackageId(3072), BodyId(4)), Yes)), ) of int
+"p"@"src/main.t:104..105" [ConstVar(Var, No)]: alias[DefId(PackageId(3072), LocalDefId(0))] of procedure ( pass(var ref) array ( range of `int` (Unevaluated(PackageId(3072), BodyId(0)) .. Any), ) of int, ) -> void
+"<unnamed>"@"<unknown>:0..0" [Undeclared]: <error>
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 173..174): mismatched types
-| note for (FileId(1), 173..174): this is of type `array 2 .. 3 of int`
-| note for (FileId(1), 173..174): parameter expects type `array 1 .. * of int`
+error at src/main.t:173..174: mismatched types
+| note for src/main.t:173..174: this is of type `array 2 .. 3 of int`
+| note for src/main.t:173..174: parameter expects type `array 1 .. * of int`
 | info: `array 2 .. 3 of int` is not equivalent to `array 1 .. * of int`

@@ -1,11 +1,7 @@
 ---
-source: compiler/toc_analysis/src/const_eval/test.rs
-assertion_line: 15
+source: compiler/toc-analysis/src/const_eval/test.rs
 expression: "type a : int\ntype b : int\nconst k : a := 1\nconst l : b := k\nconst _ := l\n"
-
 ---
-"k"@(FileId(1), 32..33) -> Integer(ConstInt { magnitude: 1, sign: Positive, width: As32 })
-"l"@(FileId(1), 49..50) -> Integer(ConstInt { magnitude: 1, sign: Positive, width: As32 })
-"_"@(FileId(1), 66..67) -> Integer(ConstInt { magnitude: 1, sign: Positive, width: As32 })
-
-
+"k"@"src/main.t:32..33" -> Integer(ConstInt { magnitude: 1, sign: Positive, width: As32 })
+"l"@"src/main.t:49..50" -> Integer(ConstInt { magnitude: 1, sign: Positive, width: As32 })
+"_"@"src/main.t:66..67" -> Integer(ConstInt { magnitude: 1, sign: Positive, width: As32 })

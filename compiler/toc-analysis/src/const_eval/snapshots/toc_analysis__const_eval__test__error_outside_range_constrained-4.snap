@@ -1,10 +1,6 @@
 ---
-source: compiler/toc_analysis/src/const_eval/test.rs
-assertion_line: 12
+source: compiler/toc-analysis/src/const_eval/test.rs
 expression: "const a : false .. false := false const _:=a"
-
 ---
-"a"@(FileId(1), 6..7) -> Bool(false)
-"_"@(FileId(1), 40..41) -> Bool(false)
-
-
+"a"@"src/main.t:6..7" -> Bool(false)
+"_"@"src/main.t:40..41" -> Bool(false)

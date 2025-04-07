@@ -3,18 +3,17 @@ source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "var _ : array 1 .. * of int := 2"
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(1)
-    Module@(FileId(1), 0..32): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..32): []
-        StmtItem@(FileId(1), 0..32): ItemId(0)
-          ConstVar@(FileId(1), 0..32): var "_"@(FileId(1), 4..5)
-            Array@(FileId(1), 8..27): MaybeDyn
-              Constrained@(FileId(1), 14..20): end => Unsized(None)
-                ExprBody@(FileId(1), 14..15)
-                  Literal@(FileId(1), 14..15): Integer(1)
-              Primitive@(FileId(1), 24..27): Int
-            ExprBody@(FileId(1), 31..32)
-              Literal@(FileId(1), 31..32): Integer(2)
-error at (FileId(1), 14..20): unsized range types require an `init` initializer
-| error for (FileId(1), 31..32): not an `init` expression
-
+  Root@(dummy): src/main.t -> ItemId(1)
+    Module@(src/main.t:0..32): "<root>"@(dummy)
+      StmtBody@(src/main.t:0..32): []
+        StmtItem@(src/main.t:0..32): ItemId(0)
+          ConstVar@(src/main.t:0..32): var "_"@(src/main.t:4..5)
+            Array@(src/main.t:8..27): MaybeDyn
+              Constrained@(src/main.t:14..20): end => Unsized(None)
+                ExprBody@(src/main.t:14..15)
+                  Literal@(src/main.t:14..15): Integer(1)
+              Primitive@(src/main.t:24..27): Int
+            ExprBody@(src/main.t:31..32)
+              Literal@(src/main.t:31..32): Integer(2)
+error at src/main.t:14..20: unsized range types require an `init` initializer
+| error for src/main.t:31..32: not an `init` expression

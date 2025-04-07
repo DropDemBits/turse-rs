@@ -2,10 +2,10 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var a : array 1..1 of int := init(1.0)"
 ---
-"a"@(FileId(1), 4..5) [ConstVar(Var, No)]: array ( range of `int` (Unevaluated(PackageId(0), BodyId(0)) .. Expr(Unevaluated(PackageId(0), BodyId(1)), Yes)), ) of int
-"<root>"@(dummy) [Module(No)]: <error>
+"a"@"src/main.t:4..5" [ConstVar(Var, No)]: array ( range of `int` (Unevaluated(PackageId(3072), BodyId(0)) .. Expr(Unevaluated(PackageId(3072), BodyId(1)), Yes)), ) of int
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 34..37): mismatched types
-| note for (FileId(1), 34..37): this is of type `real`
-| note for (FileId(1), 8..25): array expects type `int`
+error at src/main.t:34..37: mismatched types
+| note for src/main.t:34..37: this is of type `real`
+| note for src/main.t:8..25: array expects type `int`
 | info: `real` is not assignable into `int`

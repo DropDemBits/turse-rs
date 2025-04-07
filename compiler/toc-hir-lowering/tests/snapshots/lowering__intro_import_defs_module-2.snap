@@ -1,16 +1,15 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "\n    var a_def : int\n    module _\n        import a_def\n    end _"
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(3)
-    Module@(FileId(1), 0..64): "<root>"@(dummy)
-      StmtBody@(FileId(1), 5..64): []
-        StmtItem@(FileId(1), 5..20): ItemId(0)
-          ConstVar@(FileId(1), 5..20): var "a_def"@(FileId(1), 9..14)
-            Primitive@(FileId(1), 17..20): Int
-        StmtItem@(FileId(1), 25..64): ItemId(2)
-          Module@(FileId(1), 25..64): "_"@(FileId(1), 32..33)
-            Import@(FileId(1), 49..54): SameAsItem local("a_def"@(FileId(1), 9..14))
-            StmtBody@(FileId(1), 59..59): []
-
+  Root@(dummy): src/main.t -> ItemId(3)
+    Module@(src/main.t:0..64): "<root>"@(dummy)
+      StmtBody@(src/main.t:5..64): []
+        StmtItem@(src/main.t:5..20): ItemId(0)
+          ConstVar@(src/main.t:5..20): var "a_def"@(src/main.t:9..14)
+            Primitive@(src/main.t:17..20): Int
+        StmtItem@(src/main.t:25..64): ItemId(2)
+          Module@(src/main.t:25..64): "_"@(src/main.t:32..33)
+            Import@(src/main.t:49..54): SameAsItem local("a_def"@(src/main.t:9..14))
+            StmtBody@(src/main.t:59..59): []

@@ -1,14 +1,12 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "const a := 16#EABC"
-
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(1)
-    Module@(FileId(1), 0..18): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..18): []
-        StmtItem@(FileId(1), 0..18): ItemId(0)
-          ConstVar@(FileId(1), 0..18): const "a"@(FileId(1), 6..7)
-            ExprBody@(FileId(1), 11..18)
-              Literal@(FileId(1), 11..18): Integer(60092)
-
+  Root@(dummy): src/main.t -> ItemId(1)
+    Module@(src/main.t:0..18): "<root>"@(dummy)
+      StmtBody@(src/main.t:0..18): []
+        StmtItem@(src/main.t:0..18): ItemId(0)
+          ConstVar@(src/main.t:0..18): const "a"@(src/main.t:6..7)
+            ExprBody@(src/main.t:11..18)
+              Literal@(src/main.t:11..18): Integer(60092)

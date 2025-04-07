@@ -2,9 +2,8 @@
 source: compiler/toc-analysis/src/const_eval/test.rs
 expression: "const a := 1 const _ := a.o"
 ---
-"a"@(FileId(1), 6..7) -> Integer(ConstInt { magnitude: 1, sign: Positive, width: As32 })
-"_"@(FileId(1), 19..20) -> ConstError { kind: NotConstExpr(Expr), span: (FileId(1), 24..27) }
+"a"@"src/main.t:6..7" -> Integer(ConstInt { magnitude: 1, sign: Positive, width: As32 })
+"_"@"src/main.t:19..20" -> <error NotConstExpr(Expr)>
 
-error at (FileId(1), 24..27): cannot compute expression at compile-time
-| error for (FileId(1), 24..27): expression cannot be computed at compile-time
-
+error at src/main.t:24..27: cannot compute expression at compile-time
+| error for src/main.t:24..27: expression cannot be computed at compile-time

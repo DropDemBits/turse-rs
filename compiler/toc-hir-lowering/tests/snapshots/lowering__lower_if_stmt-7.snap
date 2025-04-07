@@ -3,11 +3,10 @@ source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: if then end if
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(0)
-    Module@(FileId(1), 0..14): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..14): []
-        If@(FileId(1), 0..14)
-          Block@(FileId(1), 8..8): Normal
-error at (FileId(1), 3..7): unexpected token
-| error for (FileId(1), 3..7): expected expression, but found `then`
-
+  Root@(dummy): src/main.t -> ItemId(0)
+    Module@(src/main.t:0..14): "<root>"@(dummy)
+      StmtBody@(src/main.t:0..14): []
+        If@(src/main.t:0..14)
+          Block@(src/main.t:8..8): Normal
+error at src/main.t:3..7: unexpected token
+| error for src/main.t:3..7: expected expression, but found `then`

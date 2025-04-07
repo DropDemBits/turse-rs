@@ -1,7 +1,6 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "function tree : int end tree"
 ---
-"tree"@(FileId(1), 9..13) [Subprogram(Function)]: function -> int
-"<root>"@(dummy) [Module(No)]: <error>
-
+"tree"@"src/main.t:9..13" [Subprogram(Function)]: function -> int
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>

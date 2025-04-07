@@ -2,10 +2,10 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "const j : int := 2\nconst k : int := 3\nk := j\n"
 ---
-"j"@(FileId(1), 6..7) [ConstVar(Const, No)]: int
-"k"@(FileId(1), 25..26) [ConstVar(Const, No)]: int
-"<root>"@(dummy) [Module(No)]: <error>
+"j"@"src/main.t:6..7" [ConstVar(Const, No)]: int
+"k"@"src/main.t:25..26" [ConstVar(Const, No)]: int
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 40..42): cannot assign into `k`
-| error for (FileId(1), 38..39): `k` is a reference to a constant, not a variable
-| note for (FileId(1), 25..26): `k` declared here
+error at src/main.t:40..42: cannot assign into `k`
+| error for src/main.t:38..39: `k` is a reference to a constant, not a variable
+| note for src/main.t:25..26: `k` declared here

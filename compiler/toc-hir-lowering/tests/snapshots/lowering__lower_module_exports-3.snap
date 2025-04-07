@@ -3,18 +3,17 @@ source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "\n        module z\n            export opaque a, opaque z\n            var a : int\n        end z"
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(2)
-    Module@(FileId(1), 0..93): "<root>"@(dummy)
-      StmtBody@(FileId(1), 9..93): []
-        StmtItem@(FileId(1), 9..93): ItemId(1)
-          Module@(FileId(1), 9..93): "z"@(FileId(1), 16..17), exports [Const Qualified local("a"@(FileId(1), 72..73))]
-            StmtBody@(FileId(1), 68..79): []
-              StmtItem@(FileId(1), 68..79): ItemId(0)
-                ConstVar@(FileId(1), 68..79): var "a"@(FileId(1), 72..73)
-                  Primitive@(FileId(1), 76..79): Int
-error at (FileId(1), 37..43): cannot use `opaque` here
-| error for (FileId(1), 37..43): `opaque` attribute can only be applied to types
-| note for (FileId(1), 72..73): `a` declared here
-error at (FileId(1), 54..55): exported symbol `z` has not been declared
-| error for (FileId(1), 54..55): not declared at the top level of this module
-
+  Root@(dummy): src/main.t -> ItemId(2)
+    Module@(src/main.t:0..93): "<root>"@(dummy)
+      StmtBody@(src/main.t:9..93): []
+        StmtItem@(src/main.t:9..93): ItemId(1)
+          Module@(src/main.t:9..93): "z"@(src/main.t:16..17), exports [Const Qualified local("a"@(src/main.t:72..73))]
+            StmtBody@(src/main.t:68..79): []
+              StmtItem@(src/main.t:68..79): ItemId(0)
+                ConstVar@(src/main.t:68..79): var "a"@(src/main.t:72..73)
+                  Primitive@(src/main.t:76..79): Int
+error at src/main.t:37..43: cannot use `opaque` here
+| error for src/main.t:37..43: `opaque` attribute can only be applied to types
+| note for src/main.t:72..73: `a` declared here
+error at src/main.t:54..55: exported symbol `z` has not been declared
+| error for src/main.t:54..55: not declared at the top level of this module

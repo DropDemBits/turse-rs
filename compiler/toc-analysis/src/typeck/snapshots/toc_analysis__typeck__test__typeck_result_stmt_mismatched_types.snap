@@ -2,10 +2,10 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "fcn oeuf : int result 'egg' end oeuf"
 ---
-"oeuf"@(FileId(1), 4..8) [Subprogram(Function)]: function -> int
-"<root>"@(dummy) [Module(No)]: <error>
+"oeuf"@"src/main.t:4..8" [Subprogram(Function)]: function -> int
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 22..27): mismatched types
-| note for (FileId(1), 22..27): this is of type `char(3)`
-| note for (FileId(1), 11..14): function expects type `int`
+error at src/main.t:22..27: mismatched types
+| note for src/main.t:22..27: this is of type `char(3)`
+| note for src/main.t:11..14: function expects type `int`
 | info: `char(3)` is not assignable into `int`
