@@ -230,10 +230,11 @@ impl ariadne::Cache<SourceFile> for VfsCache<'_> {
     fn fetch(
         &mut self,
         source: &SourceFile,
-    ) -> Result<&ariadne::Source, Box<dyn std::fmt::Debug + '_>> {
+    ) -> Result<&ariadne::Source<<Self as ariadne::Cache<SourceFile>>::Storage>, impl std::fmt::Debug>
+    {
         use std::collections::hash_map::Entry;
 
-        Ok(match self.sources.entry(*source) {
+        Ok::<_, ()>(match self.sources.entry(*source) {
             Entry::Occupied(entry) => entry.into_mut(),
             Entry::Vacant(entry) => {
                 let value = ariadne::Source::from(source.contents(self.db).to_owned());
@@ -242,8 +243,8 @@ impl ariadne::Cache<SourceFile> for VfsCache<'_> {
         })
     }
 
-    fn display<'a>(&self, id: &'a SourceFile) -> Option<Box<dyn std::fmt::Display + 'a>> {
-        Some(Box::new(id.path(self.db).clone()))
+    fn display<'a>(&self, id: &'a SourceFile) -> Option<impl std::fmt::Display + 'a> {
+        Some(id.path(self.db).clone())
     }
 }
 
