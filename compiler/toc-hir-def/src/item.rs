@@ -62,7 +62,7 @@ mod lower;
 pub mod pretty;
 
 pub mod item_loc_map {
-    //! Mapping to go from [`SemanticLoc`]'s to [`Item`](super::Item)'s
+    //! Mapping to go from [`SemanticLoc`]'s to [`Item`]'s
 
     use toc_hir_expand::{ErasedSemanticLoc, SemanticLoc};
     use toc_syntax::ast::{self, AstNode};

@@ -10,7 +10,7 @@ use toc_vfs::LoadError;
 
 use crate::Db;
 
-/// A map from [`RawPath`]s to [`SourceFile`]s.
+/// A map from [`RawOwnedPath`]s to [`SourceFile`]s.
 ///
 /// To play nicely with incrementality, once a mapping is added, it can't be
 /// Mappings are meant to be stable, so replacing source files is not allowed
@@ -49,7 +49,7 @@ impl SourceTable {
 
 /// Bridge from the internal virtual filesystem to the real filesystem
 pub trait VfsBridge: salsa::Database {
-    /// Mapping between [`RawPath`]s to their corresponding [`SourceFile`]
+    /// Mapping between [`RawOwnedPath`]s to their corresponding [`SourceFile`]
     fn source_table(&self) -> &SourceTable;
 
     /// Normalizes a path to its common representation.
@@ -87,9 +87,6 @@ pub trait VfsBridge: salsa::Database {
     /// Loads a file from the file system.
     /// This is invoked when a new file is discovered,
     /// and provides an opportunity to track the new file.
-    ///
-    /// The [`RawPath`] is provided instead of the actual path so that
-    /// it can be linked to the resultant [`SourceFile`] later.
     ///
     /// An optional [`LoadError`] can be returned to report any issues
     /// encountered during the initial load.

@@ -556,6 +556,7 @@ name = "hir-fuzzer"
 version = "0.1.0"
 dependencies = [
  "afl",
+ "camino",
  "salsa",
  "toc-analysis",
  "toc-ast-db",
