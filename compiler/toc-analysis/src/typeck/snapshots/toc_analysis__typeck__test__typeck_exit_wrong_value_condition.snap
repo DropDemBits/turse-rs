@@ -2,9 +2,9 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "loop\n    type b : boolean\n    exit when b\nend loop\n"
 ---
-"b"@(FileId(1), 14..15) [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of boolean
-"<root>"@(dummy) [Module(No)]: <error>
+"b"@"src/main.t:14..15" [Type]: alias[DefId(PackageId(3072), LocalDefId(0))] of boolean
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 40..41): cannot use `b` as an expression
-| error for (FileId(1), 40..41): `b` is a reference to a type, not a variable
-| note for (FileId(1), 14..15): `b` declared here
+error at src/main.t:40..41: cannot use `b` as an expression
+| error for src/main.t:40..41: `b` is a reference to a type, not a variable
+| note for src/main.t:14..15: `b` declared here

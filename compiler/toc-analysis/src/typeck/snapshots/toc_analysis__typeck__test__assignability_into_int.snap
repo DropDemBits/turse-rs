@@ -1,11 +1,10 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var i : int\nvar n : nat\n\nvar _v00 : int := 1\nvar _v01 : int := i\nvar _v02 : int := n\n"
 ---
-"i"@(FileId(1), 4..5) [ConstVar(Var, No)]: int
-"n"@(FileId(1), 16..17) [ConstVar(Var, No)]: nat
-"_v00"@(FileId(1), 29..33) [ConstVar(Var, No)]: int
-"_v01"@(FileId(1), 49..53) [ConstVar(Var, No)]: int
-"_v02"@(FileId(1), 69..73) [ConstVar(Var, No)]: int
-"<root>"@(dummy) [Module(No)]: <error>
-
+"i"@"src/main.t:4..5" [ConstVar(Var, No)]: int
+"n"@"src/main.t:16..17" [ConstVar(Var, No)]: nat
+"_v00"@"src/main.t:29..33" [ConstVar(Var, No)]: int
+"_v01"@"src/main.t:49..53" [ConstVar(Var, No)]: int
+"_v02"@"src/main.t:69..73" [ConstVar(Var, No)]: int
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>

@@ -1,8 +1,5 @@
 ---
-source: compiler/toc_analysis/src/const_eval/test.rs
+source: compiler/toc-analysis/src/const_eval/test.rs
 expression: "-3 mod -10"
-
 ---
-"_"@(FileId(1), 6..7) -> Integer(ConstInt { magnitude: 3, sign: Negative, width: As32 })
-
-
+"_"@"src/main.t:6..7" -> Integer(ConstInt { magnitude: 3, sign: Negative, width: As32 })

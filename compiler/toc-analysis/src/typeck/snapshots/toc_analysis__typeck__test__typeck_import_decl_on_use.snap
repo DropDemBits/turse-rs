@@ -1,10 +1,9 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var blah : int\nmodule _\n    import blah\n    var k := blah\nend _\n"
 ---
-"blah"@(FileId(1), 4..8) [ConstVar(Var, No)]: int
-"_"@(FileId(1), 22..23) [Module(No)]: <error>
-"blah"@(FileId(1), 35..39) [Import]: int
-"k"@(FileId(1), 48..49) [ConstVar(Var, No)]: int
-"<root>"@(dummy) [Module(No)]: <error>
-
+"blah"@"src/main.t:4..8" [ConstVar(Var, No)]: int
+"_"@"src/main.t:22..23" [Module(No)]: <error>
+"blah"@"src/main.t:35..39" [Import]: int
+"k"@"src/main.t:48..49" [ConstVar(Var, No)]: int
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>

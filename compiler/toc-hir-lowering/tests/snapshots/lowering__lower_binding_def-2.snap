@@ -1,27 +1,24 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
-assertion_line: 59
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "\n    begin\n    var a : int\n    bind b to a, var c to b, var register d to c\n    end"
-
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(4)
-    Module@(FileId(1), 0..83): "<root>"@(dummy)
-      StmtBody@(FileId(1), 5..83): []
-        Block@(FileId(1), 5..83): Normal
-          StmtItem@(FileId(1), 15..26): ItemId(0)
-            ConstVar@(FileId(1), 15..26): var "a"@(FileId(1), 19..20)
-              Primitive@(FileId(1), 23..26): Int
-          StmtItem@(FileId(1), 31..75): ItemId(1)
-            Bind@(FileId(1), 36..42): const "b"@(FileId(1), 36..37)
-              ExprBody@(FileId(1), 41..42)
-                Name@(FileId(1), 41..42): "a"@(FileId(1), 19..20)
-          StmtItem@(FileId(1), 31..75): ItemId(2)
-            Bind@(FileId(1), 44..54): var "c"@(FileId(1), 48..49)
-              ExprBody@(FileId(1), 53..54)
-                Name@(FileId(1), 53..54): "b"@(FileId(1), 36..37)
-          StmtItem@(FileId(1), 31..75): ItemId(3)
-            Bind@(FileId(1), 56..75): var register "d"@(FileId(1), 69..70)
-              ExprBody@(FileId(1), 74..75)
-                Name@(FileId(1), 74..75): "c"@(FileId(1), 48..49)
-
+  Root@(dummy): src/main.t -> ItemId(4)
+    Module@(src/main.t:0..83): "<root>"@(dummy)
+      StmtBody@(src/main.t:5..83): []
+        Block@(src/main.t:5..83): Normal
+          StmtItem@(src/main.t:15..26): ItemId(0)
+            ConstVar@(src/main.t:15..26): var "a"@(src/main.t:19..20)
+              Primitive@(src/main.t:23..26): Int
+          StmtItem@(src/main.t:31..75): ItemId(1)
+            Bind@(src/main.t:36..42): const "b"@(src/main.t:36..37)
+              ExprBody@(src/main.t:41..42)
+                Name@(src/main.t:41..42): "a"@(src/main.t:19..20)
+          StmtItem@(src/main.t:31..75): ItemId(2)
+            Bind@(src/main.t:44..54): var "c"@(src/main.t:48..49)
+              ExprBody@(src/main.t:53..54)
+                Name@(src/main.t:53..54): "b"@(src/main.t:36..37)
+          StmtItem@(src/main.t:31..75): ItemId(3)
+            Bind@(src/main.t:56..75): var register "d"@(src/main.t:69..70)
+              ExprBody@(src/main.t:74..75)
+                Name@(src/main.t:74..75): "c"@(src/main.t:48..49)

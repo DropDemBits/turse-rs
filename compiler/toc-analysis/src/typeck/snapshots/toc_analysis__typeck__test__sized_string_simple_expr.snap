@@ -1,7 +1,6 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var _ : string(1 - 1 * 1 + 2)"
 ---
-"_"@(FileId(1), 4..5) [ConstVar(Var, No)]: string_n Fixed(Unevaluated(PackageId(0), BodyId(0)))
-"<root>"@(dummy) [Module(No)]: <error>
-
+"_"@"src/main.t:4..5" [ConstVar(Var, No)]: string_n Fixed(Unevaluated(PackageId(3072), BodyId(0)))
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>

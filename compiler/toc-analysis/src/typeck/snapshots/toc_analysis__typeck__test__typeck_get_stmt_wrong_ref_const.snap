@@ -2,9 +2,9 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "const i : int := 1\nget i\n"
 ---
-"i"@(FileId(1), 6..7) [ConstVar(Const, No)]: int
-"<root>"@(dummy) [Module(No)]: <error>
+"i"@"src/main.t:6..7" [ConstVar(Const, No)]: int
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 23..24): cannot assign into `i`
-| error for (FileId(1), 23..24): `i` is a reference to a constant, not a variable
-| note for (FileId(1), 6..7): `i` declared here
+error at src/main.t:23..24: cannot assign into `i`
+| error for src/main.t:23..24: `i` is a reference to a constant, not a variable
+| note for src/main.t:6..7: `i` declared here

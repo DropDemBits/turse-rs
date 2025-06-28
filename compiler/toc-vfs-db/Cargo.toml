@@ -15,4 +15,4 @@ salsa = { workspace = true }
 toc-salsa-collections = { workspace = true }
 camino = { workspace = true }
 parking_lot = "0.12"
-upcast = { workspace = true }
+rustc-hash.workspace = true

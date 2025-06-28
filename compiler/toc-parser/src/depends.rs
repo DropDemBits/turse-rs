@@ -1,5 +1,4 @@
 //! File dependencies extracted from a file
-use std::sync::Arc;
 
 use indexmap::IndexMap;
 use toc_reporting::{CompileResult, FileRange, MessageSink};
@@ -10,7 +9,7 @@ use toc_syntax::{
 };
 
 /// What other file sources a given file depends on
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FileDepends {
     depends: Vec<Dependency>,
 }
@@ -41,12 +40,12 @@ impl ExternalLinks {
     }
 
     /// Iterator over all of the other files each [`ast::ExternalRef`] in a file refers to
-    pub fn all_links(&self) -> impl Iterator<Item = FileId> + '_ {
+    pub fn all_links(&self) -> impl Iterator<Item = FileId> {
         self.links.values().copied()
     }
 
     /// Iterator over all of the other files each importable [`ast::ExternalRef`] in a file refers to
-    pub fn import_links(&self) -> impl Iterator<Item = FileId> + '_ {
+    pub fn import_links(&self) -> impl Iterator<Item = FileId> {
         self.links.iter().flat_map(|(k, v)| {
             (k.syntax_node_ptr().kind() == toc_syntax::SyntaxKind::ExternalItem).then_some(*v)
         })
@@ -60,9 +59,7 @@ pub struct Dependency {
     pub relative_path: String,
 }
 
-pub(crate) fn gather_dependencies(
-    syntax: SyntaxNode,
-) -> CompileResult<Arc<FileDepends>, FileRange> {
+pub(crate) fn gather_dependencies(syntax: SyntaxNode) -> CompileResult<FileDepends, FileRange> {
     let mut messages = toc_reporting::MessageSink::new();
     let mut dependencies = vec![];
 
@@ -135,7 +132,7 @@ pub(crate) fn gather_dependencies(
         depends: dependencies,
     };
 
-    CompileResult::new(Arc::new(dependencies), messages.finish())
+    CompileResult::new(dependencies, messages.finish())
 }
 
 fn extract_relative_path(
@@ -170,28 +167,32 @@ fn extract_relative_path(
 mod test {
     use super::*;
 
-    fn get_deps(source: &str) -> CompileResult<(Arc<FileDepends>, SyntaxNode), FileRange> {
+    fn get_deps(source: &str) -> (CompileResult<FileDepends, FileRange>, SyntaxNode) {
         let parsed = crate::parse(source);
-        gather_dependencies(parsed.result().syntax()).map(|deps| (deps, parsed.result().syntax()))
+        (
+            gather_dependencies(parsed.result().syntax()),
+            parsed.result().syntax().clone(),
+        )
     }
 
     #[test]
     fn gather_no_deps() {
-        let depend_res = get_deps(r#"moot"#);
-        let (file_deps, _) = depend_res.result();
+        let (depend_res, _) = get_deps(r#"moot"#);
+        let file_deps = depend_res.result();
         assert!(file_deps.dependencies().is_empty());
     }
 
     #[test]
     fn gather_includes() {
-        let depend_res = get_deps(
+        let (depend_res, root) = get_deps(
             r#"
     include "\uD2\u77\uD3_whats_this"
     include "me_time"
     include 'bad!' % Invalid include stmt
     "#,
         );
-        let (file_deps, root) = depend_res.result();
+        let root = &root;
+        let file_deps = depend_res.result();
         let dependencies = file_deps.dependencies();
 
         assert!(!dependencies.is_empty());
@@ -216,8 +217,9 @@ mod test {
 
     #[test]
     fn gather_main_imports() {
-        let depend_res = get_deps(r#"import "a", name, and_ in "external_place""#);
-        let (file_deps, root) = depend_res.result();
+        let (depend_res, root) = get_deps(r#"import "a", name, and_ in "external_place""#);
+        let root = &root;
+        let file_deps = depend_res.result();
         let dependencies = file_deps.dependencies();
 
         assert!(!dependencies.is_empty());
@@ -244,8 +246,8 @@ mod test {
     #[test]
     fn gather_no_deps_with_module() {
         // Module is not the root module
-        let depend_res = get_deps(r#"module b import c end b"#);
-        let (file_deps, _root) = depend_res.result();
+        let (depend_res, _) = get_deps(r#"module b import c end b"#);
+        let file_deps = depend_res.result();
         let dependencies = file_deps.dependencies();
         assert!(dependencies.is_empty());
     }
@@ -253,7 +255,7 @@ mod test {
     #[test]
     fn gather_deps_child_class() {
         // Module is not the root module
-        let depend_res = get_deps(
+        let (depend_res, root) = get_deps(
             r#"
     unit class b
         inherit a
@@ -263,7 +265,8 @@ mod test {
         export e
     end b"#,
         );
-        let (file_deps, root) = depend_res.result();
+        let root = &root;
+        let file_deps = depend_res.result();
         let dependencies = file_deps.dependencies();
 
         assert!(matches!(
@@ -295,13 +298,14 @@ mod test {
 
     #[test]
     fn gather_main_mixed_deps() {
-        let depend_res = get_deps(
+        let (depend_res, root) = get_deps(
             r#"
     import "a", name, and_ in "external_place"
     include "bob"
     "#,
         );
-        let (file_deps, root) = depend_res.result();
+        let root = &root;
+        let file_deps = depend_res.result();
         let dependencies = file_deps.dependencies();
 
         assert!(!dependencies.is_empty());
@@ -333,13 +337,13 @@ mod test {
 
     #[test]
     fn gather_bad_paths() {
-        let depend_res = get_deps(
+        let (depend_res, _) = get_deps(
             r#"
     import "a^"
     include "k\!"
     "#,
         );
-        let (file_deps, _) = depend_res.result();
+        let file_deps = depend_res.result();
         let dependencies = file_deps.dependencies();
 
         assert!(dependencies.is_empty(), "{dependencies:?}");

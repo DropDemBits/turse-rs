@@ -1,8 +1,7 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "\n    % Pointers\n    var b : ^int\n\n    % should all produce boolean\n    var _v_res : boolean\n\n    _v_res := b = b\n    "
 ---
-"b"@(FileId(1), 24..25) [ConstVar(Var, No)]: pointer to int
-"_v_res"@(FileId(1), 75..81) [ConstVar(Var, No)]: boolean
-"<root>"@(dummy) [Module(No)]: <error>
-
+"b"@"src/main.t:24..25" [ConstVar(Var, No)]: pointer to int
+"_v_res"@"src/main.t:75..81" [ConstVar(Var, No)]: boolean
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>

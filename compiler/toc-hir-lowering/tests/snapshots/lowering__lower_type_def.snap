@@ -1,14 +1,11 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
-assertion_line: 59
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "type alias : int"
-
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(1)
-    Module@(FileId(1), 0..16): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..16): []
-        StmtItem@(FileId(1), 0..16): ItemId(0)
-          Type@(FileId(1), 0..16): "alias"@(FileId(1), 5..10)
-            Primitive@(FileId(1), 13..16): Int
-
+  Root@(dummy): src/main.t -> ItemId(1)
+    Module@(src/main.t:0..16): "<root>"@(dummy)
+      StmtBody@(src/main.t:0..16): []
+        StmtItem@(src/main.t:0..16): ItemId(0)
+          Type@(src/main.t:0..16): "alias"@(src/main.t:5..10)
+            Primitive@(src/main.t:13..16): Int

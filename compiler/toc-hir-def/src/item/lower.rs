@@ -9,9 +9,12 @@ use crate::{
 };
 
 /// Collects the immediately accessible items from a [`ast::StmtList`]
-pub(crate) fn collect_items(db: &dyn Db, stmt_list: SemanticLoc<ast::StmtList>) -> ItemCollection {
-    let ast_locations = stmt_list.file(db.up()).ast_locations(db.up());
-    let stmt_list = stmt_list.to_node(db.up());
+pub(crate) fn collect_items<'db>(
+    db: &'db dyn Db,
+    stmt_list: SemanticLoc<'db, ast::StmtList>,
+) -> ItemCollection<'db> {
+    let ast_locations = stmt_list.file(db).ast_locations(db);
+    let stmt_list = stmt_list.to_node(db);
 
     let mut loc_map = ItemLocMap::new();
     let items = stmt_list
@@ -32,12 +35,12 @@ pub(crate) fn collect_items(db: &dyn Db, stmt_list: SemanticLoc<ast::StmtList>) 
 /// Note that this means that we'll drop errors when a module doesn't
 /// have a name, but the more pressing fix anyway should be to focus
 /// on the error that a module doesn't have a name.
-pub(crate) fn item(
-    db: &dyn Db,
+pub(crate) fn item<'db>(
+    db: &'db dyn Db,
     stmt: ast::Stmt,
-    ast_locations: &AstLocations,
-    loc_map: &mut ItemLocMap,
-) -> Option<Vec<Item>> {
+    ast_locations: &'db AstLocations<'db>,
+    loc_map: &mut ItemLocMap<'db>,
+) -> Option<Vec<Item<'db>>> {
     Some(match stmt {
         ast::Stmt::ConstVarDecl(constvar) => {
             let names = constvar.constvar_names().unwrap();

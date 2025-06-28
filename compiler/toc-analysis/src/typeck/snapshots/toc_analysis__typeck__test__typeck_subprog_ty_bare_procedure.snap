@@ -1,7 +1,6 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "type _ : procedure"
 ---
-"_"@(FileId(1), 5..6) [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of procedure -> void
-"<root>"@(dummy) [Module(No)]: <error>
-
+"_"@"src/main.t:5..6" [Type]: alias[DefId(PackageId(3072), LocalDefId(0))] of procedure -> void
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>

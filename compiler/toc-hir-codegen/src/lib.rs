@@ -10,6 +10,7 @@ use toc_hir::{
 };
 use toc_reporting::CompileResult;
 use toc_span::{FileId, Span};
+use toc_vfs_db::SourceFile;
 use turing_bytecode::{
     encode::{
         BytecodeBlob, BytecodeBuilder, CodeOffset, CodeUnitRef, LocalSlot, Procedure,
@@ -29,7 +30,7 @@ impl<T> CodeGenDB for T where T: HirAnalysis {}
 #[derive(Debug, Default)]
 struct CodeGenCtx {
     blob: BytecodeBuilder,
-    file_map: IndexMap<FileId, CodeUnitRef>,
+    file_map: IndexMap<SourceFile, CodeUnitRef>,
     manifest_allocator: ManifestAllocator,
     // deduplicated strings list
     strings: IndexMap<String, Vec<(ProcedureRef, RelocHandle)>>,
@@ -49,7 +50,7 @@ pub fn generate_code(db: &dyn CodeGenDB) -> CompileResult<Option<BytecodeBlob>> 
 
     // Start producing blobs for each package
     // Only deal with one package right now
-    let pkg_graph = toc_source_graph::source_graph(db.up()).as_ref().unwrap();
+    let pkg_graph = toc_source_graph::source_graph(db).as_ref().unwrap();
     let mut cctx = CodeGenCtx::default();
 
     // Generate <No File> unit first
@@ -65,11 +66,9 @@ pub fn generate_code(db: &dyn CodeGenDB) -> CompileResult<Option<BytecodeBlob>> 
     // For now, we only deal with one file, so that will always serve as the main body
     // TODO: toposort calls to module initialization bodies
 
-    if let Some(&package_id) = pkg_graph.all_packages(db.up()).first() {
-        let root_file = package_id.root(db.up());
-        let mut main_unit = cctx
-            .blob
-            .build_code_unit(root_file.raw_path(db.up()).as_str());
+    if let Some(&package_id) = pkg_graph.all_packages(db).first() {
+        let root_file = package_id.root(db);
+        let mut main_unit = cctx.blob.build_code_unit(root_file.raw_path(db).as_str());
 
         // This package will act as the main file
         let package = db.package(package_id.into());
@@ -336,10 +335,10 @@ impl BodyCodeGenerator<'_> {
             let item_ty = bctx
                 .db
                 .type_of((bctx.package_id, item_owner).into())
-                .to_base_type(bctx.db.up());
+                .to_base_type(bctx.db);
 
             if matches!(
-                item_ty.kind(bctx.db.up()),
+                item_ty.kind(bctx.db),
                 ty::TypeKind::Subprogram(toc_hir::symbol::SubprogramKind::Function, ..)
             ) {
                 bctx.proc.ins().abort(AbortReason::NoResult);
@@ -382,15 +381,15 @@ impl BodyCodeGenerator<'_> {
         };
         let item_ty = db
             .type_of((self.package_id, item_owner).into())
-            .to_base_type(self.db.up());
+            .to_base_type(self.db);
 
-        if let ty::TypeKind::Subprogram(_, params, result_ty) = item_ty.kind(self.db.up()) {
+        if let ty::TypeKind::Subprogram(_, params, result_ty) = item_ty.kind(self.db) {
             let mut arg_offset = 0;
 
             // Feed in ret ty
-            let ret_ty = result_ty.to_base_type(self.db.up());
+            let ret_ty = result_ty.to_base_type(self.db);
 
-            if !matches!(ret_ty.kind(self.db.up()), ty::TypeKind::Void) {
+            if !matches!(ret_ty.kind(self.db), ty::TypeKind::Void) {
                 if let Some(local_def) = ret_param {
                     self.def_bindings.bind_parameter(
                         DefId(self.package_id, local_def),
@@ -407,8 +406,8 @@ impl BodyCodeGenerator<'_> {
                 for (local_def, param_info) in param_defs.iter().zip(param_infos) {
                     // ???: How should we deal with char(*) / string(*)?
                     // - Need to recover ABI
-                    let param_ty = param_info.param_ty.to_base_type(self.db.up());
-                    let size_of = param_ty.size_of(self.db.up()).expect("must be sized");
+                    let param_ty = param_info.param_ty.to_base_type(self.db);
+                    let size_of = param_ty.size_of(self.db).expect("must be sized");
                     let indirect = match param_info.pass_by {
                         ty::PassBy::Value => false,
                         ty::PassBy::Reference(_) => true,
@@ -427,8 +426,8 @@ impl BodyCodeGenerator<'_> {
 
     fn emit_location(&mut self, span: Span) {
         let (file, range) = span.into_parts().unwrap();
-        let info = toc_ast_db::map_byte_index(self.db.up(), file.into_raw(), range.start().into())
-            .unwrap();
+        let file = toc_vfs_db::source_of(self.db, file.into_raw().raw_path(self.db));
+        let info = toc_ast_db::map_byte_index(self.db, file, range.start().into()).unwrap();
 
         let code_file = self
             .cctx
@@ -436,7 +435,7 @@ impl BodyCodeGenerator<'_> {
             .entry(file)
             .or_insert_with(|| {
                 // Create a dummy unit to represent the filename
-                let path = file.into_raw().raw_path(self.db.up());
+                let path = file.path(self.db);
 
                 let mut unit = self.cctx.blob.build_code_unit(path.as_str());
                 let id = unit.id();
@@ -518,11 +517,11 @@ impl BodyCodeGenerator<'_> {
         let lhs_ty = self
             .db
             .type_of((self.package_id, self.body_id, stmt.lhs).into())
-            .to_base_type(self.db.up());
+            .to_base_type(self.db);
         let rhs_ty = self
             .db
             .type_of((self.package_id, self.body_id, stmt.rhs).into())
-            .to_base_type(self.db.up());
+            .to_base_type(self.db);
 
         // Evaluation order is important, side effects from the rhs are visible when looking at lhs
         // For assignment, we don't want side effects from rhs eval to be visible during lookup
@@ -535,13 +534,13 @@ impl BodyCodeGenerator<'_> {
     }
 
     fn generate_coerced_op(&mut self, lhs_ty: ty::TypeId, rhs_ty: ty::TypeId) {
-        let lhs_ty = lhs_ty.to_base_type(self.db.up());
+        let lhs_ty = lhs_ty.to_base_type(self.db);
 
-        let coerce_to = match lhs_ty.kind(self.db.up()) {
+        let coerce_to = match lhs_ty.kind(self.db) {
             ty::TypeKind::Real(_) => Some(CoerceTo::Real),
             ty::TypeKind::Char => Some(CoerceTo::Char),
             ty::TypeKind::CharN(ty::SeqSize::Fixed(_)) => {
-                let len = lhs_ty.length_of(self.db.up()).expect("never dyn");
+                let len = lhs_ty.length_of(self.db).expect("never dyn");
                 Some(CoerceTo::CharN(len.try_into().unwrap()))
             }
             ty::TypeKind::CharN(ty::SeqSize::Any) => {
@@ -575,9 +574,9 @@ impl BodyCodeGenerator<'_> {
             let put_ty = self
                 .db
                 .type_of((self.package_id, self.body_id, item.expr).into())
-                .to_base_type(self.db.up());
+                .to_base_type(self.db);
 
-            let put_kind = match put_ty.kind(self.db.up()) {
+            let put_kind = match put_ty.kind(self.db) {
                 ty::TypeKind::Boolean => PutKind::Boolean,
                 ty::TypeKind::Integer | ty::TypeKind::Int(_)
                     if item.opts.exponent_width().is_some() =>
@@ -604,9 +603,9 @@ impl BodyCodeGenerator<'_> {
             // Put value onto the stack
             self.generate_expr(item.expr);
 
-            if let ty::TypeKind::CharN(seq_size) = put_ty.kind(self.db.up()) {
+            if let ty::TypeKind::CharN(seq_size) = put_ty.kind(self.db) {
                 let length = seq_size
-                    .fixed_len(self.db.up(), Span::default())
+                    .fixed_len(self.db, Span::default())
                     .ok()
                     .expect("const should succeed and not be dyn");
                 let length = length.into_u32().expect("should be int representable");
@@ -665,11 +664,11 @@ impl BodyCodeGenerator<'_> {
             let get_ty = self
                 .db
                 .type_of((self.package_id, self.body_id, item.expr).into())
-                .to_base_type(self.db.up());
-            let size = get_ty.size_of(self.db.up()).expect("type must be concrete") as u32;
+                .to_base_type(self.db);
+            let size = get_ty.size_of(self.db).expect("type must be concrete") as u32;
 
             let mut get_width = None;
-            let get_kind = match get_ty.kind(self.db.up()) {
+            let get_kind = match get_ty.kind(self.db) {
                 ty::TypeKind::Boolean => GetKind::Boolean { size: 1 },
                 ty::TypeKind::Int(_) => GetKind::Int { size },
                 ty::TypeKind::Nat(_) => GetKind::Nat { size },
@@ -711,7 +710,7 @@ impl BodyCodeGenerator<'_> {
                 }
 
                 // and max length
-                let max_len = get_ty.length_of(self.db.up()).expect("is a charseq") as u32;
+                let max_len = get_ty.length_of(self.db).expect("is a charseq") as u32;
                 self.proc.ins().pushint(max_len as i32);
             }
 
@@ -907,18 +906,17 @@ impl BodyCodeGenerator<'_> {
         let discrim_ty = self
             .db
             .type_of((self.package_id, self.body_id, stmt.discriminant).into())
-            .to_base_type(self.db.up());
+            .to_base_type(self.db);
 
-        let coerce_to = match discrim_ty.kind(self.db.up()) {
+        let coerce_to = match discrim_ty.kind(self.db) {
             ty::TypeKind::String | ty::TypeKind::StringN(_) => Some(CoerceTo::String),
             ty::TypeKind::Char => Some(CoerceTo::Char),
             _ => None,
         };
 
-        let discrim_slot = self.proc.alloc_temporary(
-            discrim_ty.size_of(self.db.up()).expect("is concrete") as u32,
-            4,
-        );
+        let discrim_slot = self
+            .proc
+            .alloc_temporary(discrim_ty.size_of(self.db).expect("is concrete") as u32, 4);
         self.proc.locate_temporary(discrim_slot);
         self.emit_assign_op(discrim_ty, AssignOrder::Postcomputed);
 
@@ -935,7 +933,7 @@ impl BodyCodeGenerator<'_> {
                         let expr_ty = self
                             .db
                             .type_of((self.package_id, self.body_id, *expr).into())
-                            .to_base_type(self.db.up());
+                            .to_base_type(self.db);
 
                         self.generate_coerced_expr(*expr, coerce_to);
                         self.proc.locate_temporary(discrim_slot);
@@ -946,10 +944,7 @@ impl BodyCodeGenerator<'_> {
                             self.proc.ins().eqint();
                         } else {
                             // Reuse normal eq selection
-                            self.emit_eq_op(
-                                expr_ty.kind(self.db.up()),
-                                discrim_ty.kind(self.db.up()),
-                            );
+                            self.emit_eq_op(expr_ty.kind(self.db), discrim_ty.kind(self.db));
                         };
 
                         // Branch if any are true
@@ -1042,13 +1037,10 @@ impl BodyCodeGenerator<'_> {
         eprintln!("reserving space for def {:?}", item.def_id);
 
         let constvar_def = DefId(self.package_id, item.def_id);
-        let def_ty = self
-            .db
-            .type_of(constvar_def.into())
-            .to_base_type(self.db.up());
+        let def_ty = self.db.type_of(constvar_def.into()).to_base_type(self.db);
         let local_slot = self.proc.alloc_local(
             None,
-            def_ty.size_of(self.db.up()).expect("must be sized") as u32,
+            def_ty.size_of(self.db).expect("must be sized") as u32,
             4,
         );
         self.def_bindings.bind_local_slot(constvar_def, local_slot);
@@ -1063,11 +1055,11 @@ impl BodyCodeGenerator<'_> {
             eprintln!("assigning def {init_body:?} to previously produced value");
             self.proc.locate_local(local_slot);
             self.emit_assign_op(def_ty, AssignOrder::Postcomputed);
-        } else if def_ty.has_uninit(self.db.up()) {
+        } else if def_ty.has_uninit(self.db) {
             eprintln!(
                 "assigning def {:?} to uninit pattern for type `{}`",
                 item.def_id,
-                def_ty.display(self.db.up())
+                def_ty.display(self.db)
             );
             self.proc.locate_local(local_slot);
             self.emit_assign_uninit(def_ty);
@@ -1108,11 +1100,11 @@ impl BodyCodeGenerator<'_> {
     }
 
     fn coerce_expr_into(&mut self, from_ty: ty::TypeId, coerce_to: Option<CoerceTo>) {
-        let expr_ty = from_ty.to_base_type(self.db.up());
+        let expr_ty = from_ty.to_base_type(self.db);
 
         let Some(coerce_to) = coerce_to else { return };
 
-        match (coerce_to, expr_ty.kind(self.db.up())) {
+        match (coerce_to, expr_ty.kind(self.db)) {
             // To `real`
             (CoerceTo::Real, ty::TypeKind::Nat(_)) => _ = self.proc.ins().natreal(),
             (CoerceTo::Real, int) if int.is_integer() => _ = self.proc.ins().intreal(),
@@ -1123,7 +1115,7 @@ impl BodyCodeGenerator<'_> {
             }
             (CoerceTo::Char, ty::TypeKind::CharN(ty::SeqSize::Fixed(_))) => {
                 // Compile-time checked to always fit
-                let len = expr_ty.length_of(self.db.up());
+                let len = expr_ty.length_of(self.db);
                 assert_eq!(len, Some(1), "never dyn or not 1");
 
                 // Fetch the first char
@@ -1162,7 +1154,7 @@ impl BodyCodeGenerator<'_> {
             }
             (CoerceTo::String, ty::TypeKind::CharN(ty::SeqSize::Fixed(_))) => {
                 // Reserve enough space for the given char_n
-                let len = expr_ty.length_of(self.db.up()).expect("never dyn");
+                let len = expr_ty.length_of(self.db).expect("never dyn");
 
                 // Include the null terminator in the reservation size
                 // Never let it exceed the maximum length of a string
@@ -1256,20 +1248,16 @@ impl BodyCodeGenerator<'_> {
         let lhs_ty = self
             .db
             .type_of((self.package_id, self.body_id, expr.lhs).into())
-            .to_base_type(self.db.up());
+            .to_base_type(self.db);
         let rhs_ty = self
             .db
             .type_of((self.package_id, self.body_id, expr.rhs).into())
-            .to_base_type(self.db.up());
+            .to_base_type(self.db);
 
         match expr.op.item() {
             hir_expr::BinaryOp::Add => {
                 match self
-                    .coerce_and_select_numbers(
-                        expr,
-                        lhs_ty.kind(self.db.up()),
-                        rhs_ty.kind(self.db.up()),
-                    )
+                    .coerce_and_select_numbers(expr, lhs_ty.kind(self.db), rhs_ty.kind(self.db))
                     .expect("op over unsupported type")
                 {
                     OperandPairs::IntInt => _ = self.proc.ins().addint(),
@@ -1281,11 +1269,7 @@ impl BodyCodeGenerator<'_> {
             }
             hir_expr::BinaryOp::Sub => {
                 match self
-                    .coerce_and_select_numbers(
-                        expr,
-                        lhs_ty.kind(self.db.up()),
-                        rhs_ty.kind(self.db.up()),
-                    )
+                    .coerce_and_select_numbers(expr, lhs_ty.kind(self.db), rhs_ty.kind(self.db))
                     .expect("op over unsupported type")
                 {
                     OperandPairs::IntInt => _ = self.proc.ins().subint(),
@@ -1296,11 +1280,7 @@ impl BodyCodeGenerator<'_> {
                 }
             }
             hir_expr::BinaryOp::Mul => match self
-                .coerce_and_select_numbers(
-                    expr,
-                    lhs_ty.kind(self.db.up()),
-                    rhs_ty.kind(self.db.up()),
-                )
+                .coerce_and_select_numbers(expr, lhs_ty.kind(self.db), rhs_ty.kind(self.db))
                 .expect("op over unsupported type")
             {
                 OperandPairs::IntInt => _ = self.proc.ins().mulint(),
@@ -1310,11 +1290,7 @@ impl BodyCodeGenerator<'_> {
                 OperandPairs::Real => _ = self.proc.ins().mulreal(),
             },
             hir_expr::BinaryOp::Div => match self
-                .coerce_and_select_numbers(
-                    expr,
-                    lhs_ty.kind(self.db.up()),
-                    rhs_ty.kind(self.db.up()),
-                )
+                .coerce_and_select_numbers(expr, lhs_ty.kind(self.db), rhs_ty.kind(self.db))
                 .expect("op over unsupported type")
             {
                 OperandPairs::IntInt => _ = self.proc.ins().divint(),
@@ -1329,11 +1305,7 @@ impl BodyCodeGenerator<'_> {
                 self.proc.ins().realdivide();
             }
             hir_expr::BinaryOp::Mod => match self
-                .coerce_and_select_numbers(
-                    expr,
-                    lhs_ty.kind(self.db.up()),
-                    rhs_ty.kind(self.db.up()),
-                )
+                .coerce_and_select_numbers(expr, lhs_ty.kind(self.db), rhs_ty.kind(self.db))
                 .expect("op over unsupported type")
             {
                 OperandPairs::IntInt => _ = self.proc.ins().modint(),
@@ -1343,11 +1315,7 @@ impl BodyCodeGenerator<'_> {
                 OperandPairs::Real => _ = self.proc.ins().modreal(),
             },
             hir_expr::BinaryOp::Rem => match self
-                .coerce_and_select_numbers(
-                    expr,
-                    lhs_ty.kind(self.db.up()),
-                    rhs_ty.kind(self.db.up()),
-                )
+                .coerce_and_select_numbers(expr, lhs_ty.kind(self.db), rhs_ty.kind(self.db))
                 .expect("op over unsupported type")
             {
                 OperandPairs::IntInt => _ = self.proc.ins().remint(),
@@ -1356,8 +1324,7 @@ impl BodyCodeGenerator<'_> {
                 OperandPairs::NatNat => _ = self.proc.ins().modnat(),
                 OperandPairs::Real => _ = self.proc.ins().remreal(),
             },
-            hir_expr::BinaryOp::Exp => match (lhs_ty.kind(self.db.up()), rhs_ty.kind(self.db.up()))
-            {
+            hir_expr::BinaryOp::Exp => match (lhs_ty.kind(self.db), rhs_ty.kind(self.db)) {
                 (lhs, rhs) if lhs.is_integer() && rhs.is_integer() => {
                     self.generate_expr(expr.lhs);
                     self.generate_expr(expr.rhs);
@@ -1403,10 +1370,10 @@ impl BodyCodeGenerator<'_> {
                 self.proc.ins().shr();
             }
             hir_expr::BinaryOp::Less | hir_expr::BinaryOp::GreaterEq => {
-                self.coerce_to_same(expr, lhs_ty.kind(self.db.up()), rhs_ty.kind(self.db.up()));
+                self.coerce_to_same(expr, lhs_ty.kind(self.db), rhs_ty.kind(self.db));
 
                 if let Some(num_cmp) =
-                    self.select_numbers(lhs_ty.kind(self.db.up()), rhs_ty.kind(self.db.up()))
+                    self.select_numbers(lhs_ty.kind(self.db), rhs_ty.kind(self.db))
                 {
                     match num_cmp {
                         OperandPairs::IntInt => _ = self.proc.ins().geint(),
@@ -1416,7 +1383,7 @@ impl BodyCodeGenerator<'_> {
                         OperandPairs::Real => _ = self.proc.ins().gereal(),
                     }
                 } else {
-                    match (lhs_ty.kind(self.db.up()), rhs_ty.kind(self.db.up())) {
+                    match (lhs_ty.kind(self.db), rhs_ty.kind(self.db)) {
                         (ty::TypeKind::Char, ty::TypeKind::Char) => _ = self.proc.ins().genat(),
                         (lhs, rhs) if lhs.is_cmp_charseq() && rhs.is_cmp_charseq() => {
                             _ = self.proc.ins().gestr()
@@ -1431,10 +1398,10 @@ impl BodyCodeGenerator<'_> {
                 }
             }
             hir_expr::BinaryOp::Greater | hir_expr::BinaryOp::LessEq => {
-                self.coerce_to_same(expr, lhs_ty.kind(self.db.up()), rhs_ty.kind(self.db.up()));
+                self.coerce_to_same(expr, lhs_ty.kind(self.db), rhs_ty.kind(self.db));
 
                 if let Some(num_cmp) =
-                    self.select_numbers(lhs_ty.kind(self.db.up()), rhs_ty.kind(self.db.up()))
+                    self.select_numbers(lhs_ty.kind(self.db), rhs_ty.kind(self.db))
                 {
                     match num_cmp {
                         OperandPairs::IntInt => self.proc.ins().leint(),
@@ -1444,7 +1411,7 @@ impl BodyCodeGenerator<'_> {
                         OperandPairs::Real => self.proc.ins().lereal(),
                     };
                 } else {
-                    match (lhs_ty.kind(self.db.up()), rhs_ty.kind(self.db.up())) {
+                    match (lhs_ty.kind(self.db), rhs_ty.kind(self.db)) {
                         (ty::TypeKind::Char, ty::TypeKind::Char) => {
                             self.proc.ins().lenat();
                         }
@@ -1461,8 +1428,8 @@ impl BodyCodeGenerator<'_> {
                 }
             }
             hir_expr::BinaryOp::Equal | hir_expr::BinaryOp::NotEqual => {
-                self.coerce_to_same(expr, lhs_ty.kind(self.db.up()), rhs_ty.kind(self.db.up()));
-                self.emit_eq_op(lhs_ty.kind(self.db.up()), rhs_ty.kind(self.db.up()));
+                self.coerce_to_same(expr, lhs_ty.kind(self.db), rhs_ty.kind(self.db));
+                self.emit_eq_op(lhs_ty.kind(self.db), rhs_ty.kind(self.db));
 
                 if matches!(expr.op.item(), &hir_expr::BinaryOp::NotEqual) {
                     // Emit not to convert to not-equal
@@ -1553,24 +1520,24 @@ impl BodyCodeGenerator<'_> {
         let rhs_ty = self
             .db
             .type_of((self.package_id, self.body_id, expr.rhs).into())
-            .to_base_type(self.db.up());
+            .to_base_type(self.db);
 
         self.generate_expr(expr.rhs);
 
         match expr.op.item() {
             hir_expr::UnaryOp::Identity => {} // no-op
             hir_expr::UnaryOp::Not => {
-                if rhs_ty.kind(self.db.up()).is_integer() {
+                if rhs_ty.kind(self.db).is_integer() {
                     // Composite
                     self.proc.ins().pushint(u32::MAX as i32);
                     self.proc.ins().xor();
-                } else if rhs_ty.kind(self.db.up()).is_boolean() {
+                } else if rhs_ty.kind(self.db).is_boolean() {
                     self.proc.ins().not();
                 } else {
                     unreachable!()
                 }
             }
-            hir_expr::UnaryOp::Negate => match rhs_ty.kind(self.db.up()) {
+            hir_expr::UnaryOp::Negate => match rhs_ty.kind(self.db) {
                 ty::TypeKind::Integer | ty::TypeKind::Int(_) | ty::TypeKind::Nat(_) => {
                     // should already be dealing with promoted types
                     self.proc.ins().negint();
@@ -1595,9 +1562,9 @@ impl BodyCodeGenerator<'_> {
                 let def_ty = self
                     .db
                     .type_of(DefId(self.package_id, def_id).into())
-                    .to_base_type(self.db.up());
+                    .to_base_type(self.db);
 
-                if let ty::TypeKind::Subprogram(_, None, _) = def_ty.kind(self.db.up()) {
+                if let ty::TypeKind::Subprogram(_, None, _) = def_ty.kind(self.db) {
                     // as param-less call
                     self.generate_call(expr_id, None, false);
                 } else {
@@ -1630,18 +1597,18 @@ impl BodyCodeGenerator<'_> {
             // From an actual expression
             db.type_of(lhs_expr.into())
         };
-        let lhs_ty_ref = lhs_ty.to_base_type(db.up());
+        let lhs_ty_ref = lhs_ty.to_base_type(db);
         let (params, ret_ty) =
-            if let ty::TypeKind::Subprogram(_, params, ret_ty) = lhs_ty_ref.kind(db.up()) {
+            if let ty::TypeKind::Subprogram(_, params, ret_ty) = lhs_ty_ref.kind(db) {
                 (params, *ret_ty)
             } else {
                 unreachable!()
             };
 
         // Note: Temporary must live longer than the call, so it is outside of the call temporary scope.
-        let ret_ty_ref = ret_ty.to_base_type(db.up());
-        let ret_val = if !matches!(ret_ty_ref.kind(db.up()), ty::TypeKind::Void) {
-            let size_of = ret_ty_ref.size_of(db.up()).expect("must be sized");
+        let ret_ty_ref = ret_ty.to_base_type(db);
+        let ret_val = if !matches!(ret_ty_ref.kind(db), ty::TypeKind::Void) {
+            let size_of = ret_ty_ref.size_of(db).expect("must be sized");
             Some(self.proc.alloc_temporary(size_of as u32, 4))
         } else {
             None
@@ -1661,10 +1628,9 @@ impl BodyCodeGenerator<'_> {
 
             if let Some(ret_val) = ret_val {
                 // Treat return argument as a pass by ref
-                let ret_arg = self.proc.alloc_temporary(
-                    ret_ty_ref.size_of(db.up()).expect("must be sized") as u32,
-                    4,
-                );
+                let ret_arg = self
+                    .proc
+                    .alloc_temporary(ret_ty_ref.size_of(db).expect("must be sized") as u32, 4);
 
                 self.proc.locate_temporary(ret_val);
                 self.proc.locate_temporary(ret_arg);
@@ -1682,7 +1648,7 @@ impl BodyCodeGenerator<'_> {
                     match param.pass_by {
                         ty::PassBy::Value => {
                             let param_ty = param.param_ty;
-                            let size_of = param_ty.size_of(db.up()).expect("must be sized");
+                            let size_of = param_ty.size_of(db).expect("must be sized");
                             let nth_arg = self.proc.alloc_temporary(size_of as u32, 4);
                             self.generate_expr(arg_expr);
                             self.generate_coerced_op(param_ty, arg_ty);
@@ -1792,7 +1758,7 @@ impl BodyCodeGenerator<'_> {
             Str,
         }
 
-        let kind = match into_tyref.kind(self.db.up()) {
+        let kind = match into_tyref.kind(self.db) {
             ty::TypeKind::Boolean => AssignKind::Int1,
             ty::TypeKind::Int(ty::IntSize::Int1) => AssignKind::Int1,
             ty::TypeKind::Int(ty::IntSize::Int2) => AssignKind::Int2,
@@ -1810,13 +1776,13 @@ impl BodyCodeGenerator<'_> {
             // chars are equivalent to nat1 on regular Turing backend
             ty::TypeKind::Char => AssignKind::Nat1,
             ty::TypeKind::CharN(_) => {
-                let storage_size = into_tyref.size_of(self.db.up()).expect("not dyn") as u32;
+                let storage_size = into_tyref.size_of(self.db).expect("not dyn") as u32;
                 AssignKind::NonScalar(storage_size)
             }
             ty::TypeKind::String | ty::TypeKind::StringN(_) => {
                 // Push storage size (is always the first stack operand for asnstr)
                 let char_len: u32 = into_tyref
-                    .length_of(self.db.up())
+                    .length_of(self.db)
                     .expect("should not be dyn")
                     .try_into()
                     .expect("length too large");
@@ -1889,7 +1855,7 @@ impl BodyCodeGenerator<'_> {
             Str,
         }
 
-        let kind = match uninit_ty.kind(self.db.up()) {
+        let kind = match uninit_ty.kind(self.db) {
             ty::TypeKind::Nat(ty::NatSize::AddressInt) => ScalarUninit::Addr,
             ty::TypeKind::Boolean => ScalarUninit::Boolean,
             ty::TypeKind::Int(ty::IntSize::Int) => ScalarUninit::Int,
@@ -1916,7 +1882,7 @@ impl BodyCodeGenerator<'_> {
 
     /// Emits a fetch operation for the type
     fn emit_fetch_ins(&mut self, fetch_ty: ty::TypeId) {
-        match fetch_ty.kind(self.db.up()) {
+        match fetch_ty.kind(self.db) {
             ty::TypeKind::Boolean => _ = self.proc.ins().fetchbool(),
             ty::TypeKind::Int(ty::IntSize::Int1) => _ = self.proc.ins().fetchint1(),
             ty::TypeKind::Int(ty::IntSize::Int2) => _ = self.proc.ins().fetchint2(),

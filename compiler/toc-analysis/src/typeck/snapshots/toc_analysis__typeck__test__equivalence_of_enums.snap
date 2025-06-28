@@ -2,22 +2,22 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "type e : enum(v)\nvar a, b : e\n\n% compatible with itself\na := b\n% with its own variants\na := e.v\n\n% incompatible with different defs\ntype f : enum(v)\nvar c : f\na := c\na := f.v\n"
 ---
-"e"@(FileId(1), 5..6) [Type]: enum[DefId(PackageId(0), LocalDefId(1))] ( "v"@(FileId(1), 14..15), )
-"e"@(FileId(1), 9..16) [Enum]: <error>
-"v"@(FileId(1), 14..15) [EnumVariant]: enum[DefId(PackageId(0), LocalDefId(1))] ( "v"@(FileId(1), 14..15), )
-"a"@(FileId(1), 21..22) [ConstVar(Var, No)]: enum[DefId(PackageId(0), LocalDefId(1))] ( "v"@(FileId(1), 14..15), )
-"b"@(FileId(1), 24..25) [ConstVar(Var, No)]: enum[DefId(PackageId(0), LocalDefId(1))] ( "v"@(FileId(1), 14..15), )
-"f"@(FileId(1), 137..138) [Type]: enum[DefId(PackageId(0), LocalDefId(6))] ( "v"@(FileId(1), 146..147), )
-"f"@(FileId(1), 141..148) [Enum]: <error>
-"v"@(FileId(1), 146..147) [EnumVariant]: enum[DefId(PackageId(0), LocalDefId(6))] ( "v"@(FileId(1), 146..147), )
-"c"@(FileId(1), 153..154) [ConstVar(Var, No)]: enum[DefId(PackageId(0), LocalDefId(6))] ( "v"@(FileId(1), 146..147), )
-"<root>"@(dummy) [Module(No)]: <error>
+"e"@"src/main.t:5..6" [Type]: enum[DefId(PackageId(3072), LocalDefId(1))] ( "v"@SpanId(4), )
+"e"@"src/main.t:9..16" [Enum]: <error>
+"v"@"src/main.t:14..15" [EnumVariant]: enum[DefId(PackageId(3072), LocalDefId(1))] ( "v"@SpanId(4), )
+"a"@"src/main.t:21..22" [ConstVar(Var, No)]: enum[DefId(PackageId(3072), LocalDefId(1))] ( "v"@SpanId(4), )
+"b"@"src/main.t:24..25" [ConstVar(Var, No)]: enum[DefId(PackageId(3072), LocalDefId(1))] ( "v"@SpanId(4), )
+"f"@"src/main.t:137..138" [Type]: enum[DefId(PackageId(3072), LocalDefId(6))] ( "v"@SpanId(9), )
+"f"@"src/main.t:141..148" [Enum]: <error>
+"v"@"src/main.t:146..147" [EnumVariant]: enum[DefId(PackageId(3072), LocalDefId(6))] ( "v"@SpanId(9), )
+"c"@"src/main.t:153..154" [ConstVar(Var, No)]: enum[DefId(PackageId(3072), LocalDefId(6))] ( "v"@SpanId(9), )
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 161..163): mismatched types
-| note for (FileId(1), 164..165): this is of type `enum f`
-| note for (FileId(1), 159..160): this is of type `enum e`
+error at src/main.t:161..163: mismatched types
+| note for src/main.t:164..165: this is of type `enum f`
+| note for src/main.t:159..160: this is of type `enum e`
 | info: `enum f` is not assignable into `enum e`
-error at (FileId(1), 168..170): mismatched types
-| note for (FileId(1), 171..174): this is of type `enum f`
-| note for (FileId(1), 166..167): this is of type `enum e`
+error at src/main.t:168..170: mismatched types
+| note for src/main.t:171..174: this is of type `enum f`
+| note for src/main.t:166..167: this is of type `enum e`
 | info: `enum f` is not assignable into `enum e`

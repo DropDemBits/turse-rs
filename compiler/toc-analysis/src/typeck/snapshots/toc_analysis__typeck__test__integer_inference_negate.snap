@@ -1,13 +1,12 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "\n    % Inferred integer types should pass\n    % Decl should be a concrete type\n    var a := - 1\n    % Types of operands should make the type concrete\n    var r : real\n    var i : int\n    var n : nat\n    var _r0 := - r\n    var _i0 := - i\n    var _n0 := - n\n"
 ---
-"a"@(FileId(1), 87..88) [ConstVar(Var, No)]: int
-"r"@(FileId(1), 158..159) [ConstVar(Var, No)]: real
-"i"@(FileId(1), 175..176) [ConstVar(Var, No)]: int
-"n"@(FileId(1), 191..192) [ConstVar(Var, No)]: nat
-"_r0"@(FileId(1), 207..210) [ConstVar(Var, No)]: real
-"_i0"@(FileId(1), 226..229) [ConstVar(Var, No)]: int
-"_n0"@(FileId(1), 245..248) [ConstVar(Var, No)]: nat
-"<root>"@(dummy) [Module(No)]: <error>
-
+"a"@"src/main.t:87..88" [ConstVar(Var, No)]: int
+"r"@"src/main.t:158..159" [ConstVar(Var, No)]: real
+"i"@"src/main.t:175..176" [ConstVar(Var, No)]: int
+"n"@"src/main.t:191..192" [ConstVar(Var, No)]: nat
+"_r0"@"src/main.t:207..210" [ConstVar(Var, No)]: real
+"_i0"@"src/main.t:226..229" [ConstVar(Var, No)]: int
+"_n0"@"src/main.t:245..248" [ConstVar(Var, No)]: nat
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>

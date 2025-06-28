@@ -11,3 +11,4 @@ edition.workspace = true
 [dependencies]
 text-size = "1.0.0"
 toc-paths = { workspace = true }
+salsa.workspace = true

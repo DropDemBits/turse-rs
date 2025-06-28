@@ -1,24 +1,30 @@
+use camino::Utf8PathBuf;
+use toc_paths::RawPath;
 use toc_span::FileId;
 
 use crate::{ArtifactKind, DependencyList, Package, RootPackages};
 
-#[derive(Default)]
-#[salsa::db(crate::Jar)]
+#[derive(Default, Clone)]
+#[salsa::db]
 struct TestDb {
     storage: salsa::Storage<Self>,
 }
 
-impl salsa::Database for TestDb {}
+#[salsa::db]
+impl salsa::Database for TestDb {
+    fn salsa_event(&self, _event: &dyn Fn() -> salsa::Event) {}
+}
 
 #[test]
 fn no_dedup_source_roots() {
     let db = &mut TestDb::default();
     let roots = vec![
-        FileId::dummy(3),
-        FileId::dummy(2),
-        FileId::dummy(2),
-        FileId::dummy(1),
+        FileId::from(RawPath::new(db, Utf8PathBuf::from("a"))),
+        FileId::from(RawPath::new(db, Utf8PathBuf::from("b"))),
+        FileId::from(RawPath::new(db, Utf8PathBuf::from("b"))),
+        FileId::from(RawPath::new(db, Utf8PathBuf::from("c"))),
     ];
+    let expected_roots = roots.clone();
     let roots = roots
         .into_iter()
         .map(|root| {
@@ -36,21 +42,16 @@ fn no_dedup_source_roots() {
     RootPackages::new(db, roots);
 
     // Don't dedup roots, since they're different packages
-    assert_eq!(
-        crate::source_graph(db)
-            .as_ref()
-            .unwrap()
-            .all_packages(db)
-            .iter()
-            .map(|pkg| pkg.root(db).into())
-            .collect::<Vec<FileId>>(),
-        vec![
-            FileId::dummy(3),
-            FileId::dummy(2),
-            FileId::dummy(2),
-            FileId::dummy(1),
-        ]
-    );
+    let mut actual_roots: Vec<FileId> = crate::source_graph(db)
+        .as_ref()
+        .unwrap()
+        .all_packages(db)
+        .iter()
+        .map(|pkg| pkg.root(db).into())
+        .collect();
+    actual_roots.sort_by(|a, b| a.into_raw().raw_path(db).cmp(b.into_raw().raw_path(db)));
+
+    assert_eq!(actual_roots, expected_roots);
 }
 
 // FIXME: add test for dep exploring

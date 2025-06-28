@@ -2,18 +2,18 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "\n    type ts : set of boolean\n    var s : ts\n\n    % should all produce booleans\n    var _v_res : boolean\n\n    % not a set\n    _v_res := true ~in true\n    % incompatible element types\n    _v_res := 1 ~in s\n    "
 ---
-"ts"@(FileId(1), 10..12) [Type]: set[DefId(PackageId(0), LocalDefId(1))] of boolean
-"ts"@(FileId(1), 15..29) [Set]: <error>
-"s"@(FileId(1), 38..39) [ConstVar(Var, No)]: set[DefId(PackageId(0), LocalDefId(1))] of boolean
-"_v_res"@(FileId(1), 88..94) [ConstVar(Var, No)]: boolean
-"<root>"@(dummy) [Module(No)]: <error>
+"ts"@"src/main.t:10..12" [Type]: set[DefId(PackageId(3072), LocalDefId(1))] of boolean
+"ts"@"src/main.t:15..29" [Set]: <error>
+"s"@"src/main.t:38..39" [ConstVar(Var, No)]: set[DefId(PackageId(3072), LocalDefId(1))] of boolean
+"_v_res"@"src/main.t:88..94" [ConstVar(Var, No)]: boolean
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 141..144): mismatched types for `not in`
-| note for (FileId(1), 145..149): this is of type `boolean`
-| error for (FileId(1), 145..149): `boolean` is not a set type
+error at src/main.t:141..144: mismatched types for `not in`
+| note for src/main.t:145..149: this is of type `boolean`
+| error for src/main.t:145..149: `boolean` is not a set type
 | info: operand must be a set
-error at (FileId(1), 199..202): mismatched types for `not in`
-| note for (FileId(1), 203..204): this is of type `set ts (of boolean)`
-| note for (FileId(1), 197..198): this is of type `{integer}`
-| error for (FileId(1), 203..204): `{integer}` is not the same as `boolean`
+error at src/main.t:199..202: mismatched types for `not in`
+| note for src/main.t:203..204: this is of type `set ts (of boolean)`
+| note for src/main.t:197..198: this is of type `{integer}`
+| error for src/main.t:203..204: `{integer}` is not the same as `boolean`
 | info: operand and element type must be the same

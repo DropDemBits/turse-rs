@@ -2,9 +2,9 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "for : 1 end for"
 ---
-"<root>"@(dummy) [Module(No)]: <error>
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 6..7): mismatched types
-| note for (FileId(1), 6..7): this is of type `{integer}`
-| error for (FileId(1), 6..7): `{integer}` is not iterable
+error at src/main.t:6..7: mismatched types
+| note for src/main.t:6..7: this is of type `{integer}`
+| error for src/main.t:6..7: `{integer}` is not iterable
 | info: only arrays types can be iterated over

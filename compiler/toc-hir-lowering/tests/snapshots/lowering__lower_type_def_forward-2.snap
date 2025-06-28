@@ -3,20 +3,19 @@ source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "\n    type a : forward\n    type a : forward\n    type use_it : a\n    type a : int\n    "
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(4)
-    Module@(FileId(1), 0..84): "<root>"@(dummy)
-      StmtBody@(FileId(1), 5..79): []
-        StmtItem@(FileId(1), 5..21): ItemId(0)
-          Type@(FileId(1), 5..21): forward "a"@(FileId(1), 10..11)
-        StmtItem@(FileId(1), 26..42): ItemId(1)
-          Type@(FileId(1), 26..42): forward "a"@(FileId(1), 31..32)
-        StmtItem@(FileId(1), 47..62): ItemId(2)
-          Type@(FileId(1), 47..62): "use_it"@(FileId(1), 52..58)
-            Alias@(FileId(1), 61..62): "a"@(FileId(1), 31..32)
-        StmtItem@(FileId(1), 67..79): ItemId(3)
-          Type@(FileId(1), 67..79): "a"@(FileId(1), 72..73)
-            Primitive@(FileId(1), 76..79): Int
-error at (FileId(1), 31..32): `a` is already a forward declaration
-| note for (FileId(1), 10..11): previous forward declaration here
-| error for (FileId(1), 31..32): new one here
-
+  Root@(dummy): src/main.t -> ItemId(4)
+    Module@(src/main.t:0..84): "<root>"@(dummy)
+      StmtBody@(src/main.t:5..79): []
+        StmtItem@(src/main.t:5..21): ItemId(0)
+          Type@(src/main.t:5..21): forward "a"@(src/main.t:10..11)
+        StmtItem@(src/main.t:26..42): ItemId(1)
+          Type@(src/main.t:26..42): forward "a"@(src/main.t:31..32)
+        StmtItem@(src/main.t:47..62): ItemId(2)
+          Type@(src/main.t:47..62): "use_it"@(src/main.t:52..58)
+            Alias@(src/main.t:61..62): "a"@(src/main.t:31..32)
+        StmtItem@(src/main.t:67..79): ItemId(3)
+          Type@(src/main.t:67..79): "a"@(src/main.t:72..73)
+            Primitive@(src/main.t:76..79): Int
+error at src/main.t:31..32: `a` is already a forward declaration
+| note for src/main.t:10..11: previous forward declaration here
+| error for src/main.t:31..32: new one here

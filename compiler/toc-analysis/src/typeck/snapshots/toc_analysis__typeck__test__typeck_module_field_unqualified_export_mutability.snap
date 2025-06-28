@@ -1,9 +1,8 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "module a export ~. var b\n    var b : int\nend a\nb := 2"
 ---
-"a"@(FileId(1), 7..8) [Module(No)]: <error>
-"b"@(FileId(1), 33..34) [ConstVar(Var, No)]: int
-"b"@(FileId(1), 23..24) [Export]: int
-"<root>"@(dummy) [Module(No)]: <error>
-
+"a"@"src/main.t:7..8" [Module(No)]: <error>
+"b"@"src/main.t:33..34" [ConstVar(Var, No)]: int
+"b"@"src/main.t:23..24" [Export]: int
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>

@@ -1,16 +1,20 @@
 //! Constructed messages
 
 use std::collections::BTreeSet;
-use std::fmt;
+use std::fmt::{self};
 
 use toc_span::Span;
 
-use crate::{AnnotateKind, Annotation, Location, SourceAnnotation};
+use crate::WithDisplayLocations;
+use crate::{
+    AnnotateKind, Annotation, DisplayLocation, Location, SourceAnnotation,
+    display::DisplayWithLocations,
+};
 
 /// A bundle of messages
 ///
 /// Messages are already sorted by file, then by starting location
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, salsa::Update)]
 pub struct MessageBundle<L: Location = Span> {
     pub(crate) messages: Vec<ReportMessage<L>>,
 }
@@ -140,7 +144,7 @@ impl<L: Location> Default for MessageBundle<L> {
 }
 
 /// A reported message
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, salsa::Update)]
 pub struct ReportMessage<L: Location = Span> {
     pub(crate) header: SourceAnnotation<L>,
     pub(crate) annotations: Vec<SourceAnnotation<L>>,
@@ -188,17 +192,21 @@ impl<L: Location> ReportMessage<L> {
     }
 }
 
-impl<L: Location> fmt::Display for ReportMessage<L> {
+impl_with_display_locations!(ReportMessage);
+
+impl<M: DisplayLocation<L>, L: Location> fmt::Display
+    for DisplayWithLocations<&'_ ReportMessage<L>, M, L>
+{
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.header)?;
+        write!(f, "{}", self.item.header.display_spans(&self.mapper))?;
 
         // Report any annotations
-        for annotation in &self.annotations {
-            write!(f, "\n| {annotation:#}")?;
+        for annotation in &self.item.annotations {
+            write!(f, "\n| {:#}", annotation.display_spans(&self.mapper))?;
         }
 
         // Report any footer messages
-        for annotation in &self.footer {
+        for annotation in &self.item.footer {
             write!(f, "\n| {annotation:#}")?;
         }
 
@@ -385,13 +393,10 @@ mod tests {
     #[test]
     #[should_panic]
     fn assert_no_delayed_reports() {
-        let mut reporter = MessageSink::default();
+        let mut reporter = MessageSink::<FileRange>::default();
 
         reporter
-            .error_detailed(
-                "oops",
-                Span::new(toc_span::FileId::dummy(1), Default::default()),
-            )
+            .error_detailed("oops", Default::default())
             .report_delayed()
             .finish();
 

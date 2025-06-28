@@ -1,9 +1,6 @@
 ---
-source: compiler/toc_analysis/src/const_eval/test.rs
+source: compiler/toc-analysis/src/const_eval/test.rs
 expression: "const a : real := 1.0 const _:=a"
-
 ---
-"a"@(FileId(1), 6..7) -> Real(1.0)
-"_"@(FileId(1), 28..29) -> Real(1.0)
-
-
+"a"@"src/main.t:6..7" -> Real(1.0)
+"_"@"src/main.t:28..29" -> Real(1.0)

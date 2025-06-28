@@ -1,17 +1,14 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
-assertion_line: 59
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "type _ : function p2   (a : int, b : string) : addressint"
-
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(1)
-    Module@(FileId(1), 0..57): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..57): []
-        StmtItem@(FileId(1), 0..57): ItemId(0)
-          Type@(FileId(1), 0..57): "_"@(FileId(1), 5..6)
-            Function@(FileId(1), 9..57): [...]
-              Primitive@(FileId(1), 28..31): Int
-              Primitive@(FileId(1), 37..43): String
-              Primitive@(FileId(1), 47..57): AddressInt
-
+  Root@(dummy): src/main.t -> ItemId(1)
+    Module@(src/main.t:0..57): "<root>"@(dummy)
+      StmtBody@(src/main.t:0..57): []
+        StmtItem@(src/main.t:0..57): ItemId(0)
+          Type@(src/main.t:0..57): "_"@(src/main.t:5..6)
+            Function@(src/main.t:9..57): [...]
+              Primitive@(src/main.t:28..31): Int
+              Primitive@(src/main.t:37..43): String
+              Primitive@(src/main.t:47..57): AddressInt

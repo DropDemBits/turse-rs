@@ -3,11 +3,10 @@ source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "type alias : "
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(1)
-    Module@(FileId(1), 0..13): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..12): []
-        StmtItem@(FileId(1), 0..12): ItemId(0)
-          Type@(FileId(1), 0..12): "alias"@(FileId(1), 5..10)
-error at (FileId(1), 11..12): unexpected end of file
-| error for (FileId(1), 11..12): expected type specifier after here
-
+  Root@(dummy): src/main.t -> ItemId(1)
+    Module@(src/main.t:0..13): "<root>"@(dummy)
+      StmtBody@(src/main.t:0..12): []
+        StmtItem@(src/main.t:0..12): ItemId(0)
+          Type@(src/main.t:0..12): "alias"@(src/main.t:5..10)
+error at src/main.t:11..12: unexpected end of file
+| error for src/main.t:11..12: expected type specifier after here

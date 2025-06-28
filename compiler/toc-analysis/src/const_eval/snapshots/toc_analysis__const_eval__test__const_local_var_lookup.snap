@@ -1,10 +1,7 @@
 ---
-source: compiler/toc_analysis/src/const_eval/test.rs
+source: compiler/toc-analysis/src/const_eval/test.rs
 expression: "const a := 1\nconst b := a + 1\nconst c := b\n"
-
 ---
-"a"@(FileId(1), 17..18) -> Integer(ConstInt { magnitude: 1, sign: Positive, width: As32 })
-"b"@(FileId(1), 30..31) -> Integer(ConstInt { magnitude: 2, sign: Positive, width: As32 })
-"c"@(FileId(1), 47..48) -> Integer(ConstInt { magnitude: 2, sign: Positive, width: As32 })
-
-
+"a"@"src/main.t:17..18" -> Integer(ConstInt { magnitude: 1, sign: Positive, width: As32 })
+"b"@"src/main.t:30..31" -> Integer(ConstInt { magnitude: 2, sign: Positive, width: As32 })
+"c"@"src/main.t:47..48" -> Integer(ConstInt { magnitude: 2, sign: Positive, width: As32 })

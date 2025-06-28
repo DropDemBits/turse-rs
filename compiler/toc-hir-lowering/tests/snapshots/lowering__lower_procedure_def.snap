@@ -1,15 +1,12 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
-assertion_line: 59
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "\n    procedure no_params\n    end no_params"
-
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(1)
-    Module@(FileId(1), 0..42): "<root>"@(dummy)
-      StmtBody@(FileId(1), 5..42): []
-        StmtItem@(FileId(1), 5..42): ItemId(0)
-          Subprogram@(FileId(1), 5..42): "no_params"@(FileId(1), 15..24)
-            Void@(FileId(1), 5..24)
-            StmtBody@(FileId(1), 29..29): []
-
+  Root@(dummy): src/main.t -> ItemId(1)
+    Module@(src/main.t:0..42): "<root>"@(dummy)
+      StmtBody@(src/main.t:5..42): []
+        StmtItem@(src/main.t:5..42): ItemId(0)
+          Subprogram@(src/main.t:5..42): "no_params"@(src/main.t:15..24)
+            Void@(src/main.t:5..24)
+            StmtBody@(src/main.t:29..29): []

@@ -15,28 +15,15 @@ use toc_hir::{
     symbol::{DefId, DefOwner, DefTable, SymbolKind},
     ty::{self, TypeOwners},
 };
-use upcast::{Upcast, UpcastFrom};
 
 pub mod db;
 mod query;
 
-#[salsa::jar(db = Db)]
-pub struct Jar(
-    query::hir_package,
-    query::defs_of,
-    query::bodies_of,
-    query::body_owners_of,
-    query::type_owners_of,
-    query::module_tree_of,
-    query::is_module_ancestor,
-);
-
 // These are still routed through the db trait instead of being called directly
 // since that would require changing a whole lot of places
 /// HIR tree related queries
-pub trait Db:
-    salsa::DbWithJar<Jar> + toc_hir_lowering::Db + Upcast<dyn toc_hir_lowering::Db>
-{
+#[salsa::db]
+pub trait Db: toc_hir_lowering::Db {
     /// Get the package associated with the given id
     fn package(&self, package: PackageId) -> LoweredPackage;
 
@@ -101,9 +88,10 @@ pub trait Db:
     fn symbol_kind(&self, def_id: DefId) -> Option<SymbolKind>;
 }
 
+#[salsa::db]
 impl<DB> Db for DB
 where
-    DB: salsa::DbWithJar<Jar> + toc_hir_lowering::Db + Upcast<dyn toc_hir_lowering::Db>,
+    DB: toc_hir_lowering::Db,
 {
     fn package(&self, package: PackageId) -> LoweredPackage {
         query::hir_package(self, package.0)
@@ -171,14 +159,5 @@ where
 
     fn symbol_kind(&self, def_id: DefId) -> Option<SymbolKind> {
         query::symbol_kind(self, def_id)
-    }
-}
-
-impl<'db, DB: Db + 'db> UpcastFrom<DB> for dyn Db + 'db {
-    fn up_from(value: &DB) -> &Self {
-        value
-    }
-    fn up_from_mut(value: &mut DB) -> &mut Self {
-        value
     }
 }

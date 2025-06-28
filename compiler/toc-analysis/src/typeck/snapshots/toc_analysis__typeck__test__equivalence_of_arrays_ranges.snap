@@ -2,19 +2,19 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "% over array ranges\nvar a : array 0+1..1 of int\nvar b : array 0+2..2 of int\nvar c : array 0+1..1 of int\n\n% ranges must be equivalent\na := b % not equivalent\na := c % is equivalent\n\nvar d : array 0+1..1, 0+2..2 of char\nvar e : array 0+1..1 of char\nvar f : array 0+1..1, 0+2..2 of char\n\n% must have the same number of ranges\nd := e\nd := f\n"
 ---
-"a"@(FileId(1), 24..25) [ConstVar(Var, No)]: array ( range of `int` (Unevaluated(PackageId(0), BodyId(0)) .. Expr(Unevaluated(PackageId(0), BodyId(1)), Yes)), ) of int
-"b"@(FileId(1), 52..53) [ConstVar(Var, No)]: array ( range of `int` (Unevaluated(PackageId(0), BodyId(2)) .. Expr(Unevaluated(PackageId(0), BodyId(3)), Yes)), ) of int
-"c"@(FileId(1), 80..81) [ConstVar(Var, No)]: array ( range of `int` (Unevaluated(PackageId(0), BodyId(4)) .. Expr(Unevaluated(PackageId(0), BodyId(5)), Yes)), ) of int
-"d"@(FileId(1), 185..186) [ConstVar(Var, No)]: array ( range of `int` (Unevaluated(PackageId(0), BodyId(6)) .. Expr(Unevaluated(PackageId(0), BodyId(7)), Yes)), range of `int` (Unevaluated(PackageId(0), BodyId(8)) .. Expr(Unevaluated(PackageId(0), BodyId(9)), Yes)), ) of char
-"e"@(FileId(1), 222..223) [ConstVar(Var, No)]: array ( range of `int` (Unevaluated(PackageId(0), BodyId(10)) .. Expr(Unevaluated(PackageId(0), BodyId(11)), Yes)), ) of char
-"f"@(FileId(1), 251..252) [ConstVar(Var, No)]: array ( range of `int` (Unevaluated(PackageId(0), BodyId(12)) .. Expr(Unevaluated(PackageId(0), BodyId(13)), Yes)), range of `int` (Unevaluated(PackageId(0), BodyId(14)) .. Expr(Unevaluated(PackageId(0), BodyId(15)), Yes)), ) of char
-"<root>"@(dummy) [Module(No)]: <error>
+"a"@"src/main.t:24..25" [ConstVar(Var, No)]: array ( range of `int` (Unevaluated(PackageId(3072), BodyId(0)) .. Expr(Unevaluated(PackageId(3072), BodyId(1)), Yes)), ) of int
+"b"@"src/main.t:52..53" [ConstVar(Var, No)]: array ( range of `int` (Unevaluated(PackageId(3072), BodyId(2)) .. Expr(Unevaluated(PackageId(3072), BodyId(3)), Yes)), ) of int
+"c"@"src/main.t:80..81" [ConstVar(Var, No)]: array ( range of `int` (Unevaluated(PackageId(3072), BodyId(4)) .. Expr(Unevaluated(PackageId(3072), BodyId(5)), Yes)), ) of int
+"d"@"src/main.t:185..186" [ConstVar(Var, No)]: array ( range of `int` (Unevaluated(PackageId(3072), BodyId(6)) .. Expr(Unevaluated(PackageId(3072), BodyId(7)), Yes)), range of `int` (Unevaluated(PackageId(3072), BodyId(8)) .. Expr(Unevaluated(PackageId(3072), BodyId(9)), Yes)), ) of char
+"e"@"src/main.t:222..223" [ConstVar(Var, No)]: array ( range of `int` (Unevaluated(PackageId(3072), BodyId(10)) .. Expr(Unevaluated(PackageId(3072), BodyId(11)), Yes)), ) of char
+"f"@"src/main.t:251..252" [ConstVar(Var, No)]: array ( range of `int` (Unevaluated(PackageId(3072), BodyId(12)) .. Expr(Unevaluated(PackageId(3072), BodyId(13)), Yes)), range of `int` (Unevaluated(PackageId(3072), BodyId(14)) .. Expr(Unevaluated(PackageId(3072), BodyId(15)), Yes)), ) of char
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 135..137): mismatched types
-| note for (FileId(1), 138..139): this is of type `array 2 .. 2 of int`
-| note for (FileId(1), 133..134): this is of type `array 1 .. 1 of int`
+error at src/main.t:135..137: mismatched types
+| note for src/main.t:138..139: this is of type `array 2 .. 2 of int`
+| note for src/main.t:133..134: this is of type `array 1 .. 1 of int`
 | info: `array 2 .. 2 of int` is not assignable into `array 1 .. 1 of int`
-error at (FileId(1), 325..327): mismatched types
-| note for (FileId(1), 328..329): this is of type `array 1 .. 1 of char`
-| note for (FileId(1), 323..324): this is of type `array 1 .. 1, 2 .. 2 of char`
+error at src/main.t:325..327: mismatched types
+| note for src/main.t:328..329: this is of type `array 1 .. 1 of char`
+| note for src/main.t:323..324: this is of type `array 1 .. 1, 2 .. 2 of char`
 | info: `array 1 .. 1 of char` is not assignable into `array 1 .. 1, 2 .. 2 of char`

@@ -1,8 +1,5 @@
 ---
-source: compiler/toc_analysis/src/const_eval/test.rs
+source: compiler/toc-analysis/src/const_eval/test.rs
 expression: true => false
-
 ---
-"_"@(FileId(1), 6..7) -> Bool(false)
-
-
+"_"@"src/main.t:6..7" -> Bool(false)

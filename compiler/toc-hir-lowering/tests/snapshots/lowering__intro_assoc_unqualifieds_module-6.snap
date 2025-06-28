@@ -3,28 +3,27 @@ source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "\nmodule wrap\n    export ~. uwu\n    module uwu\n        export ~. uwu\n        var uwu : int\n    end uwu\nend wrap\n\nmodule target\n    import uwu\nend target\n    "
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(5)
-    Module@(FileId(1), 0..156): "<root>"@(dummy)
-      StmtBody@(FileId(1), 1..151): []
-        StmtItem@(FileId(1), 1..110): ItemId(2)
-          Module@(FileId(1), 1..110): "wrap"@(FileId(1), 8..12), exports [Const Unqualified local("uwu"@(FileId(1), 42..45))]
-            StmtBody@(FileId(1), 35..101): []
-              StmtItem@(FileId(1), 35..101): ItemId(1)
-                Module@(FileId(1), 35..101): "uwu"@(FileId(1), 42..45), exports [Const Unqualified local("uwu"@(FileId(1), 80..83))]
-                  StmtBody@(FileId(1), 76..89): []
-                    StmtItem@(FileId(1), 76..89): ItemId(0)
-                      ConstVar@(FileId(1), 76..89): var "uwu"@(FileId(1), 80..83)
-                        Primitive@(FileId(1), 86..89): Int
-        StmtItem@(FileId(1), 112..151): ItemId(4)
-          Module@(FileId(1), 112..151): "target"@(FileId(1), 119..125)
-            Import@(FileId(1), 137..140): SameAsItem local("uwu"@(FileId(1), 27..30))
-            StmtBody@(FileId(1), 141..141): []
-error at (FileId(1), 80..83): `uwu` is already declared in this scope
-| note for (FileId(1), 42..45): `uwu` previously declared here
-| error for (FileId(1), 80..83): `uwu` redeclared here
-error at (FileId(1), 80..83): `uwu` is already declared in the parent scope
-| note for (FileId(1), 42..45): `uwu` previously declared here
-| error for (FileId(1), 64..67): `uwu` exported unqualified from here
-error at (FileId(1), 137..140): `uwu` is already declared in this import
-| error for (FileId(1), 137..140): `uwu` is imported here, and it has an unqualified export of the same name
-
+  Root@(dummy): src/main.t -> ItemId(5)
+    Module@(src/main.t:0..156): "<root>"@(dummy)
+      StmtBody@(src/main.t:1..151): []
+        StmtItem@(src/main.t:1..110): ItemId(2)
+          Module@(src/main.t:1..110): "wrap"@(src/main.t:8..12), exports [Const Unqualified local("uwu"@(src/main.t:42..45))]
+            StmtBody@(src/main.t:35..101): []
+              StmtItem@(src/main.t:35..101): ItemId(1)
+                Module@(src/main.t:35..101): "uwu"@(src/main.t:42..45), exports [Const Unqualified local("uwu"@(src/main.t:80..83))]
+                  StmtBody@(src/main.t:76..89): []
+                    StmtItem@(src/main.t:76..89): ItemId(0)
+                      ConstVar@(src/main.t:76..89): var "uwu"@(src/main.t:80..83)
+                        Primitive@(src/main.t:86..89): Int
+        StmtItem@(src/main.t:112..151): ItemId(4)
+          Module@(src/main.t:112..151): "target"@(src/main.t:119..125)
+            Import@(src/main.t:137..140): SameAsItem local("uwu"@(src/main.t:27..30))
+            StmtBody@(src/main.t:141..141): []
+error at src/main.t:80..83: `uwu` is already declared in this scope
+| note for src/main.t:42..45: `uwu` previously declared here
+| error for src/main.t:80..83: `uwu` redeclared here
+error at src/main.t:80..83: `uwu` is already declared in the parent scope
+| note for src/main.t:42..45: `uwu` previously declared here
+| error for src/main.t:64..67: `uwu` exported unqualified from here
+error at src/main.t:137..140: `uwu` is already declared in this import
+| error for src/main.t:137..140: `uwu` is imported here, and it has an unqualified export of the same name

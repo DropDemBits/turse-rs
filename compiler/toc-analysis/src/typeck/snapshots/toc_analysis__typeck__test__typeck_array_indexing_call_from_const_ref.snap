@@ -2,8 +2,8 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "const a : array 1..* of int := init(1)\na(1) := 1"
 ---
-"a"@(FileId(1), 6..7) [ConstVar(Const, No)]: array ( range of `int` (Unevaluated(PackageId(0), BodyId(0)) .. Unsized(1)), ) of int
-"<root>"@(dummy) [Module(No)]: <error>
+"a"@"src/main.t:6..7" [ConstVar(Const, No)]: array ( range of `int` (Unevaluated(PackageId(3072), BodyId(0)) .. Unsized(1)), ) of int
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 44..46): cannot assign into expression
-| error for (FileId(1), 39..43): not a reference to a variable
+error at src/main.t:44..46: cannot assign into expression
+| error for src/main.t:39..43: not a reference to a variable

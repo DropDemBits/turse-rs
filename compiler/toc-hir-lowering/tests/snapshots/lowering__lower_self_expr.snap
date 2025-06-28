@@ -3,14 +3,13 @@ source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "const a := self"
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(1)
-    Module@(FileId(1), 0..15): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..15): []
-        StmtItem@(FileId(1), 0..15): ItemId(0)
-          ConstVar@(FileId(1), 0..15): const "a"@(FileId(1), 6..7)
-            ExprBody@(FileId(1), 11..15)
-error at (FileId(1), 11..15): unsupported expression
-| error for (FileId(1), 11..15): this expression is not supported yet
-error at (FileId(1), 11..15): cannot use `self` here
-| error for (FileId(1), 11..15): `self` is only allowed inside of class subprograms
-
+  Root@(dummy): src/main.t -> ItemId(1)
+    Module@(src/main.t:0..15): "<root>"@(dummy)
+      StmtBody@(src/main.t:0..15): []
+        StmtItem@(src/main.t:0..15): ItemId(0)
+          ConstVar@(src/main.t:0..15): const "a"@(src/main.t:6..7)
+            ExprBody@(src/main.t:11..15)
+error at src/main.t:11..15: unsupported expression
+| error for src/main.t:11..15: this expression is not supported yet
+error at src/main.t:11..15: cannot use `self` here
+| error for src/main.t:11..15: `self` is only allowed inside of class subprograms

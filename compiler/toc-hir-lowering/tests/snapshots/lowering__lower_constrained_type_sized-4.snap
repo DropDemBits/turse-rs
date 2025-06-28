@@ -3,14 +3,13 @@ source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "var _ : .."
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(1)
-    Module@(FileId(1), 0..10): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..10): []
-        StmtItem@(FileId(1), 0..10): ItemId(0)
-          ConstVar@(FileId(1), 0..10): var "_"@(FileId(1), 4..5)
-            Constrained@(FileId(1), 8..10): end => Expr
+  Root@(dummy): src/main.t -> ItemId(1)
+    Module@(src/main.t:0..10): "<root>"@(dummy)
+      StmtBody@(src/main.t:0..10): []
+        StmtItem@(src/main.t:0..10): ItemId(0)
+          ConstVar@(src/main.t:0..10): var "_"@(src/main.t:4..5)
+            Constrained@(src/main.t:8..10): end => Expr
               ExprBody@(dummy)
               ExprBody@(dummy)
-error at (FileId(1), 8..10): unexpected token
-| error for (FileId(1), 8..10): expected expression, but found `..`
-
+error at src/main.t:8..10: unexpected token
+| error for src/main.t:8..10: expected expression, but found `..`

@@ -2,30 +2,30 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "const N := 256\nvar c : char\nvar c5 : char(5)\nvar c257 : char(257)\nvar s5 : string(5)\n\nvar _e00 : char(N) := c\nvar _e01 : char(N) := c5\nvar _e01 : char(N) := c257\nvar _e02 : char(N) := s5 % [not captured by ctc]\n"
 ---
-"N"@(FileId(1), 6..7) [ConstVar(Const, No)]: int
-"c"@(FileId(1), 19..20) [ConstVar(Var, No)]: char
-"c5"@(FileId(1), 32..34) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(1)))
-"c257"@(FileId(1), 49..53) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(2)))
-"s5"@(FileId(1), 70..72) [ConstVar(Var, No)]: string_n Fixed(Unevaluated(PackageId(0), BodyId(3)))
-"_e00"@(FileId(1), 90..94) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(4)))
-"_e01"@(FileId(1), 114..118) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(6)))
-"_e01"@(FileId(1), 139..143) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(8)))
-"_e02"@(FileId(1), 166..170) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(10)))
-"<root>"@(dummy) [Module(No)]: <error>
+"N"@"src/main.t:6..7" [ConstVar(Const, No)]: int
+"c"@"src/main.t:19..20" [ConstVar(Var, No)]: char
+"c5"@"src/main.t:32..34" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(3072), BodyId(1)))
+"c257"@"src/main.t:49..53" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(3072), BodyId(2)))
+"s5"@"src/main.t:70..72" [ConstVar(Var, No)]: string_n Fixed(Unevaluated(PackageId(3072), BodyId(3)))
+"_e00"@"src/main.t:90..94" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(3072), BodyId(4)))
+"_e01"@"src/main.t:114..118" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(3072), BodyId(6)))
+"_e01"@"src/main.t:139..143" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(3072), BodyId(8)))
+"_e02"@"src/main.t:166..170" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(3072), BodyId(10)))
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 108..109): mismatched types
-| note for (FileId(1), 108..109): this is of type `char`
-| note for (FileId(1), 97..104): this is of type `char(256)`
+error at src/main.t:108..109: mismatched types
+| note for src/main.t:108..109: this is of type `char`
+| note for src/main.t:97..104: this is of type `char(256)`
 | info: `char` is not assignable into `char(256)`
-error at (FileId(1), 132..134): mismatched types
-| note for (FileId(1), 132..134): this is of type `char(5)`
-| note for (FileId(1), 121..128): this is of type `char(256)`
+error at src/main.t:132..134: mismatched types
+| note for src/main.t:132..134: this is of type `char(5)`
+| note for src/main.t:121..128: this is of type `char(256)`
 | info: `char(5)` is not assignable into `char(256)`
-error at (FileId(1), 157..161): mismatched types
-| note for (FileId(1), 157..161): this is of type `char(257)`
-| note for (FileId(1), 146..153): this is of type `char(256)`
+error at src/main.t:157..161: mismatched types
+| note for src/main.t:157..161: this is of type `char(257)`
+| note for src/main.t:146..153: this is of type `char(256)`
 | info: `char(257)` is not assignable into `char(256)`
-error at (FileId(1), 184..186): mismatched types
-| note for (FileId(1), 184..186): this is of type `string(5)`
-| note for (FileId(1), 173..180): this is of type `char(256)`
+error at src/main.t:184..186: mismatched types
+| note for src/main.t:184..186: this is of type `string(5)`
+| note for src/main.t:173..180: this is of type `char(256)`
 | info: `string(5)` is not assignable into `char(256)`

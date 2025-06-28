@@ -47,7 +47,7 @@ impl ValidateCtx {
         &mut self,
         msg: impl Into<String>,
         span: FileRange,
-    ) -> MessageBuilder<FileRange> {
+    ) -> MessageBuilder<'_, FileRange> {
         self.sink.error_detailed(msg.into(), span)
     }
 

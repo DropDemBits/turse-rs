@@ -3,14 +3,13 @@ source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "type _ : function amphy : int"
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(1)
-    Module@(FileId(1), 0..29): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..29): []
-        StmtItem@(FileId(1), 0..29): ItemId(0)
-          Type@(FileId(1), 0..29): "_"@(FileId(1), 5..6)
-            Function@(FileId(1), 9..29): [no params]
-              Primitive@(FileId(1), 26..29): Int
-warn at (FileId(1), 9..29): parameterless function types should specify `()`
-| warn for (FileId(1), 18..23): add `()` after here
+  Root@(dummy): src/main.t -> ItemId(1)
+    Module@(src/main.t:0..29): "<root>"@(dummy)
+      StmtBody@(src/main.t:0..29): []
+        StmtItem@(src/main.t:0..29): ItemId(0)
+          Type@(src/main.t:0..29): "_"@(src/main.t:5..6)
+            Function@(src/main.t:9..29): [no params]
+              Primitive@(src/main.t:26..29): Int
+warn at src/main.t:9..29: parameterless function types should specify `()`
+| warn for src/main.t:18..23: add `()` after here
 | info: referring to a parameterless function will call it instead of producing a reference to it
-

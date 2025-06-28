@@ -2,27 +2,27 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "% Both should fail\nfor c : 1.0 .. 1 var k : int := c end for\nfor c : 1 .. 1.0 var k : int := c end for\n"
 ---
-"c"@(FileId(1), 23..24) [ConstVar(Const, No)]: real
-"k"@(FileId(1), 40..41) [ConstVar(Var, No)]: int
-"c"@(FileId(1), 65..66) [ConstVar(Const, No)]: real
-"k"@(FileId(1), 82..83) [ConstVar(Var, No)]: int
-"<root>"@(dummy) [Module(No)]: <error>
+"c"@"src/main.t:23..24" [ConstVar(Const, No)]: real
+"k"@"src/main.t:40..41" [ConstVar(Var, No)]: int
+"c"@"src/main.t:65..66" [ConstVar(Const, No)]: real
+"k"@"src/main.t:82..83" [ConstVar(Var, No)]: int
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 27..35): mismatched types
-| note for (FileId(1), 34..35): this is of type `{integer}`
-| note for (FileId(1), 27..30): this is of type `real`
-| error for (FileId(1), 27..35): expected index types
+error at src/main.t:27..35: mismatched types
+| note for src/main.t:34..35: this is of type `{integer}`
+| note for src/main.t:27..30: this is of type `real`
+| error for src/main.t:27..35: expected index types
 | info: range bounds types must both be index types (an integer, `boolean`, `char`, enumerated type, or a range)
-error at (FileId(1), 51..52): mismatched types
-| note for (FileId(1), 51..52): this is of type `real`
-| note for (FileId(1), 44..47): this is of type `int`
+error at src/main.t:51..52: mismatched types
+| note for src/main.t:51..52: this is of type `real`
+| note for src/main.t:44..47: this is of type `int`
 | info: `real` is not assignable into `int`
-error at (FileId(1), 69..77): mismatched types
-| note for (FileId(1), 74..77): this is of type `real`
-| note for (FileId(1), 69..70): this is of type `{integer}`
-| error for (FileId(1), 69..77): expected index types
+error at src/main.t:69..77: mismatched types
+| note for src/main.t:74..77: this is of type `real`
+| note for src/main.t:69..70: this is of type `{integer}`
+| error for src/main.t:69..77: expected index types
 | info: range bounds types must both be index types (an integer, `boolean`, `char`, enumerated type, or a range)
-error at (FileId(1), 93..94): mismatched types
-| note for (FileId(1), 93..94): this is of type `real`
-| note for (FileId(1), 86..89): this is of type `int`
+error at src/main.t:93..94: mismatched types
+| note for src/main.t:93..94: this is of type `real`
+| note for src/main.t:86..89: this is of type `int`
 | info: `real` is not assignable into `int`

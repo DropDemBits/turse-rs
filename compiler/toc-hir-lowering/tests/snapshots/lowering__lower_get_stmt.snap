@@ -3,11 +3,10 @@ source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: get a
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(0)
-    Module@(FileId(1), 0..5): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..5): []
-        Get@(FileId(1), 0..5)
-          Name@(FileId(1), 4..5): "a"@(FileId(1), 4..5), undeclared
-error at (FileId(1), 4..5): `a` is undeclared
-| error for (FileId(1), 4..5): no definitions of `a` are in scope
-
+  Root@(dummy): src/main.t -> ItemId(0)
+    Module@(src/main.t:0..5): "<root>"@(dummy)
+      StmtBody@(src/main.t:0..5): []
+        Get@(src/main.t:0..5)
+          Name@(src/main.t:4..5): "a"@(src/main.t:4..5), undeclared
+error at src/main.t:4..5: `a` is undeclared
+| error for src/main.t:4..5: no definitions of `a` are in scope

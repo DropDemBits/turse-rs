@@ -5,7 +5,7 @@ use std::cell::RefCell;
 
 use toc_hir::package::{LoweredPackage, PackageId};
 use toc_hir_db::Db;
-use toc_reporting::{MessageBundle, MessageSink};
+use toc_reporting::{MessageBundle, MessageSink, WithDisplayLocations};
 use unindent::unindent;
 
 use crate::{const_eval::Const, db::ConstEval, test_db::TestDb, ty};
@@ -77,14 +77,15 @@ fn do_const_eval(source: &str) -> String {
                 format!(
                     "{:?}@{:?}",
                     def_info.name,
-                    def_info.def_at.lookup_in(&self.package)
+                    self.db
+                        .span_to_location(def_info.def_at.lookup_in(&self.package))
                 )
             };
 
             let results = match eval_res {
                 Ok(v) => format!("{name} -> {v:?}\n"),
                 Err(err) => {
-                    let text = format!("{name} -> {err:?}\n");
+                    let text = format!("{name} -> <error {:?}>\n", err.kind());
                     err.report_to(self.db, &mut self.reporter.borrow_mut());
                     text
                 }
@@ -101,10 +102,10 @@ fn do_const_eval(source: &str) -> String {
     let results = results.into_inner();
 
     // Errors are bundled into the const error context
-    stringify_const_eval_results(&results, reporter.finish())
+    stringify_const_eval_results(&db, &results, reporter.finish())
 }
 
-fn stringify_const_eval_results(results: &str, messages: MessageBundle) -> String {
+fn stringify_const_eval_results(db: &TestDb, results: &str, messages: MessageBundle) -> String {
     use std::fmt::Write;
 
     // Pretty print const eval ctx
@@ -114,7 +115,7 @@ fn stringify_const_eval_results(results: &str, messages: MessageBundle) -> Strin
 
     // Pretty print the messages
     for err in messages.iter() {
-        writeln!(&mut s, "{err}").unwrap();
+        writeln!(&mut s, "{}", err.display_spans(db.location_display())).unwrap();
     }
 
     s

@@ -3,28 +3,27 @@ source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "type _ : function _ (function a (function a : int ) : int, proc b (proc a (proc a( proc a))), proc c) : int"
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(1)
-    Module@(FileId(1), 0..107): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..107): []
-        StmtItem@(FileId(1), 0..107): ItemId(0)
-          Type@(FileId(1), 0..107): "_"@(FileId(1), 5..6)
-            Function@(FileId(1), 9..107): [...]
-              Function@(FileId(1), 21..57): [...]
-                Function@(FileId(1), 33..49): [no params]
-                  Primitive@(FileId(1), 46..49): Int
-                Primitive@(FileId(1), 54..57): Int
-              Procedure@(FileId(1), 59..92): [...]
-                Procedure@(FileId(1), 67..91): [...]
-                  Procedure@(FileId(1), 75..90): [...]
-                    Procedure@(FileId(1), 83..89): [no params]
-                      Void@(FileId(1), 83..89)
-                    Void@(FileId(1), 75..90)
-                  Void@(FileId(1), 67..91)
-                Void@(FileId(1), 59..92)
-              Procedure@(FileId(1), 94..100): [no params]
-                Void@(FileId(1), 94..100)
-              Primitive@(FileId(1), 104..107): Int
-warn at (FileId(1), 33..49): parameterless function types should specify `()`
-| warn for (FileId(1), 42..43): add `()` after here
+  Root@(dummy): src/main.t -> ItemId(1)
+    Module@(src/main.t:0..107): "<root>"@(dummy)
+      StmtBody@(src/main.t:0..107): []
+        StmtItem@(src/main.t:0..107): ItemId(0)
+          Type@(src/main.t:0..107): "_"@(src/main.t:5..6)
+            Function@(src/main.t:9..107): [...]
+              Function@(src/main.t:21..57): [...]
+                Function@(src/main.t:33..49): [no params]
+                  Primitive@(src/main.t:46..49): Int
+                Primitive@(src/main.t:54..57): Int
+              Procedure@(src/main.t:59..92): [...]
+                Procedure@(src/main.t:67..91): [...]
+                  Procedure@(src/main.t:75..90): [...]
+                    Procedure@(src/main.t:83..89): [no params]
+                      Void@(src/main.t:83..89)
+                    Void@(src/main.t:75..90)
+                  Void@(src/main.t:67..91)
+                Void@(src/main.t:59..92)
+              Procedure@(src/main.t:94..100): [no params]
+                Void@(src/main.t:94..100)
+              Primitive@(src/main.t:104..107): Int
+warn at src/main.t:33..49: parameterless function types should specify `()`
+| warn for src/main.t:42..43: add `()` after here
 | info: referring to a parameterless function will call it instead of producing a reference to it
-

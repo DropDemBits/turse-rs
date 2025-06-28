@@ -12,6 +12,7 @@ edition.workspace = true
 indexmap = { workspace = true }
 internment = "0.8"
 la-arena = "0.3"
+salsa.workspace = true
 toc-span = { workspace = true }
 toc-source-graph = { workspace = true }
 

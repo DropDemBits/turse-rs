@@ -1,8 +1,5 @@
 ---
-source: compiler/toc_analysis/src/const_eval/test.rs
+source: compiler/toc-analysis/src/const_eval/test.rs
 expression: "-3.0 mod -10.5   % -3"
-
 ---
-"_"@(FileId(1), 6..7) -> Real(-3.0)
-
-
+"_"@"src/main.t:6..7" -> Real(-3.0)

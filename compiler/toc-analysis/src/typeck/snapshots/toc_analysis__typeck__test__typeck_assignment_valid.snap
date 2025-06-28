@@ -1,8 +1,7 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "const j : int := 2\nvar k : int := 1\nk := j\n"
 ---
-"j"@(FileId(1), 6..7) [ConstVar(Const, No)]: int
-"k"@(FileId(1), 23..24) [ConstVar(Var, No)]: int
-"<root>"@(dummy) [Module(No)]: <error>
-
+"j"@"src/main.t:6..7" [ConstVar(Const, No)]: int
+"k"@"src/main.t:23..24" [ConstVar(Var, No)]: int
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>

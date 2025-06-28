@@ -277,8 +277,8 @@ impl TypeId {
 ///
 /// This is a symmetric relation.
 pub fn is_equivalent(db: &dyn db::ConstEval, left: TypeId, right: TypeId) -> bool {
-    let left = left.peel_aliases(db.up());
-    let right = right.peel_aliases(db.up());
+    let left = left.peel_aliases(db);
+    let right = right.peel_aliases(db);
 
     // Quick bailout
     if left == right {
@@ -286,7 +286,7 @@ pub fn is_equivalent(db: &dyn db::ConstEval, left: TypeId, right: TypeId) -> boo
         return true;
     }
 
-    match (left.kind(db.up()), right.kind(db.up())) {
+    match (left.kind(db), right.kind(db)) {
         // Error types get treated as equivalent to everything
         (TypeKind::Error, _) | (_, TypeKind::Error) => true,
 
@@ -505,18 +505,18 @@ pub fn is_equivalent(db: &dyn db::ConstEval, left: TypeId, right: TypeId) -> boo
 /// into `char(*)` and `string(*)`, with this property also being transitive
 /// over arrays and ranges.
 pub fn is_coercible_into_param(db: &dyn db::ConstEval, lhs: TypeId, rhs: TypeId) -> bool {
-    let left = lhs.peel_aliases(db.up());
-    let right = rhs.peel_aliases(db.up());
+    let left = lhs.peel_aliases(db);
+    let right = rhs.peel_aliases(db);
 
     // Equivalent types imply trivial coercion
     if is_equivalent(db, left, right) {
         return true;
     }
 
-    match (left.kind(db.up()), right.kind(db.up())) {
+    match (left.kind(db), right.kind(db)) {
         // CharSeq-likes are coercible into the corresponding any-sized CharSeq
-        (TypeKind::CharN(SeqSize::Any), _) => right.kind(db.up()).is_char_like(),
-        (TypeKind::StringN(SeqSize::Any), _) => right.kind(db.up()).is_string_like(),
+        (TypeKind::CharN(SeqSize::Any), _) => right.kind(db).is_char_like(),
+        (TypeKind::StringN(SeqSize::Any), _) => right.kind(db).is_string_like(),
         // Arrays are coercible if the ranges and elem ty are
         (
             TypeKind::Array(left_sizing, left_ranges, left_elem),
@@ -678,8 +678,8 @@ pub fn is_coercible_into(db: &dyn db::ConstEval, lhs: TypeId, rhs: TypeId) -> bo
     // | String(*) [runtime checked]
     //
 
-    let left = lhs.to_base_type(db.up());
-    let right = rhs.to_base_type(db.up());
+    let left = lhs.to_base_type(db);
+    let right = rhs.to_base_type(db);
 
     /// Gets a sequence size suitable for coercion checking.
     /// All errors (overflow, other const error) and dynamic sizes are ignored.
@@ -700,7 +700,7 @@ pub fn is_coercible_into(db: &dyn db::ConstEval, lhs: TypeId, rhs: TypeId) -> bo
         return true;
     }
 
-    match (left.kind(db.up()), right.kind(db.up())) {
+    match (left.kind(db), right.kind(db)) {
         // Integer types can be coerced to each other
         (TypeKind::Nat(_) | TypeKind::Int(_), rhs) if rhs.is_integer() => true,
 
@@ -1239,11 +1239,11 @@ pub fn check_binary_op(
     // Use the peeled versions of the types for reporting
     let mk_type_error = move || Err(InvalidBinaryOp { left, op, right });
 
-    let left = left.to_base_type(db.up());
-    let right = right.to_base_type(db.up());
+    let left = left.to_base_type(db);
+    let right = right.to_base_type(db);
 
     // Start from the inference code
-    match infer_binary_op(db.up(), left, op, right) {
+    match infer_binary_op(db, left, op, right) {
         InferTy::Complete(_) => return Ok(()),
         InferTy::Error(_) => return mk_type_error(),
         InferTy::Partial(_) => (),
@@ -1259,7 +1259,7 @@ pub fn check_binary_op(
             // - Set intersection
 
             // Set types must be equivalent
-            if is_equivalent(db, left, right) && left.kind(db.up()).is_set() {
+            if is_equivalent(db, left, right) && left.kind(db).is_set() {
                 Ok(())
             } else {
                 mk_type_error()
@@ -1277,7 +1277,7 @@ pub fn check_binary_op(
             // - Set sub/supersets (set, set => boolean)
             // x Class hierarchy (class, class => boolean)
 
-            match (left.kind(db.up()), right.kind(db.up())) {
+            match (left.kind(db), right.kind(db)) {
                 // All numbers are comparable to each other
                 (lhs, rhs) if lhs.is_number() && rhs.is_number() => Ok(()),
                 // Charseqs that can be coerced to a sized type are comparable
@@ -1306,7 +1306,7 @@ pub fn check_binary_op(
             // - Set equality (set, set => boolean)
             // - Scalar equality (scalar, scalar => boolean)
 
-            match (left.kind(db.up()), right.kind(db.up())) {
+            match (left.kind(db), right.kind(db)) {
                 // All numbers are comparable to each other
                 (lhs, rhs) if lhs.is_number() && rhs.is_number() => Ok(()),
                 // Charseqs that can be coerced to a sized type are comparable
@@ -1340,7 +1340,7 @@ pub fn check_binary_op(
         // Set membership tests (a, set(a) => boolean)
         expr::BinaryOp::In | expr::BinaryOp::NotIn => {
             // `right` must be a set
-            let TypeKind::Set(_, elem_ty) = right.kind(db.up()) else {
+            let TypeKind::Set(_, elem_ty) = right.kind(db) else {
                 return mk_type_error();
             };
 
@@ -1473,10 +1473,9 @@ pub fn report_invalid_bin_op(
     } = err;
 
     // Try logical operation if either is a boolean
-    let is_logical = left_ty.kind(db.up()).is_boolean() || right_ty.kind(db.up()).is_boolean();
+    let is_logical = left_ty.kind(db).is_boolean() || right_ty.kind(db).is_boolean();
     // Try string concat operation if either is a charseq
-    let is_string_concat =
-        left_ty.kind(db.up()).is_charseq() || right_ty.kind(db.up()).is_charseq();
+    let is_string_concat = left_ty.kind(db).is_charseq() || right_ty.kind(db).is_charseq();
 
     let op_name = match op {
         expr::BinaryOp::Add if is_string_concat => "string concatenation",
@@ -1533,17 +1532,14 @@ pub fn report_invalid_bin_op(
         | expr::BinaryOp::NotIn
         | expr::BinaryOp::Imply => "compared to",
     };
-    let (peeled_left, peeled_right) = (
-        left_ty.to_base_type(db.up()),
-        right_ty.to_base_type(db.up()),
-    );
+    let (peeled_left, peeled_right) = (left_ty.to_base_type(db), right_ty.to_base_type(db));
 
     // Specialize message for set member ops
     if matches!(op, expr::BinaryOp::In | expr::BinaryOp::NotIn) {
         // Set membership tests (set(a), a => boolean)
-        if let TypeKind::Set(_, elem_ty) = peeled_right.kind(db.up()) {
+        if let TypeKind::Set(_, elem_ty) = peeled_right.kind(db) {
             // Incompatible element types
-            let elem_ty = elem_ty.to_base_type(db.up());
+            let elem_ty = elem_ty.to_base_type(db);
 
             reporter
                 .error_detailed(format!("mismatched types for {op_name}"), op_span)
@@ -1649,7 +1645,7 @@ pub fn report_invalid_bin_op(
                 msg.with_info("operands must both be scalars, sets, or strings")
             } else {
                 // Specialize for pointers of different checkedness
-                match (peeled_left.kind(db.up()), peeled_right.kind(db.up())) {
+                match (peeled_left.kind(db), peeled_right.kind(db)) {
                     (
                         TypeKind::Pointer(left_check, left_ty),
                         TypeKind::Pointer(right_check, right_ty),
@@ -1687,7 +1683,7 @@ pub fn report_invalid_unary_op(
         right: right_ty,
         ..
     } = err;
-    let is_bitwise = right_ty.kind(db.up()).is_integer();
+    let is_bitwise = right_ty.kind(db).is_integer();
 
     let op_name = match op {
         expr::UnaryOp::Not if is_bitwise => "bitwise `not`",
@@ -1701,7 +1697,7 @@ pub fn report_invalid_unary_op(
         expr::UnaryOp::Identity => "identity",
         expr::UnaryOp::Negate => "negation",
     };
-    let peeled_right_ty = right_ty.to_base_type(db.up());
+    let peeled_right_ty = right_ty.to_base_type(db);
 
     let msg = reporter
         .error_detailed(format!("mismatched types for {op_name}"), op_span)

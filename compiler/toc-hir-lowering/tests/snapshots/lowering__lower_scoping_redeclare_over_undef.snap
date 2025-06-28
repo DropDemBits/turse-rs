@@ -3,16 +3,15 @@ source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "a := a const a := 1"
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(1)
-    Module@(FileId(1), 0..19): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..19): []
-        Assign@(FileId(1), 0..6)
-          Name@(FileId(1), 0..1): "a"@(FileId(1), 0..1), undeclared
-          Name@(FileId(1), 5..6): "a"@(FileId(1), 5..6), undeclared
-        StmtItem@(FileId(1), 7..19): ItemId(0)
-          ConstVar@(FileId(1), 7..19): const "a"@(FileId(1), 13..14)
-            ExprBody@(FileId(1), 18..19)
-              Literal@(FileId(1), 18..19): Integer(1)
-error at (FileId(1), 0..1): `a` is undeclared
-| error for (FileId(1), 0..1): no definitions of `a` are in scope
-
+  Root@(dummy): src/main.t -> ItemId(1)
+    Module@(src/main.t:0..19): "<root>"@(dummy)
+      StmtBody@(src/main.t:0..19): []
+        Assign@(src/main.t:0..6)
+          Name@(src/main.t:0..1): "a"@(src/main.t:0..1), undeclared
+          Name@(src/main.t:5..6): "a"@(src/main.t:5..6), undeclared
+        StmtItem@(src/main.t:7..19): ItemId(0)
+          ConstVar@(src/main.t:7..19): const "a"@(src/main.t:13..14)
+            ExprBody@(src/main.t:18..19)
+              Literal@(src/main.t:18..19): Integer(1)
+error at src/main.t:0..1: `a` is undeclared
+| error for src/main.t:0..1: no definitions of `a` are in scope

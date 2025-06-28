@@ -11,6 +11,7 @@ edition.workspace = true
 [dependencies]
 indexmap = { workspace = true }
 la-arena = "0.3"
+toc-salsa-collections.workspace = true
 toc-source-graph = { workspace = true }
 toc-syntax = { workspace = true }
 toc-vfs-db = { workspace = true }
@@ -21,9 +22,9 @@ bitflags = "2.3.2"
 toc-hir-expand.workspace = true
 
 salsa = { workspace = true }
-upcast = { workspace = true }
 
 [dev-dependencies]
 toc-paths.workspace = true
 toc-vfs.workspace = true
+camino.workspace = true
 insta.workspace = true

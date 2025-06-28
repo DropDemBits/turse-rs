@@ -1,18 +1,17 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "type t_f : function(a, b : int, var c : string) : int\ntype t_fr : function(register a, b : int, var register c : string) : int\nvar f : t_f\nvar fc : t_fr\n\n% transitive\nf := fc\nfc := f\n"
 ---
-"t_f"@(FileId(1), 5..8) [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of function ( pass(value) int, pass(value) int, pass(var ref) string, ) -> int
-"a"@(FileId(1), 20..21) [Param(Value, No)]: <error>
-"b"@(FileId(1), 23..24) [Param(Value, No)]: <error>
-"c"@(FileId(1), 36..37) [Param(Reference(Var), No)]: <error>
-"t_fr"@(FileId(1), 59..63) [Type]: alias[DefId(PackageId(0), LocalDefId(4))] of function ( pass(value) register int, pass(value) register int, pass(var ref) register string, ) -> int
-"a"@(FileId(1), 84..85) [Param(Value, Yes)]: <error>
-"b"@(FileId(1), 87..88) [Param(Value, Yes)]: <error>
-"c"@(FileId(1), 109..110) [Param(Reference(Var), Yes)]: <error>
-"f"@(FileId(1), 131..132) [ConstVar(Var, No)]: alias[DefId(PackageId(0), LocalDefId(0))] of function ( pass(value) int, pass(value) int, pass(var ref) string, ) -> int
-"fc"@(FileId(1), 143..145) [ConstVar(Var, No)]: alias[DefId(PackageId(0), LocalDefId(4))] of function ( pass(value) register int, pass(value) register int, pass(var ref) register string, ) -> int
-"<unnamed>"@(dummy) [Undeclared]: <error>
-"<unnamed>"@(dummy) [Undeclared]: <error>
-"<root>"@(dummy) [Module(No)]: <error>
-
+"t_f"@"src/main.t:5..8" [Type]: alias[DefId(PackageId(3072), LocalDefId(0))] of function ( pass(value) int, pass(value) int, pass(var ref) string, ) -> int
+"a"@"src/main.t:20..21" [Param(Value, No)]: <error>
+"b"@"src/main.t:23..24" [Param(Value, No)]: <error>
+"c"@"src/main.t:36..37" [Param(Reference(Var), No)]: <error>
+"t_fr"@"src/main.t:59..63" [Type]: alias[DefId(PackageId(3072), LocalDefId(4))] of function ( pass(value) register int, pass(value) register int, pass(var ref) register string, ) -> int
+"a"@"src/main.t:84..85" [Param(Value, Yes)]: <error>
+"b"@"src/main.t:87..88" [Param(Value, Yes)]: <error>
+"c"@"src/main.t:109..110" [Param(Reference(Var), Yes)]: <error>
+"f"@"src/main.t:131..132" [ConstVar(Var, No)]: alias[DefId(PackageId(3072), LocalDefId(0))] of function ( pass(value) int, pass(value) int, pass(var ref) string, ) -> int
+"fc"@"src/main.t:143..145" [ConstVar(Var, No)]: alias[DefId(PackageId(3072), LocalDefId(4))] of function ( pass(value) register int, pass(value) register int, pass(var ref) register string, ) -> int
+"<unnamed>"@"<unknown>:0..0" [Undeclared]: <error>
+"<unnamed>"@"<unknown>:0..0" [Undeclared]: <error>
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>

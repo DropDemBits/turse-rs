@@ -3,24 +3,23 @@ source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "\n    module pervasive a\n        module b\n            module c\n                a b c\n            end c\n        end b\n    end a\n    "
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(3)
-    Module@(FileId(1), 0..130): "<root>"@(dummy)
-      StmtBody@(FileId(1), 5..125): []
-        StmtItem@(FileId(1), 5..125): ItemId(2)
-          Module@(FileId(1), 5..125): "a"@(FileId(1), 22..23)
-            StmtBody@(FileId(1), 32..115): []
-              StmtItem@(FileId(1), 32..115): ItemId(1)
-                Module@(FileId(1), 32..115): "b"@(FileId(1), 39..40)
-                  StmtBody@(FileId(1), 53..101): []
-                    StmtItem@(FileId(1), 53..101): ItemId(0)
-                      Module@(FileId(1), 53..101): "c"@(FileId(1), 60..61)
-                        StmtBody@(FileId(1), 78..83): []
-                          CallStmt@(FileId(1), 78..79): [no params]
-                            Name@(FileId(1), 78..79): "a"@(FileId(1), 22..23)
-                          CallStmt@(FileId(1), 80..81): [no params]
-                            Name@(FileId(1), 80..81): "b"@(FileId(1), 80..81), undeclared
-                          CallStmt@(FileId(1), 82..83): [no params]
-                            Name@(FileId(1), 82..83): "c"@(FileId(1), 60..61)
-error at (FileId(1), 80..81): `b` is undeclared
-| error for (FileId(1), 80..81): no definitions of `b` are in scope
-
+  Root@(dummy): src/main.t -> ItemId(3)
+    Module@(src/main.t:0..130): "<root>"@(dummy)
+      StmtBody@(src/main.t:5..125): []
+        StmtItem@(src/main.t:5..125): ItemId(2)
+          Module@(src/main.t:5..125): "a"@(src/main.t:22..23)
+            StmtBody@(src/main.t:32..115): []
+              StmtItem@(src/main.t:32..115): ItemId(1)
+                Module@(src/main.t:32..115): "b"@(src/main.t:39..40)
+                  StmtBody@(src/main.t:53..101): []
+                    StmtItem@(src/main.t:53..101): ItemId(0)
+                      Module@(src/main.t:53..101): "c"@(src/main.t:60..61)
+                        StmtBody@(src/main.t:78..83): []
+                          CallStmt@(src/main.t:78..79): [no params]
+                            Name@(src/main.t:78..79): "a"@(src/main.t:22..23)
+                          CallStmt@(src/main.t:80..81): [no params]
+                            Name@(src/main.t:80..81): "b"@(src/main.t:80..81), undeclared
+                          CallStmt@(src/main.t:82..83): [no params]
+                            Name@(src/main.t:82..83): "c"@(src/main.t:60..61)
+error at src/main.t:80..81: `b` is undeclared
+| error for src/main.t:80..81: no definitions of `b` are in scope

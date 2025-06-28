@@ -2,14 +2,14 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "type fa : function () : int1\nfunction fb () : int end fb\n\nvar _ : fa := fb\n"
 ---
-"fa"@(FileId(1), 5..7) [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of function ( ) -> int1
-"fb"@(FileId(1), 38..40) [Subprogram(Function)]: function ( ) -> int
-"_"@(FileId(1), 62..63) [ConstVar(Var, No)]: alias[DefId(PackageId(0), LocalDefId(0))] of function ( ) -> int1
-"<unnamed>"@(dummy) [Undeclared]: <error>
-"<unnamed>"@(dummy) [Undeclared]: <error>
-"<root>"@(dummy) [Module(No)]: <error>
+"fa"@"src/main.t:5..7" [Type]: alias[DefId(PackageId(3072), LocalDefId(0))] of function ( ) -> int1
+"fb"@"src/main.t:38..40" [Subprogram(Function)]: function ( ) -> int
+"_"@"src/main.t:62..63" [ConstVar(Var, No)]: alias[DefId(PackageId(3072), LocalDefId(0))] of function ( ) -> int1
+"<unnamed>"@"<unknown>:0..0" [Undeclared]: <error>
+"<unnamed>"@"<unknown>:0..0" [Undeclared]: <error>
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 72..74): mismatched types
-| note for (FileId(1), 72..74): this is of type `function () : int`
-| note for (FileId(1), 66..68): this is of type `fa (alias of function () : int1)`
+error at src/main.t:72..74: mismatched types
+| note for src/main.t:72..74: this is of type `function () : int`
+| note for src/main.t:66..68: this is of type `fa (alias of function () : int1)`
 | info: `function () : int` is not assignable into `function () : int1`

@@ -29,7 +29,7 @@ pub const MAX_CHAR_N_LEN: u32 = 32768;
 //                                e.g. `<error>`, or from a TyKind::Missing
 
 /// Id referencing an interned type.
-#[salsa::interned(jar = db::TypeJar)]
+#[salsa::interned(debug, no_lifetime)]
 pub struct TypeId {
     #[return_ref]
     pub kind: TypeKind,
@@ -258,7 +258,7 @@ pub enum PassBy {
 
 /// Wrapper type for displaying [`TypeId`]s
 #[derive(PartialEq, Eq)]
-pub struct TyRef<'db, DB: ?Sized + 'db> {
+pub struct TyRef<'db, DB: ?Sized> {
     db: &'db DB,
     id: TypeId,
 }
@@ -282,7 +282,7 @@ impl TypeId {
     pub fn align_of(&self, db: &dyn crate::db::ConstEval) -> Option<usize> {
         const POINTER_ALIGNMENT: usize = 4;
 
-        let align_of = match self.kind(db.up()) {
+        let align_of = match self.kind(db) {
             TypeKind::Error => return None,
             TypeKind::Boolean => 1,
             TypeKind::Int(IntSize::Int1) => 1,
@@ -306,7 +306,7 @@ impl TypeId {
             TypeKind::Void => return None,
             TypeKind::Constrained(base_ty, ..) => {
                 // Defer to the base type
-                return base_ty.peel_aliases(db.up()).align_of(db);
+                return base_ty.peel_aliases(db).align_of(db);
             }
             TypeKind::Array(..) => POINTER_ALIGNMENT, // ???: It's to an array descriptor
             TypeKind::Enum(..) => 4, // ???: Alignment based on user-specified size?
@@ -314,7 +314,7 @@ impl TypeId {
             TypeKind::Pointer(_, _) => POINTER_ALIGNMENT,
             // Defer to the aliased type
             TypeKind::Alias(_, base_ty) => return base_ty.align_of(db),
-            TypeKind::Opaque(_, base_ty) => return base_ty.peel_aliases(db.up()).align_of(db),
+            TypeKind::Opaque(_, base_ty) => return base_ty.peel_aliases(db).align_of(db),
             TypeKind::Forward => return None,
         };
 
@@ -324,7 +324,7 @@ impl TypeId {
     /// Size of a type, or `None` if it isn't representable
     pub fn size_of(&self, db: &dyn crate::db::ConstEval) -> Option<usize> {
         const POINTER_SIZE: usize = 4;
-        let size_of = match self.kind(db.up()) {
+        let size_of = match self.kind(db) {
             TypeKind::Boolean => 1,
             TypeKind::Int(IntSize::Int1) => 1,
             TypeKind::Int(IntSize::Int2) => 2,
@@ -342,7 +342,7 @@ impl TypeId {
             TypeKind::String | TypeKind::StringN(_) | TypeKind::CharN(_) => {
                 let length_of = self.length_of(db)?;
 
-                if matches!(self.kind(db.up()), TypeKind::String | TypeKind::StringN(_)) {
+                if matches!(self.kind(db), TypeKind::String | TypeKind::StringN(_)) {
                     // Storage size for strings includes the always present null terminator
                     length_of + 1
                 } else {
@@ -357,7 +357,7 @@ impl TypeId {
             TypeKind::Void => return None,
             TypeKind::Constrained(base_ty, ..) => {
                 // Defer to the base type
-                return base_ty.peel_aliases(db.up()).size_of(db);
+                return base_ty.peel_aliases(db).size_of(db);
             }
             TypeKind::Array(..) => POINTER_SIZE, // To an array descriptor
             TypeKind::Enum(..) => 4, // FIXME: Have size be based on a user-specified size
@@ -375,7 +375,7 @@ impl TypeId {
 
     /// Length of a type, or `None` if it isn't representable or a charseq
     pub fn length_of(&self, db: &dyn crate::db::ConstEval) -> Option<usize> {
-        let length = match self.kind(db.up()) {
+        let length = match self.kind(db) {
             TypeKind::String => {
                 // max chars (excluding null terminator)
                 255
@@ -395,7 +395,7 @@ impl TypeId {
     /// If this type were to be used as a range, computes the number of elements in the range,
     /// or `None` if it can't be used as a range
     pub fn element_count(self, db: &dyn crate::db::ConstEval) -> Result<ConstInt, ConstError> {
-        match self.kind(db.up()) {
+        match self.kind(db) {
             TypeKind::Array(ArraySizing::Static | ArraySizing::MaybeDyn, ranges, _) => {
                 // Element count is just the product of the range element counts
                 let mut count = ConstInt::ONE;
@@ -405,16 +405,16 @@ impl TypeId {
                     // Observing through is okay, since we don't leak the type itself
                     let range_tyref = {
                         let ty_ref = range_ty;
-                        match ty_ref.kind(db.up()) {
+                        match ty_ref.kind(db) {
                             TypeKind::Opaque(_, type_id) => *type_id,
-                            _ => ty_ref.peel_aliases(db.up()),
+                            _ => ty_ref.peel_aliases(db),
                         }
                     };
 
                     // If this isn't an index type, stop
                     // Prevents a cycle if we happen to have the same array type as one of the
                     // range types.
-                    if !range_tyref.to_base_type(db.up()).kind(db.up()).is_index() {
+                    if !range_tyref.to_base_type(db).kind(db).is_index() {
                         return Err(ConstError::without_span(ErrorKind::WrongOperandType));
                     }
 
@@ -438,7 +438,7 @@ impl TypeId {
 
     /// Minimum integer value of this type, or `None` if this is not an integer
     pub fn min_int_of(self, db: &dyn crate::db::ConstEval) -> Result<ConstInt, ConstError> {
-        match self.kind(db.up()) {
+        match self.kind(db) {
             TypeKind::Char => Ok(ConstValue::Char('\x00')
                 .ordinal()
                 .expect("const construction")),
@@ -484,7 +484,7 @@ impl TypeId {
 
     /// Maximum integer value of this type, or `None` if this is not an integer
     pub fn max_int_of(self, db: &dyn crate::db::ConstEval) -> Result<ConstInt, ConstError> {
-        match self.kind(db.up()) {
+        match self.kind(db) {
             TypeKind::Char => {
                 // Codepoint can only fit inside of a u8
                 Ok(ConstValue::Char('\u{FF}')

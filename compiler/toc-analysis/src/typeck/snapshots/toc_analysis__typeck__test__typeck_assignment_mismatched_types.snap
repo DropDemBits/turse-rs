@@ -2,10 +2,10 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var lhs : int\nlhs := 1 + 1.0\n"
 ---
-"lhs"@(FileId(1), 4..7) [ConstVar(Var, No)]: int
-"<root>"@(dummy) [Module(No)]: <error>
+"lhs"@"src/main.t:4..7" [ConstVar(Var, No)]: int
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 18..20): mismatched types
-| note for (FileId(1), 21..28): this is of type `real`
-| note for (FileId(1), 14..17): this is of type `int`
+error at src/main.t:18..20: mismatched types
+| note for src/main.t:21..28: this is of type `real`
+| note for src/main.t:14..17: this is of type `int`
 | info: `real` is not assignable into `int`

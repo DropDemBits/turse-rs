@@ -1,36 +1,33 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
-assertion_line: 59
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "\n    process a : 4 + 4 end a\n    process b() : 6 + 8 end b\n    process c(k : int) : 9 + 2 end c\n    "
-
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(3)
-    Module@(FileId(1), 0..100): "<root>"@(dummy)
-      StmtBody@(FileId(1), 5..95): []
-        StmtItem@(FileId(1), 5..28): ItemId(0)
-          Subprogram@(FileId(1), 5..28): "a"@(FileId(1), 13..14)
-            ExprBody@(FileId(1), 17..22)
-              Binary@(FileId(1), 17..22): Add
-                Literal@(FileId(1), 17..18): Integer(4)
-                Literal@(FileId(1), 21..22): Integer(4)
-            Void@(FileId(1), 5..22)
-            StmtBody@(FileId(1), 23..23): []
-        StmtItem@(FileId(1), 33..58): ItemId(1)
-          Subprogram@(FileId(1), 33..58): "b"@(FileId(1), 41..42) []
-            ExprBody@(FileId(1), 47..52)
-              Binary@(FileId(1), 47..52): Add
-                Literal@(FileId(1), 47..48): Integer(6)
-                Literal@(FileId(1), 51..52): Integer(8)
-            Void@(FileId(1), 33..52)
-            StmtBody@(FileId(1), 53..53): []
-        StmtItem@(FileId(1), 63..95): ItemId(2)
-          Subprogram@(FileId(1), 63..95): "c"@(FileId(1), 71..72) ["k"@(FileId(1), 73..74)]
-            ExprBody@(FileId(1), 84..89)
-              Binary@(FileId(1), 84..89): Add
-                Literal@(FileId(1), 84..85): Integer(9)
-                Literal@(FileId(1), 88..89): Integer(2)
-            Primitive@(FileId(1), 77..80): Int
-            Void@(FileId(1), 63..89)
-            StmtBody@(FileId(1), 90..90): ["k"@(FileId(1), 73..74)]
-
+  Root@(dummy): src/main.t -> ItemId(3)
+    Module@(src/main.t:0..100): "<root>"@(dummy)
+      StmtBody@(src/main.t:5..95): []
+        StmtItem@(src/main.t:5..28): ItemId(0)
+          Subprogram@(src/main.t:5..28): "a"@(src/main.t:13..14)
+            ExprBody@(src/main.t:17..22)
+              Binary@(src/main.t:17..22): Add
+                Literal@(src/main.t:17..18): Integer(4)
+                Literal@(src/main.t:21..22): Integer(4)
+            Void@(src/main.t:5..22)
+            StmtBody@(src/main.t:23..23): []
+        StmtItem@(src/main.t:33..58): ItemId(1)
+          Subprogram@(src/main.t:33..58): "b"@(src/main.t:41..42) []
+            ExprBody@(src/main.t:47..52)
+              Binary@(src/main.t:47..52): Add
+                Literal@(src/main.t:47..48): Integer(6)
+                Literal@(src/main.t:51..52): Integer(8)
+            Void@(src/main.t:33..52)
+            StmtBody@(src/main.t:53..53): []
+        StmtItem@(src/main.t:63..95): ItemId(2)
+          Subprogram@(src/main.t:63..95): "c"@(src/main.t:71..72) ["k"@(src/main.t:73..74)]
+            ExprBody@(src/main.t:84..89)
+              Binary@(src/main.t:84..89): Add
+                Literal@(src/main.t:84..85): Integer(9)
+                Literal@(src/main.t:88..89): Integer(2)
+            Primitive@(src/main.t:77..80): Int
+            Void@(src/main.t:63..89)
+            StmtBody@(src/main.t:90..90): ["k"@(src/main.t:73..74)]

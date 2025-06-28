@@ -1,12 +1,11 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "\n    var r : real\n    var i : int\n    var n : nat\n    var _r := + r\n    var _i := + i\n    var _n := + n\n    "
 ---
-"r"@(FileId(1), 9..10) [ConstVar(Var, No)]: real
-"i"@(FileId(1), 26..27) [ConstVar(Var, No)]: int
-"n"@(FileId(1), 42..43) [ConstVar(Var, No)]: nat
-"_r"@(FileId(1), 58..60) [ConstVar(Var, No)]: real
-"_i"@(FileId(1), 76..78) [ConstVar(Var, No)]: int
-"_n"@(FileId(1), 94..96) [ConstVar(Var, No)]: nat
-"<root>"@(dummy) [Module(No)]: <error>
-
+"r"@"src/main.t:9..10" [ConstVar(Var, No)]: real
+"i"@"src/main.t:26..27" [ConstVar(Var, No)]: int
+"n"@"src/main.t:42..43" [ConstVar(Var, No)]: nat
+"_r"@"src/main.t:58..60" [ConstVar(Var, No)]: real
+"_i"@"src/main.t:76..78" [ConstVar(Var, No)]: int
+"_n"@"src/main.t:94..96" [ConstVar(Var, No)]: nat
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>

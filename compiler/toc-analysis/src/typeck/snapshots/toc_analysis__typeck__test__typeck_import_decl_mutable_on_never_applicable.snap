@@ -2,12 +2,12 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "type ty : int\nmodule _\n    import var ty\n    type tou : ty\nend _\n"
 ---
-"ty"@(FileId(1), 5..7) [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of int
-"_"@(FileId(1), 21..22) [Module(No)]: <error>
-"ty"@(FileId(1), 38..40) [Import]: alias[DefId(PackageId(0), LocalDefId(0))] of int
-"tou"@(FileId(1), 50..53) [Type]: alias[DefId(PackageId(0), LocalDefId(3))] of int
-"<root>"@(dummy) [Module(No)]: <error>
+"ty"@"src/main.t:5..7" [Type]: alias[DefId(PackageId(3072), LocalDefId(0))] of int
+"_"@"src/main.t:21..22" [Module(No)]: <error>
+"ty"@"src/main.t:38..40" [Import]: alias[DefId(PackageId(3072), LocalDefId(0))] of int
+"tou"@"src/main.t:50..53" [Type]: alias[DefId(PackageId(3072), LocalDefId(3))] of int
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 34..37): cannot use `var` here
-| error for (FileId(1), 34..37): `var` can only be applied to variables
-| note for (FileId(1), 5..7): `ty` declared here
+error at src/main.t:34..37: cannot use `var` here
+| error for src/main.t:34..37: `var` can only be applied to variables
+| note for src/main.t:5..7: `ty` declared here

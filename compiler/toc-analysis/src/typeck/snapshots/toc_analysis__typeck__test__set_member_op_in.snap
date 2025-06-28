@@ -1,11 +1,10 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "\n    type s : set of boolean\n    var a : s\n    var b : boolean\n\n    % should all produce booleans\n    var _v_res : boolean\n\n    _v_res := b in a\n    _v_res := true in a\n    % FIXME: add tests for range types\n    "
 ---
-"s"@(FileId(1), 10..11) [Type]: set[DefId(PackageId(0), LocalDefId(1))] of boolean
-"s"@(FileId(1), 14..28) [Set]: <error>
-"a"@(FileId(1), 37..38) [ConstVar(Var, No)]: set[DefId(PackageId(0), LocalDefId(1))] of boolean
-"b"@(FileId(1), 51..52) [ConstVar(Var, No)]: boolean
-"_v_res"@(FileId(1), 106..112) [ConstVar(Var, No)]: boolean
-"<root>"@(dummy) [Module(No)]: <error>
-
+"s"@"src/main.t:10..11" [Type]: set[DefId(PackageId(3072), LocalDefId(1))] of boolean
+"s"@"src/main.t:14..28" [Set]: <error>
+"a"@"src/main.t:37..38" [ConstVar(Var, No)]: set[DefId(PackageId(3072), LocalDefId(1))] of boolean
+"b"@"src/main.t:51..52" [ConstVar(Var, No)]: boolean
+"_v_res"@"src/main.t:106..112" [ConstVar(Var, No)]: boolean
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>

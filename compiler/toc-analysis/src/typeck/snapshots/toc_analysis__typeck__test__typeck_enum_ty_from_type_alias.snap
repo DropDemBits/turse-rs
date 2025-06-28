@@ -1,11 +1,10 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "type e : enum(a, b, c)"
 ---
-"e"@(FileId(1), 5..6) [Type]: enum[DefId(PackageId(0), LocalDefId(1))] ( "a"@(FileId(1), 14..15), "b"@(FileId(1), 17..18), "c"@(FileId(1), 20..21), )
-"e"@(FileId(1), 9..22) [Enum]: <error>
-"a"@(FileId(1), 14..15) [EnumVariant]: enum[DefId(PackageId(0), LocalDefId(1))] ( "a"@(FileId(1), 14..15), "b"@(FileId(1), 17..18), "c"@(FileId(1), 20..21), )
-"b"@(FileId(1), 17..18) [EnumVariant]: enum[DefId(PackageId(0), LocalDefId(1))] ( "a"@(FileId(1), 14..15), "b"@(FileId(1), 17..18), "c"@(FileId(1), 20..21), )
-"c"@(FileId(1), 20..21) [EnumVariant]: enum[DefId(PackageId(0), LocalDefId(1))] ( "a"@(FileId(1), 14..15), "b"@(FileId(1), 17..18), "c"@(FileId(1), 20..21), )
-"<root>"@(dummy) [Module(No)]: <error>
-
+"e"@"src/main.t:5..6" [Type]: enum[DefId(PackageId(3072), LocalDefId(1))] ( "a"@SpanId(4), "b"@SpanId(5), "c"@SpanId(6), )
+"e"@"src/main.t:9..22" [Enum]: <error>
+"a"@"src/main.t:14..15" [EnumVariant]: enum[DefId(PackageId(3072), LocalDefId(1))] ( "a"@SpanId(4), "b"@SpanId(5), "c"@SpanId(6), )
+"b"@"src/main.t:17..18" [EnumVariant]: enum[DefId(PackageId(3072), LocalDefId(1))] ( "a"@SpanId(4), "b"@SpanId(5), "c"@SpanId(6), )
+"c"@"src/main.t:20..21" [EnumVariant]: enum[DefId(PackageId(3072), LocalDefId(1))] ( "a"@SpanId(4), "b"@SpanId(5), "c"@SpanId(6), )
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>

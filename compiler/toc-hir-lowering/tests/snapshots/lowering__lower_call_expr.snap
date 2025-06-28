@@ -1,19 +1,16 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
-assertion_line: 59
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "proc call end call var _ := call"
-
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(2)
-    Module@(FileId(1), 0..32): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..32): []
-        StmtItem@(FileId(1), 0..18): ItemId(0)
-          Subprogram@(FileId(1), 0..18): "call"@(FileId(1), 5..9)
-            Void@(FileId(1), 0..9)
-            StmtBody@(FileId(1), 10..10): []
-        StmtItem@(FileId(1), 19..32): ItemId(1)
-          ConstVar@(FileId(1), 19..32): var "_"@(FileId(1), 23..24)
-            ExprBody@(FileId(1), 28..32)
-              Name@(FileId(1), 28..32): "call"@(FileId(1), 5..9)
-
+  Root@(dummy): src/main.t -> ItemId(2)
+    Module@(src/main.t:0..32): "<root>"@(dummy)
+      StmtBody@(src/main.t:0..32): []
+        StmtItem@(src/main.t:0..18): ItemId(0)
+          Subprogram@(src/main.t:0..18): "call"@(src/main.t:5..9)
+            Void@(src/main.t:0..9)
+            StmtBody@(src/main.t:10..10): []
+        StmtItem@(src/main.t:19..32): ItemId(1)
+          ConstVar@(src/main.t:19..32): var "_"@(src/main.t:23..24)
+            ExprBody@(src/main.t:28..32)
+              Name@(src/main.t:28..32): "call"@(src/main.t:5..9)

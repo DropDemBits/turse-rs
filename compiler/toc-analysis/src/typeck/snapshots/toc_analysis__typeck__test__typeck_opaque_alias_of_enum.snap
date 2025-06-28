@@ -2,25 +2,25 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var *_ : boolean\n\nmodule m\n    export opaque e, var a\n    type e : enum(a)\n    var a : e := e.a\n\n    _ := e.a = a\n\n    % should give a not usable as ty error\n    type not_ty : e.a\nend m\n\nvar u : m.e := m.e.a\n_ := m.e.a = u\ntype no_field : m.e.a\n"
 ---
-"_"@(FileId(1), 5..6) [ConstVar(Var, No)]: boolean
-"m"@(FileId(1), 25..26) [Module(No)]: <error>
-"e"@(FileId(1), 63..64) [Type]: opaque[DefId(PackageId(0), LocalDefId(2))] type to enum[DefId(PackageId(0), LocalDefId(3))] ( "a"@(FileId(1), 72..73), )
-"e"@(FileId(1), 67..74) [Enum]: <error>
-"a"@(FileId(1), 72..73) [EnumVariant]: enum[DefId(PackageId(0), LocalDefId(3))] ( "a"@(FileId(1), 72..73), )
-"a"@(FileId(1), 83..84) [ConstVar(Var, No)]: opaque[DefId(PackageId(0), LocalDefId(2))] type to enum[DefId(PackageId(0), LocalDefId(3))] ( "a"@(FileId(1), 72..73), )
-"not_ty"@(FileId(1), 167..173) [Type]: alias[DefId(PackageId(0), LocalDefId(6))] of <error>
-"u"@(FileId(1), 191..192) [ConstVar(Var, No)]: opaque[DefId(PackageId(0), LocalDefId(2))] type to enum[DefId(PackageId(0), LocalDefId(3))] ( "a"@(FileId(1), 72..73), )
-"no_field"@(FileId(1), 228..236) [Type]: alias[DefId(PackageId(0), LocalDefId(8))] of <error>
-"e"@(FileId(1), 45..46) [Export]: opaque[DefId(PackageId(0), LocalDefId(2))] type to enum[DefId(PackageId(0), LocalDefId(3))] ( "a"@(FileId(1), 72..73), )
-"a"@(FileId(1), 52..53) [Export]: opaque[DefId(PackageId(0), LocalDefId(2))] type to enum[DefId(PackageId(0), LocalDefId(3))] ( "a"@(FileId(1), 72..73), )
-"<root>"@(dummy) [Module(No)]: <error>
+"_"@"src/main.t:5..6" [ConstVar(Var, No)]: boolean
+"m"@"src/main.t:25..26" [Module(No)]: <error>
+"e"@"src/main.t:63..64" [Type]: opaque[DefId(PackageId(3072), LocalDefId(2))] type to enum[DefId(PackageId(3072), LocalDefId(3))] ( "a"@SpanId(6), )
+"e"@"src/main.t:67..74" [Enum]: <error>
+"a"@"src/main.t:72..73" [EnumVariant]: enum[DefId(PackageId(3072), LocalDefId(3))] ( "a"@SpanId(6), )
+"a"@"src/main.t:83..84" [ConstVar(Var, No)]: opaque[DefId(PackageId(3072), LocalDefId(2))] type to enum[DefId(PackageId(3072), LocalDefId(3))] ( "a"@SpanId(6), )
+"not_ty"@"src/main.t:167..173" [Type]: alias[DefId(PackageId(3072), LocalDefId(6))] of <error>
+"u"@"src/main.t:191..192" [ConstVar(Var, No)]: opaque[DefId(PackageId(3072), LocalDefId(2))] type to enum[DefId(PackageId(3072), LocalDefId(3))] ( "a"@SpanId(6), )
+"no_field"@"src/main.t:228..236" [Type]: alias[DefId(PackageId(3072), LocalDefId(8))] of <error>
+"e"@"src/main.t:45..46" [Export]: opaque[DefId(PackageId(3072), LocalDefId(2))] type to enum[DefId(PackageId(3072), LocalDefId(3))] ( "a"@SpanId(6), )
+"a"@"src/main.t:52..53" [Export]: opaque[DefId(PackageId(3072), LocalDefId(2))] type to enum[DefId(PackageId(3072), LocalDefId(3))] ( "a"@SpanId(6), )
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 178..179): cannot use `a` as a type alias
-| error for (FileId(1), 178..179): `a` is a reference to an enum variant, not a type
-| note for (FileId(1), 72..73): `a` declared here
-error at (FileId(1), 206..207): no field named `a` in expression
-| error for (FileId(1), 206..207): no field named `a` in here
-error at (FileId(1), 217..218): no field named `a` in expression
-| error for (FileId(1), 217..218): no field named `a` in here
-error at (FileId(1), 243..244): no field named `a` in `e`
-| error for (FileId(1), 243..244): no field named `a` in here
+error at src/main.t:178..179: cannot use `a` as a type alias
+| error for src/main.t:178..179: `a` is a reference to an enum variant, not a type
+| note for src/main.t:72..73: `a` declared here
+error at src/main.t:206..207: no field named `a` in expression
+| error for src/main.t:206..207: no field named `a` in here
+error at src/main.t:217..218: no field named `a` in expression
+| error for src/main.t:217..218: no field named `a` in here
+error at src/main.t:243..244: no field named `a` in `e`
+| error for src/main.t:243..244: no field named `a` in here

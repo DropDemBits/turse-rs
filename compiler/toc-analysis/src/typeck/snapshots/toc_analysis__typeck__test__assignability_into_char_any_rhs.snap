@@ -1,20 +1,19 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "% all runtime checked\nproc __(var s_any, _v09 : string(*), var c_any, _v05 : char(*))\n\nvar _v00 : char := c_any\nvar _v01 : char(1) := c_any\nvar _v02 : char(5) := c_any\nvar _v03 : char(255) := c_any\nvar _v04 : char(256) := c_any\n_v05 := c_any\nvar _v06 : string := c_any\nvar _v07 : string(1) := c_any\nvar _v08 : string(5) := c_any\n_v09 := c_any\nend __\n"
 ---
-"__"@(FileId(1), 27..29) [Subprogram(Procedure)]: procedure ( pass(var ref) string_n Any, pass(var ref) string_n Any, pass(var ref) char_n Any, pass(var ref) char_n Any, ) -> void
-"s_any"@(FileId(1), 34..39) [Param(Reference(Var), No)]: string_n Any
-"_v09"@(FileId(1), 41..45) [Param(Reference(Var), No)]: string_n Any
-"c_any"@(FileId(1), 63..68) [Param(Reference(Var), No)]: char_n Any
-"_v05"@(FileId(1), 70..74) [Param(Reference(Var), No)]: char_n Any
-"_v00"@(FileId(1), 91..95) [ConstVar(Var, No)]: char
-"_v01"@(FileId(1), 116..120) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(1)))
-"_v02"@(FileId(1), 144..148) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(3)))
-"_v03"@(FileId(1), 172..176) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(5)))
-"_v04"@(FileId(1), 202..206) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(7)))
-"_v06"@(FileId(1), 246..250) [ConstVar(Var, No)]: string
-"_v07"@(FileId(1), 273..277) [ConstVar(Var, No)]: string_n Fixed(Unevaluated(PackageId(0), BodyId(10)))
-"_v08"@(FileId(1), 303..307) [ConstVar(Var, No)]: string_n Fixed(Unevaluated(PackageId(0), BodyId(12)))
-"<unnamed>"@(dummy) [Undeclared]: <error>
-"<root>"@(dummy) [Module(No)]: <error>
-
+"__"@"src/main.t:27..29" [Subprogram(Procedure)]: procedure ( pass(var ref) string_n Any, pass(var ref) string_n Any, pass(var ref) char_n Any, pass(var ref) char_n Any, ) -> void
+"s_any"@"src/main.t:34..39" [Param(Reference(Var), No)]: string_n Any
+"_v09"@"src/main.t:41..45" [Param(Reference(Var), No)]: string_n Any
+"c_any"@"src/main.t:63..68" [Param(Reference(Var), No)]: char_n Any
+"_v05"@"src/main.t:70..74" [Param(Reference(Var), No)]: char_n Any
+"_v00"@"src/main.t:91..95" [ConstVar(Var, No)]: char
+"_v01"@"src/main.t:116..120" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(3072), BodyId(1)))
+"_v02"@"src/main.t:144..148" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(3072), BodyId(3)))
+"_v03"@"src/main.t:172..176" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(3072), BodyId(5)))
+"_v04"@"src/main.t:202..206" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(3072), BodyId(7)))
+"_v06"@"src/main.t:246..250" [ConstVar(Var, No)]: string
+"_v07"@"src/main.t:273..277" [ConstVar(Var, No)]: string_n Fixed(Unevaluated(PackageId(3072), BodyId(10)))
+"_v08"@"src/main.t:303..307" [ConstVar(Var, No)]: string_n Fixed(Unevaluated(PackageId(3072), BodyId(12)))
+"<unnamed>"@"<unknown>:0..0" [Undeclared]: <error>
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>

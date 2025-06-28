@@ -1,12 +1,9 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
-assertion_line: 59
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: return
-
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(0)
-    Module@(FileId(1), 0..6): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..6): []
-        Return@(FileId(1), 0..6)
-
+  Root@(dummy): src/main.t -> ItemId(0)
+    Module@(src/main.t:0..6): "<root>"@(dummy)
+      StmtBody@(src/main.t:0..6): []
+        Return@(src/main.t:0..6)

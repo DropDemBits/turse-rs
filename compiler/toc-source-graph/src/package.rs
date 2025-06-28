@@ -2,13 +2,12 @@
 
 use std::{collections::BTreeMap, fmt};
 
-use salsa::AsId;
 use toc_paths::RawPath;
 
 use crate::Db;
 
 /// Source information about a package
-#[salsa::input]
+#[salsa::input(debug)]
 pub struct Package {
     /// Name of the package
     #[return_ref]
@@ -31,7 +30,7 @@ pub enum ArtifactKind {
 }
 
 /// What packages a [`Package`] depends on
-#[salsa::input]
+#[salsa::input(debug)]
 pub struct DependencyList {
     depends: BTreeMap<Package, DependencyInfo>,
 }
@@ -70,7 +69,7 @@ pub struct PackageId(pub Package);
 impl fmt::Debug for PackageId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_tuple("PackageId")
-            .field(&self.0.as_id().as_u32())
+            .field(&self.0.0.as_u32())
             .finish()
     }
 }

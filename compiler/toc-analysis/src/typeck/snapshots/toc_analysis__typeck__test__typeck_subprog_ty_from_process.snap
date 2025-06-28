@@ -1,10 +1,9 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "process sha(a : int, b : char) end sha"
 ---
-"sha"@(FileId(1), 8..11) [Subprogram(Process)]: process ( pass(value) int, pass(value) char, ) -> void
-"a"@(FileId(1), 12..13) [Param(Value, No)]: int
-"b"@(FileId(1), 21..22) [Param(Value, No)]: char
-"<unnamed>"@(dummy) [Undeclared]: <error>
-"<root>"@(dummy) [Module(No)]: <error>
-
+"sha"@"src/main.t:8..11" [Subprogram(Process)]: process ( pass(value) int, pass(value) char, ) -> void
+"a"@"src/main.t:12..13" [Param(Value, No)]: int
+"b"@"src/main.t:21..22" [Param(Value, No)]: char
+"<unnamed>"@"<unknown>:0..0" [Undeclared]: <error>
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>

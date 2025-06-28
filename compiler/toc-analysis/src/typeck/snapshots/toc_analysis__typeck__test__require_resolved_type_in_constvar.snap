@@ -2,9 +2,9 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "type fowo : forward var _ : fowo"
 ---
-"fowo"@(FileId(1), 5..9) [Type]: alias[DefId(PackageId(0), LocalDefId(0))] of forward
-"_"@(FileId(1), 24..25) [ConstVar(Var, No)]: <error>
-"<root>"@(dummy) [Module(No)]: <error>
+"fowo"@"src/main.t:5..9" [Type]: alias[DefId(PackageId(3072), LocalDefId(0))] of forward
+"_"@"src/main.t:24..25" [ConstVar(Var, No)]: <error>
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 28..32): `fowo` has not been resolved at this point
-| error for (FileId(1), 28..32): `fowo` is required to be resolved at this point
+error at src/main.t:28..32: `fowo` has not been resolved at this point
+| error for src/main.t:28..32: `fowo` is required to be resolved at this point

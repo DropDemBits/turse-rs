@@ -3,12 +3,11 @@ source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "a := a"
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(0)
-    Module@(FileId(1), 0..6): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..6): []
-        Assign@(FileId(1), 0..6)
-          Name@(FileId(1), 0..1): "a"@(FileId(1), 0..1), undeclared
-          Name@(FileId(1), 5..6): "a"@(FileId(1), 5..6), undeclared
-error at (FileId(1), 0..1): `a` is undeclared
-| error for (FileId(1), 0..1): no definitions of `a` are in scope
-
+  Root@(dummy): src/main.t -> ItemId(0)
+    Module@(src/main.t:0..6): "<root>"@(dummy)
+      StmtBody@(src/main.t:0..6): []
+        Assign@(src/main.t:0..6)
+          Name@(src/main.t:0..1): "a"@(src/main.t:0..1), undeclared
+          Name@(src/main.t:5..6): "a"@(src/main.t:5..6), undeclared
+error at src/main.t:0..1: `a` is undeclared
+| error for src/main.t:0..1: no definitions of `a` are in scope

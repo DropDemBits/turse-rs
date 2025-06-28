@@ -1,21 +1,20 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "\n    module z\n        export var *~. opaque all\n        var heres, tree : int\n        type again : int\n    end z"
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(4)
-    Module@(FileId(1), 0..112): "<root>"@(dummy)
-      StmtBody@(FileId(1), 5..112): []
-        StmtItem@(FileId(1), 5..112): ItemId(3)
-          Module@(FileId(1), 5..112): "z"@(FileId(1), 12..13), exports [Var PervasiveUnqualified local("heres"@(FileId(1), 60..65)), Var PervasiveUnqualified local("tree"@(FileId(1), 67..71)), Const PervasiveUnqualified opaque local("again"@(FileId(1), 91..96))]
-            StmtBody@(FileId(1), 56..102): []
-              StmtItem@(FileId(1), 56..77): ItemId(0)
-                ConstVar@(FileId(1), 56..77): var "heres"@(FileId(1), 60..65)
-                  Primitive@(FileId(1), 74..77): Int
-              StmtItem@(FileId(1), 56..77): ItemId(1)
-                ConstVar@(FileId(1), 56..77): var "tree"@(FileId(1), 67..71)
-                  Primitive@(FileId(1), 74..77): Int
-              StmtItem@(FileId(1), 86..102): ItemId(2)
-                Type@(FileId(1), 86..102): "again"@(FileId(1), 91..96)
-                  Primitive@(FileId(1), 99..102): Int
-
+  Root@(dummy): src/main.t -> ItemId(4)
+    Module@(src/main.t:0..112): "<root>"@(dummy)
+      StmtBody@(src/main.t:5..112): []
+        StmtItem@(src/main.t:5..112): ItemId(3)
+          Module@(src/main.t:5..112): "z"@(src/main.t:12..13), exports [Var PervasiveUnqualified local("heres"@(src/main.t:60..65)), Var PervasiveUnqualified local("tree"@(src/main.t:67..71)), Const PervasiveUnqualified opaque local("again"@(src/main.t:91..96))]
+            StmtBody@(src/main.t:56..102): []
+              StmtItem@(src/main.t:56..77): ItemId(0)
+                ConstVar@(src/main.t:56..77): var "heres"@(src/main.t:60..65)
+                  Primitive@(src/main.t:74..77): Int
+              StmtItem@(src/main.t:56..77): ItemId(1)
+                ConstVar@(src/main.t:56..77): var "tree"@(src/main.t:67..71)
+                  Primitive@(src/main.t:74..77): Int
+              StmtItem@(src/main.t:86..102): ItemId(2)
+                Type@(src/main.t:86..102): "again"@(src/main.t:91..96)
+                  Primitive@(src/main.t:99..102): Int

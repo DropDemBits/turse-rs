@@ -2,14 +2,14 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var v : int const _ : 1 .. v := 'c'"
 ---
-"v"@(FileId(1), 4..5) [ConstVar(Var, No)]: int
-"_"@(FileId(1), 18..19) [ConstVar(Const, No)]: range of `int` (Unevaluated(PackageId(0), BodyId(0)) .. Expr(Unevaluated(PackageId(0), BodyId(1)), No))
-"<root>"@(dummy) [Module(No)]: <error>
+"v"@"src/main.t:4..5" [ConstVar(Var, No)]: int
+"_"@"src/main.t:18..19" [ConstVar(Const, No)]: range of `int` (Unevaluated(PackageId(3072), BodyId(0)) .. Expr(Unevaluated(PackageId(3072), BodyId(1)), No))
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 27..28): cannot compute `v` at compile-time
-| error for (FileId(1), 27..28): `v` is a reference to a variable, not a constant
-| note for (FileId(1), 4..5): `v` declared here
-error at (FileId(1), 32..35): mismatched types
-| note for (FileId(1), 32..35): this is of type `char`
-| note for (FileId(1), 22..28): this is of type `1 .. {dynamic}`
+error at src/main.t:27..28: cannot compute `v` at compile-time
+| error for src/main.t:27..28: `v` is a reference to a variable, not a constant
+| note for src/main.t:4..5: `v` declared here
+error at src/main.t:32..35: mismatched types
+| note for src/main.t:32..35: this is of type `char`
+| note for src/main.t:22..28: this is of type `1 .. {dynamic}`
 | info: `char` is not assignable into `1 .. {dynamic}`

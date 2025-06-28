@@ -3,10 +3,9 @@ source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "for : end for"
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(0)
-    Module@(FileId(1), 0..13): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..13): []
-        For@(FileId(1), 0..13): explicit
-error at (FileId(1), 6..9): unexpected token
-| error for (FileId(1), 6..9): expected expression, but found `end`
-
+  Root@(dummy): src/main.t -> ItemId(0)
+    Module@(src/main.t:0..13): "<root>"@(dummy)
+      StmtBody@(src/main.t:0..13): []
+        For@(src/main.t:0..13): explicit
+error at src/main.t:6..9: unexpected token
+| error for src/main.t:6..9: expected expression, but found `end`

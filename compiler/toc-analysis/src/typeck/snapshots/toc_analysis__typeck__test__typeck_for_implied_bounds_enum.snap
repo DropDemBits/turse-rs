@@ -1,10 +1,9 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "type b : enum(a) for _ : b end for"
 ---
-"b"@(FileId(1), 5..6) [Type]: enum[DefId(PackageId(0), LocalDefId(1))] ( "a"@(FileId(1), 14..15), )
-"b"@(FileId(1), 9..16) [Enum]: <error>
-"a"@(FileId(1), 14..15) [EnumVariant]: enum[DefId(PackageId(0), LocalDefId(1))] ( "a"@(FileId(1), 14..15), )
-"_"@(FileId(1), 21..22) [ConstVar(Const, No)]: enum[DefId(PackageId(0), LocalDefId(1))] ( "a"@(FileId(1), 14..15), )
-"<root>"@(dummy) [Module(No)]: <error>
-
+"b"@"src/main.t:5..6" [Type]: enum[DefId(PackageId(3072), LocalDefId(1))] ( "a"@SpanId(4), )
+"b"@"src/main.t:9..16" [Enum]: <error>
+"a"@"src/main.t:14..15" [EnumVariant]: enum[DefId(PackageId(3072), LocalDefId(1))] ( "a"@SpanId(4), )
+"_"@"src/main.t:21..22" [ConstVar(Const, No)]: enum[DefId(PackageId(3072), LocalDefId(1))] ( "a"@SpanId(4), )
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>

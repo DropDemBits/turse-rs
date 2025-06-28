@@ -3,11 +3,10 @@ source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "put : 1"
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(0)
-    Module@(FileId(1), 0..7): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..7): []
-        Put@(FileId(1), 0..7): newline
-          Literal@(FileId(1), 6..7): Integer(1)
-error at (FileId(1), 6..7): unexpected end of file
-| error for (FileId(1), 6..7): expected `,` after here
-
+  Root@(dummy): src/main.t -> ItemId(0)
+    Module@(src/main.t:0..7): "<root>"@(dummy)
+      StmtBody@(src/main.t:0..7): []
+        Put@(src/main.t:0..7): newline
+          Literal@(src/main.t:6..7): Integer(1)
+error at src/main.t:6..7: unexpected end of file
+| error for src/main.t:6..7: expected `,` after here

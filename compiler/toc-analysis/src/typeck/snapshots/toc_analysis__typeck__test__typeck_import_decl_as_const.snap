@@ -2,11 +2,11 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var outer : int\nmodule _\n    import const outer\n    outer := 6\nend _\n"
 ---
-"outer"@(FileId(1), 4..9) [ConstVar(Var, No)]: int
-"_"@(FileId(1), 23..24) [Module(No)]: <error>
-"outer"@(FileId(1), 42..47) [Import]: int
-"<root>"@(dummy) [Module(No)]: <error>
+"outer"@"src/main.t:4..9" [ConstVar(Var, No)]: int
+"_"@"src/main.t:23..24" [Module(No)]: <error>
+"outer"@"src/main.t:42..47" [Import]: int
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 58..60): cannot assign into `outer`
-| error for (FileId(1), 52..57): `outer` is not imported as `var`
-| note for (FileId(1), 42..47): `outer` imported from here
+error at src/main.t:58..60: cannot assign into `outer`
+| error for src/main.t:52..57: `outer` is not imported as `var`
+| note for src/main.t:42..47: `outer` imported from here

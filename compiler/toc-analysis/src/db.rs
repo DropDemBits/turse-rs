@@ -2,27 +2,14 @@
 
 use toc_hir::package_graph::SourcePackage;
 use toc_reporting::CompileResult;
-use upcast::{Upcast, UpcastFrom};
 
 use crate::{lints, query, typeck};
 
 pub use crate::{const_eval::db::*, ty::db::*};
 
-#[salsa::jar(db = HirAnalysis)]
-pub struct AnalysisJar(
-    query::analyze_packages,
-    typeck::typecheck_package,
-    lints::lint_package,
-);
-
 /// HIR Analysis queries
-pub trait HirAnalysis:
-    salsa::DbWithJar<AnalysisJar>
-    + TypeDatabase
-    + ConstEval
-    + Upcast<dyn TypeDatabase>
-    + Upcast<dyn ConstEval>
-{
+#[salsa::db]
+pub trait HirAnalysis: TypeDatabase + ConstEval {
     /// Performs analysis passes on all packages
     fn analyze_packages(&self) -> CompileResult<()>;
 
@@ -34,13 +21,10 @@ pub trait HirAnalysis:
     fn lint_package(&self, package: SourcePackage) -> CompileResult<()>;
 }
 
+#[salsa::db]
 impl<DB> HirAnalysis for DB
 where
-    DB: salsa::DbWithJar<AnalysisJar>
-        + TypeDatabase
-        + ConstEval
-        + Upcast<dyn TypeDatabase>
-        + Upcast<dyn ConstEval>,
+    DB: TypeDatabase + ConstEval,
 {
     fn analyze_packages(&self) -> CompileResult<()> {
         query::analyze_packages(self)
@@ -52,14 +36,5 @@ where
 
     fn lint_package(&self, package: SourcePackage) -> CompileResult<()> {
         lints::lint_package(self, package)
-    }
-}
-
-impl<'db, DB: HirAnalysis + 'db> UpcastFrom<DB> for dyn HirAnalysis + 'db {
-    fn up_from(value: &DB) -> &Self {
-        value
-    }
-    fn up_from_mut(value: &mut DB) -> &mut Self {
-        value
     }
 }

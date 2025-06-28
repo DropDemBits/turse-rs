@@ -1,8 +1,7 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var ptr : ^int\nvar j := ^ptr\n"
 ---
-"ptr"@(FileId(1), 4..7) [ConstVar(Var, No)]: pointer to int
-"j"@(FileId(1), 19..20) [ConstVar(Var, No)]: int
-"<root>"@(dummy) [Module(No)]: <error>
-
+"ptr"@"src/main.t:4..7" [ConstVar(Var, No)]: pointer to int
+"j"@"src/main.t:19..20" [ConstVar(Var, No)]: int
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>

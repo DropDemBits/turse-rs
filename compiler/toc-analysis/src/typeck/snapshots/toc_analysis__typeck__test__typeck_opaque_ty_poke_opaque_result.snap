@@ -2,16 +2,16 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "module m\n    export opaque ~.* t\n    type t : int\n\n    % should be equivalent\n    fcn f() : t result 2 end f\nend m\n\n% should fail\nfcn k() : t result 2 end k\n"
 ---
-"m"@(FileId(1), 7..8) [Module(No)]: <error>
-"t"@(FileId(1), 42..43) [Type]: opaque[DefId(PackageId(0), LocalDefId(1))] type to int
-"f"@(FileId(1), 86..87) [Subprogram(Function)]: function ( ) -> opaque[DefId(PackageId(0), LocalDefId(1))] type to int
-"k"@(FileId(1), 134..135) [Subprogram(Function)]: function ( ) -> opaque[DefId(PackageId(0), LocalDefId(1))] type to int
-"<unnamed>"@(dummy) [Undeclared]: <error>
-"t"@(FileId(1), 31..32) [Export]: opaque[DefId(PackageId(0), LocalDefId(1))] type to int
-"<unnamed>"@(dummy) [Undeclared]: <error>
-"<root>"@(dummy) [Module(No)]: <error>
+"m"@"src/main.t:7..8" [Module(No)]: <error>
+"t"@"src/main.t:42..43" [Type]: opaque[DefId(PackageId(3072), LocalDefId(1))] type to int
+"f"@"src/main.t:86..87" [Subprogram(Function)]: function ( ) -> opaque[DefId(PackageId(3072), LocalDefId(1))] type to int
+"k"@"src/main.t:134..135" [Subprogram(Function)]: function ( ) -> opaque[DefId(PackageId(3072), LocalDefId(1))] type to int
+"<unnamed>"@"<unknown>:0..0" [Undeclared]: <error>
+"t"@"src/main.t:31..32" [Export]: opaque[DefId(PackageId(3072), LocalDefId(1))] type to int
+"<unnamed>"@"<unknown>:0..0" [Undeclared]: <error>
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 149..150): mismatched types
-| note for (FileId(1), 149..150): this is of type `{integer}`
-| note for (FileId(1), 140..141): function expects type `t (an opaque type)`
+error at src/main.t:149..150: mismatched types
+| note for src/main.t:149..150: this is of type `{integer}`
+| note for src/main.t:140..141: function expects type `t (an opaque type)`
 | info: `{integer}` is not assignable into `t (an opaque type)`

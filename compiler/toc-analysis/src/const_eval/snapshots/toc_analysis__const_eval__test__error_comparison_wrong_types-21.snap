@@ -2,8 +2,7 @@
 source: compiler/toc-analysis/src/const_eval/test.rs
 expression: "type e1 : enum(a) type e2 : enum(a) const _ := e1.a < e2.a"
 ---
-"_"@(FileId(1), 42..43) -> ConstError { kind: WrongOperandType, span: (FileId(1), 52..53) }
+"_"@"src/main.t:42..43" -> <error WrongOperandType>
 
-error at (FileId(1), 52..53): cannot compute expression at compile-time
-| error for (FileId(1), 52..53): wrong type for compile-time expression
-
+error at src/main.t:52..53: cannot compute expression at compile-time
+| error for src/main.t:52..53: wrong type for compile-time expression

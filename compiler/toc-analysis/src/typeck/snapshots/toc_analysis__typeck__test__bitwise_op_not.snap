@@ -1,10 +1,9 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "\n    % Compatibility with all variant of integers\n    var i : int\n    var n : nat\n    var _i := not i\n    var _n := not n\n"
 ---
-"i"@(FileId(1), 58..59) [ConstVar(Var, No)]: int
-"n"@(FileId(1), 74..75) [ConstVar(Var, No)]: nat
-"_i"@(FileId(1), 90..92) [ConstVar(Var, No)]: nat
-"_n"@(FileId(1), 110..112) [ConstVar(Var, No)]: nat
-"<root>"@(dummy) [Module(No)]: <error>
-
+"i"@"src/main.t:58..59" [ConstVar(Var, No)]: int
+"n"@"src/main.t:74..75" [ConstVar(Var, No)]: nat
+"_i"@"src/main.t:90..92" [ConstVar(Var, No)]: nat
+"_n"@"src/main.t:110..112" [ConstVar(Var, No)]: nat
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>

@@ -3,9 +3,8 @@ source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: ":="
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(0)
-    Module@(FileId(1), 0..2): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..2): []
-error at (FileId(1), 0..2): unexpected token
-| error for (FileId(1), 0..2): expected statement, but found `:=`
-
+  Root@(dummy): src/main.t -> ItemId(0)
+    Module@(src/main.t:0..2): "<root>"@(dummy)
+      StmtBody@(src/main.t:0..2): []
+error at src/main.t:0..2: unexpected token
+| error for src/main.t:0..2: expected statement, but found `:=`

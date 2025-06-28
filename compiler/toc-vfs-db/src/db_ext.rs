@@ -3,38 +3,39 @@
 use std::{borrow::Cow, path::Path};
 
 use camino::Utf8PathBuf;
-use toc_paths::RawPath;
+use toc_paths::{RawOwnedPath, RawRefPath};
 use toc_vfs::{ErrorKind, FixtureFiles, LoadError, LoadResult, LoadStatus};
-use upcast::Upcast;
 
-use crate::VfsBridge;
+use crate::Db;
 
 /// Helper extension trait for inserting & updating files
 pub trait VfsDbExt {
-    /// Inserts a file into the database, producing a [`RawPath`]
+    /// Inserts a file into the database, producing a [`RawOwnedPath`]
     ///
     /// Mainly used in tests
-    fn insert_file<P: AsRef<Path>>(&mut self, path: P, source: &str) -> RawPath;
+    fn insert_file<P: AsRef<Path>>(&mut self, path: P, source: &str) -> RawOwnedPath;
 
     /// Inserts a generated fixture tree into the database
     fn insert_fixture(&mut self, fixture: FixtureFiles);
 
     /// Updates the contents of the specified file, using the given load result
-    fn update_file(&mut self, file_id: RawPath, result: LoadResult);
+    fn update_file(&mut self, file_id: &RawRefPath, result: LoadResult);
 }
 
 impl<DB> VfsDbExt for DB
 where
-    DB: salsa::DbWithJar<crate::Jar> + toc_paths::Db + Upcast<dyn toc_paths::Db> + VfsBridge,
+    DB: Db,
 {
-    fn insert_file<P: AsRef<Path>>(&mut self, path: P, contents: &str) -> RawPath {
-        // Intern the path, then add it to the db
-        let path = RawPath::new(self, path.as_ref().to_str().unwrap().into());
+    fn insert_file<P: AsRef<Path>>(&mut self, path: P, contents: &str) -> RawOwnedPath {
+        use salsa::Setter as _;
 
-        let source = crate::source_of(self, path);
+        // Intern the path, then add it to the db
+        let raw_path = Utf8PathBuf::from_path_buf(path.as_ref().to_path_buf()).unwrap();
+
+        let source = crate::source_of(self, raw_path.as_ref());
         source.set_contents(self).to(contents.into());
         source.set_errors(self).to(None);
-        path
+        raw_path
     }
 
     fn insert_fixture(&mut self, fixture: toc_vfs::FixtureFiles) {
@@ -42,20 +43,17 @@ where
         let files = fixture
             .files
             .into_iter()
-            .map(|(path, src)| {
-                (
-                    RawPath::new(self, Utf8PathBuf::try_from(path).unwrap()),
-                    src,
-                )
-            })
+            .map(|(path, src)| (Utf8PathBuf::try_from(path).unwrap(), src))
             .collect::<Vec<_>>();
 
         for (file, source) in files {
-            self.update_file(file, source);
+            self.update_file(&file, source);
         }
     }
 
-    fn update_file(&mut self, path: RawPath, result: LoadResult) {
+    fn update_file(&mut self, path: &RawRefPath, result: LoadResult) {
+        use salsa::Setter as _;
+
         let (contents, errors) = match result {
             Ok(LoadStatus::Unchanged) => return,
             Ok(LoadStatus::Modified(byte_source)) => {

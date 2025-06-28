@@ -3,11 +3,10 @@ source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "\n    type a : 1 + 1\n    "
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(1)
-    Module@(FileId(1), 0..24): "<root>"@(dummy)
-      StmtBody@(FileId(1), 5..19): []
-        StmtItem@(FileId(1), 5..19): ItemId(0)
-          Type@(FileId(1), 5..19): "a"@(FileId(1), 10..11)
-error at (FileId(1), 14..19): invalid type
-| error for (FileId(1), 14..19): expressions can't be used as types
-
+  Root@(dummy): src/main.t -> ItemId(1)
+    Module@(src/main.t:0..24): "<root>"@(dummy)
+      StmtBody@(src/main.t:5..19): []
+        StmtItem@(src/main.t:5..19): ItemId(0)
+          Type@(src/main.t:5..19): "a"@(src/main.t:10..11)
+error at src/main.t:14..19: invalid type
+| error for src/main.t:14..19: expressions can't be used as types

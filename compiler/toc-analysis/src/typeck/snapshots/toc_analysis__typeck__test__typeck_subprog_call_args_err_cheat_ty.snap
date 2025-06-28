@@ -1,12 +1,11 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var tree : string\nprocedure boop(a, b : cheat int, var c : cheat int) end boop\nboop(\"tree\", tree, tree)\n"
 ---
-"tree"@(FileId(1), 4..8) [ConstVar(Var, No)]: string
-"boop"@(FileId(1), 28..32) [Subprogram(Procedure)]: procedure ( pass(value) cheat int, pass(value) cheat int, pass(var ref) cheat int, ) -> void
-"a"@(FileId(1), 33..34) [Param(Value, No)]: int
-"b"@(FileId(1), 36..37) [Param(Value, No)]: int
-"c"@(FileId(1), 55..56) [Param(Reference(Var), No)]: int
-"<unnamed>"@(dummy) [Undeclared]: <error>
-"<root>"@(dummy) [Module(No)]: <error>
-
+"tree"@"src/main.t:4..8" [ConstVar(Var, No)]: string
+"boop"@"src/main.t:28..32" [Subprogram(Procedure)]: procedure ( pass(value) cheat int, pass(value) cheat int, pass(var ref) cheat int, ) -> void
+"a"@"src/main.t:33..34" [Param(Value, No)]: int
+"b"@"src/main.t:36..37" [Param(Value, No)]: int
+"c"@"src/main.t:55..56" [Param(Reference(Var), No)]: int
+"<unnamed>"@"<unknown>:0..0" [Undeclared]: <error>
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>

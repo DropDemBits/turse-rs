@@ -2,11 +2,11 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "module a export ~.b\n    var b : int\nend a\nb := 1\n"
 ---
-"a"@(FileId(1), 7..8) [Module(No)]: <error>
-"b"@(FileId(1), 28..29) [ConstVar(Var, No)]: int
-"b"@(FileId(1), 18..19) [Export]: int
-"<root>"@(dummy) [Module(No)]: <error>
+"a"@"src/main.t:7..8" [Module(No)]: <error>
+"b"@"src/main.t:28..29" [ConstVar(Var, No)]: int
+"b"@"src/main.t:18..19" [Export]: int
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 44..46): cannot assign into `b`
-| error for (FileId(1), 42..43): `b` is not exported as `var`
-| note for (FileId(1), 18..19): `b` exported from here
+error at src/main.t:44..46: cannot assign into `b`
+| error for src/main.t:42..43: `b` is not exported as `var`
+| note for src/main.t:18..19: `b` exported from here

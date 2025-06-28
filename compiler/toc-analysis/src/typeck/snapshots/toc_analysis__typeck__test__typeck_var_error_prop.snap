@@ -2,12 +2,12 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var k := 20 + false\nvar l : int := k   % Nothing reported here\n"
 ---
-"k"@(FileId(1), 4..5) [ConstVar(Var, No)]: <error>
-"l"@(FileId(1), 24..25) [ConstVar(Var, No)]: int
-"<root>"@(dummy) [Module(No)]: <error>
+"k"@"src/main.t:4..5" [ConstVar(Var, No)]: <error>
+"l"@"src/main.t:24..25" [ConstVar(Var, No)]: int
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 12..13): mismatched types for addition
-| note for (FileId(1), 14..19): this is of type `boolean`
-| note for (FileId(1), 9..11): this is of type `{integer}`
-| error for (FileId(1), 12..13): `{integer}` cannot be added to `boolean`
+error at src/main.t:12..13: mismatched types for addition
+| note for src/main.t:14..19: this is of type `boolean`
+| note for src/main.t:9..11: this is of type `{integer}`
+| error for src/main.t:12..13: `{integer}` cannot be added to `boolean`
 | info: operands must both be numbers, strings, or sets

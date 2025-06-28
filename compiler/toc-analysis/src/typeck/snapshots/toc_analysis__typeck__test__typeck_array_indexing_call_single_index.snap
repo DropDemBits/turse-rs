@@ -1,8 +1,7 @@
 ---
-source: compiler/toc_analysis/src/typeck/test.rs
+source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var a : array 1..2 of int\nvar _ : int := a(1)"
 ---
-"a"@(FileId(1), 4..5) [ConstVar(Var, No)]: array ( range of `int` (Unevaluated(PackageId(0), BodyId(0)) .. Expr(Unevaluated(PackageId(0), BodyId(1)), Yes)), ) of int
-"_"@(FileId(1), 30..31) [ConstVar(Var, No)]: int
-"<root>"@(dummy) [Module(No)]: <error>
-
+"a"@"src/main.t:4..5" [ConstVar(Var, No)]: array ( range of `int` (Unevaluated(PackageId(3072), BodyId(0)) .. Expr(Unevaluated(PackageId(3072), BodyId(1)), Yes)), ) of int
+"_"@"src/main.t:30..31" [ConstVar(Var, No)]: int
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>

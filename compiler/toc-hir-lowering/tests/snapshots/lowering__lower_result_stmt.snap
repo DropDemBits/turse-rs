@@ -1,17 +1,14 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
-assertion_line: 59
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "fcn _ : string result \"sus\" end _"
-
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(1)
-    Module@(FileId(1), 0..33): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..33): []
-        StmtItem@(FileId(1), 0..33): ItemId(0)
-          Subprogram@(FileId(1), 0..33): "_"@(FileId(1), 4..5)
-            Primitive@(FileId(1), 8..14): String
-            StmtBody@(FileId(1), 15..27): []
-              Result@(FileId(1), 15..27)
-                Literal@(FileId(1), 22..27): String("sus")
-
+  Root@(dummy): src/main.t -> ItemId(1)
+    Module@(src/main.t:0..33): "<root>"@(dummy)
+      StmtBody@(src/main.t:0..33): []
+        StmtItem@(src/main.t:0..33): ItemId(0)
+          Subprogram@(src/main.t:0..33): "_"@(src/main.t:4..5)
+            Primitive@(src/main.t:8..14): String
+            StmtBody@(src/main.t:15..27): []
+              Result@(src/main.t:15..27)
+                Literal@(src/main.t:22..27): String("sus")

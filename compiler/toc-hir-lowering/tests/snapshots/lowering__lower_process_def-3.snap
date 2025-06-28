@@ -1,26 +1,23 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
-assertion_line: 59
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "\n    process some_params(a, b : int)\n        % should be visible\n        var me := a + b\n    end some_params\n    "
-
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(2)
-    Module@(FileId(1), 0..113): "<root>"@(dummy)
-      StmtBody@(FileId(1), 5..108): []
-        StmtItem@(FileId(1), 5..108): ItemId(1)
-          Subprogram@(FileId(1), 5..108): "some_params"@(FileId(1), 13..24) [
-            "a"@(FileId(1), 25..26),
-            "b"@(FileId(1), 28..29)
+  Root@(dummy): src/main.t -> ItemId(2)
+    Module@(src/main.t:0..113): "<root>"@(dummy)
+      StmtBody@(src/main.t:5..108): []
+        StmtItem@(src/main.t:5..108): ItemId(1)
+          Subprogram@(src/main.t:5..108): "some_params"@(src/main.t:13..24) [
+            "a"@(src/main.t:25..26),
+            "b"@(src/main.t:28..29)
           ]
-            Primitive@(FileId(1), 32..35): Int
-            Primitive@(FileId(1), 32..35): Int
-            Void@(FileId(1), 5..36)
-            StmtBody@(FileId(1), 73..88): ["a"@(FileId(1), 25..26), "b"@(FileId(1), 28..29)]
-              StmtItem@(FileId(1), 73..88): ItemId(0)
-                ConstVar@(FileId(1), 73..88): var "me"@(FileId(1), 77..79)
-                  ExprBody@(FileId(1), 83..88)
-                    Binary@(FileId(1), 83..88): Add
-                      Name@(FileId(1), 83..84): "a"@(FileId(1), 25..26)
-                      Name@(FileId(1), 87..88): "b"@(FileId(1), 28..29)
-
+            Primitive@(src/main.t:32..35): Int
+            Primitive@(src/main.t:32..35): Int
+            Void@(src/main.t:5..36)
+            StmtBody@(src/main.t:73..88): ["a"@(src/main.t:25..26), "b"@(src/main.t:28..29)]
+              StmtItem@(src/main.t:73..88): ItemId(0)
+                ConstVar@(src/main.t:73..88): var "me"@(src/main.t:77..79)
+                  ExprBody@(src/main.t:83..88)
+                    Binary@(src/main.t:83..88): Add
+                      Name@(src/main.t:83..84): "a"@(src/main.t:25..26)
+                      Name@(src/main.t:87..88): "b"@(src/main.t:28..29)

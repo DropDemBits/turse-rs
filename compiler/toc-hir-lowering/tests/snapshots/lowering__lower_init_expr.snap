@@ -1,24 +1,21 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
-assertion_line: 61
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "var _ : int := init(1, 2, 3, 4)"
-
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(1)
-    Module@(FileId(1), 0..31): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..31): []
-        StmtItem@(FileId(1), 0..31): ItemId(0)
-          ConstVar@(FileId(1), 0..31): var "_"@(FileId(1), 4..5)
-            Primitive@(FileId(1), 8..11): Int
-            ExprBody@(FileId(1), 15..31)
-              InitExpr@(FileId(1), 15..31)
-                ExprBody@(FileId(1), 20..21)
-                  Literal@(FileId(1), 20..21): Integer(1)
-                ExprBody@(FileId(1), 23..24)
-                  Literal@(FileId(1), 23..24): Integer(2)
-                ExprBody@(FileId(1), 26..27)
-                  Literal@(FileId(1), 26..27): Integer(3)
-                ExprBody@(FileId(1), 29..30)
-                  Literal@(FileId(1), 29..30): Integer(4)
-
+  Root@(dummy): src/main.t -> ItemId(1)
+    Module@(src/main.t:0..31): "<root>"@(dummy)
+      StmtBody@(src/main.t:0..31): []
+        StmtItem@(src/main.t:0..31): ItemId(0)
+          ConstVar@(src/main.t:0..31): var "_"@(src/main.t:4..5)
+            Primitive@(src/main.t:8..11): Int
+            ExprBody@(src/main.t:15..31)
+              InitExpr@(src/main.t:15..31)
+                ExprBody@(src/main.t:20..21)
+                  Literal@(src/main.t:20..21): Integer(1)
+                ExprBody@(src/main.t:23..24)
+                  Literal@(src/main.t:23..24): Integer(2)
+                ExprBody@(src/main.t:26..27)
+                  Literal@(src/main.t:26..27): Integer(3)
+                ExprBody@(src/main.t:29..30)
+                  Literal@(src/main.t:29..30): Integer(4)

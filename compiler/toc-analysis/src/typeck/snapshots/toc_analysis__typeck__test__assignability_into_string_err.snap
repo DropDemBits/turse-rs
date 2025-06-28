@@ -2,11 +2,11 @@
 source: compiler/toc-analysis/src/typeck/test.rs
 expression: "var cmx : char(256)\n\nvar _e00 : string := cmx % [not captured by ctc]\n"
 ---
-"cmx"@(FileId(1), 4..7) [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(0), BodyId(0)))
-"_e00"@(FileId(1), 25..29) [ConstVar(Var, No)]: string
-"<root>"@(dummy) [Module(No)]: <error>
+"cmx"@"src/main.t:4..7" [ConstVar(Var, No)]: char_n Fixed(Unevaluated(PackageId(3072), BodyId(0)))
+"_e00"@"src/main.t:25..29" [ConstVar(Var, No)]: string
+"<root>"@"<unknown>:0..0" [Module(No)]: <error>
 
-error at (FileId(1), 42..45): mismatched types
-| note for (FileId(1), 42..45): this is of type `char(256)`
-| note for (FileId(1), 32..38): this is of type `string`
+error at src/main.t:42..45: mismatched types
+| note for src/main.t:42..45: this is of type `char(256)`
+| note for src/main.t:32..38: this is of type `string`
 | info: `char(256)` is not assignable into `string`

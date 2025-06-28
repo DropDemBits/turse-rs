@@ -2,9 +2,8 @@
 source: compiler/toc-analysis/src/const_eval/test.rs
 expression: "const a : int := false const _:=a"
 ---
-"a"@(FileId(1), 6..7) -> Bool(false)
-"_"@(FileId(1), 29..30) -> ConstError { kind: WrongResultType, span: (FileId(1), 17..22) }
+"a"@"src/main.t:6..7" -> Bool(false)
+"_"@"src/main.t:29..30" -> <error WrongResultType>
 
-error at (FileId(1), 17..22): cannot compute expression at compile-time
-| error for (FileId(1), 17..22): wrong type for compile-time expression
-
+error at src/main.t:17..22: cannot compute expression at compile-time
+| error for src/main.t:17..22: wrong type for compile-time expression

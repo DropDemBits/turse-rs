@@ -3,22 +3,21 @@ source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "type _ : proc uwu(_ : array 1 .. *, char,,char of int)"
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(1)
-    Module@(FileId(1), 0..54): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..54): []
-        StmtItem@(FileId(1), 0..54): ItemId(0)
-          Type@(FileId(1), 0..54): "_"@(FileId(1), 5..6)
-            Procedure@(FileId(1), 9..54): [...]
-              Array@(FileId(1), 22..53): Static
-                Constrained@(FileId(1), 28..34): end => Any
-                  ExprBody@(FileId(1), 28..29)
-                    Literal@(FileId(1), 28..29): Integer(1)
-                Primitive@(FileId(1), 50..53): Int
-              Void@(FileId(1), 9..54)
-error at (FileId(1), 28..34): extra ranges specified
-| error for (FileId(1), 36..46): extra ranges after
-| note for (FileId(1), 28..34): this must be the only range present
+  Root@(dummy): src/main.t -> ItemId(1)
+    Module@(src/main.t:0..54): "<root>"@(dummy)
+      StmtBody@(src/main.t:0..54): []
+        StmtItem@(src/main.t:0..54): ItemId(0)
+          Type@(src/main.t:0..54): "_"@(src/main.t:5..6)
+            Procedure@(src/main.t:9..54): [...]
+              Array@(src/main.t:22..53): Static
+                Constrained@(src/main.t:28..34): end => Any
+                  ExprBody@(src/main.t:28..29)
+                    Literal@(src/main.t:28..29): Integer(1)
+                Primitive@(src/main.t:50..53): Int
+              Void@(src/main.t:9..54)
+error at src/main.t:28..34: extra ranges specified
+| error for src/main.t:36..46: extra ranges after
+| note for src/main.t:28..34: this must be the only range present
 | info: any-sized arrays must have this range be the only range present
-error at (FileId(1), 41..42): unexpected token
-| error for (FileId(1), 41..42): expected type specifier, but found `,`
-
+error at src/main.t:41..42: unexpected token
+| error for src/main.t:41..42: expected type specifier, but found `,`

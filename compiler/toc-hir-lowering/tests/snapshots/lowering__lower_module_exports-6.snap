@@ -1,18 +1,17 @@
 ---
-source: compiler/toc_hir_lowering/tests/lowering.rs
+source: compiler/toc-hir-lowering/tests/lowering.rs
 expression: "\n    module z\n        export var *~. all\n        var heres, tree : int\n    end z"
 ---
 Package@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(3)
-    Module@(FileId(1), 0..80): "<root>"@(dummy)
-      StmtBody@(FileId(1), 5..80): []
-        StmtItem@(FileId(1), 5..80): ItemId(2)
-          Module@(FileId(1), 5..80): "z"@(FileId(1), 12..13), exports [Var PervasiveUnqualified local("heres"@(FileId(1), 53..58)), Var PervasiveUnqualified local("tree"@(FileId(1), 60..64))]
-            StmtBody@(FileId(1), 49..70): []
-              StmtItem@(FileId(1), 49..70): ItemId(0)
-                ConstVar@(FileId(1), 49..70): var "heres"@(FileId(1), 53..58)
-                  Primitive@(FileId(1), 67..70): Int
-              StmtItem@(FileId(1), 49..70): ItemId(1)
-                ConstVar@(FileId(1), 49..70): var "tree"@(FileId(1), 60..64)
-                  Primitive@(FileId(1), 67..70): Int
-
+  Root@(dummy): src/main.t -> ItemId(3)
+    Module@(src/main.t:0..80): "<root>"@(dummy)
+      StmtBody@(src/main.t:5..80): []
+        StmtItem@(src/main.t:5..80): ItemId(2)
+          Module@(src/main.t:5..80): "z"@(src/main.t:12..13), exports [Var PervasiveUnqualified local("heres"@(src/main.t:53..58)), Var PervasiveUnqualified local("tree"@(src/main.t:60..64))]
+            StmtBody@(src/main.t:49..70): []
+              StmtItem@(src/main.t:49..70): ItemId(0)
+                ConstVar@(src/main.t:49..70): var "heres"@(src/main.t:53..58)
+                  Primitive@(src/main.t:67..70): Int
+              StmtItem@(src/main.t:49..70): ItemId(1)
+                ConstVar@(src/main.t:49..70): var "tree"@(src/main.t:60..64)
+                  Primitive@(src/main.t:67..70): Int

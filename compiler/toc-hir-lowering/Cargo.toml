@@ -11,6 +11,7 @@ edition.workspace = true
 [dependencies]
 toc-ast-db = { workspace = true }
 toc-hir = { workspace = true }
+toc-paths.workspace = true
 toc-source-graph = { workspace = true }
 toc-span = { workspace = true }
 toc-syntax = { workspace = true }
@@ -20,14 +21,13 @@ toc-vfs-db = { workspace = true }
 
 salsa = { workspace = true }
 indexmap = { workspace = true }
-upcast = { workspace = true }
 
 [dev-dependencies]
-toc-paths = { workspace = true }
 toc-hir-pretty = { workspace = true }
 if_chain = "1.0"
 approx = "0.5"
 
+camino.workspace = true
 insta = { workspace = true }
 unindent = { workspace = true }
 paste = { workspace = true }

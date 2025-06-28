@@ -368,7 +368,7 @@ pub enum DefResolve {
 }
 
 /// Package-local map of bindings to their corresponding [`Resolve`]
-#[derive(Debug, PartialEq, Eq, Default)]
+#[derive(Debug, PartialEq, Eq, Default, salsa::Update)]
 pub struct ResolutionMap {
     pub binding_resolves: IndexMap<Spanned<Symbol>, Resolve>,
     pub def_resolves: DefMap<DefResolve>,
