@@ -255,8 +255,7 @@ struct MainDatabase {
     source_table: SourceTable,
 }
 
-impl salsa::Database for MainDatabase {
-}
+impl salsa::Database for MainDatabase {}
 
 impl VfsBridge for MainDatabase {
     fn source_table(&self) -> &SourceTable {

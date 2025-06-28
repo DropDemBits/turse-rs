@@ -10,8 +10,7 @@ struct TestDb {
     storage: salsa::Storage<Self>,
 }
 
-impl salsa::Database for TestDb {
-}
+impl salsa::Database for TestDb {}
 
 #[test]
 fn no_dedup_source_roots() {

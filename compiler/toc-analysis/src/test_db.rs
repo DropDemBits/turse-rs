@@ -19,8 +19,7 @@ impl VfsBridge for TestDb {
     }
 }
 
-impl salsa::Database for TestDb {
-}
+impl salsa::Database for TestDb {}
 
 impl TestDb {
     pub(crate) fn from_source(source: &str) -> (Self, SourcePackage) {

@@ -10,8 +10,7 @@ struct VfsTestDB {
     source_table: SourceTable,
 }
 
-impl salsa::Database for VfsTestDB {
-}
+impl salsa::Database for VfsTestDB {}
 
 impl VfsTestDB {
     fn new() -> Self {
