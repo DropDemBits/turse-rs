@@ -14,7 +14,7 @@ use toc_vfs_db::SourceFile;
 use crate::Db;
 
 /// What other files a given file refers to
-#[salsa::tracked(return_ref)]
+#[salsa::tracked(returns(ref))]
 pub fn file_links<'db>(db: &'db dyn Db, source: SourceFile) -> toc_parser::ExternalLinks {
     let mut links = ExternalLinks::default();
     let deps = crate::parse_depends(db, source);
@@ -30,7 +30,7 @@ pub fn file_links<'db>(db: &'db dyn Db, source: SourceFile) -> toc_parser::Exter
 }
 
 /// Parses the given file
-#[salsa::tracked(return_ref)]
+#[salsa::tracked(returns(ref))]
 pub fn parse_file(db: &dyn Db, source: SourceFile) -> CompileResult<toc_parser::ParseTree> {
     // FIXME: If a load error is present, then add it to the parse result / create a new one
     let file_id: FileId = RawPath::new(db, source.path(db)).into();
@@ -47,7 +47,7 @@ pub fn validate_file(db: &dyn Db, source: SourceFile) -> CompileResult<()> {
 }
 
 /// Parse out the dependencies of a file
-#[salsa::tracked(return_ref)]
+#[salsa::tracked(returns(ref))]
 pub fn parse_depends(db: &dyn Db, source: SourceFile) -> CompileResult<toc_parser::FileDepends> {
     let file_id: FileId = RawPath::new(db, source.path(db)).into();
     let cst = crate::parse_file(db, source);

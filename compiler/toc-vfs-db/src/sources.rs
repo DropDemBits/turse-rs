@@ -107,11 +107,12 @@ pub trait VfsBridge: salsa::Database {
 /// Provides an `Option<LoadError>`, to notify of things like being unable to open a file,
 /// or a file not being encoded in UTF-8
 #[salsa::input(debug)]
+#[derive(PartialOrd, Ord)]
 pub struct SourceFile {
     /// Originating source path
-    #[return_ref]
+    #[returns(ref)]
     pub path: RawOwnedPath,
-    #[return_ref]
+    #[returns(ref)]
     pub contents: String,
     pub errors: Option<LoadError>,
 }

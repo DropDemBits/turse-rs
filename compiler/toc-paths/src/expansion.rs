@@ -10,7 +10,7 @@ use crate::Db;
 #[salsa::input(singleton)]
 pub struct PrefixExpansions {
     /// Builtin set of prefix expansions
-    #[return_ref]
+    #[returns(ref)]
     pub builtin_expansions: HashMap<BuiltinPrefix, Utf8PathBuf>,
     // ???: Do we want to support user-provided expansions?
     // Would be easy to though
@@ -18,7 +18,7 @@ pub struct PrefixExpansions {
 
 #[salsa::tracked]
 impl PrefixExpansions {
-    #[salsa::tracked(return_ref)]
+    #[salsa::tracked(returns(ref))]
     pub(crate) fn builtin_expansion(
         self,
         db: &dyn Db,

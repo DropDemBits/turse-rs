@@ -10,9 +10,7 @@ struct TestDb {
     storage: salsa::Storage<Self>,
 }
 
-#[salsa::db]
 impl salsa::Database for TestDb {
-    fn salsa_event(&self, _event: &dyn Fn() -> salsa::Event) {}
 }
 
 #[test]

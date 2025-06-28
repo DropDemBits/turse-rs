@@ -256,7 +256,6 @@ struct MainDatabase {
 }
 
 impl salsa::Database for MainDatabase {
-    fn salsa_event(&self, _event: &dyn Fn() -> salsa::Event) {}
 }
 
 impl VfsBridge for MainDatabase {

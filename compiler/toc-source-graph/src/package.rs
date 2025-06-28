@@ -8,9 +8,10 @@ use crate::Db;
 
 /// Source information about a package
 #[salsa::input(debug)]
+#[derive(PartialOrd, Ord)]
 pub struct Package {
     /// Name of the package
-    #[return_ref]
+    #[returns(ref)]
     pub name: String,
     /// Path to the main file of the package, where all of the other files are discovered from
     pub root: RawPath,
@@ -62,15 +63,14 @@ impl DependencyList {
 pub struct DependencyInfo();
 
 /// A reference to a package in the [`SourceGraph`](crate::SourceGraph)
+// FIXME: Move all uses to [`Package`] directly (implict through new tracked struct rewrite)
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(transparent)]
 pub struct PackageId(pub Package);
 
 impl fmt::Debug for PackageId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_tuple("PackageId")
-            .field(&self.0.0.as_u32())
-            .finish()
+        f.debug_tuple("PackageId").field(&self.0.0.index()).finish()
     }
 }
 

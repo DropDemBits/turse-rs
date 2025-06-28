@@ -130,6 +130,7 @@ pub enum Item<'db> {
 impl_into_conversions!(ConstVar, Module for Item<'db>);
 
 #[salsa::tracked(debug)]
+#[derive(PartialOrd, Ord)]
 pub struct ConstVar<'db> {
     pub name: Symbol,
     /// Original name node
@@ -198,6 +199,7 @@ pub fn root_module<'db>(db: &'db dyn Db, package: Package) -> RootModule<'db> {
 
 /// Root module of a package
 #[salsa::tracked(debug)]
+#[derive(PartialOrd, Ord)]
 pub struct RootModule<'db> {
     pub name: Symbol,
     #[tracked]
@@ -243,8 +245,8 @@ impl<'db> HasItems<'db> for RootModule<'db> {
 /// Separate outline modules that are put into distinct files.
 /// Always corresponds to a file on the file system
 #[salsa::tracked(debug)]
+#[derive(PartialOrd, Ord)]
 pub struct UnitModule<'db> {
-    #[salsa::tracked]
     origin: SourceFile,
 }
 
@@ -260,6 +262,7 @@ impl<'db> UnitModule<'db> {
 
 /// Inline module within a file
 #[salsa::tracked(debug)]
+#[derive(PartialOrd, Ord)]
 pub struct Module<'db> {
     pub name: Symbol,
     #[tracked]
@@ -369,10 +372,10 @@ pub trait HasItems<'db> {
 #[salsa::tracked(debug)]
 pub struct ItemCollection<'db> {
     #[tracked]
-    #[return_ref]
+    #[returns(ref)]
     pub items: Box<[Item<'db>]>,
     #[tracked]
-    #[return_ref]
+    #[returns(ref)]
     pub loc_map: ItemLocMap<'db>,
 }
 

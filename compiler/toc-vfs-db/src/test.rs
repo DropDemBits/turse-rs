@@ -10,9 +10,7 @@ struct VfsTestDB {
     source_table: SourceTable,
 }
 
-#[salsa::db]
 impl salsa::Database for VfsTestDB {
-    fn salsa_event(&self, _event: &dyn Fn() -> salsa::Event) {}
 }
 
 impl VfsTestDB {

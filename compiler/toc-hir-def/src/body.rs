@@ -59,10 +59,10 @@ pub(crate) struct BodySpans<'db> {
 #[salsa::tracked(debug)]
 pub(crate) struct BodyLowerResult<'db> {
     #[tracked]
-    #[return_ref]
+    #[returns(ref)]
     contents: BodyContents<'db>,
     #[tracked]
-    #[return_ref]
+    #[returns(ref)]
     spans: BodySpans<'db>,
 }
 

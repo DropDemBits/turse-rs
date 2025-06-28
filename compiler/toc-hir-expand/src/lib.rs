@@ -297,7 +297,7 @@ pub struct PackageFile {
 }
 
 /// All files that are part of a specific package
-#[salsa::tracked(return_ref)]
+#[salsa::tracked(returns(ref))]
 pub fn all_files(db: &dyn Db, package: Package) -> BTreeMap<SourceFile, PackageFile> {
     let source = toc_vfs_db::source_of(db, package.root(db).raw_path(db));
     let mut files = (*toc_ast_db::reachable_files(db, source)).clone();
@@ -344,7 +344,7 @@ impl<'db> AstLocations<'db> {
 
 #[salsa::tracked]
 impl<'db> SemanticFile {
-    #[salsa::tracked(return_ref)]
+    #[salsa::tracked(returns(ref))]
     pub fn ast_locations(self, db: &'db dyn Db) -> AstLocations<'db> {
         let root = self.ast(db);
         let mut locs = vec![];

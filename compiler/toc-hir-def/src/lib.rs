@@ -170,7 +170,7 @@ impl<'me, 'db: 'me, Db: ?Sized> fmt::Display for DisplayWith<'me, 'db, Db> {
 
 #[salsa::interned(debug, no_lifetime)]
 pub struct Symbol {
-    #[return_ref]
+    #[returns(ref)]
     pub text: String,
 }
 

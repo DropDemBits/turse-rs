@@ -276,9 +276,7 @@ struct LspDatabase {
     source_table: SourceTable,
 }
 
-impl salsa::Database for LspDatabase {
-    fn salsa_event(&self, _event: &dyn Fn() -> salsa::Event) {}
-}
+impl salsa::Database for LspDatabase {}
 
 impl VfsBridge for LspDatabase {
     fn source_table(&self) -> &SourceTable {

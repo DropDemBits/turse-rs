@@ -111,7 +111,7 @@ pub(crate) mod query {
         span::{LineInfo, LineMapping, LspPosition},
     };
 
-    #[salsa::tracked(return_ref)]
+    #[salsa::tracked(returns(ref))]
     pub fn line_mapping(db: &dyn Db, source: SourceFile) -> LineMapping {
         LineMapping::from_source(Arc::new(source.contents(db).clone()))
     }
