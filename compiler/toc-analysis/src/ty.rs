@@ -30,8 +30,9 @@ pub const MAX_CHAR_N_LEN: u32 = 32768;
 
 /// Id referencing an interned type.
 #[salsa::interned(debug, no_lifetime)]
+#[derive(PartialOrd, Ord)]
 pub struct TypeId {
-    #[return_ref]
+    #[returns(ref)]
     pub kind: TypeKind,
 }
 

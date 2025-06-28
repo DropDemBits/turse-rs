@@ -10,10 +10,7 @@ struct TestDb {
     storage: salsa::Storage<Self>,
 }
 
-#[salsa::db]
-impl salsa::Database for TestDb {
-    fn salsa_event(&self, _event: &dyn Fn() -> salsa::Event) {}
-}
+impl salsa::Database for TestDb {}
 
 #[test]
 fn no_dedup_source_roots() {

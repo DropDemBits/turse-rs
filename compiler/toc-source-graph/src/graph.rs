@@ -7,7 +7,7 @@ use crate::{Db, DependencyList, Package};
 /// Packages to start walking the dependency graph from
 #[salsa::input(singleton)]
 pub struct RootPackages {
-    #[return_ref]
+    #[returns(ref)]
     pub roots: Vec<Package>,
 }
 
@@ -15,7 +15,7 @@ pub struct RootPackages {
 ///
 /// If there is a cycle in the dependency graph, [`CyclicDependencies`]
 /// describes which package had a cyclic dependency
-#[salsa::tracked(return_ref)]
+#[salsa::tracked(returns(ref))]
 pub fn source_graph<'db>(db: &'db dyn Db) -> Result<SourceGraph<'db>, CyclicDependencies> {
     // FIXME: Actually explore the dependencies of the roots
     let roots = RootPackages::get(db).roots(db);
@@ -27,13 +27,13 @@ pub fn source_graph<'db>(db: &'db dyn Db) -> Result<SourceGraph<'db>, CyclicDepe
 #[salsa::tracked]
 pub struct SourceGraph<'db> {
     #[tracked]
-    #[return_ref]
+    #[returns(ref)]
     graph: FxIndexMap<Package, DependencyList>,
 }
 
 #[salsa::tracked]
 impl<'db> SourceGraph<'db> {
-    #[salsa::tracked(return_ref)]
+    #[salsa::tracked(returns(ref))]
     pub fn all_packages(self, db: &'db dyn Db) -> Vec<Package> {
         self.graph(db).keys().copied().collect::<Vec<_>>()
     }

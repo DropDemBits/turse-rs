@@ -12,7 +12,7 @@ use crate::{
 impl<'db> DisplayWithDb<'db, dyn crate::Db> for ConstVar<'db> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>, db: &dyn crate::Db) -> fmt::Result {
         let name = self.name(db).text(db).to_owned();
-        let id = self.0.as_u32();
+        let id = self.0.index();
         let kind = match self.mutability(db) {
             Mutability::Const => "const",
             Mutability::Var => "var",
@@ -25,7 +25,7 @@ impl<'db> DisplayWithDb<'db, dyn crate::Db> for ConstVar<'db> {
 impl<'db> DisplayWithDb<'db, dyn crate::Db> for RootModule<'db> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>, db: &dyn crate::Db) -> fmt::Result {
         let name = self.name(db).text(db).to_owned();
-        let id = self.0.as_u32();
+        let id = self.0.index();
 
         write!(f, "package {name} /* RootModule({id}) */")
     }
@@ -40,7 +40,7 @@ impl<'db> DisplayWithDb<'db, dyn crate::Db> for UnitModule<'db> {
 impl<'db> DisplayWithDb<'db, dyn crate::Db> for Module<'db> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>, db: &dyn crate::Db) -> fmt::Result {
         let name = self.name(db).text(db).to_owned();
-        let id = self.0.as_u32();
+        let id = self.0.index();
 
         write!(f, "module {name} /* Module({id}) */")
     }

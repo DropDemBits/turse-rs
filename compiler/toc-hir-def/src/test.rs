@@ -7,7 +7,7 @@ use toc_source_graph::{ArtifactKind, DependencyList, Package, RootPackages};
 use toc_vfs_db::{SourceTable, VfsBridge, VfsDbExt};
 
 #[salsa::db]
-#[derive(Default, Clone)]
+#[derive(Clone)]
 struct TestDb {
     storage: salsa::Storage<Self>,
     source_table: SourceTable,
@@ -15,14 +15,26 @@ struct TestDb {
     logger: Arc<Mutex<Option<Vec<salsa::Event>>>>,
 }
 
-impl salsa::Database for TestDb {
-    fn salsa_event(&self, event: &dyn Fn() -> salsa::Event) {
-        let mut events = self.logger.lock().unwrap();
-        if let Some(events) = &mut *events {
-            events.push(event());
+impl Default for TestDb {
+    fn default() -> Self {
+        let logs = Arc::<Mutex<Option<Vec<salsa::Event>>>>::default();
+        Self {
+            storage: salsa::Storage::new(Some(Box::new({
+                let logs = logs.clone();
+                move |event| {
+                    let mut events = logs.lock().unwrap();
+                    if let Some(events) = &mut *events {
+                        events.push(event);
+                    }
+                }
+            }))),
+            source_table: Default::default(),
+            logger: logs,
         }
     }
 }
+
+impl salsa::Database for TestDb {}
 
 impl VfsBridge for TestDb {
     fn source_table(&self) -> &SourceTable {
@@ -88,12 +100,11 @@ fn format_events(_db: &TestDb, events: Vec<salsa::Event>) -> Vec<String> {
                     accumulator,
                 } => format!("discard_accum {:?} {:?}", executor_key, accumulator),
                 salsa::EventKind::DidSetCancellationFlag => format!("cancel requested"),
-                salsa::EventKind::DidInternValue { id, revision } => {
-                    format!("interned {id:?} {revision:?}")
+                salsa::EventKind::DidInternValue { key, revision } => {
+                    format!("interned {key:?} {revision:?}")
                 }
-                salsa::EventKind::DidReinternValue { id, revision } => {
-                    format!("reinterned {id:?} {revision:?}")
-                }
+                // We don't care about the other events
+                _ => return None,
             };
 
             Some(format!("{:?} -> {text}", event.thread_id))

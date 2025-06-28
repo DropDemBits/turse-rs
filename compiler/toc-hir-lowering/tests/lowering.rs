@@ -21,9 +21,7 @@ struct TestHirDb {
     source_table: toc_vfs_db::SourceTable,
 }
 
-impl salsa::Database for TestHirDb {
-    fn salsa_event(&self, _event: &dyn Fn() -> salsa::Event) {}
-}
+impl salsa::Database for TestHirDb {}
 
 impl toc_vfs_db::VfsBridge for TestHirDb {
     fn source_table(&self) -> &toc_vfs_db::SourceTable {

@@ -61,9 +61,7 @@ struct FuzzDb {
     source_table: SourceTable,
 }
 
-impl salsa::Database for FuzzDb {
-    fn salsa_event(&self, _event: &dyn Fn() -> salsa::Event) {}
-}
+impl salsa::Database for FuzzDb {}
 
 impl VfsBridge for FuzzDb {
     fn source_table(&self) -> &SourceTable {
