@@ -9,6 +9,40 @@ use crate::{
     ast::{AstNode, ExternalItemOwner, helper},
 };
 
+impl Name {
+    pub fn text_immutable(&self) -> &str {
+        fn first_token(green: &rowan::GreenNodeData) -> &rowan::GreenTokenData {
+            green
+                .children()
+                .next()
+                .and_then(rowan::NodeOrToken::into_token)
+                .unwrap()
+        }
+
+        match self.syntax().green() {
+            std::borrow::Cow::Borrowed(green) => first_token(green).text(),
+            std::borrow::Cow::Owned(_) => unreachable!(),
+        }
+    }
+}
+
+impl NameRef {
+    pub fn text_immutable(&self) -> &str {
+        fn first_token(green: &rowan::GreenNodeData) -> &rowan::GreenTokenData {
+            green
+                .children()
+                .next()
+                .and_then(rowan::NodeOrToken::into_token)
+                .unwrap()
+        }
+
+        match self.syntax().green() {
+            std::borrow::Cow::Borrowed(green) => first_token(green).text(),
+            std::borrow::Cow::Owned(_) => unreachable!(),
+        }
+    }
+}
+
 // Extension Traits //
 
 impl ExternalItemOwner for ImportItem {}

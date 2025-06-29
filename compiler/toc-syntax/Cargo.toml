@@ -10,8 +10,9 @@ edition.workspace = true
 
 [dependencies]
 # Local deps
-toc-span = { workspace = true }
+toc-span.workspace = true
 # External deps
+either.workspace = true
 rowan.workspace = true
 num-derive = "^0.4"
 num-traits = "0.2"
