@@ -1724,6 +1724,9 @@ dependencies = [
 name = "toc-ast-db"
 version = "0.1.0"
 dependencies = [
+ "hashbrown 0.15.4",
+ "la-arena",
+ "rustc-hash 2.1.1",
  "salsa",
  "toc-parser",
  "toc-paths",
@@ -1982,6 +1985,7 @@ dependencies = [
 name = "toc-syntax"
 version = "0.1.0"
 dependencies = [
+ "either",
  "lexical",
  "num-derive",
  "num-traits",

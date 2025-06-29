@@ -1,5 +1,6 @@
 //! Database queries & structures for the AST level of compilation
 
+pub mod ast_id;
 pub mod db;
 pub mod span;
 
