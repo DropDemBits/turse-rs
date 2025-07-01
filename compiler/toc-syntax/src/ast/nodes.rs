@@ -4,7 +4,7 @@ use crate::{
     ast::{helper, AstNode},
     SyntaxKind, SyntaxNode, SyntaxToken,
 };
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct Name(SyntaxNode);
 impl AstNode for Name {
@@ -28,7 +28,7 @@ impl Name {
         helper::token(&self.0, SyntaxKind::Identifier)
     }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct NameRef(SyntaxNode);
 impl AstNode for NameRef {
@@ -52,7 +52,7 @@ impl NameRef {
         helper::token(&self.0, SyntaxKind::Identifier)
     }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct UnqualifiedAttr(SyntaxNode);
 impl AstNode for UnqualifiedAttr {
@@ -72,7 +72,7 @@ impl AstNode for UnqualifiedAttr {
     fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl UnqualifiedAttr {}
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct PervasiveAttr(SyntaxNode);
 impl AstNode for PervasiveAttr {
@@ -92,7 +92,7 @@ impl AstNode for PervasiveAttr {
     fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl PervasiveAttr {}
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct RegisterAttr(SyntaxNode);
 impl AstNode for RegisterAttr {
@@ -112,7 +112,7 @@ impl AstNode for RegisterAttr {
     fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl RegisterAttr {}
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct ConstAttr(SyntaxNode);
 impl AstNode for ConstAttr {
@@ -132,7 +132,7 @@ impl AstNode for ConstAttr {
     fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl ConstAttr {}
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct VarAttr(SyntaxNode);
 impl AstNode for VarAttr {
@@ -152,7 +152,7 @@ impl AstNode for VarAttr {
     fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl VarAttr {}
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct CheatAttr(SyntaxNode);
 impl AstNode for CheatAttr {
@@ -172,7 +172,7 @@ impl AstNode for CheatAttr {
     fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl CheatAttr {}
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct ForwardAttr(SyntaxNode);
 impl AstNode for ForwardAttr {
@@ -192,7 +192,7 @@ impl AstNode for ForwardAttr {
     fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl ForwardAttr {}
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct OpaqueAttr(SyntaxNode);
 impl AstNode for OpaqueAttr {
@@ -212,7 +212,7 @@ impl AstNode for OpaqueAttr {
     fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl OpaqueAttr {}
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct Source(SyntaxNode);
 impl AstNode for Source {
@@ -236,7 +236,7 @@ impl Source {
     pub fn import_stmt(&self) -> Option<ImportStmt> { helper::node(&self.0) }
     pub fn stmt_list(&self) -> Option<StmtList> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct ImportStmt(SyntaxNode);
 impl AstNode for ImportStmt {
@@ -267,7 +267,7 @@ impl ImportStmt {
         helper::token(&self.0, SyntaxKind::RightParen)
     }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct StmtList(SyntaxNode);
 impl AstNode for StmtList {
@@ -289,7 +289,7 @@ impl AstNode for StmtList {
 impl StmtList {
     pub fn stmts(&self) -> impl Iterator<Item = Stmt> + '_ { helper::nodes(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct PreprocGlob(SyntaxNode);
 impl AstNode for PreprocGlob {
@@ -311,7 +311,7 @@ impl AstNode for PreprocGlob {
 impl PreprocGlob {
     pub fn directive(&self) -> Option<PreprocKind> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct PPInclude(SyntaxNode);
 impl AstNode for PPInclude {
@@ -336,7 +336,7 @@ impl PPInclude {
     }
     pub fn path(&self) -> Option<LiteralExpr> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct PPIf(SyntaxNode);
 impl AstNode for PPIf {
@@ -363,7 +363,7 @@ impl PPIf {
     pub fn false_branch(&self) -> Option<PPFalseBranch> { helper::node(&self.0) }
     pub fn pp_end_if(&self) -> Option<PPEndIf> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct PPElseif(SyntaxNode);
 impl AstNode for PPElseif {
@@ -394,7 +394,7 @@ impl PPElseif {
     pub fn pp_token_body(&self) -> Option<PPTokenBody> { helper::node(&self.0) }
     pub fn false_branch(&self) -> Option<PPFalseBranch> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct PPElse(SyntaxNode);
 impl AstNode for PPElse {
@@ -419,7 +419,7 @@ impl PPElse {
     }
     pub fn pp_token_body(&self) -> Option<PPTokenBody> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct PPEndIf(SyntaxNode);
 impl AstNode for PPEndIf {
@@ -447,7 +447,7 @@ impl PPEndIf {
         helper::token(&self.0, SyntaxKind::PPKwEndIf)
     }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct LiteralExpr(SyntaxNode);
 impl AstNode for LiteralExpr {
@@ -467,7 +467,7 @@ impl AstNode for LiteralExpr {
     fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl LiteralExpr {}
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct PPTokenBody(SyntaxNode);
 impl AstNode for PPTokenBody {
@@ -489,7 +489,7 @@ impl AstNode for PPTokenBody {
 impl PPTokenBody {
     pub fn stmts(&self) -> impl Iterator<Item = Stmt> + '_ { helper::nodes(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct PPBinaryExpr(SyntaxNode);
 impl AstNode for PPBinaryExpr {
@@ -509,7 +509,7 @@ impl AstNode for PPBinaryExpr {
     fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl PPBinaryExpr {}
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct PPUnaryExpr(SyntaxNode);
 impl AstNode for PPUnaryExpr {
@@ -529,7 +529,7 @@ impl AstNode for PPUnaryExpr {
     fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl PPUnaryExpr {}
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct PPNameExpr(SyntaxNode);
 impl AstNode for PPNameExpr {
@@ -551,7 +551,7 @@ impl AstNode for PPNameExpr {
 impl PPNameExpr {
     pub fn name_ref(&self) -> Option<NameRef> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct PPParenExpr(SyntaxNode);
 impl AstNode for PPParenExpr {
@@ -579,7 +579,7 @@ impl PPParenExpr {
         helper::token(&self.0, SyntaxKind::RightParen)
     }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct ConstVarDeclName(SyntaxNode);
 impl AstNode for ConstVarDeclName {
@@ -602,7 +602,7 @@ impl ConstVarDeclName {
     pub fn name(&self) -> Option<Name> { helper::node(&self.0) }
     pub fn comma_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Comma) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct TypeDecl(SyntaxNode);
 impl AstNode for TypeDecl {
@@ -631,7 +631,7 @@ impl TypeDecl {
     }
     pub fn named_ty(&self) -> Option<Type> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct BindItem(SyntaxNode);
 impl AstNode for BindItem {
@@ -657,7 +657,7 @@ impl BindItem {
     pub fn to_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwTo) }
     pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct ProcDecl(SyntaxNode);
 impl AstNode for ProcDecl {
@@ -681,7 +681,7 @@ impl ProcDecl {
     pub fn subprog_body(&self) -> Option<SubprogBody> { helper::node(&self.0) }
     pub fn end_group(&self) -> Option<EndGroup> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct FcnDecl(SyntaxNode);
 impl AstNode for FcnDecl {
@@ -705,7 +705,7 @@ impl FcnDecl {
     pub fn subprog_body(&self) -> Option<SubprogBody> { helper::node(&self.0) }
     pub fn end_group(&self) -> Option<EndGroup> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct ProcessDecl(SyntaxNode);
 impl AstNode for ProcessDecl {
@@ -729,7 +729,7 @@ impl ProcessDecl {
     pub fn subprog_body(&self) -> Option<SubprogBody> { helper::node(&self.0) }
     pub fn end_group(&self) -> Option<EndGroup> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct ExternalDecl(SyntaxNode);
 impl AstNode for ExternalDecl {
@@ -755,7 +755,7 @@ impl ExternalDecl {
     pub fn external_spec(&self) -> Option<CompTimeExpr> { helper::node(&self.0) }
     pub fn external_kind(&self) -> Option<ExternalKind> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct ForwardDecl(SyntaxNode);
 impl AstNode for ForwardDecl {
@@ -784,7 +784,7 @@ impl ForwardDecl {
     }
     pub fn import_list(&self) -> Option<ImportList> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct DeferredDecl(SyntaxNode);
 impl AstNode for DeferredDecl {
@@ -809,7 +809,7 @@ impl DeferredDecl {
     }
     pub fn subprog_header(&self) -> Option<SubprogHeader> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct BodyDecl(SyntaxNode);
 impl AstNode for BodyDecl {
@@ -834,7 +834,7 @@ impl BodyDecl {
     pub fn subprog_body(&self) -> Option<SubprogBody> { helper::node(&self.0) }
     pub fn end_group(&self) -> Option<EndGroup> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct ModuleDecl(SyntaxNode);
 impl AstNode for ModuleDecl {
@@ -868,7 +868,7 @@ impl ModuleDecl {
     pub fn post_stmt(&self) -> Option<PostStmt> { helper::node(&self.0) }
     pub fn end_group(&self) -> Option<EndGroup> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct ClassDecl(SyntaxNode);
 impl AstNode for ClassDecl {
@@ -905,7 +905,7 @@ impl ClassDecl {
     pub fn post_stmt(&self) -> Option<PostStmt> { helper::node(&self.0) }
     pub fn end_group(&self) -> Option<EndGroup> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct MonitorDecl(SyntaxNode);
 impl AstNode for MonitorDecl {
@@ -940,7 +940,7 @@ impl MonitorDecl {
     pub fn post_stmt(&self) -> Option<PostStmt> { helper::node(&self.0) }
     pub fn end_group(&self) -> Option<EndGroup> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct ConstVarDecl(SyntaxNode);
 impl AstNode for ConstVarDecl {
@@ -970,7 +970,7 @@ impl ConstVarDecl {
     pub fn assign_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Assign) }
     pub fn init(&self) -> Option<Expr> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct BindDecl(SyntaxNode);
 impl AstNode for BindDecl {
@@ -993,7 +993,7 @@ impl BindDecl {
     pub fn bind_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwBind) }
     pub fn bindings(&self) -> impl Iterator<Item = BindItem> + '_ { helper::nodes(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct AssignStmt(SyntaxNode);
 impl AstNode for AssignStmt {
@@ -1015,7 +1015,7 @@ impl AstNode for AssignStmt {
 impl AssignStmt {
     pub fn asn_op(&self) -> Option<AsnOp> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct OpenStmt(SyntaxNode);
 impl AstNode for OpenStmt {
@@ -1038,7 +1038,7 @@ impl OpenStmt {
     pub fn open_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwOpen) }
     pub fn open_kind(&self) -> Option<OpenKind> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct CloseStmt(SyntaxNode);
 impl AstNode for CloseStmt {
@@ -1061,7 +1061,7 @@ impl CloseStmt {
     pub fn close_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwClose) }
     pub fn close_kind(&self) -> Option<CloseKind> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct PutStmt(SyntaxNode);
 impl AstNode for PutStmt {
@@ -1087,7 +1087,7 @@ impl PutStmt {
     pub fn items(&self) -> impl Iterator<Item = PutItem> + '_ { helper::nodes(&self.0) }
     pub fn range_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Range) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct GetStmt(SyntaxNode);
 impl AstNode for GetStmt {
@@ -1112,7 +1112,7 @@ impl GetStmt {
     pub fn comma_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Comma) }
     pub fn items(&self) -> impl Iterator<Item = GetItem> + '_ { helper::nodes(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct ReadStmt(SyntaxNode);
 impl AstNode for ReadStmt {
@@ -1135,7 +1135,7 @@ impl ReadStmt {
     pub fn read_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwRead) }
     pub fn binary_io(&self) -> Option<BinaryIO> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct WriteStmt(SyntaxNode);
 impl AstNode for WriteStmt {
@@ -1158,7 +1158,7 @@ impl WriteStmt {
     pub fn write_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwWrite) }
     pub fn binary_io(&self) -> Option<BinaryIO> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct SeekStmt(SyntaxNode);
 impl AstNode for SeekStmt {
@@ -1184,7 +1184,7 @@ impl SeekStmt {
     pub fn star_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Star) }
     pub fn seek_to(&self) -> Option<Expr> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct TellStmt(SyntaxNode);
 impl AstNode for TellStmt {
@@ -1209,7 +1209,7 @@ impl TellStmt {
     pub fn comma_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Comma) }
     pub fn tell_to(&self) -> Option<Expr> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct ForStmt(SyntaxNode);
 impl AstNode for ForStmt {
@@ -1240,7 +1240,7 @@ impl ForStmt {
     pub fn stmt_list(&self) -> Option<StmtList> { helper::node(&self.0) }
     pub fn end_group(&self) -> Option<EndGroup> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct LoopStmt(SyntaxNode);
 impl AstNode for LoopStmt {
@@ -1264,7 +1264,7 @@ impl LoopStmt {
     pub fn stmt_list(&self) -> Option<StmtList> { helper::node(&self.0) }
     pub fn end_group(&self) -> Option<EndGroup> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct ExitStmt(SyntaxNode);
 impl AstNode for ExitStmt {
@@ -1288,7 +1288,7 @@ impl ExitStmt {
     pub fn when_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwWhen) }
     pub fn condition(&self) -> Option<Expr> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct IfStmt(SyntaxNode);
 impl AstNode for IfStmt {
@@ -1312,7 +1312,7 @@ impl IfStmt {
     pub fn if_body(&self) -> Option<IfBody> { helper::node(&self.0) }
     pub fn end_group(&self) -> Option<EndGroup> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct CaseStmt(SyntaxNode);
 impl AstNode for CaseStmt {
@@ -1338,7 +1338,7 @@ impl CaseStmt {
     pub fn case_arm(&self) -> impl Iterator<Item = CaseArm> + '_ { helper::nodes(&self.0) }
     pub fn end_group(&self) -> Option<EndGroup> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct BlockStmt(SyntaxNode);
 impl AstNode for BlockStmt {
@@ -1362,7 +1362,7 @@ impl BlockStmt {
     pub fn stmt_list(&self) -> Option<StmtList> { helper::node(&self.0) }
     pub fn end_group(&self) -> Option<EndGroup> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct InvariantStmt(SyntaxNode);
 impl AstNode for InvariantStmt {
@@ -1387,7 +1387,7 @@ impl InvariantStmt {
     }
     pub fn condition(&self) -> Option<Expr> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct AssertStmt(SyntaxNode);
 impl AstNode for AssertStmt {
@@ -1412,7 +1412,7 @@ impl AssertStmt {
     }
     pub fn condition(&self) -> Option<Expr> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct CallStmt(SyntaxNode);
 impl AstNode for CallStmt {
@@ -1434,7 +1434,7 @@ impl AstNode for CallStmt {
 impl CallStmt {
     pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct ReturnStmt(SyntaxNode);
 impl AstNode for ReturnStmt {
@@ -1458,7 +1458,7 @@ impl ReturnStmt {
         helper::token(&self.0, SyntaxKind::KwReturn)
     }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct ResultStmt(SyntaxNode);
 impl AstNode for ResultStmt {
@@ -1483,7 +1483,7 @@ impl ResultStmt {
     }
     pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct NewStmt(SyntaxNode);
 impl AstNode for NewStmt {
@@ -1506,7 +1506,7 @@ impl NewStmt {
     pub fn new_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwNew) }
     pub fn expr_list(&self) -> Option<ExprList> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct FreeStmt(SyntaxNode);
 impl AstNode for FreeStmt {
@@ -1529,7 +1529,7 @@ impl FreeStmt {
     pub fn free_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwFree) }
     pub fn expr_list(&self) -> Option<ExprList> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct TagStmt(SyntaxNode);
 impl AstNode for TagStmt {
@@ -1552,7 +1552,7 @@ impl TagStmt {
     pub fn tag_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwTag) }
     pub fn comma_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Comma) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct ForkStmt(SyntaxNode);
 impl AstNode for ForkStmt {
@@ -1579,7 +1579,7 @@ impl ForkStmt {
     pub fn stack_size(&self) -> Option<StackSize> { helper::node(&self.0) }
     pub fn process_desc(&self) -> Option<ProcessDesc> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct SignalStmt(SyntaxNode);
 impl AstNode for SignalStmt {
@@ -1604,7 +1604,7 @@ impl SignalStmt {
     }
     pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct PauseStmt(SyntaxNode);
 impl AstNode for PauseStmt {
@@ -1627,7 +1627,7 @@ impl PauseStmt {
     pub fn pause_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwPause) }
     pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct QuitStmt(SyntaxNode);
 impl AstNode for QuitStmt {
@@ -1652,7 +1652,7 @@ impl QuitStmt {
     pub fn colon_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Colon) }
     pub fn quit_code(&self) -> Option<Expr> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct BreakStmt(SyntaxNode);
 impl AstNode for BreakStmt {
@@ -1674,7 +1674,7 @@ impl AstNode for BreakStmt {
 impl BreakStmt {
     pub fn break_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwBreak) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct CheckednessStmt(SyntaxNode);
 impl AstNode for CheckednessStmt {
@@ -1696,7 +1696,7 @@ impl AstNode for CheckednessStmt {
 impl CheckednessStmt {
     pub fn checkedness(&self) -> Option<Checkedness> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct PreStmt(SyntaxNode);
 impl AstNode for PreStmt {
@@ -1719,7 +1719,7 @@ impl PreStmt {
     pub fn pre_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwPre) }
     pub fn condition(&self) -> Option<Expr> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct InitStmt(SyntaxNode);
 impl AstNode for InitStmt {
@@ -1742,7 +1742,7 @@ impl InitStmt {
     pub fn init_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwInit) }
     pub fn init_var(&self) -> impl Iterator<Item = InitVar> + '_ { helper::nodes(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct PostStmt(SyntaxNode);
 impl AstNode for PostStmt {
@@ -1765,7 +1765,7 @@ impl PostStmt {
     pub fn post_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwPost) }
     pub fn condition(&self) -> Option<Expr> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct HandlerStmt(SyntaxNode);
 impl AstNode for HandlerStmt {
@@ -1798,7 +1798,7 @@ impl HandlerStmt {
     pub fn stmts(&self) -> Option<StmtList> { helper::node(&self.0) }
     pub fn end_group(&self) -> Option<EndGroup> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct InheritStmt(SyntaxNode);
 impl AstNode for InheritStmt {
@@ -1829,7 +1829,7 @@ impl InheritStmt {
         helper::token(&self.0, SyntaxKind::RightParen)
     }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct ImplementStmt(SyntaxNode);
 impl AstNode for ImplementStmt {
@@ -1860,7 +1860,7 @@ impl ImplementStmt {
         helper::token(&self.0, SyntaxKind::RightParen)
     }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct ImplementByStmt(SyntaxNode);
 impl AstNode for ImplementByStmt {
@@ -1892,7 +1892,7 @@ impl ImplementByStmt {
         helper::token(&self.0, SyntaxKind::RightParen)
     }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct ExportStmt(SyntaxNode);
 impl AstNode for ExportStmt {
@@ -1923,7 +1923,7 @@ impl ExportStmt {
         helper::token(&self.0, SyntaxKind::RightParen)
     }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct ConstVarDeclNameList(SyntaxNode);
 impl AstNode for ConstVarDeclNameList {
@@ -1945,7 +1945,7 @@ impl AstNode for ConstVarDeclNameList {
 impl ConstVarDeclNameList {
     pub fn names(&self) -> impl Iterator<Item = ConstVarDeclName> + '_ { helper::nodes(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct ProcHeader(SyntaxNode);
 impl AstNode for ProcHeader {
@@ -1973,7 +1973,7 @@ impl ProcHeader {
     pub fn params(&self) -> Option<ParamSpec> { helper::node(&self.0) }
     pub fn device_spec(&self) -> Option<DeviceSpec> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct SubprogBody(SyntaxNode);
 impl AstNode for SubprogBody {
@@ -2000,7 +2000,7 @@ impl SubprogBody {
     pub fn handler_stmt(&self) -> Option<HandlerStmt> { helper::node(&self.0) }
     pub fn stmt_list(&self) -> Option<StmtList> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct EndGroup(SyntaxNode);
 impl AstNode for EndGroup {
@@ -2046,7 +2046,7 @@ impl EndGroup {
         helper::token(&self.0, SyntaxKind::KwEndLoop)
     }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct ParamSpec(SyntaxNode);
 impl AstNode for ParamSpec {
@@ -2068,7 +2068,7 @@ impl AstNode for ParamSpec {
 impl ParamSpec {
     pub fn param_decl(&self) -> impl Iterator<Item = ParamDecl> + '_ { helper::nodes(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct DeviceSpec(SyntaxNode);
 impl AstNode for DeviceSpec {
@@ -2091,7 +2091,7 @@ impl DeviceSpec {
     pub fn colon_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Colon) }
     pub fn comp_time_expr(&self) -> Option<CompTimeExpr> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct CompTimeExpr(SyntaxNode);
 impl AstNode for CompTimeExpr {
@@ -2113,7 +2113,7 @@ impl AstNode for CompTimeExpr {
 impl CompTimeExpr {
     pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct FcnHeader(SyntaxNode);
 impl AstNode for FcnHeader {
@@ -2141,7 +2141,7 @@ impl FcnHeader {
     pub fn params(&self) -> Option<ParamSpec> { helper::node(&self.0) }
     pub fn fcn_result(&self) -> Option<FcnResult> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct FcnResult(SyntaxNode);
 impl AstNode for FcnResult {
@@ -2165,7 +2165,7 @@ impl FcnResult {
     pub fn colon_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Colon) }
     pub fn ty(&self) -> Option<Type> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct ImportList(SyntaxNode);
 impl AstNode for ImportList {
@@ -2187,7 +2187,7 @@ impl AstNode for ImportList {
 impl ImportList {
     pub fn import_item(&self) -> impl Iterator<Item = ImportItem> + '_ { helper::nodes(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct PlainHeader(SyntaxNode);
 impl AstNode for PlainHeader {
@@ -2211,7 +2211,7 @@ impl PlainHeader {
     pub fn params(&self) -> Option<ParamSpec> { helper::node(&self.0) }
     pub fn fcn_result(&self) -> Option<FcnResult> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct ProcessHeader(SyntaxNode);
 impl AstNode for ProcessHeader {
@@ -2240,7 +2240,7 @@ impl ProcessHeader {
     pub fn colon_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Colon) }
     pub fn stack_size(&self) -> Option<Expr> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct ExternalVar(SyntaxNode);
 impl AstNode for ExternalVar {
@@ -2267,7 +2267,7 @@ impl ExternalVar {
     pub fn assign_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Assign) }
     pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct AsnOp(SyntaxNode);
 impl AstNode for AsnOp {
@@ -2287,7 +2287,7 @@ impl AstNode for AsnOp {
     fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl AsnOp {}
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct OldOpen(SyntaxNode);
 impl AstNode for OldOpen {
@@ -2318,7 +2318,7 @@ impl OldOpen {
         helper::token(&self.0, SyntaxKind::RightParen)
     }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct NewOpen(SyntaxNode);
 impl AstNode for NewOpen {
@@ -2344,7 +2344,7 @@ impl NewOpen {
     pub fn open_path(&self) -> Option<OpenPath> { helper::node(&self.0) }
     pub fn io_caps(&self) -> impl Iterator<Item = IoCap> + '_ { helper::nodes(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct OpenPath(SyntaxNode);
 impl AstNode for OpenPath {
@@ -2366,7 +2366,7 @@ impl AstNode for OpenPath {
 impl OpenPath {
     pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct OpenMode(SyntaxNode);
 impl AstNode for OpenMode {
@@ -2388,7 +2388,7 @@ impl AstNode for OpenMode {
 impl OpenMode {
     pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct IoCap(SyntaxNode);
 impl AstNode for IoCap {
@@ -2408,7 +2408,7 @@ impl AstNode for IoCap {
     fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl IoCap {}
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct OldClose(SyntaxNode);
 impl AstNode for OldClose {
@@ -2436,7 +2436,7 @@ impl OldClose {
         helper::token(&self.0, SyntaxKind::RightParen)
     }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct NewClose(SyntaxNode);
 impl AstNode for NewClose {
@@ -2459,7 +2459,7 @@ impl NewClose {
     pub fn colon_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Colon) }
     pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct StreamNum(SyntaxNode);
 impl AstNode for StreamNum {
@@ -2482,7 +2482,7 @@ impl StreamNum {
     pub fn colon_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Colon) }
     pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct PutItem(SyntaxNode);
 impl AstNode for PutItem {
@@ -2505,7 +2505,7 @@ impl PutItem {
     pub fn skip_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwSkip) }
     pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct PutOpt(SyntaxNode);
 impl AstNode for PutOpt {
@@ -2528,7 +2528,7 @@ impl PutOpt {
     pub fn colon_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Colon) }
     pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct GetItem(SyntaxNode);
 impl AstNode for GetItem {
@@ -2552,7 +2552,7 @@ impl GetItem {
     pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
     pub fn get_width(&self) -> Option<GetWidth> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct GetWidth(SyntaxNode);
 impl AstNode for GetWidth {
@@ -2576,7 +2576,7 @@ impl GetWidth {
     pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
     pub fn star_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Star) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct BinaryIO(SyntaxNode);
 impl AstNode for BinaryIO {
@@ -2602,7 +2602,7 @@ impl BinaryIO {
     pub fn comma_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Comma) }
     pub fn items(&self) -> impl Iterator<Item = BinaryItem> + '_ { helper::nodes(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct BinaryItem(SyntaxNode);
 impl AstNode for BinaryItem {
@@ -2626,7 +2626,7 @@ impl BinaryItem {
     pub fn request_size(&self) -> Option<RequestSize> { helper::node(&self.0) }
     pub fn actual_size(&self) -> Option<ActualSize> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct RequestSize(SyntaxNode);
 impl AstNode for RequestSize {
@@ -2649,7 +2649,7 @@ impl RequestSize {
     pub fn colon_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Colon) }
     pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct ActualSize(SyntaxNode);
 impl AstNode for ActualSize {
@@ -2672,7 +2672,7 @@ impl ActualSize {
     pub fn colon_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Colon) }
     pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct ForBounds(SyntaxNode);
 impl AstNode for ForBounds {
@@ -2694,7 +2694,7 @@ impl AstNode for ForBounds {
 impl ForBounds {
     pub fn range_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Range) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct StepBy(SyntaxNode);
 impl AstNode for StepBy {
@@ -2717,7 +2717,7 @@ impl StepBy {
     pub fn by_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwBy) }
     pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct IfBody(SyntaxNode);
 impl AstNode for IfBody {
@@ -2742,7 +2742,7 @@ impl IfBody {
     pub fn true_branch(&self) -> Option<StmtList> { helper::node(&self.0) }
     pub fn false_branch(&self) -> Option<FalseBranch> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct ElseifStmt(SyntaxNode);
 impl AstNode for ElseifStmt {
@@ -2769,7 +2769,7 @@ impl ElseifStmt {
     pub fn if_body(&self) -> Option<IfBody> { helper::node(&self.0) }
     pub fn end_group(&self) -> Option<EndGroup> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct ElseStmt(SyntaxNode);
 impl AstNode for ElseStmt {
@@ -2793,7 +2793,7 @@ impl ElseStmt {
     pub fn stmt_list(&self) -> Option<StmtList> { helper::node(&self.0) }
     pub fn end_group(&self) -> Option<EndGroup> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct CaseArm(SyntaxNode);
 impl AstNode for CaseArm {
@@ -2818,7 +2818,7 @@ impl CaseArm {
     pub fn colon_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Colon) }
     pub fn stmt_list(&self) -> Option<StmtList> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct CompTimeExprList(SyntaxNode);
 impl AstNode for CompTimeExprList {
@@ -2840,7 +2840,7 @@ impl AstNode for CompTimeExprList {
 impl CompTimeExprList {
     pub fn exprs(&self) -> impl Iterator<Item = CompTimeExpr> + '_ { helper::nodes(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct ExprList(SyntaxNode);
 impl AstNode for ExprList {
@@ -2862,7 +2862,7 @@ impl AstNode for ExprList {
 impl ExprList {
     pub fn exprs(&self) -> impl Iterator<Item = Expr> + '_ { helper::nodes(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct ParamList(SyntaxNode);
 impl AstNode for ParamList {
@@ -2890,7 +2890,7 @@ impl ParamList {
         helper::token(&self.0, SyntaxKind::RightParen)
     }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct ForkStatus(SyntaxNode);
 impl AstNode for ForkStatus {
@@ -2913,7 +2913,7 @@ impl ForkStatus {
     pub fn colon_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Colon) }
     pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct StackSize(SyntaxNode);
 impl AstNode for StackSize {
@@ -2936,7 +2936,7 @@ impl StackSize {
     pub fn comma_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Comma) }
     pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct ProcessDesc(SyntaxNode);
 impl AstNode for ProcessDesc {
@@ -2959,7 +2959,7 @@ impl ProcessDesc {
     pub fn comma_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Comma) }
     pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct WaitStmt(SyntaxNode);
 impl AstNode for WaitStmt {
@@ -2982,7 +2982,7 @@ impl WaitStmt {
     pub fn wait_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwWait) }
     pub fn comma_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Comma) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct QuitCause(SyntaxNode);
 impl AstNode for QuitCause {
@@ -3005,7 +3005,7 @@ impl QuitCause {
     pub fn at_caller(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Less) }
     pub fn bubble_up(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Greater) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct Checkedness(SyntaxNode);
 impl AstNode for Checkedness {
@@ -3032,7 +3032,7 @@ impl Checkedness {
         helper::token(&self.0, SyntaxKind::KwUnchecked)
     }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct InitVar(SyntaxNode);
 impl AstNode for InitVar {
@@ -3056,7 +3056,7 @@ impl InitVar {
     pub fn assign_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Assign) }
     pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct ImportItem(SyntaxNode);
 impl AstNode for ImportItem {
@@ -3079,7 +3079,7 @@ impl ImportItem {
     pub fn attrs(&self) -> impl Iterator<Item = ImportAttr> + '_ { helper::nodes(&self.0) }
     pub fn external_item(&self) -> Option<ExternalItem> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct ExternalItem(SyntaxNode);
 impl AstNode for ExternalItem {
@@ -3103,7 +3103,7 @@ impl ExternalItem {
     pub fn in_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwIn) }
     pub fn path(&self) -> Option<LiteralExpr> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct ExportItem(SyntaxNode);
 impl AstNode for ExportItem {
@@ -3127,7 +3127,7 @@ impl ExportItem {
     pub fn name(&self) -> Option<Name> { helper::node(&self.0) }
     pub fn all_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwAll) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct ObjClassExpr(SyntaxNode);
 impl AstNode for ObjClassExpr {
@@ -3158,7 +3158,7 @@ impl ObjClassExpr {
         helper::token(&self.0, SyntaxKind::RightParen)
     }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct InitExpr(SyntaxNode);
 impl AstNode for InitExpr {
@@ -3187,7 +3187,7 @@ impl InitExpr {
         helper::token(&self.0, SyntaxKind::RightParen)
     }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct NilExpr(SyntaxNode);
 impl AstNode for NilExpr {
@@ -3216,7 +3216,7 @@ impl NilExpr {
         helper::token(&self.0, SyntaxKind::RightParen)
     }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct SizeOfExpr(SyntaxNode);
 impl AstNode for SizeOfExpr {
@@ -3248,7 +3248,7 @@ impl SizeOfExpr {
         helper::token(&self.0, SyntaxKind::RightParen)
     }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct BinaryExpr(SyntaxNode);
 impl AstNode for BinaryExpr {
@@ -3268,7 +3268,7 @@ impl AstNode for BinaryExpr {
     fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl BinaryExpr {}
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct UnaryExpr(SyntaxNode);
 impl AstNode for UnaryExpr {
@@ -3288,7 +3288,7 @@ impl AstNode for UnaryExpr {
     fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl UnaryExpr {}
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct ParenExpr(SyntaxNode);
 impl AstNode for ParenExpr {
@@ -3316,7 +3316,7 @@ impl ParenExpr {
         helper::token(&self.0, SyntaxKind::RightParen)
     }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct NameExpr(SyntaxNode);
 impl AstNode for NameExpr {
@@ -3338,7 +3338,7 @@ impl AstNode for NameExpr {
 impl NameExpr {
     pub fn name_ref(&self) -> Option<NameRef> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct SelfExpr(SyntaxNode);
 impl AstNode for SelfExpr {
@@ -3360,7 +3360,7 @@ impl AstNode for SelfExpr {
 impl SelfExpr {
     pub fn self_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwSelf) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct FieldExpr(SyntaxNode);
 impl AstNode for FieldExpr {
@@ -3384,7 +3384,7 @@ impl FieldExpr {
     pub fn dot_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Dot) }
     pub fn name_ref(&self) -> Option<NameRef> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct DerefExpr(SyntaxNode);
 impl AstNode for DerefExpr {
@@ -3407,7 +3407,7 @@ impl DerefExpr {
     pub fn caret_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Caret) }
     pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct CheatExpr(SyntaxNode);
 impl AstNode for CheatExpr {
@@ -3439,7 +3439,7 @@ impl CheatExpr {
         helper::token(&self.0, SyntaxKind::RightParen)
     }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct NatCheatExpr(SyntaxNode);
 impl AstNode for NatCheatExpr {
@@ -3462,7 +3462,7 @@ impl NatCheatExpr {
     pub fn pound_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Pound) }
     pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct ArrowExpr(SyntaxNode);
 impl AstNode for ArrowExpr {
@@ -3486,7 +3486,7 @@ impl ArrowExpr {
     pub fn arrow_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Arrow) }
     pub fn name_ref(&self) -> Option<NameRef> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct IndirectExpr(SyntaxNode);
 impl AstNode for IndirectExpr {
@@ -3516,7 +3516,7 @@ impl IndirectExpr {
         helper::token(&self.0, SyntaxKind::RightParen)
     }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct BitsExpr(SyntaxNode);
 impl AstNode for BitsExpr {
@@ -3539,7 +3539,7 @@ impl BitsExpr {
     pub fn bits_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwBits) }
     pub fn param_list(&self) -> Option<ParamList> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct CallExpr(SyntaxNode);
 impl AstNode for CallExpr {
@@ -3562,7 +3562,7 @@ impl CallExpr {
     pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
     pub fn param_list(&self) -> Option<ParamList> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct NotEq(SyntaxNode);
 impl AstNode for NotEq {
@@ -3586,7 +3586,7 @@ impl NotEq {
     pub fn tilde_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Tilde) }
     pub fn equ_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Equ) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct NotIn(SyntaxNode);
 impl AstNode for NotIn {
@@ -3610,7 +3610,7 @@ impl NotIn {
     pub fn tilde_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Tilde) }
     pub fn in_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwIn) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct SizeSpec(SyntaxNode);
 impl AstNode for SizeSpec {
@@ -3633,7 +3633,7 @@ impl SizeSpec {
     pub fn colon_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Colon) }
     pub fn size(&self) -> Option<CompTimeExpr> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct PrimType(SyntaxNode);
 impl AstNode for PrimType {
@@ -3653,7 +3653,7 @@ impl AstNode for PrimType {
     fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl PrimType {}
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct NameType(SyntaxNode);
 impl AstNode for NameType {
@@ -3675,7 +3675,7 @@ impl AstNode for NameType {
 impl NameType {
     pub fn comp_time_expr(&self) -> Option<CompTimeExpr> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct Param(SyntaxNode);
 impl AstNode for Param {
@@ -3698,7 +3698,7 @@ impl Param {
     pub fn param_kind(&self) -> Option<ParamKind> { helper::node(&self.0) }
     pub fn comma_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Comma) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct AllItem(SyntaxNode);
 impl AstNode for AllItem {
@@ -3720,7 +3720,7 @@ impl AstNode for AllItem {
 impl AllItem {
     pub fn all_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwAll) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct RangeItem(SyntaxNode);
 impl AstNode for RangeItem {
@@ -3742,7 +3742,7 @@ impl AstNode for RangeItem {
 impl RangeItem {
     pub fn range_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Range) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct RelativeBound(SyntaxNode);
 impl AstNode for RelativeBound {
@@ -3766,7 +3766,7 @@ impl RelativeBound {
     pub fn minus_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Minus) }
     pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct RangeType(SyntaxNode);
 impl AstNode for RangeType {
@@ -3792,7 +3792,7 @@ impl RangeType {
     pub fn range_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Range) }
     pub fn size_spec(&self) -> Option<SizeSpec> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct EnumType(SyntaxNode);
 impl AstNode for EnumType {
@@ -3825,7 +3825,7 @@ impl EnumType {
     }
     pub fn size_spec(&self) -> Option<SizeSpec> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct ArrayType(SyntaxNode);
 impl AstNode for ArrayType {
@@ -3856,7 +3856,7 @@ impl ArrayType {
     pub fn of_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwOf) }
     pub fn elem_ty(&self) -> Option<Type> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct SetType(SyntaxNode);
 impl AstNode for SetType {
@@ -3884,7 +3884,7 @@ impl SetType {
     pub fn elem_ty(&self) -> Option<Type> { helper::node(&self.0) }
     pub fn size_spec(&self) -> Option<SizeSpec> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct RecordType(SyntaxNode);
 impl AstNode for RecordType {
@@ -3913,7 +3913,7 @@ impl RecordType {
     pub fn record_field(&self) -> impl Iterator<Item = RecordField> + '_ { helper::nodes(&self.0) }
     pub fn end_group(&self) -> Option<EndGroup> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct UnionType(SyntaxNode);
 impl AstNode for UnionType {
@@ -3946,7 +3946,7 @@ impl UnionType {
     }
     pub fn end_group(&self) -> Option<EndGroup> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct PointerType(SyntaxNode);
 impl AstNode for PointerType {
@@ -3974,7 +3974,7 @@ impl PointerType {
     pub fn caret_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Caret) }
     pub fn to_ty(&self) -> Option<Type> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct FcnType(SyntaxNode);
 impl AstNode for FcnType {
@@ -4002,7 +4002,7 @@ impl FcnType {
     pub fn colon_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Colon) }
     pub fn ty(&self) -> Option<Type> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct ProcType(SyntaxNode);
 impl AstNode for ProcType {
@@ -4028,7 +4028,7 @@ impl ProcType {
     pub fn name(&self) -> Option<Name> { helper::node(&self.0) }
     pub fn params(&self) -> Option<ParamSpec> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct CollectionType(SyntaxNode);
 impl AstNode for CollectionType {
@@ -4058,7 +4058,7 @@ impl CollectionType {
     }
     pub fn name(&self) -> Option<Name> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct ConditionType(SyntaxNode);
 impl AstNode for ConditionType {
@@ -4083,7 +4083,7 @@ impl ConditionType {
         helper::token(&self.0, SyntaxKind::KwCondition)
     }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct SizedCharType(SyntaxNode);
 impl AstNode for SizedCharType {
@@ -4112,7 +4112,7 @@ impl SizedCharType {
         helper::token(&self.0, SyntaxKind::RightParen)
     }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct SizedStringType(SyntaxNode);
 impl AstNode for SizedStringType {
@@ -4143,7 +4143,7 @@ impl SizedStringType {
         helper::token(&self.0, SyntaxKind::RightParen)
     }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct SeqLength(SyntaxNode);
 impl AstNode for SeqLength {
@@ -4166,7 +4166,7 @@ impl SeqLength {
     pub fn comp_time_expr(&self) -> Option<CompTimeExpr> { helper::node(&self.0) }
     pub fn star_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Star) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct UnsizedBound(SyntaxNode);
 impl AstNode for UnsizedBound {
@@ -4188,7 +4188,7 @@ impl AstNode for UnsizedBound {
 impl UnsizedBound {
     pub fn star_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Star) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct EnumVariantList(SyntaxNode);
 impl AstNode for EnumVariantList {
@@ -4210,7 +4210,7 @@ impl AstNode for EnumVariantList {
 impl EnumVariantList {
     pub fn enum_variant(&self) -> impl Iterator<Item = EnumVariant> + '_ { helper::nodes(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct EnumVariant(SyntaxNode);
 impl AstNode for EnumVariant {
@@ -4233,7 +4233,7 @@ impl EnumVariant {
     pub fn name(&self) -> Option<Name> { helper::node(&self.0) }
     pub fn comma_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Comma) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct RangeList(SyntaxNode);
 impl AstNode for RangeList {
@@ -4255,7 +4255,7 @@ impl AstNode for RangeList {
 impl RangeList {
     pub fn ranges(&self) -> impl Iterator<Item = Type> + '_ { helper::nodes(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct RecordField(SyntaxNode);
 impl AstNode for RecordField {
@@ -4282,7 +4282,7 @@ impl RecordField {
         helper::token(&self.0, SyntaxKind::Semicolon)
     }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct UnionVariant(SyntaxNode);
 impl AstNode for UnionVariant {
@@ -4307,7 +4307,7 @@ impl UnionVariant {
     pub fn colon_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Colon) }
     pub fn record_field(&self) -> impl Iterator<Item = RecordField> + '_ { helper::nodes(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct RecordFieldNameList(SyntaxNode);
 impl AstNode for RecordFieldNameList {
@@ -4329,7 +4329,7 @@ impl AstNode for RecordFieldNameList {
 impl RecordFieldNameList {
     pub fn names(&self) -> impl Iterator<Item = RecordFieldName> + '_ { helper::nodes(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct RecordFieldName(SyntaxNode);
 impl AstNode for RecordFieldName {
@@ -4352,7 +4352,7 @@ impl RecordFieldName {
     pub fn name(&self) -> Option<Name> { helper::node(&self.0) }
     pub fn comma_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Comma) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct ConstVarParam(SyntaxNode);
 impl AstNode for ConstVarParam {
@@ -4379,7 +4379,7 @@ impl ConstVarParam {
     pub fn coerce_type(&self) -> Option<CheatAttr> { helper::node(&self.0) }
     pub fn param_ty(&self) -> Option<Type> { helper::node(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct ParamNameList(SyntaxNode);
 impl AstNode for ParamNameList {
@@ -4401,7 +4401,7 @@ impl AstNode for ParamNameList {
 impl ParamNameList {
     pub fn names(&self) -> impl Iterator<Item = ParamName> + '_ { helper::nodes(&self.0) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct ParamName(SyntaxNode);
 impl AstNode for ParamName {
@@ -4424,7 +4424,7 @@ impl ParamName {
     pub fn name(&self) -> Option<Name> { helper::node(&self.0) }
     pub fn comma_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Comma) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct ConditionKind(SyntaxNode);
 impl AstNode for ConditionKind {
@@ -4454,7 +4454,7 @@ impl ConditionKind {
         helper::token(&self.0, SyntaxKind::KwTimeout)
     }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum PreprocKind {
     PPInclude(PPInclude),
     PPIf(PPIf),
@@ -4509,7 +4509,7 @@ impl From<PPElse> for PreprocKind {
 impl From<PPEndIf> for PreprocKind {
     fn from(variant: PPEndIf) -> Self { Self::PPEndIf(variant) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum PPExpr {
     PPBinaryExpr(PPBinaryExpr),
     PPUnaryExpr(PPUnaryExpr),
@@ -4557,7 +4557,7 @@ impl From<PPNameExpr> for PPExpr {
 impl From<PPParenExpr> for PPExpr {
     fn from(variant: PPParenExpr) -> Self { Self::PPParenExpr(variant) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum PPFalseBranch {
     PPElseif(PPElseif),
     PPElse(PPElse),
@@ -4591,7 +4591,7 @@ impl From<PPElseif> for PPFalseBranch {
 impl From<PPElse> for PPFalseBranch {
     fn from(variant: PPElse) -> Self { Self::PPElse(variant) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Stmt {
     ConstVarDecl(ConstVarDecl),
     TypeDecl(TypeDecl),
@@ -4975,7 +4975,7 @@ impl From<ExportStmt> for Stmt {
 impl From<PreprocGlob> for Stmt {
     fn from(variant: PreprocGlob) -> Self { Self::PreprocGlob(variant) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Item {
     ConstVarDeclName(ConstVarDeclName),
     TypeDecl(TypeDecl),
@@ -5086,7 +5086,7 @@ impl From<ClassDecl> for Item {
 impl From<MonitorDecl> for Item {
     fn from(variant: MonitorDecl) -> Self { Self::MonitorDecl(variant) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Type {
     PrimType(PrimType),
     NameType(NameType),
@@ -5197,7 +5197,7 @@ impl From<CollectionType> for Type {
 impl From<ConditionType> for Type {
     fn from(variant: ConditionType) -> Self { Self::ConditionType(variant) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Expr {
     LiteralExpr(LiteralExpr),
     ObjClassExpr(ObjClassExpr),
@@ -5343,7 +5343,7 @@ impl From<BitsExpr> for Expr {
 impl From<CallExpr> for Expr {
     fn from(variant: CallExpr) -> Self { Self::CallExpr(variant) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum SubprogHeader {
     ProcHeader(ProcHeader),
     FcnHeader(FcnHeader),
@@ -5377,7 +5377,7 @@ impl From<ProcHeader> for SubprogHeader {
 impl From<FcnHeader> for SubprogHeader {
     fn from(variant: FcnHeader) -> Self { Self::FcnHeader(variant) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum BodyKind {
     PlainHeader(PlainHeader),
     ProcHeader(ProcHeader),
@@ -5418,7 +5418,7 @@ impl From<ProcHeader> for BodyKind {
 impl From<FcnHeader> for BodyKind {
     fn from(variant: FcnHeader) -> Self { Self::FcnHeader(variant) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ExternalKind {
     ExternalFcn(FcnHeader),
     ExternalProc(ProcHeader),
@@ -5459,7 +5459,7 @@ impl From<ProcHeader> for ExternalKind {
 impl From<ExternalVar> for ExternalKind {
     fn from(variant: ExternalVar) -> Self { Self::ExternalVar(variant) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum OpenKind {
     OldOpen(OldOpen),
     NewOpen(NewOpen),
@@ -5493,7 +5493,7 @@ impl From<OldOpen> for OpenKind {
 impl From<NewOpen> for OpenKind {
     fn from(variant: NewOpen) -> Self { Self::NewOpen(variant) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum CloseKind {
     OldClose(OldClose),
     NewClose(NewClose),
@@ -5527,7 +5527,7 @@ impl From<OldClose> for CloseKind {
 impl From<NewClose> for CloseKind {
     fn from(variant: NewClose) -> Self { Self::NewClose(variant) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum FalseBranch {
     ElseifStmt(ElseifStmt),
     ElseStmt(ElseStmt),
@@ -5561,7 +5561,7 @@ impl From<ElseifStmt> for FalseBranch {
 impl From<ElseStmt> for FalseBranch {
     fn from(variant: ElseStmt) -> Self { Self::ElseStmt(variant) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ImportAttr {
     VarAttr(VarAttr),
     ConstAttr(ConstAttr),
@@ -5602,7 +5602,7 @@ impl From<ConstAttr> for ImportAttr {
 impl From<ForwardAttr> for ImportAttr {
     fn from(variant: ForwardAttr) -> Self { Self::ForwardAttr(variant) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ExportAttr {
     VarAttr(VarAttr),
     UnqualifiedAttr(UnqualifiedAttr),
@@ -5650,7 +5650,7 @@ impl From<PervasiveAttr> for ExportAttr {
 impl From<OpaqueAttr> for ExportAttr {
     fn from(variant: OpaqueAttr) -> Self { Self::OpaqueAttr(variant) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum IndirectTy {
     PrimType(PrimType),
     NameType(NameType),
@@ -5684,7 +5684,7 @@ impl From<PrimType> for IndirectTy {
 impl From<NameType> for IndirectTy {
     fn from(variant: NameType) -> Self { Self::NameType(variant) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ParamKind {
     AllItem(AllItem),
     RangeItem(RangeItem),
@@ -5725,7 +5725,7 @@ impl From<RangeItem> for ParamKind {
 impl From<Expr> for ParamKind {
     fn from(variant: Expr) -> Self { Self::Expr(variant) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum RangeBound {
     RelativeBound(RelativeBound),
     Expr(Expr),
@@ -5759,7 +5759,7 @@ impl From<RelativeBound> for RangeBound {
 impl From<Expr> for RangeBound {
     fn from(variant: Expr) -> Self { Self::Expr(variant) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum EndBound {
     UnsizedBound(UnsizedBound),
     CompTimeExpr(CompTimeExpr),
@@ -5793,7 +5793,7 @@ impl From<UnsizedBound> for EndBound {
 impl From<CompTimeExpr> for EndBound {
     fn from(variant: CompTimeExpr) -> Self { Self::CompTimeExpr(variant) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum SubprogType {
     FcnType(FcnType),
     ProcType(ProcType),
@@ -5827,7 +5827,7 @@ impl From<FcnType> for SubprogType {
 impl From<ProcType> for SubprogType {
     fn from(variant: ProcType) -> Self { Self::ProcType(variant) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ParamDecl {
     ConstVarParam(ConstVarParam),
     SubprogType(SubprogType),
@@ -5863,7 +5863,7 @@ impl From<ConstVarParam> for ParamDecl {
 impl From<SubprogType> for ParamDecl {
     fn from(variant: SubprogType) -> Self { Self::SubprogType(variant) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ExternalRef {
     ExternalItem(ExternalItem),
     PPInclude(PPInclude),
