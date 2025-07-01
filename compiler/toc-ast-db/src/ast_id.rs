@@ -16,6 +16,8 @@ pub const ROOT_ERASED_AST_ID: ErasedAstId =
 /// Any node that always has a stable id.
 pub trait AstIdNode: ast::AstNode<Language = toc_syntax::Lang> {}
 
+impl AstIdNode for ast::Source {}
+
 /// Any node that sometimes has a stable id.
 pub trait MaybeAstIdNode: ast::AstNode<Language = toc_syntax::Lang> {}
 
@@ -54,7 +56,7 @@ enum AstIdKind {
     /// Refers to an individual [`ast::ConstVarDeclName`].
     ConstVar,
     BindItem,
-    // Associated with some [`ast::BlockStmt`].
+    // Associated with some [`ast::StmtList`].
     BlockStmt,
     // TODO: include "preprocessor" macros
     // Root node of a file (unit, package root)
@@ -486,6 +488,15 @@ impl AstIdMap {
         map
     }
 
+    pub fn root(&self) -> AstId<ast::Source> {
+        let erased = self.index_to_id(ArenaIdx::from_raw(la_arena::RawIdx::from_u32(0)));
+
+        AstId {
+            erased,
+            _node: PhantomData,
+        }
+    }
+
     pub fn lookup<N: AstIdNode>(&self, node: &N) -> AstId<N> {
         self.lookup_for_ptr(AstPtr::new(node))
     }
@@ -684,6 +695,60 @@ mod test {
             uwu2_id.instance(),
             "instances must be different"
         );
+    }
+
+    #[test]
+    fn constvar_in_root_is_allocated() {
+        let root = toc_parser::parse(&format!(
+            r"
+            const a, b, c : int := 1
+            var d, e, f : int
+            "
+        ))
+        .take()
+        .0
+        .syntax();
+
+        let the_const = root
+            .descendants()
+            .find_map(|it| ast::ConstVarDecl::cast(it).filter(|it| it.const_token().is_some()))
+            .expect("missing `const` statement");
+        let the_var = root
+            .descendants()
+            .find_map(|it| ast::ConstVarDecl::cast(it).filter(|it| it.var_token().is_some()))
+            .expect("missing `var` statement");
+
+        let const_names: Vec<_> = the_const
+            .syntax()
+            .descendants()
+            .flat_map(ast::ConstVarDeclName::cast)
+            .collect();
+        assert!(!const_names.is_empty(), "missing `const` names");
+
+        let var_names: Vec<_> = the_var
+            .syntax()
+            .descendants()
+            .flat_map(ast::ConstVarDeclName::cast)
+            .collect();
+        assert!(!var_names.is_empty(), "missing `var` names");
+
+        let map = AstIdMap::from_source(&root);
+
+        for name in &const_names {
+            assert_ne!(
+                map.lookup_for_maybe(name),
+                None,
+                "item name `var` {name:?} does not have an id"
+            );
+        }
+
+        for name in &var_names {
+            assert_ne!(
+                map.lookup_for_maybe(name),
+                None,
+                "item name `var` {name:?} does not have an id"
+            );
+        }
     }
 
     #[test]
