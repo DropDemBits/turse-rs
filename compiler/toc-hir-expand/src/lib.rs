@@ -111,6 +111,20 @@ impl<'db, T: AstNode<Language = toc_syntax::Lang>> SemanticLoc<'db, T> {
         self.loc
     }
 
+    /// Converts into an equivalent [`UnstableSemanticLoc<T>`] node.
+    pub fn into_unstable(self, db: &'db dyn Db) -> UnstableSemanticLoc<T> {
+        let file = self.file(db);
+        let ast_id_map = file.ast_id_map(db);
+        let ast_id = self.loc.ast_id(db);
+        let ptr = ast_id_map.get_for_erased(ast_id);
+
+        UnstableSemanticLoc {
+            file,
+            ptr,
+            _node: PhantomData,
+        }
+    }
+
     /// Projects from `T` into `U`.
     ///
     /// `U`'s node must have a corresponding semantic location in the file

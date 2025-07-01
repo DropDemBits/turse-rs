@@ -278,7 +278,7 @@ pub(crate) fn module_block_collect_items<'db>(
     db: &'db dyn Db,
     block: crate::body::ModuleBlock<'db>,
 ) -> ItemCollection<'db> {
-    lower::collect_items(db, block.stmt_list(db))
+    lower::collect_items(db, block.stmt_list(db).into_unstable(db))
 }
 
 impl<'db> HasItems<'db> for crate::body::ModuleBlock<'db> {

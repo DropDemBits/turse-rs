@@ -31,6 +31,7 @@ pub struct BodyContents<'db> {
     exprs: SalsaArena<expr::Expr<'db>>,
     stmts: SalsaArena<stmt::Stmt<'db>>,
     top_level: Box<[StmtId<'db>]>,
+    // `None` if the body's immediate block has no items, or if the body's origin owns the items.
     root_block: Option<ModuleBlock<'db>>,
 }
 
@@ -48,7 +49,7 @@ impl<'db> BodyContents<'db> {
     }
 }
 
-/// Spans of
+/// Spans of a body
 #[derive(Debug, Default, PartialEq, Eq, salsa::Update, Hash)]
 pub(crate) struct BodySpans<'db> {
     exprs: expr::ExprMap<'db, UnstableSemanticLoc<ast::Expr>>,
@@ -107,12 +108,11 @@ impl<'db> Body<'db> {
 /// A block that contains items
 #[salsa::interned(debug)]
 pub struct ModuleBlock<'db> {
-    origin: SemanticLoc<'db, ast::BlockStmt>,
+    origin: SemanticLoc<'db, ast::StmtList>,
 }
 
 impl<'db> ModuleBlock<'db> {
-    pub(crate) fn stmt_list(self, db: &'db dyn Db) -> UnstableSemanticLoc<ast::StmtList> {
+    pub(crate) fn stmt_list(self, db: &'db dyn Db) -> SemanticLoc<'db, ast::StmtList> {
         self.origin(db)
-            .map_unstable(db, |this| this.stmt_list().unwrap())
     }
 }

@@ -68,18 +68,12 @@ impl<'db> BodyLower<'db> {
         mut self,
         root: ast::StmtList,
     ) -> (BodyContents<'db>, BodySpans<'db>, Vec<BodyLowerError>) {
-        // FIXME: Figure out how to deal with top-level block modules?
-        // - Could look to body origin?
-        //   Except that we'd just be reusing the origin's immediate child list.
-        // let has_items = root.stmts().any(|node| {
-        //     let kind = node.syntax().kind();
-        //     ast::Item::can_cast(kind) || ast::PreprocGlob::can_cast(kind)
-        // });
-
-        // self.contents.root_block = has_items.then(|| {
-        //     let loc = self.ast_id_map.get(&root);
-        //     ModuleBlock::new(self.db, loc)
-        // });
+        self.contents.root_block = self.ast_id_map.lookup_for_maybe(&root).map(|ast_id| {
+            ModuleBlock::new(
+                self.db,
+                SemanticLoc::from_ast_id(self.db, self.file, ast_id),
+            )
+        });
 
         let mut top_level = vec![];
         for stmt in root.stmts() {
@@ -299,7 +293,7 @@ impl<'db> BodyLower<'db> {
     fn lower_block_stmt(&mut self, node: ast::BlockStmt) -> LocalStmt<'db> {
         let stmts = node.stmt_list().unwrap();
 
-        let module_block = self.ast_id_map.lookup_for_maybe(&node).map(|ast_id| {
+        let module_block = self.ast_id_map.lookup_for_maybe(&stmts).map(|ast_id| {
             ModuleBlock::new(
                 self.db,
                 SemanticLoc::from_ast_id(self.db, self.file, ast_id),

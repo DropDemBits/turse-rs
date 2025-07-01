@@ -116,18 +116,18 @@ assoc_ast_id_impls! {
         RecordField => RecordFieldName.name,
 }
 
-impl MaybeAstIdNode for ast::BlockStmt {}
+impl MaybeAstIdNode for ast::StmtList {}
 
 pub(crate) fn block_ast_id(
     node: SyntaxNode,
     id_gen: &mut AstIdGen,
     parent: Option<ErasedAstId>,
 ) -> Option<ErasedAstId> {
-    let Some(_) = ast::BlockStmt::cast(node) else {
+    let Some(_) = ast::StmtList::cast(node) else {
         return None;
     };
 
-    Some(id_gen.next(AstIdKind::BlockStmt, ErasedBlockStmtNode { parent }))
+    Some(id_gen.next(AstIdKind::StmtList, ErasedBlockStmtNode { parent }))
 }
 
 impl MaybeAstIdNode for ast::ConstVarDeclName {}

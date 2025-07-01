@@ -57,7 +57,7 @@ enum AstIdKind {
     ConstVar,
     BindItem,
     // Associated with some [`ast::StmtList`].
-    BlockStmt,
+    StmtList,
     // TODO: include "preprocessor" macros
     // Root node of a file (unit, package root)
     Root,
@@ -108,28 +108,13 @@ impl ErasedAstId {
     }
 
     /// Whether a maybe allocated node will or won't be allocated
-    fn maybe_might_alloc(node: &SyntaxNode) -> bool {
-        let this_decl = if ast::ConstVarDeclName::can_cast(node.kind())
-            && let Some(constvar_decl) = node.ancestors().find_map(ast::ConstVarDecl::cast)
-        {
-            constvar_decl.syntax().clone()
-        } else if ast::BindItem::can_cast(node.kind())
-            && let Some(bind_decl) = node.ancestors().find_map(ast::BindDecl::cast)
-        {
-            bind_decl.syntax().clone()
+    fn maybe_might_alloc(node: &SyntaxNode, has_items: HasItems) -> bool {
+        if ast::ConstVarDeclName::can_cast(node.kind()) || ast::BindItem::can_cast(node.kind()) {
+            // Bind & ConstVar items must be at the top level of a module like to be allocated.
+            return has_items == HasItems::ModuleLike;
         } else {
-            // Some other node type.
+            // Another type of item.
             return true;
-        };
-
-        // Bind & ConstVar items must be at the top level of a module like to be allocated.
-        if let Some(stmt_list) = this_decl.parent().and_then(ast::StmtList::cast)
-            && let Some(parent) = stmt_list.syntax().parent()
-        {
-            parent.kind().is_module_like()
-        } else {
-            // Not a well-formed tree.
-            false
         }
     }
 
@@ -189,7 +174,7 @@ impl std::fmt::Debug for ErasedAstId {
             ClassDecl,
             ConstVar,
             BindItem,
-            BlockStmt,
+            StmtList,
             Root,
         );
 
@@ -371,13 +356,15 @@ impl std::fmt::Debug for AstIdMap {
 
 type ArenaIdx = la_arena::Idx<(SyntaxNodePtr, ErasedAstId)>;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum HasItems {
+    ModuleLike,
+    Yes,
+    No,
+}
+
 impl AstIdMap {
     pub fn from_source(root: &SyntaxNode) -> Self {
-        enum HasItems {
-            Yes,
-            No,
-        }
-
         assert!(root.parent().is_none());
         let mut id_gen = AstIdGen::default();
         let mut map = AstIdMap::default();
@@ -393,9 +380,18 @@ impl AstIdMap {
         topo_visit(root, |event, parent_idx| {
             match event {
                 toc_syntax::WalkEvent::Enter(node) => {
-                    if ast::BlockStmt::can_cast(node.kind()) {
+                    if ast::StmtList::can_cast(node.kind()) {
+                        let has_items = if node
+                            .parent()
+                            .is_some_and(|parent| parent.kind().is_module_like())
+                        {
+                            HasItems::ModuleLike
+                        } else {
+                            HasItems::No
+                        };
+
                         // add to block stack
-                        blocks.push((SyntaxNodePtr::new(&node), HasItems::No));
+                        blocks.push((SyntaxNodePtr::new(&node), has_items));
                         return InLayer::Same;
                     }
 
@@ -406,19 +402,24 @@ impl AstIdMap {
 
                     let parent = parent_idx.map(|it| map.index_to_id(it));
 
-                    if !ErasedAstId::maybe_might_alloc(&node) {
-                        // maybe-allocated node can't be allocated, so skip it and its children entirely.
-                        return InLayer::Skip;
-                    } else if let Some((block_ptr, has_ast_id @ HasItems::No)) = blocks.last_mut() {
-                        // Only allocate blocks if they contain items.
-                        //
-                        // For better stability, we never anchor items to blocks and instead to the containing item.
-                        let block_ast_id =
-                            hash_impls::block_ast_id(block_ptr.to_node(&root), &mut id_gen, parent)
-                                .expect("must be a block node");
-                        map.entries.alloc((*block_ptr, block_ast_id));
+                    if let Some((block_ptr, has_items)) = blocks.last_mut() {
+                        if !ErasedAstId::maybe_might_alloc(&node, *has_items) {
+                            // maybe-allocated node can't be allocated, so skip it and its children entirely.
+                            return InLayer::Skip;
+                        } else if *has_items == HasItems::No {
+                            // Only allocate blocks if they contain items, if they themselves aren't owned by items.
+                            //
+                            // For better stability, we never anchor items to blocks and instead to the containing item.
+                            let block_ast_id = hash_impls::block_ast_id(
+                                block_ptr.to_node(&root),
+                                &mut id_gen,
+                                parent,
+                            )
+                            .expect("must be a block node");
+                            map.entries.alloc((*block_ptr, block_ast_id));
 
-                        *has_ast_id = HasItems::Yes;
+                            *has_items = HasItems::Yes;
+                        }
                     }
 
                     let syntax_ptr = SyntaxNodePtr::new(&node);
@@ -438,7 +439,7 @@ impl AstIdMap {
                     InLayer::Next(idx)
                 }
                 toc_syntax::WalkEvent::Leave(node) => {
-                    if ast::BlockStmt::can_cast(node.kind()) {
+                    if ast::StmtList::can_cast(node.kind()) {
                         assert_eq!(
                             blocks.pop().map(|it| it.0),
                             Some(SyntaxNodePtr::new(&node)),
@@ -633,6 +634,33 @@ fn topo_visit<V>(
 #[cfg(test)]
 mod test {
     use super::*;
+
+    #[test]
+    fn module_inner_block_is_not_allocated() {
+        let root = toc_parser::parse(
+            r"
+            module abc end abc
+        ",
+        )
+        .take()
+        .0
+        .syntax();
+
+        let Some(mod_abc) = root.descendants().find_map(ast::ModuleDecl::cast) else {
+            panic!("missing `module` item")
+        };
+        let Some(block) = mod_abc.stmt_list() else {
+            panic!("missing stmt list")
+        };
+
+        let map = AstIdMap::from_source(&root);
+        let abc_block_id = map.lookup_for_maybe(&block);
+
+        assert_eq!(
+            abc_block_id, None,
+            "module inner block has an id {abc_block_id:#?}"
+        );
+    }
 
     #[test]
     fn different_names_are_different_hashes() {
@@ -940,7 +968,11 @@ mod test {
         .0
         .syntax();
 
-        let Some(block) = root.descendants().find_map(ast::BlockStmt::cast) else {
+        let Some(block) = root
+            .descendants()
+            .find_map(ast::BlockStmt::cast)
+            .and_then(|it| it.stmt_list())
+        else {
             panic!("missing block statement")
         };
 
@@ -963,7 +995,11 @@ mod test {
         .0
         .syntax();
 
-        let Some(block) = root.descendants().find_map(ast::BlockStmt::cast) else {
+        let Some(block) = root
+            .descendants()
+            .find_map(ast::BlockStmt::cast)
+            .and_then(|it| it.stmt_list())
+        else {
             panic!("missing block statement")
         };
 
