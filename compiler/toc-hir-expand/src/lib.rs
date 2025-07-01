@@ -17,7 +17,7 @@
 // since semantic item definitions get dedicated salsa entities
 //
 
-use std::{collections::BTreeMap, marker::PhantomData};
+use std::{collections::BTreeSet, marker::PhantomData};
 
 use toc_ast_db::{
     IntoAst, SourceFileExt,
@@ -312,29 +312,15 @@ pub enum SemanticSource {
     SourceFile(SourceFile),
 }
 
-/// A [`SourceFile`] in a specific [`Package`].
-///
-/// Typically, a [`SourceFile`] tends to be part of one package only.
-/// However, including a single source file from multiple packages results in the source file
-/// being shared by multiple packages.
-#[salsa::interned(debug, no_lifetime)]
-pub struct PackageFile {
-    pub package: Package,
-    pub source: SourceFile,
-}
-
 /// All files that are part of a specific package
 #[salsa::tracked(returns(ref))]
-pub fn all_files(db: &dyn Db, package: Package) -> BTreeMap<SourceFile, PackageFile> {
+pub fn all_files(db: &dyn Db, package: Package) -> BTreeSet<SourceFile> {
     let source = toc_vfs_db::source_of(db, package.root(db).raw_path(db));
     let mut files = (*toc_ast_db::reachable_files(db, source)).clone();
     // `reachable_files` right now excludes the root from the reachable files list
     files.insert(source);
 
     files
-        .into_iter()
-        .map(|source| (source, PackageFile::new(db, package, source)))
-        .collect::<BTreeMap<_, _>>()
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, salsa::Update)]

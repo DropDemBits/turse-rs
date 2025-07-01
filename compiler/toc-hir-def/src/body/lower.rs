@@ -23,12 +23,7 @@ pub(crate) fn module_body<'db>(
     stmt_list: ast::StmtList,
 ) -> (BodyContents<'db>, BodySpans<'db>, Vec<BodyLowerError>) {
     let ast_id_map = file.ast_id_map(db);
-    BodyLower::new(db, file, ast_id_map, body, BodyMode::Module).lower_from_stmts(stmt_list)
-}
-
-pub(crate) enum BodyMode {
-    Module,
-    Function,
+    BodyLower::new(db, file, ast_id_map, body).lower_from_stmts(stmt_list)
 }
 
 struct BodyLower<'db> {
@@ -37,7 +32,6 @@ struct BodyLower<'db> {
     ast_id_map: &'db AstIdMap,
 
     body: Body<'db>,
-    mode: BodyMode,
     contents: BodyContents<'db>,
     spans: BodySpans<'db>,
 
@@ -50,14 +44,12 @@ impl<'db> BodyLower<'db> {
         file: SemanticFile,
         ast_id_map: &'db AstIdMap,
         body: Body<'db>,
-        mode: BodyMode,
     ) -> Self {
         Self {
             db,
             ast_id_map,
             file,
             body,
-            mode,
             contents: Default::default(),
             spans: Default::default(),
             errors: Default::default(),
