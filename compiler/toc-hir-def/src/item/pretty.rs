@@ -84,6 +84,7 @@ pub fn render_item_tree<'db>(db: &'db dyn Db, root: Package) -> PrettyTree<'db> 
         PrettyItem { item, children }
     }
 
+    let root = toc_vfs_db::source_of(db, root.root(db).raw_path(db));
     let root = root_module(db, root);
     PrettyTree {
         db,

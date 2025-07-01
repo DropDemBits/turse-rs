@@ -48,7 +48,10 @@ pub type StmtMap<'db, V> = SalsaArenaMap<StmtIndex<'db>, V>;
 #[derive(Debug, PartialEq, Eq, Hash, salsa::Update)]
 pub enum Stmt<'db> {
     /// Initialize the given [`ast::ConstVarDecl`] at this point
-    InitializeConstVar(SemanticLoc<'db, ast::ConstVarDecl>, expr::LocalExpr<'db>),
+    InitializeConstVar(
+        SemanticLoc<'db, ast::ConstVarDeclName>,
+        expr::LocalExpr<'db>,
+    ),
     /// Initialize the given [`ast::BindItem`] at this point
     InitializeBindItem(SemanticLoc<'db, ast::BindItem>, expr::LocalExpr<'db>),
     /// Assignment statement

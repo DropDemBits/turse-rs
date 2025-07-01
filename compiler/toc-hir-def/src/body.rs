@@ -1,6 +1,6 @@
-use toc_hir_expand::{SemanticLoc, UnstableSemanticLoc};
+use toc_hir_expand::{ErasedSemanticLoc, SemanticLoc, UnstableSemanticLoc};
 use toc_salsa_collections::arena::SalsaArena;
-use toc_syntax::ast;
+use toc_syntax::ast::{self, AstNode as _};
 
 use crate::{
     Db, expr,
@@ -11,9 +11,8 @@ pub(crate) mod lower;
 pub mod pretty;
 
 /// Executable block of code
-#[salsa::tracked(debug)]
+#[salsa::interned(debug)]
 pub struct Body<'db> {
-    #[tracked]
     origin: BodyOrigin<'db>,
 }
 
@@ -21,9 +20,9 @@ pub struct Body<'db> {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, salsa::Update)]
 pub enum BodyOrigin<'db> {
     /// Attached to a module-like item
-    ModuleBody(SemanticLoc<'db, ast::StmtList>),
+    ModuleBody(ErasedSemanticLoc<'db>),
     /// Attached to a function-like item
-    FunctionBody(SemanticLoc<'db, ast::StmtList>),
+    FunctionBody(ErasedSemanticLoc<'db>),
 }
 
 /// Lowered body contents
@@ -85,7 +84,18 @@ impl<'db> Body<'db> {
     pub(crate) fn lower_contents(self, db: &'db dyn Db) -> BodyLowerResult<'db> {
         // FIXME: Accumulate errors
         let (contents, spans, _errors) = match self.origin(db) {
-            BodyOrigin::ModuleBody(stmts) => lower::module_body(db, self, stmts),
+            BodyOrigin::ModuleBody(origin) => {
+                let file = origin.file(db);
+                let Some(stmts) = origin
+                    .to_node(db)
+                    .descendants()
+                    .find_map(ast::StmtList::cast)
+                else {
+                    unreachable!()
+                };
+
+                lower::module_body(db, self, file, stmts)
+            }
             // Note that if we're an FnBody then we can have ConstVars as locals
             BodyOrigin::FunctionBody(_stmts) => todo!(),
         };
@@ -95,14 +105,14 @@ impl<'db> Body<'db> {
 }
 
 /// A block that contains items
-#[salsa::tracked(debug)]
+#[salsa::interned(debug)]
 pub struct ModuleBlock<'db> {
-    #[tracked]
-    origin: SemanticLoc<'db, ast::StmtList>,
+    origin: SemanticLoc<'db, ast::BlockStmt>,
 }
 
 impl<'db> ModuleBlock<'db> {
-    pub(crate) fn stmt_list(self, db: &'db dyn Db) -> SemanticLoc<'db, ast::StmtList> {
+    pub(crate) fn stmt_list(self, db: &'db dyn Db) -> UnstableSemanticLoc<ast::StmtList> {
         self.origin(db)
+            .map_unstable(db, |this| this.stmt_list().unwrap())
     }
 }

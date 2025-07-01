@@ -12,10 +12,11 @@ use crate::{
 pub fn render_package_bodies(db: &dyn Db, package: Package) -> String {
     // Collect all of the items in the package
     let items = {
+        let root = toc_vfs_db::source_of(db, package.root(db).raw_path(db).as_path());
         let mut items = vec![];
 
         let mut to_explore = VecDeque::new();
-        to_explore.push_back(AnyItem::RootModule(crate::item::root_module(db, package)));
+        to_explore.push_back(AnyItem::RootModule(crate::item::root_module(db, root)));
 
         loop {
             let Some(item) = to_explore.pop_front() else {

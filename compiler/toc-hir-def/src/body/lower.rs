@@ -1,11 +1,10 @@
 //! Lowering from AST expressions and statements into a Body
 
-use toc_hir_expand::{
-    AstLocations, SemanticFile, SemanticLoc, SemanticNodePtr, UnstableSemanticLoc,
-};
+use toc_ast_db::ast_id::AstIdMap;
+use toc_hir_expand::{SemanticFile, SemanticLoc, SemanticNodePtr, UnstableSemanticLoc};
 use toc_syntax::{
     LiteralValue,
-    ast::{self, AstNode},
+    ast::{self},
 };
 
 use crate::{
@@ -20,12 +19,11 @@ use super::{Body, BodyContents, BodySpans};
 pub(crate) fn module_body<'db>(
     db: &'db dyn Db,
     body: Body<'db>,
-    stmt_list: SemanticLoc<'db, ast::StmtList>,
+    file: SemanticFile,
+    stmt_list: ast::StmtList,
 ) -> (BodyContents<'db>, BodySpans<'db>, Vec<BodyLowerError>) {
-    let file = stmt_list.file(db);
-    let ast_locations = file.ast_locations(db);
-    let stmt_list = stmt_list.to_node(db);
-    BodyLower::new(db, file, ast_locations, body, BodyMode::Module).lower_from_stmts(stmt_list)
+    let ast_id_map = file.ast_id_map(db);
+    BodyLower::new(db, file, ast_id_map, body, BodyMode::Module).lower_from_stmts(stmt_list)
 }
 
 pub(crate) enum BodyMode {
@@ -36,7 +34,7 @@ pub(crate) enum BodyMode {
 struct BodyLower<'db> {
     db: &'db dyn Db,
     file: SemanticFile,
-    ast_locations: &'db AstLocations<'db>,
+    ast_id_map: &'db AstIdMap,
 
     body: Body<'db>,
     mode: BodyMode,
@@ -50,13 +48,13 @@ impl<'db> BodyLower<'db> {
     fn new(
         db: &'db dyn Db,
         file: SemanticFile,
-        ast_locations: &'db AstLocations,
+        ast_id_map: &'db AstIdMap,
         body: Body<'db>,
         mode: BodyMode,
     ) -> Self {
         Self {
             db,
-            ast_locations,
+            ast_id_map,
             file,
             body,
             mode,
@@ -70,21 +68,30 @@ impl<'db> BodyLower<'db> {
         mut self,
         root: ast::StmtList,
     ) -> (BodyContents<'db>, BodySpans<'db>, Vec<BodyLowerError>) {
-        let has_items = root.stmts().any(|node| {
-            let kind = node.syntax().kind();
-            ast::Item::can_cast(kind) || ast::PreprocGlob::can_cast(kind)
-        });
+        // FIXME: Figure out how to deal with top-level block modules?
+        // - Could look to body origin?
+        //   Except that we'd just be reusing the origin's immediate child list.
+        // let has_items = root.stmts().any(|node| {
+        //     let kind = node.syntax().kind();
+        //     ast::Item::can_cast(kind) || ast::PreprocGlob::can_cast(kind)
+        // });
 
-        self.contents.root_block = has_items.then(|| {
-            let loc = self.ast_locations.get(&root);
-            ModuleBlock::new(self.db, loc)
-        });
+        // self.contents.root_block = has_items.then(|| {
+        //     let loc = self.ast_id_map.get(&root);
+        //     ModuleBlock::new(self.db, loc)
+        // });
 
         let mut top_level = vec![];
         for stmt in root.stmts() {
-            let new_stmts = self.lower_statement(stmt);
-            top_level.extend(new_stmts.into_iter().map(|id| id.in_body(self.body)));
+            let Some(new_stmt) = self.lower_statement(stmt, &mut top_level) else {
+                continue;
+            };
+            top_level.push(new_stmt);
         }
+        let top_level = top_level
+            .into_iter()
+            .map(|it| it.in_body(self.body))
+            .collect::<Vec<_>>();
 
         let BodyLower {
             mut contents,
@@ -103,12 +110,19 @@ impl<'db> BodyLower<'db> {
         (contents, spans, errors)
     }
 
-    fn lower_statement(&mut self, stmt: ast::Stmt) -> Option<LocalStmt<'db>> {
+    fn lower_statement(
+        &mut self,
+        stmt: ast::Stmt,
+        stmts: &mut Vec<LocalStmt<'db>>,
+    ) -> Option<LocalStmt<'db>> {
         // only needed for pointing to unhandled statements
         let ptr: SemanticNodePtr = UnstableSemanticLoc::new(self.file, &stmt).into();
 
         let id = match stmt {
-            ast::Stmt::ConstVarDecl(node) => Some(self.lower_constvar_init(node)),
+            ast::Stmt::ConstVarDecl(node) => {
+                self.lower_constvar_init(node, stmts)?;
+                return None;
+            }
 
             // these decls only introduce new definitions in scope,
             // and that's handled by nameres later on
@@ -176,17 +190,35 @@ impl<'db> BodyLower<'db> {
         id
     }
 
-    fn lower_constvar_init(&mut self, node: ast::ConstVarDecl) -> LocalStmt<'db> {
+    fn lower_constvar_init(
+        &mut self,
+        node: ast::ConstVarDecl,
+        stmts: &mut Vec<LocalStmt<'db>>,
+    ) -> Option<()> {
         // for now: treat all constvars and items the same (get referenced as stmts)
         // and then lower them differently later
-
-        // Initializer gets a consistent place for items
-        let loc = self.ast_locations.get(&node);
-
-        // The initializer expression is always the same however
+        //
+        // The initializer expression is always the same
+        let names = node.constvar_names()?;
         let init = self.lower_expr_opt(node.init());
 
-        self.alloc_stmt(stmt::Stmt::InitializeConstVar(loc, init), node)
+        for name in names.names() {
+            // Initializer gets a consistent place for items
+            match self.ast_id_map.lookup_for_maybe(&name) {
+                Some(ast_id) => {
+                    let loc = SemanticLoc::from_ast_id(self.db, self.file, ast_id);
+                    let stmt_id =
+                        self.alloc_stmt(stmt::Stmt::InitializeConstVar(loc, init), node.clone());
+                    stmts.push(stmt_id);
+                }
+                None => {
+                    // FIXME: Alloc local
+                    return None;
+                }
+            }
+        }
+
+        Some(())
     }
 
     fn lower_assign_stmt(&mut self, node: ast::AssignStmt) -> LocalStmt<'db> {
@@ -267,21 +299,22 @@ impl<'db> BodyLower<'db> {
     fn lower_block_stmt(&mut self, node: ast::BlockStmt) -> LocalStmt<'db> {
         let stmts = node.stmt_list().unwrap();
 
-        let has_items = stmts.stmts().any(|node| {
-            let kind = node.syntax().kind();
-            ast::Item::can_cast(kind) || ast::PreprocGlob::can_cast(kind)
-        });
-
-        let module_block = has_items.then(|| {
-            let loc = self.ast_locations.get(&stmts);
-            ModuleBlock::new(self.db, loc)
+        let module_block = self.ast_id_map.lookup_for_maybe(&node).map(|ast_id| {
+            ModuleBlock::new(
+                self.db,
+                SemanticLoc::from_ast_id(self.db, self.file, ast_id),
+            )
         });
 
         // Lower child statements
-        let child_stmts = stmts
-            .stmts()
-            .flat_map(|stmt| self.lower_statement(stmt))
-            .collect::<Vec<_>>();
+        let mut child_stmts = Vec::with_capacity(stmts.stmts().count());
+
+        for stmt in stmts.stmts() {
+            let Some(stmt_id) = self.lower_statement(stmt, &mut child_stmts) else {
+                continue;
+            };
+            child_stmts.push(stmt_id);
+        }
 
         self.alloc_stmt(
             stmt::Stmt::Block(stmt::Block {
