@@ -52,8 +52,8 @@ impl<'db> BodyContents<'db> {
 /// Spans of a body
 #[derive(Debug, Default, PartialEq, Eq, salsa::Update, Hash)]
 pub(crate) struct BodySpans<'db> {
-    exprs: expr::ExprMap<'db, UnstableSemanticLoc<ast::Expr>>,
-    stmts: stmt::StmtMap<'db, UnstableSemanticLoc<ast::Stmt>>,
+    exprs: expr::ExprMap<'db, UnstableSemanticLoc<'db, ast::Expr>>,
+    stmts: stmt::StmtMap<'db, UnstableSemanticLoc<'db, ast::Stmt>>,
 }
 
 #[salsa::tracked(debug)]

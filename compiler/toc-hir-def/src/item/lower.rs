@@ -12,7 +12,7 @@ use crate::{
 /// Collects the immediately accessible items from a [`ast::StmtList`]
 pub(crate) fn collect_items<'db>(
     db: &'db dyn Db,
-    stmt_list: UnstableSemanticLoc<ast::StmtList>,
+    stmt_list: UnstableSemanticLoc<'db, ast::StmtList>,
 ) -> ItemCollection<'db> {
     let file = stmt_list.file();
     let ast_id_map = file.ast_id_map(db);
@@ -37,7 +37,7 @@ pub(crate) fn collect_items<'db>(
 pub(crate) fn item<'db>(
     db: &'db dyn Db,
     stmt: ast::Stmt,
-    file: SemanticFile,
+    file: SemanticFile<'db>,
     ast_id_map: &'db AstIdMap,
 ) -> Option<Vec<Item<'db>>> {
     Some(match stmt {

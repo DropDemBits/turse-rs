@@ -110,7 +110,10 @@ impl<'db> ConstVar<'db> {
         attrs
     }
 
-    pub(crate) fn parent_constvar(self, db: &'db dyn Db) -> UnstableSemanticLoc<ast::ConstVarDecl> {
+    pub(crate) fn parent_constvar(
+        self,
+        db: &'db dyn Db,
+    ) -> UnstableSemanticLoc<'db, ast::ConstVarDecl> {
         self.origin(db).map_unstable(db, |name| {
             name.syntax()
                 .ancestors()
@@ -238,7 +241,7 @@ impl<'db> Module<'db> {
     }
 
     #[salsa::tracked]
-    pub(crate) fn stmt_list(self, db: &'db dyn Db) -> UnstableSemanticLoc<ast::StmtList> {
+    pub(crate) fn stmt_list(self, db: &'db dyn Db) -> UnstableSemanticLoc<'db, ast::StmtList> {
         self.origin(db)
             .map_unstable(db, |it| it.stmt_list().unwrap())
     }

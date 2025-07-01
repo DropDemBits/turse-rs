@@ -19,29 +19,29 @@ use super::{Body, BodyContents, BodySpans};
 pub(crate) fn module_body<'db>(
     db: &'db dyn Db,
     body: Body<'db>,
-    file: SemanticFile,
+    file: SemanticFile<'db>,
     stmt_list: ast::StmtList,
-) -> (BodyContents<'db>, BodySpans<'db>, Vec<BodyLowerError>) {
+) -> (BodyContents<'db>, BodySpans<'db>, Vec<BodyLowerError<'db>>) {
     let ast_id_map = file.ast_id_map(db);
     BodyLower::new(db, file, ast_id_map, body).lower_from_stmts(stmt_list)
 }
 
 struct BodyLower<'db> {
     db: &'db dyn Db,
-    file: SemanticFile,
+    file: SemanticFile<'db>,
     ast_id_map: &'db AstIdMap,
 
     body: Body<'db>,
     contents: BodyContents<'db>,
     spans: BodySpans<'db>,
 
-    errors: Vec<BodyLowerError>,
+    errors: Vec<BodyLowerError<'db>>,
 }
 
 impl<'db> BodyLower<'db> {
     fn new(
         db: &'db dyn Db,
-        file: SemanticFile,
+        file: SemanticFile<'db>,
         ast_id_map: &'db AstIdMap,
         body: Body<'db>,
     ) -> Self {
@@ -59,7 +59,7 @@ impl<'db> BodyLower<'db> {
     fn lower_from_stmts(
         mut self,
         root: ast::StmtList,
-    ) -> (BodyContents<'db>, BodySpans<'db>, Vec<BodyLowerError>) {
+    ) -> (BodyContents<'db>, BodySpans<'db>, Vec<BodyLowerError<'db>>) {
         self.contents.root_block = self.ast_id_map.lookup_for_maybe(&root).map(|ast_id| {
             ModuleBlock::new(
                 self.db,
@@ -420,14 +420,14 @@ impl<'db> BodyLower<'db> {
 }
 
 // Errors encountered during the body lowering process
-pub enum BodyLowerError {
+pub enum BodyLowerError<'db> {
     /// This statement isn't lowered yet
-    UnhandledStatement { stmt: SemanticNodePtr },
+    UnhandledStatement { stmt: SemanticNodePtr<'db> },
     /// This expression isn't lowered yet
-    UnhandledExpression { expr: SemanticNodePtr },
+    UnhandledExpression { expr: SemanticNodePtr<'db> },
     /// Error while parsing a literal expression
     LiteralParseError {
-        expr: SemanticNodePtr,
+        expr: SemanticNodePtr<'db>,
         errors: toc_syntax::LiteralParseError,
     },
 }
