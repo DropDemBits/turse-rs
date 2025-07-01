@@ -144,7 +144,7 @@ pub struct For<'db> {
     /// If the for-loop has the `decreasing` modifier on it
     pub is_decreasing: bool,
     /// Name of the optional counter variable
-    pub counter_def: Option<Symbol>,
+    pub counter_def: Option<Symbol<'db>>,
     /// Bounds of the for-loop
     pub bounds: ForBounds<'db>,
     /// Optional `by ...` expression, to change the counter delta

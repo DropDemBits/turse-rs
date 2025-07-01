@@ -73,7 +73,7 @@ impl_into_conversions!(ConstVar, Module for Item<'db>);
 #[salsa::interned(debug)]
 #[derive(PartialOrd, Ord)]
 pub struct ConstVar<'db> {
-    pub name: Symbol,
+    pub name: Symbol<'db>,
     /// Original name node
     origin: SemanticLoc<'db, ast::ConstVarDeclName>,
 }
@@ -152,7 +152,7 @@ pub fn root_module<'db>(db: &'db dyn Db, source_file: SourceFile) -> RootModule<
 #[salsa::interned(debug)]
 #[derive(PartialOrd, Ord)]
 pub struct RootModule<'db> {
-    pub name: Symbol,
+    pub name: Symbol<'db>,
     origin: SourceFile,
 }
 
@@ -212,7 +212,7 @@ impl<'db> UnitModule<'db> {
 #[salsa::interned(debug)]
 #[derive(PartialOrd, Ord)]
 pub struct Module<'db> {
-    pub name: Symbol,
+    pub name: Symbol<'db>,
     origin: SemanticLoc<'db, ast::ModuleDecl>,
 }
 
