@@ -100,50 +100,26 @@ pub struct ConstVar<'db> {
     pub name: Symbol<'db>,
     /// Original name node
     origin: SemanticLoc<'db, ast::ConstVarDeclName>,
+
+    #[tracked]
+    item_attrs: ItemAttrs,
 }
 
 #[salsa::tracked]
 impl<'db> ConstVar<'db> {
+    #[salsa::tracked]
     pub fn mutability(self, db: &'db dyn Db) -> Mutability {
         self.item_attrs(db).mutablity()
     }
 
+    #[salsa::tracked]
     pub fn is_pervasive(self, db: &'db dyn Db) -> IsPervasive {
         self.item_attrs(db).is_pervasive()
     }
 
+    #[salsa::tracked]
     pub fn is_register(self, db: &'db dyn Db) -> IsRegister {
         self.item_attrs(db).is_register()
-    }
-
-    #[salsa::tracked]
-    pub(crate) fn item_attrs(self, db: &'db dyn Db) -> ItemAttrs {
-        let ast = self.parent_constvar(db).to_node(db);
-
-        let mut attrs = ItemAttrs::NONE;
-        attrs |= ast
-            .var_token()
-            .map_or(ItemAttrs::NONE, |_| ItemAttrs::MUTABLE);
-        attrs |= ast
-            .pervasive_attr()
-            .map_or(ItemAttrs::NONE, |_| ItemAttrs::PERVASIVE);
-        attrs |= ast
-            .register_attr()
-            .map_or(ItemAttrs::NONE, |_| ItemAttrs::REGISTER);
-
-        attrs
-    }
-
-    pub(crate) fn parent_constvar(
-        self,
-        db: &'db dyn Db,
-    ) -> UnstableSemanticLoc<'db, ast::ConstVarDecl> {
-        self.origin(db).map_unstable(db, |name| {
-            name.syntax()
-                .ancestors()
-                .find_map(ast::ConstVarDecl::cast)
-                .unwrap()
-        })
     }
 }
 
@@ -231,6 +207,9 @@ impl<'db> UnitModule<'db> {
 pub struct Module<'db> {
     pub name: Symbol<'db>,
     origin: SemanticLoc<'db, ast::ModuleDecl>,
+
+    #[tracked]
+    item_attrs: ItemAttrs,
 }
 
 #[salsa::tracked]
@@ -247,11 +226,13 @@ impl<'db> Module<'db> {
     }
 
     /// Is the module pervasive?
+    #[salsa::tracked]
     pub fn is_pervasive(self, db: &'db dyn Db) -> IsPervasive {
         self.item_attrs(db).is_pervasive()
     }
 
     /// Is the module a monitor?
+    #[salsa::tracked]
     pub fn is_monitor(self, db: &'db dyn Db) -> IsMonitor {
         self.item_attrs(db).is_monitor()
     }
@@ -266,18 +247,6 @@ impl<'db> Module<'db> {
     pub(crate) fn stmt_list(self, db: &'db dyn Db) -> UnstableSemanticLoc<'db, ast::StmtList> {
         self.origin(db)
             .map_unstable(db, |it| it.stmt_list().unwrap())
-    }
-
-    #[salsa::tracked]
-    pub(crate) fn item_attrs(self, db: &'db dyn Db) -> ItemAttrs {
-        let ast = self.origin(db).to_node(db);
-
-        let mut attrs = ItemAttrs::NONE;
-        attrs |= ast
-            .pervasive_attr()
-            .map_or(ItemAttrs::NONE, |_| ItemAttrs::PERVASIVE);
-
-        attrs
     }
 }
 

@@ -202,7 +202,7 @@ crate::make_named_bool! {
 }
 
 bitflags::bitflags! {
-    #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
+    #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash, salsa::Update)]
     pub(crate) struct ItemAttrs: u32 {
         const NONE = 0;
         const MUTABLE = 1 << 0;
