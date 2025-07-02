@@ -347,7 +347,7 @@ impl<'db> HasItems<'db> for ModuleLike<'db> {
     }
 }
 
-/// Any AST node that can be looked up in an [`ItemCollection`]
+/// Any AST node that can be looked up in a [`ChildItems`]
 pub trait ItemAstId<'db>: AstNode<Language = toc_syntax::Lang> {
     type Item: TryFrom<Item<'db>>;
 }

@@ -55,7 +55,7 @@ pub trait ExternalItemOwner: AstNode<Language = crate::Lang> {
     }
 }
 
-/// Like [`rowan::AstPtr`], but there's a `try_from_raw`.
+/// Like [`rowan::ast::AstPtr`], but there's a `try_from_raw`.
 pub struct AstPtr<N: AstNode> {
     raw: SyntaxNodePtr,
     _ty: PhantomData<fn() -> N>,
