@@ -25,13 +25,19 @@ pub fn render_package_bodies(db: &dyn Db, package: Package) -> String {
 
             match item {
                 AnyItem::ConstVar(_) => continue,
-                AnyItem::RootModule(item) => {
-                    to_explore.extend(item.items(db).iter().map(|item| AnyItem::from(*item)))
-                }
+                AnyItem::RootModule(item) => to_explore.extend(
+                    item.child_items(db)
+                        .items(db)
+                        .iter()
+                        .map(|item| AnyItem::from(*item)),
+                ),
                 AnyItem::UnitModule(_) => unimplemented!(),
-                AnyItem::Module(item) => {
-                    to_explore.extend(item.items(db).iter().map(|item| AnyItem::from(*item)))
-                }
+                AnyItem::Module(item) => to_explore.extend(
+                    item.child_items(db)
+                        .items(db)
+                        .iter()
+                        .map(|item| AnyItem::from(*item)),
+                ),
             }
 
             items.push(item);

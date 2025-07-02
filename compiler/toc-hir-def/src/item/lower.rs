@@ -1,30 +1,32 @@
 //! Lowering from AST declaration nodes to semantic item representations
 
-use toc_ast_db::ast_id::AstIdMap;
+use rustc_hash::FxHashMap;
+use toc_ast_db::ast_id::{AstIdMap, ErasedAstId};
 use toc_hir_expand::{SemanticFile, SemanticLoc, UnstableSemanticLoc};
 use toc_syntax::ast;
 
 use crate::{
     Db, Symbol,
-    item::{ConstVar, Item, ItemCollection, Module},
+    item::{ChildItems, ConstVar, Item, Module},
 };
 
 /// Collects the immediately accessible items from a [`ast::StmtList`]
 pub(crate) fn collect_items<'db>(
     db: &'db dyn Db,
     stmt_list: UnstableSemanticLoc<'db, ast::StmtList>,
-) -> ItemCollection<'db> {
+) -> ChildItems<'db> {
     let file = stmt_list.file();
     let ast_id_map = file.ast_id_map(db);
+    let mut to_items = FxHashMap::default();
     let stmt_list = stmt_list.to_node(db);
 
     let items = stmt_list
         .stmts()
-        .filter_map(|stmt| item(db, stmt, file, ast_id_map))
+        .filter_map(|stmt| item(db, stmt, file, ast_id_map, &mut to_items))
         .flatten()
         .collect::<Vec<_>>();
 
-    ItemCollection::new(db, items.into())
+    ChildItems::new(db, file, items.into(), to_items)
 }
 
 /// Lowers a potential item, and returns either the new item, or `None`
@@ -39,6 +41,7 @@ pub(crate) fn item<'db>(
     stmt: ast::Stmt,
     file: SemanticFile<'db>,
     ast_id_map: &'db AstIdMap,
+    to_items: &mut FxHashMap<ErasedAstId, Item<'db>>,
 ) -> Option<Vec<Item<'db>>> {
     Some(match stmt {
         ast::Stmt::ConstVarDecl(constvar) => {
@@ -50,12 +53,13 @@ pub(crate) fn item<'db>(
                 let Some(ast_id) = ast_id_map.lookup_for_maybe(&decl_name) else {
                     return None;
                 };
-                let ast_id = SemanticLoc::new(file, ast_id);
+                let loc = SemanticLoc::new(file, ast_id);
                 let name = decl_name.name().unwrap().identifier_token().unwrap();
                 let name = Symbol::new(db, name.text().to_owned());
-                let item = ConstVar::new(db, name, ast_id);
+                let item = ConstVar::new(db, name, loc);
 
                 items.push(Item::ConstVar(item));
+                to_items.insert(ast_id.erased(), item.into());
             }
 
             items
@@ -71,11 +75,12 @@ pub(crate) fn item<'db>(
         // ast::Stmt::BodyDecl(_) => todo!(),
         ast::Stmt::ModuleDecl(module) => {
             let ast_id = ast_id_map.lookup(&module);
-            let ast_id = SemanticLoc::new(file, ast_id);
+            let loc = SemanticLoc::new(file, ast_id);
             let name = module.name()?.identifier_token().unwrap();
             let name = Symbol::new(db, name.text().to_owned());
-            let item = Module::new(db, name, ast_id);
+            let item = Module::new(db, name, loc);
 
+            to_items.insert(ast_id.erased(), item.into());
             vec![Item::Module(item)]
         }
         // ast::Stmt::ClassDecl(_) => todo!(),

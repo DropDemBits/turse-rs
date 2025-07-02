@@ -71,12 +71,20 @@ impl<'db> ErasedSemanticLoc<'db> {
 }
 
 /// A semi-stable reference to an AST node in a semantic file
-#[derive(Debug, PartialEq, Eq, Hash, salsa::Update)]
+#[derive(PartialEq, Eq, Hash, salsa::Update)]
 pub struct SemanticLoc<'db, T: AstNode> {
     loc: ErasedSemanticLoc<'db>,
     // `to_node` is what yields the actual AST node, rather than a `SemanticLoc`
     // owning the AST node. This also allows `SemanticLoc` to be `Send + Sync`.
     _node: PhantomData<fn() -> T>,
+}
+
+impl<'db, T: AstNode> std::fmt::Debug for SemanticLoc<'db, T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("SemanticLoc")
+            .field("loc", &self.loc)
+            .finish()
+    }
 }
 
 impl<T: AstNode> Clone for SemanticLoc<'_, T> {

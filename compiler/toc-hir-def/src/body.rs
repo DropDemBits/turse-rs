@@ -1,9 +1,10 @@
-use toc_hir_expand::{ErasedSemanticLoc, SemanticLoc, UnstableSemanticLoc};
+use toc_hir_expand::{ErasedSemanticLoc, UnstableSemanticLoc};
 use toc_salsa_collections::arena::SalsaArena;
 use toc_syntax::ast::{self, AstNode as _};
 
 use crate::{
     Db, expr,
+    item::{HasItems, ModuleBlock, ModuleLike},
     stmt::{self, StmtId},
 };
 
@@ -20,7 +21,7 @@ pub struct Body<'db> {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, salsa::Update)]
 pub enum BodyOrigin<'db> {
     /// Attached to a module-like item
-    ModuleBody(ErasedSemanticLoc<'db>),
+    ModuleBody(ModuleLike<'db>),
     /// Attached to a function-like item
     FunctionBody(ErasedSemanticLoc<'db>),
 }
@@ -86,8 +87,18 @@ impl<'db> Body<'db> {
         // FIXME: Accumulate errors
         let (contents, spans, _errors) = match self.origin(db) {
             BodyOrigin::ModuleBody(origin) => {
-                let file = origin.file();
-                let Some(stmts) = origin
+                let (origin_node, child_items) = match origin {
+                    ModuleLike::Module(module) => {
+                        (module.into_loc(db).into_erased(), module.child_items(db))
+                    }
+                    ModuleLike::RootModule(root_module) => (
+                        root_module.root(db).into_erased(),
+                        root_module.child_items(db),
+                    ),
+                };
+
+                let file = origin_node.file();
+                let Some(stmts) = origin_node
                     .to_node(db)
                     .descendants()
                     .find_map(ast::StmtList::cast)
@@ -95,24 +106,12 @@ impl<'db> Body<'db> {
                     unreachable!()
                 };
 
-                lower::module_body(db, self, file, stmts)
+                lower::module_body(db, self, file, stmts, child_items)
             }
             // Note that if we're an FnBody then we can have ConstVars as locals
             BodyOrigin::FunctionBody(_stmts) => todo!(),
         };
 
         BodyLowerResult::new(db, contents, spans)
-    }
-}
-
-/// A block that contains items
-#[salsa::interned(debug)]
-pub struct ModuleBlock<'db> {
-    origin: SemanticLoc<'db, ast::StmtList>,
-}
-
-impl<'db> ModuleBlock<'db> {
-    pub(crate) fn stmt_list(self, db: &'db dyn Db) -> SemanticLoc<'db, ast::StmtList> {
-        self.origin(db)
     }
 }

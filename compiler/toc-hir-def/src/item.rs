@@ -1,4 +1,5 @@
-use toc_ast_db::SourceFileExt as _;
+use rustc_hash::FxHashMap;
+use toc_ast_db::{SourceFileExt as _, ast_id::ErasedAstId};
 use toc_hir_expand::{HasSource, SemanticFile, SemanticLoc, UnstableSemanticLoc};
 use toc_syntax::ast::{self, AstNode};
 use toc_vfs_db::SourceFile;
@@ -56,6 +57,29 @@ macro_rules! impl_into_conversions {
     };
 }
 
+macro_rules! impl_item_ast_id {
+    (impl ItemAstId<$lt:lifetime> for $($item:ident => $ast:path),+ $(,)?) => {
+        $(
+            impl<$lt> ItemAstId<$lt> for $ast {
+                type Item = $item<$lt>;
+            }
+        )+
+    };
+}
+
+macro_rules! impl_has_items{
+    (impl HasItems<$lt:lifetime> for $($item:ident => |$db:ident, $this:ident| $accessor:expr),+ $(,)?) => {
+        $(
+            impl<$lt> HasItems<$lt> for $item<$lt> {
+                fn child_items(self, $db: &$lt dyn Db) -> ChildItems<$lt> {
+                    let $this = self;
+                    $accessor
+                }
+            }
+        )+
+    };
+}
+
 mod lower;
 pub mod pretty;
 
@@ -70,7 +94,7 @@ pub enum Item<'db> {
 
 impl_into_conversions!(ConstVar, Module for Item<'db>);
 
-#[salsa::interned(debug)]
+#[salsa::tracked(debug)]
 #[derive(PartialOrd, Ord)]
 pub struct ConstVar<'db> {
     pub name: Symbol<'db>,
@@ -158,41 +182,34 @@ pub struct RootModule<'db> {
 
 #[salsa::tracked]
 impl<'db> RootModule<'db> {
-    /// Executable portion of the root module
+    /// Originating source node
     #[salsa::tracked]
-    pub fn body(self, db: &'db dyn Db) -> Body<'db> {
-        Body::new(db, BodyOrigin::ModuleBody(self.root(db).into_erased()))
-    }
-
-    /// Collect the immediately accessible items
-    #[salsa::tracked]
-    pub(crate) fn collect_items(self, db: &'db dyn Db) -> ItemCollection<'db> {
-        let stmt_list = self
-            .root(db)
-            .map_unstable(db, |this| this.stmt_list().unwrap());
-        lower::collect_items(db, stmt_list)
-    }
-
-    #[salsa::tracked]
-    pub(crate) fn root(self, db: &'db dyn Db) -> SemanticLoc<'db, ast::Source> {
+    pub fn root(self, db: &'db dyn Db) -> SemanticLoc<'db, ast::Source> {
         let file = self.origin(db);
         let root = file.ast_id_map(db).root();
 
         SemanticLoc::new(SemanticFile::from_source_file(db, file), root)
     }
-}
 
-impl<'db> HasItems<'db> for RootModule<'db> {
-    type Item = Item<'db>;
+    /// Executable portion of the root module
+    #[salsa::tracked]
+    pub fn body(self, db: &'db dyn Db) -> Body<'db> {
+        Body::new(db, BodyOrigin::ModuleBody(self.into()))
+    }
 
-    fn items(self, db: &'db dyn Db) -> &'db [Self::Item] {
-        &**RootModule::collect_items(self, db).items(db)
+    /// Collect the immediately accessible items
+    #[salsa::tracked]
+    pub(crate) fn collect_items(self, db: &'db dyn Db) -> ChildItems<'db> {
+        let stmt_list = self
+            .root(db)
+            .map_unstable(db, |this| this.stmt_list().unwrap());
+        lower::collect_items(db, stmt_list)
     }
 }
 
 /// Separate outline modules that are put into distinct files.
 /// Always corresponds to a file on the file system
-#[salsa::interned(debug)]
+#[salsa::tracked(debug)]
 #[derive(PartialOrd, Ord)]
 pub struct UnitModule<'db> {
     origin: SourceFile,
@@ -209,7 +226,7 @@ impl<'db> UnitModule<'db> {
 }
 
 /// Inline module within a file
-#[salsa::interned(debug)]
+#[salsa::tracked(debug)]
 #[derive(PartialOrd, Ord)]
 pub struct Module<'db> {
     pub name: Symbol<'db>,
@@ -218,10 +235,15 @@ pub struct Module<'db> {
 
 #[salsa::tracked]
 impl<'db> Module<'db> {
+    /// Originating semantic location
+    pub fn into_loc(self, db: &'db dyn Db) -> SemanticLoc<'db, ast::ModuleDecl> {
+        self.origin(db)
+    }
+
     /// Executable portion of a module
     #[salsa::tracked]
     pub fn body(self, db: &'db dyn Db) -> Body<'db> {
-        Body::new(db, BodyOrigin::ModuleBody(self.origin(db).into_erased()))
+        Body::new(db, BodyOrigin::ModuleBody(self.into()))
     }
 
     /// Is the module pervasive?
@@ -236,7 +258,7 @@ impl<'db> Module<'db> {
 
     /// Collect the immediately accessible items
     #[salsa::tracked]
-    pub(crate) fn collect_items(self, db: &'db dyn Db) -> ItemCollection<'db> {
+    pub(crate) fn collect_items(self, db: &'db dyn Db) -> ChildItems<'db> {
         lower::collect_items(db, self.stmt_list(db))
     }
 
@@ -268,49 +290,109 @@ impl<'db> HasSource<'db> for Module<'db> {
     }
 }
 
-impl<'db> HasItems<'db> for Module<'db> {
-    type Item = Item<'db>;
+/// A block that contains items
+#[salsa::tracked(debug)]
+pub struct ModuleBlock<'db> {
+    origin: SemanticLoc<'db, ast::StmtList>,
+}
 
-    fn items(self, db: &'db dyn Db) -> &'db [Self::Item] {
-        &**Module::collect_items(self, db).items(db)
+impl<'db> ModuleBlock<'db> {
+    pub(crate) fn stmt_list(self, db: &'db dyn Db) -> SemanticLoc<'db, ast::StmtList> {
+        self.origin(db)
     }
 }
 
 #[salsa::tracked]
-pub(crate) fn module_block_collect_items<'db>(
-    db: &'db dyn Db,
-    block: crate::body::ModuleBlock<'db>,
-) -> ItemCollection<'db> {
-    lower::collect_items(db, block.stmt_list(db).into_unstable(db))
-}
-
-impl<'db> HasItems<'db> for crate::body::ModuleBlock<'db> {
-    type Item = Item<'db>;
-
-    fn items(self, db: &'db dyn Db) -> &'db [Self::Item] {
-        &**module_block_collect_items(db, self).items(db)
+impl<'db> ModuleBlock<'db> {
+    #[salsa::tracked]
+    fn collect_items(self, db: &'db dyn Db) -> ChildItems<'db> {
+        lower::collect_items(db, self.stmt_list(db).into_unstable(db))
     }
 }
 
+/// Any module that acts like a module.
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, salsa::Update, salsa::Supertype,
+)]
+pub enum ModuleLike<'db> {
+    Module(Module<'db>),
+    RootModule(RootModule<'db>),
+}
+
+impl_into_conversions!(RootModule, Module for ModuleLike<'db>);
+
 /// Any item which has nested child items
 pub trait HasItems<'db> {
-    type Item;
-
     /// All immediate child items of an item
     ///
     /// Note: This does not include items that are in the top level but
     /// are hidden inside of scopes, nor does it include items hidden
     /// behind macro expansions.
-    fn items(self, db: &'db dyn Db) -> &'db [Self::Item];
+    fn child_items(self, db: &'db dyn Db) -> ChildItems<'db>;
+}
+
+impl_has_items! {
+    impl HasItems<'db> for
+        Module => |db, this| this.collect_items(db),
+        RootModule => |db, this| this.collect_items(db),
+        ModuleBlock => |db, this| this.collect_items(db),
+}
+
+impl<'db> HasItems<'db> for ModuleLike<'db> {
+    fn child_items(self, db: &'db dyn Db) -> ChildItems<'db> {
+        match self {
+            ModuleLike::Module(module) => module.child_items(db),
+            ModuleLike::RootModule(root_module) => root_module.child_items(db),
+        }
+    }
+}
+
+/// Any AST node that can be looked up in an [`ItemCollection`]
+pub trait ItemAstId<'db>: AstNode<Language = toc_syntax::Lang> {
+    type Item: TryFrom<Item<'db>>;
+}
+
+impl_item_ast_id! {
+    impl ItemAstId<'db> for
+        ConstVar => ast::ConstVarDeclName,
+        Module => ast::ModuleDecl,
 }
 
 /// Immediately accessible child items of an item, pair with a semantic location map
 /// to go from `SemanticLoc` to the original item.
 #[salsa::tracked(debug)]
-pub struct ItemCollection<'db> {
+pub struct ChildItems<'db> {
+    file: SemanticFile<'db>,
+
     #[tracked]
     #[returns(ref)]
     pub items: Box<[Item<'db>]>,
+
+    #[tracked]
+    #[returns(ref)]
+    to_items: FxHashMap<ErasedAstId, Item<'db>>,
+}
+
+#[salsa::tracked]
+impl<'db> ChildItems<'db> {
+    #[salsa::tracked]
+    fn get_item_erased(self, db: &'db dyn Db, ast_id: ErasedAstId) -> Item<'db> {
+        *self
+            .to_items(db)
+            .get(&ast_id)
+            .unwrap_or_else(|| unreachable!("{ast_id:?} is not part of item collection {self:?}"))
+    }
+
+    pub fn get_item<T: ItemAstId<'db>>(self, db: &'db dyn Db, loc: SemanticLoc<'db, T>) -> T::Item {
+        assert_eq!(
+            self.file(db),
+            loc.file(),
+            "casting node from a different file"
+        );
+
+        let item = self.get_item_erased(db, loc.into_erased().ast_id());
+        T::Item::try_from(item).unwrap_or_else(|_| panic!("incorrect AstId, casting from {loc:#?}"))
+    }
 }
 
 /// Every possible item

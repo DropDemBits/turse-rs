@@ -69,7 +69,7 @@ enum AstIdKind {
 /// | 27..=31 | 16..=26  | 0..=15 |
 /// |---------|----------|--------|
 /// | Kind    | Instance | Hash   |
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, salsa::Update)]
 #[repr(transparent)]
 pub struct ErasedAstId(u32);
 

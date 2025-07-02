@@ -69,11 +69,13 @@ pub fn render_item_tree<'db>(db: &'db dyn Db, root: Package) -> PrettyTree<'db> 
                 vec![]
             }
             AnyItem::Module(item) => item
+                .child_items(db)
                 .items(db)
                 .iter()
                 .map(|child| render_sub_tree(db, (*child).into()))
                 .collect(),
             AnyItem::RootModule(item) => item
+                .child_items(db)
                 .items(db)
                 .iter()
                 .map(|child| render_sub_tree(db, (*child).into()))
