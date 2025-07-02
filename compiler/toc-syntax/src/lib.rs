@@ -394,7 +394,7 @@ impl From<SyntaxKind> for rowan::SyntaxKind {
 }
 
 impl SyntaxKind {
-    fn is_binary_op(&self) -> bool {
+    pub fn is_binary_op(&self) -> bool {
         matches!(
             self,
             SyntaxKind::Imply
@@ -424,10 +424,20 @@ impl SyntaxKind {
         )
     }
 
-    fn is_unary_op(&self) -> bool {
+    pub fn is_unary_op(&self) -> bool {
         matches!(
             self,
             SyntaxKind::KwNot | SyntaxKind::Tilde | SyntaxKind::Plus | SyntaxKind::Minus
+        )
+    }
+
+    pub fn is_module_like(&self) -> bool {
+        matches!(
+            self,
+            SyntaxKind::ModuleDecl
+                | SyntaxKind::ClassDecl
+                | SyntaxKind::MonitorDecl
+                | SyntaxKind::Source
         )
     }
 }
@@ -454,7 +464,7 @@ pub type SyntaxToken = rowan::SyntaxToken<Lang>;
 #[allow(unused)]
 pub type SyntaxElement = rowan::NodeOrToken<SyntaxNode, SyntaxToken>;
 pub type SyntaxNodePtr = rowan::ast::SyntaxNodePtr<Lang>;
-pub type AstPtr<N> = rowan::ast::AstPtr<N>;
+pub type AstPtr<N> = ast::AstPtr<N>;
 
 // Other rowan re-exports
 pub use rowan::WalkEvent;

@@ -6,8 +6,9 @@ use toc_syntax::ast;
 
 use crate::{
     Symbol,
-    body::{Body, ModuleBlock},
+    body::Body,
     expr,
+    item::{self},
 };
 
 crate::arena_id_wrapper!(
@@ -48,7 +49,7 @@ pub type StmtMap<'db, V> = SalsaArenaMap<StmtIndex<'db>, V>;
 #[derive(Debug, PartialEq, Eq, Hash, salsa::Update)]
 pub enum Stmt<'db> {
     /// Initialize the given [`ast::ConstVarDecl`] at this point
-    InitializeConstVar(SemanticLoc<'db, ast::ConstVarDecl>, expr::LocalExpr<'db>),
+    InitializeConstVar(item::ConstVar<'db>, expr::LocalExpr<'db>),
     /// Initialize the given [`ast::BindItem`] at this point
     InitializeBindItem(SemanticLoc<'db, ast::BindItem>, expr::LocalExpr<'db>),
     /// Assignment statement
@@ -141,7 +142,7 @@ pub struct For<'db> {
     /// If the for-loop has the `decreasing` modifier on it
     pub is_decreasing: bool,
     /// Name of the optional counter variable
-    pub counter_def: Option<Symbol>,
+    pub counter_def: Option<Symbol<'db>>,
     /// Bounds of the for-loop
     pub bounds: ForBounds<'db>,
     /// Optional `by ...` expression, to change the counter delta
@@ -217,7 +218,7 @@ pub enum CaseSelector<'db> {
 
 #[derive(Debug, PartialEq, Eq, Hash, salsa::Update)]
 pub struct Block<'db> {
-    pub module_block: Option<ModuleBlock<'db>>,
+    pub module_block: Option<item::ModuleBlock<'db>>,
     pub kind: BlockKind,
     pub stmts: Box<[LocalStmt<'db>]>,
 }

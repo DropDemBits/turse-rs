@@ -18,6 +18,8 @@ macro_rules! match_ast {
 mod nodes;
 mod nodes_ext;
 
+use std::marker::PhantomData;
+
 pub use nodes::*;
 
 mod helper {
@@ -42,11 +44,126 @@ mod helper {
 
 pub use rowan::ast::AstNode;
 
+use crate::{SyntaxKind, SyntaxNode, SyntaxNodePtr};
+
 pub trait ExternalItemOwner: AstNode<Language = crate::Lang> {
     fn external_items(&self) -> Vec<ExternalItem> {
         self.syntax()
             .descendants()
             .filter_map(ExternalItem::cast)
             .collect()
+    }
+}
+
+/// Like [`rowan::ast::AstPtr`], but there's a `try_from_raw`.
+pub struct AstPtr<N: AstNode> {
+    raw: SyntaxNodePtr,
+    _ty: PhantomData<fn() -> N>,
+}
+
+impl<N: AstNode> std::fmt::Debug for AstPtr<N> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("AstPtr").field(&self.raw).finish()
+    }
+}
+
+impl<N: AstNode> Copy for AstPtr<N> {}
+impl<N: AstNode> Clone for AstPtr<N> {
+    fn clone(&self) -> AstPtr<N> {
+        *self
+    }
+}
+
+impl<N: AstNode> Eq for AstPtr<N> {}
+
+impl<N: AstNode> PartialEq for AstPtr<N> {
+    fn eq(&self, other: &AstPtr<N>) -> bool {
+        self.raw == other.raw
+    }
+}
+
+impl<N: AstNode> std::hash::Hash for AstPtr<N> {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.raw.hash(state);
+    }
+}
+
+impl<N: AstNode<Language = crate::Lang>> AstPtr<N> {
+    pub fn new(node: &N) -> AstPtr<N> {
+        AstPtr {
+            raw: SyntaxNodePtr::new(node.syntax()),
+            _ty: PhantomData,
+        }
+    }
+
+    pub fn to_node(&self, root: &SyntaxNode) -> N {
+        let syntax_node = self.raw.to_node(root);
+        N::cast(syntax_node).unwrap()
+    }
+
+    pub fn syntax_node_ptr(&self) -> SyntaxNodePtr {
+        self.raw
+    }
+
+    pub fn text_range(&self) -> rowan::TextRange {
+        self.raw.text_range()
+    }
+
+    pub fn cast<U: AstNode<Language = crate::Lang>>(self) -> Option<AstPtr<U>> {
+        if !U::can_cast(self.raw.kind()) {
+            return None;
+        }
+        Some(AstPtr {
+            raw: self.raw,
+            _ty: PhantomData,
+        })
+    }
+
+    pub fn kind(&self) -> SyntaxKind {
+        self.raw.kind()
+    }
+
+    pub fn upcast<M: AstNode>(self) -> AstPtr<M>
+    where
+        N: Into<M>,
+    {
+        AstPtr {
+            raw: self.raw,
+            _ty: PhantomData,
+        }
+    }
+
+    /// Like `SyntaxNodePtr::cast` but the trait bounds work out.
+    pub fn try_from_raw(raw: SyntaxNodePtr) -> Option<AstPtr<N>> {
+        N::can_cast(raw.kind()).then_some(AstPtr {
+            raw,
+            _ty: PhantomData,
+        })
+    }
+
+    pub fn wrap_left<R>(self) -> AstPtr<either::Either<N, R>>
+    where
+        either::Either<N, R>: AstNode,
+    {
+        AstPtr {
+            raw: self.raw,
+            _ty: PhantomData,
+        }
+    }
+
+    pub fn wrap_right<L>(self) -> AstPtr<either::Either<L, N>>
+    where
+        either::Either<L, N>: AstNode,
+    {
+        AstPtr {
+            raw: self.raw,
+            _ty: PhantomData,
+        }
+    }
+}
+
+impl<N: AstNode> From<AstPtr<N>> for SyntaxNodePtr {
+    fn from(ptr: AstPtr<N>) -> SyntaxNodePtr {
+        ptr.raw
     }
 }

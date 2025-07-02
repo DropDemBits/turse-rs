@@ -59,7 +59,7 @@ pub enum Expr<'db> {
     /// Range expression
     Range(Range<'db>),
     /// `self` is a special case of a name expression
-    Name(Name),
+    Name(Name<'db>),
     /// Field lookup
     Field(Field<'db>),
     /// Deref (`^`) Expression
@@ -142,10 +142,10 @@ pub struct Unary<'db> {
 }
 
 /// Name expression
-#[derive(Debug, PartialEq, Eq, Hash)]
-pub enum Name {
+#[derive(Debug, PartialEq, Eq, Hash, salsa::Update)]
+pub enum Name<'db> {
     /// Normal identifier reference
-    Name(Symbol),
+    Name(Symbol<'db>),
     /// Reference to `self`
     // FIXME: Resolve to the appropriate class DefId
     Self_,
@@ -157,7 +157,7 @@ pub struct Field<'db> {
     /// Reference to lookup in
     pub lhs: LocalExpr<'db>,
     /// Field to lookup
-    pub field: Symbol,
+    pub field: Symbol<'db>,
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, salsa::Update)]

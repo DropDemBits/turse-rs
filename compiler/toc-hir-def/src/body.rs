@@ -1,9 +1,10 @@
-use toc_hir_expand::{SemanticLoc, UnstableSemanticLoc};
+use toc_hir_expand::{ErasedSemanticLoc, UnstableSemanticLoc};
 use toc_salsa_collections::arena::SalsaArena;
-use toc_syntax::ast;
+use toc_syntax::ast::{self, AstNode as _};
 
 use crate::{
     Db, expr,
+    item::{HasItems, ModuleBlock, ModuleLike},
     stmt::{self, StmtId},
 };
 
@@ -11,9 +12,8 @@ pub(crate) mod lower;
 pub mod pretty;
 
 /// Executable block of code
-#[salsa::tracked(debug)]
+#[salsa::interned(debug)]
 pub struct Body<'db> {
-    #[tracked]
     origin: BodyOrigin<'db>,
 }
 
@@ -21,9 +21,9 @@ pub struct Body<'db> {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, salsa::Update)]
 pub enum BodyOrigin<'db> {
     /// Attached to a module-like item
-    ModuleBody(SemanticLoc<'db, ast::StmtList>),
+    ModuleBody(ModuleLike<'db>),
     /// Attached to a function-like item
-    FunctionBody(SemanticLoc<'db, ast::StmtList>),
+    FunctionBody(ErasedSemanticLoc<'db>),
 }
 
 /// Lowered body contents
@@ -32,6 +32,7 @@ pub struct BodyContents<'db> {
     exprs: SalsaArena<expr::Expr<'db>>,
     stmts: SalsaArena<stmt::Stmt<'db>>,
     top_level: Box<[StmtId<'db>]>,
+    // `None` if the body's immediate block has no items, or if the body's origin owns the items.
     root_block: Option<ModuleBlock<'db>>,
 }
 
@@ -49,11 +50,11 @@ impl<'db> BodyContents<'db> {
     }
 }
 
-/// Spans of
+/// Spans of a body
 #[derive(Debug, Default, PartialEq, Eq, salsa::Update, Hash)]
 pub(crate) struct BodySpans<'db> {
-    exprs: expr::ExprMap<'db, UnstableSemanticLoc<ast::Expr>>,
-    stmts: stmt::StmtMap<'db, UnstableSemanticLoc<ast::Stmt>>,
+    exprs: expr::ExprMap<'db, UnstableSemanticLoc<'db, ast::Expr>>,
+    stmts: stmt::StmtMap<'db, UnstableSemanticLoc<'db, ast::Stmt>>,
 }
 
 #[salsa::tracked(debug)]
@@ -85,24 +86,32 @@ impl<'db> Body<'db> {
     pub(crate) fn lower_contents(self, db: &'db dyn Db) -> BodyLowerResult<'db> {
         // FIXME: Accumulate errors
         let (contents, spans, _errors) = match self.origin(db) {
-            BodyOrigin::ModuleBody(stmts) => lower::module_body(db, self, stmts),
+            BodyOrigin::ModuleBody(origin) => {
+                let (origin_node, child_items) = match origin {
+                    ModuleLike::Module(module) => {
+                        (module.into_loc(db).into_erased(), module.child_items(db))
+                    }
+                    ModuleLike::RootModule(root_module) => (
+                        root_module.root(db).into_erased(),
+                        root_module.child_items(db),
+                    ),
+                };
+
+                let file = origin_node.file();
+                let Some(stmts) = origin_node
+                    .to_node(db)
+                    .descendants()
+                    .find_map(ast::StmtList::cast)
+                else {
+                    unreachable!()
+                };
+
+                lower::module_body(db, self, file, stmts, child_items)
+            }
             // Note that if we're an FnBody then we can have ConstVars as locals
             BodyOrigin::FunctionBody(_stmts) => todo!(),
         };
 
         BodyLowerResult::new(db, contents, spans)
-    }
-}
-
-/// A block that contains items
-#[salsa::tracked(debug)]
-pub struct ModuleBlock<'db> {
-    #[tracked]
-    origin: SemanticLoc<'db, ast::StmtList>,
-}
-
-impl<'db> ModuleBlock<'db> {
-    pub(crate) fn stmt_list(self, db: &'db dyn Db) -> SemanticLoc<'db, ast::StmtList> {
-        self.origin(db)
     }
 }

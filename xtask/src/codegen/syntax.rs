@@ -84,7 +84,7 @@ fn generate_nodes(lowered: &LoweredGrammar) -> miette::Result<String> {
         let kinds = group.variants.iter().map(make_match_kinds(false));
 
         quote! {
-            #[derive(Debug, PartialEq, Eq, Hash)]
+            #[derive(Debug, Clone, PartialEq, Eq, Hash)]
             pub enum #name {
                 #(#variants(#nodes)),*
             }
@@ -176,7 +176,7 @@ fn generate_nodes(lowered: &LoweredGrammar) -> miette::Result<String> {
         });
 
         quote! {
-            #[derive(Debug, PartialEq, Eq, Hash)]
+            #[derive(Debug, Clone, PartialEq, Eq, Hash)]
             #[repr(transparent)]
             pub struct #name(SyntaxNode);
 

@@ -9,12 +9,16 @@ edition.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-salsa = { workspace = true }
-toc-syntax = { workspace = true }
-toc-span = { workspace = true }
-toc-vfs = { workspace = true }
-toc-vfs-db = { workspace = true }
-toc-paths = { workspace = true }
-toc-parser = { workspace = true }
-toc-validate = { workspace = true }
-toc-reporting = { workspace = true }
+hashbrown.workspace = true
+la-arena.workspace = true
+salsa.workspace = true
+rustc-hash.workspace = true
+
+toc-syntax.workspace = true
+toc-span.workspace = true
+toc-vfs.workspace = true
+toc-vfs-db.workspace = true
+toc-paths.workspace = true
+toc-parser.workspace = true
+toc-validate.workspace = true
+toc-reporting.workspace = true
