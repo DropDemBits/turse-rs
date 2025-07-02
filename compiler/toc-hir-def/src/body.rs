@@ -86,7 +86,7 @@ impl<'db> Body<'db> {
         // FIXME: Accumulate errors
         let (contents, spans, _errors) = match self.origin(db) {
             BodyOrigin::ModuleBody(origin) => {
-                let file = origin.file(db);
+                let file = origin.file();
                 let Some(stmts) = origin
                     .to_node(db)
                     .descendants()

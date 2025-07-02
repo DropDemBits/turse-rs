@@ -50,7 +50,7 @@ pub(crate) fn item<'db>(
                 let Some(ast_id) = ast_id_map.lookup_for_maybe(&decl_name) else {
                     return None;
                 };
-                let ast_id = SemanticLoc::from_ast_id(db, file, ast_id);
+                let ast_id = SemanticLoc::new(file, ast_id);
                 let name = decl_name.name().unwrap().identifier_token().unwrap();
                 let name = Symbol::new(db, name.text().to_owned());
                 let item = ConstVar::new(db, name, ast_id);
@@ -71,7 +71,7 @@ pub(crate) fn item<'db>(
         // ast::Stmt::BodyDecl(_) => todo!(),
         ast::Stmt::ModuleDecl(module) => {
             let ast_id = ast_id_map.lookup(&module);
-            let ast_id = SemanticLoc::from_ast_id(db, file, ast_id);
+            let ast_id = SemanticLoc::new(file, ast_id);
             let name = module.name()?.identifier_token().unwrap();
             let name = Symbol::new(db, name.text().to_owned());
             let item = Module::new(db, name, ast_id);

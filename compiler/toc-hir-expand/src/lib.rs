@@ -34,7 +34,7 @@ pub trait Db: toc_ast_db::Db + toc_source_graph::Db {}
 impl<DB> Db for DB where DB: toc_ast_db::Db + toc_source_graph::Db {}
 
 /// A type-erased reference to a stable [`ErasedAstId`] location in a [`SemanticFile`]
-#[salsa::tracked(debug)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, salsa::Update)]
 pub struct ErasedSemanticLoc<'db> {
     // Note: in order to keep consistency with the visibilities while also
     // allowing external access to the semantic file (as salsa generates the
@@ -46,22 +46,27 @@ pub struct ErasedSemanticLoc<'db> {
 }
 
 impl<'db> ErasedSemanticLoc<'db> {
-    pub fn from_ast_id(db: &'db dyn Db, in_file: SemanticFile<'db>, ast_id: ErasedAstId) -> Self {
-        Self::new(db, in_file, ast_id)
+    pub fn new(in_file: SemanticFile<'db>, ast_id: ErasedAstId) -> Self {
+        Self { in_file, ast_id }
     }
 
     /// Yields the underlying syntax node at this location.
     pub fn to_node(self, db: &'db dyn Db) -> toc_syntax::SyntaxNode {
-        let root = self.file(db).ast(db);
-        self.file(db)
+        let root = self.file().ast(db);
+        self.file()
             .ast_id_map(db)
-            .get_for_erased(self.ast_id(db))
+            .get_for_erased(self.ast_id)
             .to_node(&root)
     }
 
     /// Gets which [`SemanticFile`] this erased location comes from
-    pub fn file(self, db: &'db dyn Db) -> SemanticFile<'db> {
-        self.in_file(db)
+    pub fn file(self) -> SemanticFile<'db> {
+        self.in_file
+    }
+
+    /// Gets which [`ErasedAstId`] this erased location is associated with
+    pub fn ast_id(self) -> ErasedAstId {
+        self.ast_id
     }
 }
 
@@ -83,8 +88,8 @@ impl<T: AstNode> Clone for SemanticLoc<'_, T> {
 impl<T: AstNode> Copy for SemanticLoc<'_, T> {}
 
 impl<'db, T: AstNode<Language = toc_syntax::Lang>> SemanticLoc<'db, T> {
-    pub fn from_ast_id(db: &'db dyn Db, in_file: SemanticFile<'db>, ast_id: AstId<T>) -> Self {
-        let loc = ErasedSemanticLoc::from_ast_id(db, in_file, ast_id.erased());
+    pub fn new(in_file: SemanticFile<'db>, ast_id: AstId<T>) -> Self {
+        let loc = ErasedSemanticLoc::new(in_file, ast_id.erased());
 
         Self {
             loc,
@@ -99,8 +104,8 @@ impl<'db, T: AstNode<Language = toc_syntax::Lang>> SemanticLoc<'db, T> {
     }
 
     /// Gets which [`SemanticFile`] this location comes from
-    pub fn file(self, db: &'db dyn Db) -> SemanticFile<'db> {
-        self.loc.file(db)
+    pub fn file(self) -> SemanticFile<'db> {
+        self.loc.file()
     }
 
     /// Yields the erased version of the location.
@@ -113,9 +118,9 @@ impl<'db, T: AstNode<Language = toc_syntax::Lang>> SemanticLoc<'db, T> {
 
     /// Converts into an equivalent [`UnstableSemanticLoc<T>`] node.
     pub fn into_unstable(self, db: &'db dyn Db) -> UnstableSemanticLoc<'db, T> {
-        let file = self.file(db);
+        let file = self.file();
         let ast_id_map = file.ast_id_map(db);
-        let ast_id = self.loc.ast_id(db);
+        let ast_id = self.loc.ast_id;
         let ptr = ast_id_map.get_for_erased(ast_id);
 
         UnstableSemanticLoc {
@@ -131,8 +136,8 @@ impl<'db, T: AstNode<Language = toc_syntax::Lang>> SemanticLoc<'db, T> {
     pub fn map<U: AstIdNode>(self, db: &'db dyn Db, f: impl FnOnce(T) -> U) -> SemanticLoc<'db, U> {
         let t = self.to_node(db);
         let u = f(t);
-        let file = self.file(db);
-        SemanticLoc::<'db, U>::from_ast_id(db, file, file.ast_id_map(db).lookup(&u))
+        let file = self.file();
+        SemanticLoc::new(file, file.ast_id_map(db).lookup(&u))
     }
 
     /// Fallibly projects from `T` into `U`.
@@ -145,12 +150,8 @@ impl<'db, T: AstNode<Language = toc_syntax::Lang>> SemanticLoc<'db, T> {
     ) -> Option<SemanticLoc<'db, U>> {
         let t = self.to_node(db);
         let u = f(t)?;
-        let file = self.file(db);
-        Some(SemanticLoc::<'db, U>::from_ast_id(
-            db,
-            file,
-            file.ast_id_map(db).lookup(&u),
-        ))
+        let file = self.file();
+        Some(SemanticLoc::new(file, file.ast_id_map(db).lookup(&u)))
     }
 
     /// Projects from `T` into `U`, without worrying about location stability.
@@ -164,7 +165,7 @@ impl<'db, T: AstNode<Language = toc_syntax::Lang>> SemanticLoc<'db, T> {
     ) -> UnstableSemanticLoc<'db, U> {
         let t = self.to_node(db);
         let u = f(t);
-        UnstableSemanticLoc::new(self.file(db), &u)
+        UnstableSemanticLoc::new(self.file(), &u)
     }
 
     /// Equivalent to `Into<SemanticLoc<U>> for SemanticLoc<T>`, since

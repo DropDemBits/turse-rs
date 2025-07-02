@@ -178,15 +178,15 @@ impl<'db> RootModule<'db> {
         let file = self.origin(db);
         let root = file.ast_id_map(db).root();
 
-        SemanticLoc::from_ast_id(db, SemanticFile::from_source_file(db, file), root)
+        SemanticLoc::new(SemanticFile::from_source_file(db, file), root)
     }
 }
 
 impl<'db> HasItems<'db> for RootModule<'db> {
     type Item = Item<'db>;
 
-    fn items(self, db: &'db dyn Db) -> &'db Box<[Self::Item]> {
-        RootModule::collect_items(self, db).items(db)
+    fn items(self, db: &'db dyn Db) -> &'db [Self::Item] {
+        &**RootModule::collect_items(self, db).items(db)
     }
 }
 
@@ -271,8 +271,8 @@ impl<'db> HasSource<'db> for Module<'db> {
 impl<'db> HasItems<'db> for Module<'db> {
     type Item = Item<'db>;
 
-    fn items(self, db: &'db dyn Db) -> &'db Box<[Self::Item]> {
-        Module::collect_items(self, db).items(db)
+    fn items(self, db: &'db dyn Db) -> &'db [Self::Item] {
+        &**Module::collect_items(self, db).items(db)
     }
 }
 
@@ -287,8 +287,8 @@ pub(crate) fn module_block_collect_items<'db>(
 impl<'db> HasItems<'db> for crate::body::ModuleBlock<'db> {
     type Item = Item<'db>;
 
-    fn items(self, db: &'db dyn Db) -> &'db Box<[Self::Item]> {
-        module_block_collect_items(db, self).items(db)
+    fn items(self, db: &'db dyn Db) -> &'db [Self::Item] {
+        &**module_block_collect_items(db, self).items(db)
     }
 }
 
@@ -301,7 +301,7 @@ pub trait HasItems<'db> {
     /// Note: This does not include items that are in the top level but
     /// are hidden inside of scopes, nor does it include items hidden
     /// behind macro expansions.
-    fn items(self, db: &'db dyn Db) -> &'db Box<[Self::Item]>;
+    fn items(self, db: &'db dyn Db) -> &'db [Self::Item];
 }
 
 /// Immediately accessible child items of an item, pair with a semantic location map

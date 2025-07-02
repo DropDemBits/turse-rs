@@ -60,12 +60,10 @@ impl<'db> BodyLower<'db> {
         mut self,
         root: ast::StmtList,
     ) -> (BodyContents<'db>, BodySpans<'db>, Vec<BodyLowerError<'db>>) {
-        self.contents.root_block = self.ast_id_map.lookup_for_maybe(&root).map(|ast_id| {
-            ModuleBlock::new(
-                self.db,
-                SemanticLoc::from_ast_id(self.db, self.file, ast_id),
-            )
-        });
+        self.contents.root_block = self
+            .ast_id_map
+            .lookup_for_maybe(&root)
+            .map(|ast_id| ModuleBlock::new(self.db, SemanticLoc::new(self.file, ast_id)));
 
         let mut top_level = vec![];
         for stmt in root.stmts() {
@@ -192,7 +190,7 @@ impl<'db> BodyLower<'db> {
             // Initializer gets a consistent place for items
             match self.ast_id_map.lookup_for_maybe(&name) {
                 Some(ast_id) => {
-                    let loc = SemanticLoc::from_ast_id(self.db, self.file, ast_id);
+                    let loc = SemanticLoc::new(self.file, ast_id);
                     let stmt_id =
                         self.alloc_stmt(stmt::Stmt::InitializeConstVar(loc, init), node.clone());
                     stmts.push(stmt_id);
@@ -285,12 +283,10 @@ impl<'db> BodyLower<'db> {
     fn lower_block_stmt(&mut self, node: ast::BlockStmt) -> LocalStmt<'db> {
         let stmts = node.stmt_list().unwrap();
 
-        let module_block = self.ast_id_map.lookup_for_maybe(&stmts).map(|ast_id| {
-            ModuleBlock::new(
-                self.db,
-                SemanticLoc::from_ast_id(self.db, self.file, ast_id),
-            )
-        });
+        let module_block = self
+            .ast_id_map
+            .lookup_for_maybe(&stmts)
+            .map(|ast_id| ModuleBlock::new(self.db, SemanticLoc::new(self.file, ast_id)));
 
         // Lower child statements
         let mut child_stmts = Vec::with_capacity(stmts.stmts().count());
