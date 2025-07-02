@@ -202,8 +202,9 @@ crate::make_named_bool! {
 }
 
 bitflags::bitflags! {
-    #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
-    pub(crate) struct ItemAttrs: u32 {
+    // FIXME: Item constructors are always `pub`, so this needs to be `pub` by extension.
+    #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash, salsa::Update)]
+    pub struct ItemAttrs: u32 {
         const NONE = 0;
         const MUTABLE = 1 << 0;
         const PERVASIVE = 1 << 1;
