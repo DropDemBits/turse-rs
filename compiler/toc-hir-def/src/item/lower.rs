@@ -6,7 +6,7 @@ use toc_hir_expand::{SemanticFile, SemanticLoc, UnstableSemanticLoc};
 use toc_syntax::ast;
 
 use crate::{
-    Db, Symbol,
+    Db, ItemAttrs, Symbol,
     item::{ChildItems, ConstVar, Item, Module},
 };
 
@@ -45,8 +45,18 @@ pub(crate) fn item<'db>(
 ) -> Option<Vec<Item<'db>>> {
     Some(match stmt {
         ast::Stmt::ConstVarDecl(constvar) => {
-            let names = constvar.constvar_names().unwrap();
+            let mut item_attrs = ItemAttrs::NONE;
+            item_attrs |= constvar
+                .var_token()
+                .map_or(ItemAttrs::NONE, |_| ItemAttrs::MUTABLE);
+            item_attrs |= constvar
+                .pervasive_attr()
+                .map_or(ItemAttrs::NONE, |_| ItemAttrs::PERVASIVE);
+            item_attrs |= constvar
+                .register_attr()
+                .map_or(ItemAttrs::NONE, |_| ItemAttrs::REGISTER);
 
+            let names = constvar.constvar_names().unwrap();
             let mut items = vec![];
 
             for decl_name in names.names() {
@@ -56,7 +66,7 @@ pub(crate) fn item<'db>(
                 let loc = SemanticLoc::new(file, ast_id);
                 let name = decl_name.name().unwrap().identifier_token().unwrap();
                 let name = Symbol::new(db, name.text().to_owned());
-                let item = ConstVar::new(db, name, loc);
+                let item = ConstVar::new(db, name, loc, item_attrs);
 
                 items.push(Item::ConstVar(item));
                 to_items.insert(ast_id.erased(), item.into());
@@ -74,11 +84,16 @@ pub(crate) fn item<'db>(
         // ast::Stmt::DeferredDecl(_) => todo!(),
         // ast::Stmt::BodyDecl(_) => todo!(),
         ast::Stmt::ModuleDecl(module) => {
+            let mut item_attrs = ItemAttrs::NONE;
+            item_attrs |= module
+                .pervasive_attr()
+                .map_or(ItemAttrs::NONE, |_| ItemAttrs::PERVASIVE);
+
             let ast_id = ast_id_map.lookup(&module);
             let loc = SemanticLoc::new(file, ast_id);
             let name = module.name()?.identifier_token().unwrap();
             let name = Symbol::new(db, name.text().to_owned());
-            let item = Module::new(db, name, loc);
+            let item = Module::new(db, name, loc, item_attrs);
 
             to_items.insert(ast_id.erased(), item.into());
             vec![Item::Module(item)]
