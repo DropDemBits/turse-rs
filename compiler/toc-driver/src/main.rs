@@ -3,6 +3,7 @@
 use std::{collections::HashMap, fs, ops::Range};
 
 use camino::{Utf8Path, Utf8PathBuf};
+use salsa::Database;
 use toc_analysis::db::HirAnalysis;
 use toc_hir::package_graph::{DependencyList, SourcePackage};
 use toc_paths::RawPath;
@@ -72,7 +73,9 @@ fn main() {
                         toc_hir::render_item_tree(&db, package).render_as_tree()
                     );
 
-                    println!("{}", toc_hir::render_package_bodies(&db, package));
+                    db.attach(|db| {
+                        println!("{}", toc_hir::render_package_bodies(db, package));
+                    });
 
                     println!("Old HIR:");
                     let file = package.root(&db);

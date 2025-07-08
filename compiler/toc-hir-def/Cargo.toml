@@ -9,19 +9,21 @@ edition.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-indexmap = { workspace = true }
-la-arena = "0.3"
-toc-salsa-collections.workspace = true
-toc-source-graph = { workspace = true }
-toc-syntax = { workspace = true }
-toc-vfs-db = { workspace = true }
-toc-ast-db = { workspace = true }
-rustc-hash.workspace = true
 bitflags = "2.3.2"
+indexmap.workspace = true
+la-arena.workspace = true
+rustc-hash.workspace = true
+scope-trees.workspace = true
+
+toc-ast-db.workspace = true
+toc-salsa-collections.workspace = true
+toc-source-graph.workspace = true
+toc-syntax.workspace = true
+toc-vfs-db.workspace = true
 
 toc-hir-expand.workspace = true
 
-salsa = { workspace = true }
+salsa.workspace = true
 
 [dev-dependencies]
 toc-paths.workspace = true

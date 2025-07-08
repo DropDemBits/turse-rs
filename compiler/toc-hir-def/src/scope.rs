@@ -1,0 +1,48 @@
+//! Common scoping types
+
+use crate::{
+    Symbol,
+    body::BlockScope,
+    item::{self, ItemScope},
+};
+
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, salsa::Update, salsa::Supertype)]
+pub enum Scope<'db> {
+    ItemScope(ItemScope<'db>),
+    BlockScope(BlockScope<'db>),
+}
+
+impl<'db> std::fmt::Debug for Scope<'db> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if f.alternate() {
+            match self {
+                Self::ItemScope(arg0) => write!(f, "ItemScope(..)"),
+                Self::BlockScope(arg0) => write!(f, "BlockScope(..)"),
+            }
+        } else {
+            match self {
+                Self::ItemScope(arg0) => f.debug_tuple("ItemScope").field(arg0).finish(),
+                Self::BlockScope(arg0) => f.debug_tuple("BlockScope").field(arg0).finish(),
+            }
+        }
+    }
+}
+
+impl<'db> scope_trees::Region for Scope<'db> {}
+
+pub type ScopeSet<'db> = scope_trees::ScopeSet<Scope<'db>>;
+pub type ItemBindings<'db> = scope_trees::DomainBindings<Symbol<'db>, ScopeSet<'db>, Binding<'db>>;
+pub type BodyBindings<'db> = scope_trees::DomainBindings<Symbol<'db>, ScopeSet<'db>, Binding<'db>>;
+pub type ScopeQueries<'db> = scope_trees::DomainQueries<Symbol<'db>, ScopeSet<'db>>;
+pub type QueryKey<'db> = scope_trees::QueryKey<Symbol<'db>, ScopeSet<'db>>;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, salsa::Update)]
+pub enum Binding<'db, Local = core::convert::Infallible>
+where
+    Local: salsa::Update,
+{
+    Item(item::Item<'db>),
+    Local(Local),
+}
+
+impl_into_conversions!(ItemScope, BlockScope for Scope<'db>);

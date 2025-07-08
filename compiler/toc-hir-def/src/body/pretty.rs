@@ -93,13 +93,13 @@ fn render_stmt<'db>(db: &'db dyn Db, stmt: StmtId<'db>, indent: usize) -> String
             write!(&mut out, "/* bind initializer */").unwrap();
         }
         Stmt::Assign(stmt) => {
-            let lhs = render_expr(db, stmt.lhs.in_body(body));
+            let lhs = render_expr(db, stmt.lhs.in_body(body), indent + 1);
             let op_name = match stmt.op {
                 None => "Assign".to_owned(),
                 Some(op) => format!("{op:?}Assign"),
             };
-            let rhs = render_expr(db, stmt.rhs.in_body(body));
-            write!(&mut out, "{lhs} {op_name} {rhs}").unwrap();
+            let rhs = render_expr(db, stmt.rhs.in_body(body), indent + 1);
+            write!(&mut out, "{op_name}\n{lhs}\n{rhs}").unwrap();
         }
         Stmt::Put(stmt) => {
             write!(&mut out, "put ").unwrap();
@@ -107,39 +107,47 @@ fn render_stmt<'db>(db: &'db dyn Db, stmt: StmtId<'db>, indent: usize) -> String
                 write!(
                     &mut out,
                     ": {}, ",
-                    render_expr(db, stream_num.in_body(body))
+                    render_expr(db, stream_num.in_body(body), indent)
                 )
                 .unwrap();
             }
 
             for put_item in &stmt.items {
+                write!(&mut out, "\n{indent_text}  ").unwrap();
                 match put_item {
                     crate::stmt::Skippable::Skip => write!(&mut out, "skip, ").unwrap(),
                     crate::stmt::Skippable::Item(put_item) => {
                         write!(
                             &mut out,
                             "PutItem({}",
-                            render_expr(db, put_item.expr.in_body(body))
+                            render_expr(db, put_item.expr.in_body(body), indent + 1)
                         )
                         .unwrap();
 
                         if let Some(expr) = put_item.opts.width() {
-                            write!(&mut out, ", width: {}", render_expr(db, expr.in_body(body)))
-                                .unwrap()
-                        }
-                        if let Some(expr) = put_item.opts.precision() {
+                            write!(&mut out, "\n{indent_text}").unwrap();
                             write!(
                                 &mut out,
-                                ", precision: {}",
-                                render_expr(db, expr.in_body(body))
+                                "width: {}",
+                                render_expr(db, expr.in_body(body), indent)
+                            )
+                            .unwrap()
+                        }
+                        if let Some(expr) = put_item.opts.precision() {
+                            write!(&mut out, "\n{indent_text}").unwrap();
+                            write!(
+                                &mut out,
+                                "precision: {}",
+                                render_expr(db, expr.in_body(body), indent)
                             )
                             .unwrap()
                         }
                         if let Some(expr) = put_item.opts.exponent_width() {
+                            write!(&mut out, "\n{indent_text}").unwrap();
                             write!(
                                 &mut out,
-                                ", exponent_width: {}",
-                                render_expr(db, expr.in_body(body))
+                                "exponent_width: {}",
+                                render_expr(db, expr.in_body(body), indent)
                             )
                             .unwrap()
                         }
@@ -179,21 +187,29 @@ fn render_stmt<'db>(db: &'db dyn Db, stmt: StmtId<'db>, indent: usize) -> String
     out
 }
 
-fn render_expr(db: &dyn Db, expr: ExprId) -> String {
+fn render_expr(db: &dyn Db, expr: ExprId, _indent: usize) -> String {
     let (body, expr) = (expr.body(), expr.expr());
+    let mut out = String::new();
 
     match body.contents(db).expr(expr) {
-        Expr::Missing => "<missing>".to_string(),
-        Expr::Literal(literal) => format!("{literal:?}"),
+        Expr::Missing => write!(&mut out, "<missing>").unwrap(),
+        Expr::Literal(literal) => write!(&mut out, "{literal:?}").unwrap(),
         Expr::Init(_) => todo!(),
         Expr::Binary(_) => todo!(),
         Expr::Unary(_) => todo!(),
         Expr::All => todo!(),
         Expr::Range(_) => todo!(),
-        Expr::Name(Name::Name(symbol)) => symbol.text(db).to_string(),
-        Expr::Name(Name::Self_) => "self".to_string(),
+        Expr::Name(Name::Name(query)) => {
+            let (name, scope_set) = &body.contents(db).queries[*query];
+            let name = name.text(db);
+
+            write!(&mut out, "{name}@({scope_set:#?})").unwrap()
+        }
+        Expr::Name(Name::Self_) => write!(&mut out, "self").unwrap(),
         Expr::Field(_) => todo!(),
         Expr::Deref(_) => todo!(),
         Expr::Call(_) => todo!(),
-    }
+    };
+
+    out
 }

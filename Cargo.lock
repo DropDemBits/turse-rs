@@ -1418,6 +1418,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "scope-trees"
+version = "0.0.0"
+dependencies = [
+ "hashbrown 0.15.4",
+ "indexmap",
+ "rustc-hash 2.1.1",
+ "salsa",
+ "salsa-macros",
+]
+
+[[package]]
 name = "scopeguard"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1815,6 +1826,7 @@ dependencies = [
  "la-arena",
  "rustc-hash 2.1.1",
  "salsa",
+ "scope-trees",
  "toc-ast-db",
  "toc-hir-expand",
  "toc-paths",

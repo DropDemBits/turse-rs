@@ -1,10 +1,13 @@
-use toc_hir_expand::{ErasedSemanticLoc, UnstableSemanticLoc};
+use std::marker::PhantomData;
+
+use toc_hir_expand::{ErasedSemanticLoc, SemanticLoc, UnstableSemanticLoc};
 use toc_salsa_collections::arena::SalsaArena;
 use toc_syntax::ast::{self, AstNode as _};
 
 use crate::{
     Db, expr,
     item::{HasItems, ModuleBlock, ModuleLike},
+    scope,
     stmt::{self, StmtId},
 };
 
@@ -27,10 +30,13 @@ pub enum BodyOrigin<'db> {
 }
 
 /// Lowered body contents
-#[derive(Debug, Default, PartialEq, Eq, Hash, salsa::Update)]
+#[derive(Debug, Default, PartialEq, Eq, salsa::Update)]
 pub struct BodyContents<'db> {
     exprs: SalsaArena<expr::Expr<'db>>,
     stmts: SalsaArena<stmt::Stmt<'db>>,
+    bindings: scope::BodyBindings<'db>,
+    queries: scope::ScopeQueries<'db>,
+
     top_level: Box<[StmtId<'db>]>,
     // `None` if the body's immediate block has no items, or if the body's origin owns the items.
     root_block: Option<ModuleBlock<'db>>,
@@ -113,5 +119,17 @@ impl<'db> Body<'db> {
         };
 
         BodyLowerResult::new(db, contents, spans)
+    }
+}
+
+#[salsa::tracked(debug, constructor = __make_block_scope)]
+#[derive(PartialOrd, Ord)]
+pub struct BlockScope<'db> {
+    unique: PhantomData<&'db ()>,
+}
+
+impl<'db> BlockScope<'db> {
+    pub(crate) fn new(db: &'db dyn Db) -> Self {
+        Self::__make_block_scope(db, PhantomData)
     }
 }

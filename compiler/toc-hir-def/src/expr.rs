@@ -1,6 +1,6 @@
 //! Expression nodes
 
-use crate::{Symbol, body::Body};
+use crate::{Symbol, body::Body, scope};
 
 use toc_salsa_collections::arena::SalsaArenaMap;
 pub use toc_syntax::{InfixOp as BinaryOp, PrefixOp as UnaryOp};
@@ -145,7 +145,7 @@ pub struct Unary<'db> {
 #[derive(Debug, PartialEq, Eq, Hash, salsa::Update)]
 pub enum Name<'db> {
     /// Normal identifier reference
-    Name(Symbol<'db>),
+    Name(scope::QueryKey<'db>),
     /// Reference to `self`
     // FIXME: Resolve to the appropriate class DefId
     Self_,

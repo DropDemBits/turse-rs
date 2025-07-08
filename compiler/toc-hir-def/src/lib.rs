@@ -2,6 +2,7 @@
 
 use std::fmt;
 
+#[macro_use]
 pub(crate) mod internals {
     /// Helper for creating wrapper types of [`la_arena::Idx`].
     ///
@@ -127,6 +128,54 @@ pub(crate) mod internals {
             }
         };
     }
+
+    macro_rules! impl_into_conversions {
+        ($($item:ident),+ for $wrapper:ident) => {
+            $(
+                impl From<$item> for $wrapper {
+                    fn from(value: $item) -> Self {
+                        Self::$item(value)
+                    }
+                }
+            )+
+
+            $(
+                impl TryFrom<$wrapper> for $item {
+                    type Error = ();
+
+                    fn try_from(value: $wrapper) -> Result<Self, Self::Error> {
+                        match value {
+                            $wrapper::$item(it) => Ok(it),
+                            _ => Err(()),
+                        }
+                    }
+                }
+            )+
+        };
+
+        ($($item:ident),+ for $wrapper:ident<$lt:lifetime>) => {
+            $(
+                impl<$lt> From<$item<$lt>> for $wrapper<$lt> {
+                    fn from(value: $item<$lt>) -> Self {
+                        Self::$item(value)
+                    }
+                }
+            )+
+
+            $(
+                impl<$lt> TryFrom<$wrapper<$lt>> for $item<$lt> {
+                    type Error = ();
+
+                    fn try_from(value: $wrapper<$lt>) -> Result<Self, Self::Error> {
+                        match value {
+                            $wrapper::$item(it) => Ok(it),
+                            _ => Err(()),
+                        }
+                    }
+                }
+            )+
+        };
+    }
 }
 
 #[cfg(test)]
@@ -137,6 +186,8 @@ pub mod expr;
 pub mod stmt;
 
 pub mod item;
+
+pub mod scope;
 
 #[salsa::db]
 pub trait Db: toc_hir_expand::Db {}
@@ -169,6 +220,7 @@ impl<'me, 'db: 'me, Db: ?Sized> fmt::Display for DisplayWith<'me, 'db, Db> {
 }
 
 #[salsa::interned(debug)]
+#[derive(PartialOrd, Ord)]
 pub struct Symbol<'db> {
     #[returns(ref)]
     pub text: String,
