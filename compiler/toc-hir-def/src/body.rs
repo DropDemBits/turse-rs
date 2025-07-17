@@ -1,6 +1,7 @@
 use std::marker::PhantomData;
 
-use toc_hir_expand::{ErasedSemanticLoc, SemanticLoc, UnstableSemanticLoc};
+use rustc_hash::FxHashMap;
+use toc_hir_expand::{ErasedSemanticLoc, UnstableSemanticLoc};
 use toc_salsa_collections::arena::SalsaArena;
 use toc_syntax::ast::{self, AstNode as _};
 
@@ -34,7 +35,9 @@ pub enum BodyOrigin<'db> {
 pub struct BodyContents<'db> {
     exprs: SalsaArena<expr::Expr<'db>>,
     stmts: SalsaArena<stmt::Stmt<'db>>,
-    bindings: scope::BodyBindings<'db>,
+    /// Local bindings defined within the body.
+    local_bindings: scope::BodyBindings<'db>,
+    /// Basic name scope queries (i.e. queries that don't depend on scope inference).
     queries: scope::ScopeQueries<'db>,
 
     top_level: Box<[StmtId<'db>]>,
@@ -85,6 +88,23 @@ impl<'db> Body<'db> {
         self.lower_contents(db).contents(db)
     }
 
+    /// Resolutions for names that don't require looking outside of the body.
+    #[salsa::tracked]
+    pub fn local_resolved_names(self, db: &'db dyn Db) -> ResolvedNames<'db> {
+        let (resolved, unresolved, errors) = scope::try_resolve(
+            &self.contents(db).queries,
+            &self.contents(db).local_bindings,
+        );
+        let resolved = resolved.into_iter().map(|(k, v)| (k, *v)).collect();
+        ResolvedNames::new(db, resolved, unresolved, errors)
+    }
+
+    /// Fully resolved names, as well as definitely unresolved names.
+    #[salsa::tracked]
+    pub fn resolved_names(self, db: &'db dyn Db) -> ResolvedNames<'db> {
+        self.local_resolved_names(db)
+    }
+
     // Parts we wanna extract:
     // - Stmts + Exprs
     // - SpanMap<Expr> & SpanMap<Stmt>
@@ -119,6 +139,29 @@ impl<'db> Body<'db> {
         };
 
         BodyLowerResult::new(db, contents, spans)
+    }
+}
+
+/// Resolved names within a body.
+#[salsa::tracked(debug)]
+pub struct ResolvedNames<'db> {
+    #[tracked(returns(ref))]
+    resolved: FxHashMap<scope::QueryKey<'db>, scope::Binding<'db>>,
+    #[tracked(returns(ref))]
+    unresolved: Vec<scope::QueryKey<'db>>,
+    #[tracked(returns(ref))]
+    errors: (),
+}
+
+#[salsa::tracked]
+impl<'db> ResolvedNames<'db> {
+    #[salsa::tracked]
+    pub fn binding_of(
+        self,
+        db: &'db dyn Db,
+        query_key: scope::QueryKey<'db>,
+    ) -> Option<scope::Binding<'db>> {
+        self.resolved(db).get(&query_key).copied()
     }
 }
 

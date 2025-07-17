@@ -189,6 +189,7 @@ fn render_stmt<'db>(db: &'db dyn Db, stmt: StmtId<'db>, indent: usize) -> String
 
 fn render_expr(db: &dyn Db, expr: ExprId, _indent: usize) -> String {
     let (body, expr) = (expr.body(), expr.expr());
+    let resolutions = body.resolved_names(db);
     let mut out = String::new();
 
     match body.contents(db).expr(expr) {
@@ -203,7 +204,11 @@ fn render_expr(db: &dyn Db, expr: ExprId, _indent: usize) -> String {
             let (name, scope_set) = &body.contents(db).queries[*query];
             let name = name.text(db);
 
-            write!(&mut out, "{name}@({scope_set:#?})").unwrap()
+            write!(&mut out, "{name}@({scope_set:#?}) -> ").unwrap();
+            match resolutions.binding_of(db, *query) {
+                Some(binding) => write!(&mut out, "{binding:?}").unwrap(),
+                None => write!(&mut out, "<unresolved>").unwrap(),
+            };
         }
         Expr::Name(Name::Self_) => write!(&mut out, "self").unwrap(),
         Expr::Field(_) => todo!(),

@@ -310,12 +310,12 @@ impl<'res, D, B> Clone for ResolveEntry<'res, D, B> {
 impl<'res, D, B> Copy for ResolveEntry<'res, D, B> {}
 
 impl<'res, D, B> ResolveEntry<'res, D, B> {
-    pub fn domain(&self) -> &D {
-        &self.domain
+    pub fn domain(&self) -> &'res D {
+        self.domain
     }
 
-    pub fn binding(&self) -> &B {
-        &self.binding
+    pub fn binding(&self) -> &'res B {
+        self.binding
     }
 }
 

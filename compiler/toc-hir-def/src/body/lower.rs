@@ -207,7 +207,7 @@ impl<'db> BodyLower<'db> {
         self.current_scope.add_scope(scope.into());
 
         // TODO: This is supposed to be taken from the item-level bindings map
-        self.contents.bindings.add_binding(
+        self.contents.local_bindings.add_binding(
             item.name(self.db),
             self.current_scope.clone(),
             scope::Binding::Item(item),
@@ -253,7 +253,7 @@ impl<'db> BodyLower<'db> {
                     self.current_scope.add_scope(scope.into());
 
                     // TODO: This is supposed to be sourced from the item-level binding map.
-                    self.contents.bindings.add_binding(
+                    self.contents.local_bindings.add_binding(
                         item.name(self.db),
                         self.current_scope.clone(),
                         scope::Binding::Item(item.into()),
