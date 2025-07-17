@@ -8,11 +8,11 @@ use toc_syntax::{
 };
 
 use crate::{
-    Db, Symbol,
-    body::BlockScope,
+    Db, Mutability, Symbol,
+    body::BodyScope,
     expr::{self, LocalExpr},
     item::{self, HasItems},
-    scope,
+    local, scope,
     stmt::{self, LocalStmt},
 };
 
@@ -238,16 +238,19 @@ impl<'db> BodyLower<'db> {
         //
         // The initializer expression is always the same
         let names = node.constvar_names()?;
-        let init = self.lower_expr_opt(node.init());
+        let init = node.init().map(|expr| self.lower_expr(expr));
 
         for name in names.names() {
             // Initializer gets a consistent place for items
             match self.ast_id_map.lookup_for_maybe(&name) {
                 Some(ast_id) => {
                     let item = self.lookup_item(ast_id);
-                    let stmt_id =
-                        self.alloc_stmt(stmt::Stmt::InitializeConstVar(item, init), node.clone());
-                    stmts.push(stmt_id);
+
+                    if let Some(init) = init {
+                        let stmt_id = self
+                            .alloc_stmt(stmt::Stmt::InitializeConstVar(item, init), node.clone());
+                        stmts.push(stmt_id);
+                    }
 
                     let scope = self.item_collection().item_scope(self.db, item.into());
                     self.current_scope.add_scope(scope.into());
@@ -260,8 +263,40 @@ impl<'db> BodyLower<'db> {
                     );
                 }
                 None => {
-                    // FIXME: Alloc local
-                    return None;
+                    let name = name.name();
+                    let text = name
+                        .map(|it| it.text_immutable().to_owned())
+                        .unwrap_or_else(|| "<missing name>".to_owned());
+                    let name = Symbol::new(self.db, text);
+                    let local = self.alloc_local(local::Local { name });
+
+                    let mutability = if node.var_token().is_some() {
+                        Mutability::Var
+                    } else {
+                        Mutability::Const
+                    };
+                    let stmt_id = self.alloc_stmt(
+                        stmt::Stmt::LocalConstVar(stmt::LocalConstVar {
+                            mutability,
+                            local,
+                            initializer: init,
+                        }),
+                        node.clone(),
+                    );
+                    stmts.push(stmt_id);
+
+                    // Bind local to statment
+                    self.contents.locals_owners.insert(local, stmt_id);
+
+                    // Attach local definition to a scope
+                    let local_scope = BodyScope::new(self.db);
+                    self.current_scope.add_scope(local_scope.into());
+
+                    self.contents.local_bindings.add_binding(
+                        name,
+                        self.current_scope.clone(),
+                        scope::Binding::Local(local),
+                    );
                 }
             }
         }
@@ -355,8 +390,9 @@ impl<'db> BodyLower<'db> {
             self.child_items.push(module_block.child_items(self.db));
         }
 
-        let scope = BlockScope::new(self.db);
-        self.current_scope.add_scope(scope.into());
+        let block_scope = BodyScope::new(self.db);
+        let old_scope = self.current_scope.clone();
+        self.current_scope.add_scope(block_scope.into());
 
         // Lower child statements
         let mut child_stmts = Vec::with_capacity(stmts.stmts().count());
@@ -368,7 +404,7 @@ impl<'db> BodyLower<'db> {
             child_stmts.push(stmt_id);
         }
 
-        self.current_scope.remove_scope(&scope.into());
+        self.current_scope = old_scope;
 
         if let Some(module_block) = module_block {
             assert_eq!(
@@ -386,6 +422,11 @@ impl<'db> BodyLower<'db> {
             }),
             node,
         )
+    }
+
+    fn alloc_local(&mut self, local_def: local::Local<'db>) -> local::LocalId<'db> {
+        let place = self.contents.locals.alloc(local_def);
+        local::LocalId(place)
     }
 
     fn alloc_stmt(&mut self, stmt: stmt::Stmt<'db>, node: impl Into<ast::Stmt>) -> LocalStmt<'db> {

@@ -4,14 +4,15 @@ use rustc_hash::FxHashMap;
 
 use crate::{
     Symbol,
-    body::BlockScope,
+    body::BodyScope,
     item::{self, ItemScope},
+    local,
 };
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, salsa::Update, salsa::Supertype)]
 pub enum Scope<'db> {
     ItemScope(ItemScope<'db>),
-    BlockScope(BlockScope<'db>),
+    BodyScope(BodyScope<'db>),
 }
 
 impl<'db> std::fmt::Debug for Scope<'db> {
@@ -20,12 +21,12 @@ impl<'db> std::fmt::Debug for Scope<'db> {
             // Pass through formatting for default items.
             match self {
                 Self::ItemScope(arg0) => arg0.fmt(f),
-                Self::BlockScope(arg0) => arg0.fmt(f),
+                Self::BodyScope(arg0) => arg0.fmt(f),
             }
         } else {
             match self {
                 Self::ItemScope(arg0) => f.debug_tuple("ItemScope").field(arg0).finish(),
-                Self::BlockScope(arg0) => f.debug_tuple("BlockScope").field(arg0).finish(),
+                Self::BodyScope(arg0) => f.debug_tuple("BodyScope").field(arg0).finish(),
             }
         }
     }
@@ -34,8 +35,10 @@ impl<'db> std::fmt::Debug for Scope<'db> {
 impl<'db> scope_trees::Region for Scope<'db> {}
 
 pub type ScopeSet<'db> = scope_trees::ScopeSet<Scope<'db>>;
-pub type ItemBindings<'db> = scope_trees::DomainBindings<Symbol<'db>, ScopeSet<'db>, Binding<'db>>;
-pub type BodyBindings<'db> = scope_trees::DomainBindings<Symbol<'db>, ScopeSet<'db>, Binding<'db>>;
+pub type ItemBindings<'db> =
+    scope_trees::DomainBindings<Symbol<'db>, ScopeSet<'db>, ItemBinding<'db>>;
+pub type BodyBindings<'db> =
+    scope_trees::DomainBindings<Symbol<'db>, ScopeSet<'db>, BodyBinding<'db>>;
 pub type ScopeQueries<'db> = scope_trees::DomainQueries<Symbol<'db>, ScopeSet<'db>>;
 pub type QueryKey<'db> = scope_trees::QueryKey<Symbol<'db>, ScopeSet<'db>>;
 
@@ -48,7 +51,10 @@ where
     Local(Local),
 }
 
-impl_into_conversions!(ItemScope, BlockScope for Scope<'db>);
+pub type ItemBinding<'db> = Binding<'db>;
+pub type BodyBinding<'db> = Binding<'db, local::LocalId<'db>>;
+
+impl_into_conversions!(ItemScope, BodyScope for Scope<'db>);
 
 pub(crate) fn try_resolve<'db, L: std::fmt::Debug + salsa::Update>(
     queries: &'db ScopeQueries<'db>,

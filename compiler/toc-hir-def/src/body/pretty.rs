@@ -3,7 +3,7 @@ use std::{collections::VecDeque, fmt::Write};
 use toc_source_graph::Package;
 
 use crate::{
-    Db, DisplayWithDb,
+    Db, DisplayWithDb, Mutability,
     expr::{Expr, ExprId, Name},
     item::{AnyItem, HasItems},
     stmt::{Stmt, StmtId},
@@ -80,17 +80,33 @@ pub fn render_item_body<'db>(db: &'db dyn Db, item: AnyItem<'db>) -> String {
 
 fn render_stmt<'db>(db: &'db dyn Db, stmt: StmtId<'db>, indent: usize) -> String {
     let (body, stmt) = (stmt.body(), stmt.stmt());
+    let store = body.contents(db);
     let mut out = String::new();
 
     let indent_text = "  ".repeat(indent);
     out.push_str(&indent_text);
 
-    match body.contents(db).stmt(stmt) {
+    match store.stmt(stmt) {
         Stmt::InitializeConstVar(_item, _expr) => {
             write!(&mut out, "/* constvar initializer */").unwrap();
         }
         Stmt::InitializeBindItem(_item, _expr) => {
             write!(&mut out, "/* bind initializer */").unwrap();
+        }
+        Stmt::LocalConstVar(stmt) => {
+            let local_id = stmt.local;
+            let local = &store[local_id];
+            let mutability = match stmt.mutability {
+                Mutability::Const => "const",
+                Mutability::Var => "var",
+            };
+            let name = local.name.text(db);
+            write!(&mut out, "{mutability} {name}@{local_id:?}").unwrap();
+
+            if let Some(init) = stmt.initializer {
+                let expr = render_expr(db, init.in_body(body), indent + 1);
+                write!(&mut out, " :=\n{expr}").unwrap();
+            }
         }
         Stmt::Assign(stmt) => {
             let lhs = render_expr(db, stmt.lhs.in_body(body), indent + 1);
@@ -119,7 +135,7 @@ fn render_stmt<'db>(db: &'db dyn Db, stmt: StmtId<'db>, indent: usize) -> String
                     crate::stmt::Skippable::Item(put_item) => {
                         write!(
                             &mut out,
-                            "PutItem({}",
+                            "PutItem(\n{}",
                             render_expr(db, put_item.expr.in_body(body), indent + 1)
                         )
                         .unwrap();
@@ -187,10 +203,13 @@ fn render_stmt<'db>(db: &'db dyn Db, stmt: StmtId<'db>, indent: usize) -> String
     out
 }
 
-fn render_expr(db: &dyn Db, expr: ExprId, _indent: usize) -> String {
+fn render_expr(db: &dyn Db, expr: ExprId, indent: usize) -> String {
     let (body, expr) = (expr.body(), expr.expr());
     let resolutions = body.resolved_names(db);
     let mut out = String::new();
+
+    let indent_text = "  ".repeat(indent);
+    out.push_str(&indent_text);
 
     match body.contents(db).expr(expr) {
         Expr::Missing => write!(&mut out, "<missing>").unwrap(),

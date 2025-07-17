@@ -1,4 +1,4 @@
-use std::marker::PhantomData;
+use std::{marker::PhantomData, ops::Index};
 
 use rustc_hash::FxHashMap;
 use toc_hir_expand::{ErasedSemanticLoc, UnstableSemanticLoc};
@@ -8,7 +8,7 @@ use toc_syntax::ast::{self, AstNode as _};
 use crate::{
     Db, expr,
     item::{HasItems, ModuleBlock, ModuleLike},
-    scope,
+    local, scope,
     stmt::{self, StmtId},
 };
 
@@ -35,6 +35,10 @@ pub enum BodyOrigin<'db> {
 pub struct BodyContents<'db> {
     exprs: SalsaArena<expr::Expr<'db>>,
     stmts: SalsaArena<stmt::Stmt<'db>>,
+    /// Local variable definitions.
+    locals: SalsaArena<local::Local<'db>>,
+    /// Which statements own a local.
+    locals_owners: FxHashMap<local::LocalId<'db>, stmt::LocalStmt<'db>>,
     /// Local bindings defined within the body.
     local_bindings: scope::BodyBindings<'db>,
     /// Basic name scope queries (i.e. queries that don't depend on scope inference).
@@ -43,6 +47,14 @@ pub struct BodyContents<'db> {
     top_level: Box<[StmtId<'db>]>,
     // `None` if the body's immediate block has no items, or if the body's origin owns the items.
     root_block: Option<ModuleBlock<'db>>,
+}
+
+impl<'db> Index<local::LocalId<'db>> for BodyContents<'db> {
+    type Output = local::Local<'db>;
+
+    fn index(&self, index: local::LocalId<'db>) -> &Self::Output {
+        &self.locals[index.0]
+    }
 }
 
 impl<'db> BodyContents<'db> {
@@ -146,7 +158,7 @@ impl<'db> Body<'db> {
 #[salsa::tracked(debug)]
 pub struct ResolvedNames<'db> {
     #[tracked(returns(ref))]
-    resolved: FxHashMap<scope::QueryKey<'db>, scope::Binding<'db>>,
+    resolved: FxHashMap<scope::QueryKey<'db>, scope::BodyBinding<'db>>,
     #[tracked(returns(ref))]
     unresolved: Vec<scope::QueryKey<'db>>,
     #[tracked(returns(ref))]
@@ -160,18 +172,29 @@ impl<'db> ResolvedNames<'db> {
         self,
         db: &'db dyn Db,
         query_key: scope::QueryKey<'db>,
-    ) -> Option<scope::Binding<'db>> {
+    ) -> Option<scope::BodyBinding<'db>> {
         self.resolved(db).get(&query_key).copied()
     }
 }
 
-#[salsa::tracked(debug, constructor = __make_block_scope)]
+/// Arbitrary scope within a body.
+///
+/// May correspond to e.g. a block, or a local var declaraton.
+#[salsa::tracked(constructor = __make_block_scope)]
 #[derive(PartialOrd, Ord)]
-pub struct BlockScope<'db> {
+pub struct BodyScope<'db> {
     unique: PhantomData<&'db ()>,
 }
 
-impl<'db> BlockScope<'db> {
+impl<'db> std::fmt::Debug for BodyScope<'db> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        use salsa::plumbing::AsId;
+
+        write!(f, "BodyScope[{}]", self.as_id().index())
+    }
+}
+
+impl<'db> BodyScope<'db> {
     pub(crate) fn new(db: &'db dyn Db) -> Self {
         Self::__make_block_scope(db, PhantomData)
     }

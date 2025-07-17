@@ -5,10 +5,11 @@ use toc_salsa_collections::arena::SalsaArenaMap;
 use toc_syntax::ast;
 
 use crate::{
-    Symbol,
+    Mutability, Symbol,
     body::Body,
     expr,
     item::{self},
+    local,
 };
 
 crate::arena_id_wrapper!(
@@ -52,6 +53,8 @@ pub enum Stmt<'db> {
     InitializeConstVar(item::ConstVar<'db>, expr::LocalExpr<'db>),
     /// Initialize the given [`ast::BindItem`] at this point
     InitializeBindItem(SemanticLoc<'db, ast::BindItem>, expr::LocalExpr<'db>),
+    /// Declares a body-local [`ast::ConstVarDecl`].
+    LocalConstVar(LocalConstVar<'db>),
     /// Assignment statement
     /// (also includes compound assignments)
     Assign(Assign<'db>),
@@ -105,6 +108,15 @@ pub enum Stmt<'db> {
     // ImplementBy { .. }
     // Import { .. }
     // Export { .. }
+}
+
+#[derive(Debug, PartialEq, Eq, Hash, salsa::Update)]
+pub struct LocalConstVar<'db> {
+    pub mutability: Mutability,
+    /// Local that this declares.
+    pub local: local::LocalId<'db>,
+    /// Value initializer, if present
+    pub initializer: Option<expr::LocalExpr<'db>>,
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, salsa::Update)]

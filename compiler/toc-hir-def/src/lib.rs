@@ -183,6 +183,7 @@ mod test;
 
 pub mod body;
 pub mod expr;
+pub mod local;
 pub mod stmt;
 
 pub mod item;

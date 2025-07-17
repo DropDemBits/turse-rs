@@ -10,7 +10,7 @@ crate::arena_id_wrapper!(
     ///
     /// [`Body`]: crate::body::Body
     pub struct LocalExpr<'db>(Expr<'db>);
-    /// Alias for the stmt arena index
+    /// Alias for the expr arena index
     pub(crate) type ExprIndex<'db> = Index;
 );
 
