@@ -17,9 +17,10 @@ pub enum Scope<'db> {
 impl<'db> std::fmt::Debug for Scope<'db> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if f.alternate() {
+            // Pass through formatting for default items.
             match self {
-                Self::ItemScope(arg0) => write!(f, "ItemScope(..)"),
-                Self::BlockScope(arg0) => write!(f, "BlockScope(..)"),
+                Self::ItemScope(arg0) => arg0.fmt(f),
+                Self::BlockScope(arg0) => arg0.fmt(f),
             }
         } else {
             match self {

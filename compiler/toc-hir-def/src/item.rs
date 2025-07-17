@@ -286,7 +286,22 @@ pub struct ItemScope<'db> {
 
 impl<'db> std::fmt::Debug for ItemScope<'db> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        Self::default_debug_fmt(*self, f)
+        let res = if f.alternate() {
+            salsa::with_attached_database(|db| {
+                use salsa::plumbing::AsId;
+
+                let id_fmt = format!("[{}]", self.as_id().index());
+
+                match self.item(db) {
+                    Item::ConstVar(_) => f.write_fmt(format_args!("ConstVar{id_fmt}")),
+                    Item::Module(_) => f.write_fmt(format_args!("Module{id_fmt}")),
+                }
+            })
+        } else {
+            None
+        };
+
+        res.unwrap_or_else(|| Self::default_debug_fmt(*self, f))
     }
 }
 
