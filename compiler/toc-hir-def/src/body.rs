@@ -101,14 +101,42 @@ impl<'db> Body<'db> {
     }
 
     /// Resolutions for names that don't require looking outside of the body.
-    #[salsa::tracked]
     pub fn local_resolved_names(self, db: &'db dyn Db) -> ResolvedNames<'db> {
-        let (resolved, unresolved, errors) = scope::try_resolve(
-            &self.contents(db).queries,
-            &self.contents(db).local_bindings,
+        let contents = self.contents(db);
+        let item_bindings = match self.origin(db) {
+            BodyOrigin::ModuleBody(module_like) => Some(
+                module_like
+                    .child_items(db)
+                    .item_bindings(db)
+                    .map_bindings(scope::BodyBinding::from),
+            ),
+            BodyOrigin::FunctionBody(_) => None,
+        };
+
+        let resolvers: &[&dyn scope_trees::Resolver<_, _, _>] = match item_bindings.as_ref() {
+            Some(item_bindings) => &[item_bindings, &contents.local_bindings],
+            None => &[&contents.local_bindings],
+        };
+
+        let resolutions = contents.queries.resolve_all(resolvers);
+
+        let scope_trees::ResolveList {
+            resolved,
+            unresolved,
+            ambiguous: _,
+        } = resolutions;
+
+        let names = ResolvedNames::new(
+            db,
+            resolved
+                .into_iter()
+                .map(|(k, v)| (k, v.binding))
+                .collect::<FxHashMap<_, _>>(),
+            unresolved,
+            (),
         );
-        let resolved = resolved.into_iter().map(|(k, v)| (k, *v)).collect();
-        ResolvedNames::new(db, resolved, unresolved, errors)
+
+        names
     }
 
     /// Fully resolved names, as well as definitely unresolved names.

@@ -8,6 +8,7 @@ use toc_syntax::ast;
 use crate::{
     Db, ItemAttrs, Symbol,
     item::{ChildItems, ConstVar, Item, ItemScope, Module},
+    scope,
 };
 
 /// Collects the immediately accessible items from a [`ast::StmtList`]
@@ -109,4 +110,26 @@ pub(crate) fn item<'db>(
         // ast::Stmt::PreprocGlob(_) => todo!(),
         _ => return None,
     })
+}
+
+/// Accumulates the simplified item binding set within the scope.
+pub(super) fn collect_item_bindings<'db>(
+    db: &'db dyn Db,
+    collection: ChildItems<'db>,
+) -> scope::ItemBindings<'db> {
+    let mut bindings = scope::ItemBindings::new();
+    let mut scope_set = scope::ScopeSet::empty();
+
+    for &item in collection.items(db) {
+        let scope = collection.item_scope(db, item);
+        scope_set.add_scope(scope.into());
+
+        bindings.add_binding(
+            item.name(db),
+            scope_set.clone(),
+            scope::ItemBinding::Item(item),
+        );
+    }
+
+    bindings
 }

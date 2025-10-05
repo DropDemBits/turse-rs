@@ -1,7 +1,5 @@
 //! Common scoping types
 
-use rustc_hash::FxHashMap;
-
 use crate::{
     Symbol,
     body::BodyScope,
@@ -54,28 +52,13 @@ where
 pub type ItemBinding<'db> = Binding<'db>;
 pub type BodyBinding<'db> = Binding<'db, local::LocalId<'db>>;
 
-impl_into_conversions!(ItemScope, BodyScope for Scope<'db>);
-
-pub(crate) fn try_resolve<'db, L: std::fmt::Debug + salsa::Update>(
-    queries: &'db ScopeQueries<'db>,
-    bindings: &'db scope_trees::DomainBindings<Symbol<'db>, ScopeSet<'db>, Binding<'db, L>>,
-) -> (
-    FxHashMap<QueryKey<'db>, &'db Binding<'db, L>>,
-    Vec<QueryKey<'db>>,
-    (),
-) {
-    let mut resolved = FxHashMap::default();
-    let mut unresolved = vec![];
-
-    for (key, (identifier, domain)) in queries.queries() {
-        match bindings.resolve(identifier, domain) {
-            Ok(entry) => _ = resolved.insert(key, entry.binding()),
-            Err(scope_trees::ResolveError::Unbound) => unresolved.push(key),
-            Err(scope_trees::ResolveError::Ambiguous(candidates)) => {
-                todo!("err {identifier:?} candidates {candidates:#?}")
-            }
+impl<'db> From<ItemBinding<'db>> for BodyBinding<'db> {
+    fn from(binding: ItemBinding<'db>) -> Self {
+        match binding {
+            Binding::Item(item) => Self::Item(item),
+            Binding::Local(local) => match local {},
         }
     }
-
-    (resolved, unresolved, ())
 }
+
+impl_into_conversions!(ItemScope, BodyScope for Scope<'db>);

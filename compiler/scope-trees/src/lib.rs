@@ -1,5 +1,12 @@
 //! Scope-sets based name resolution.
-use std::{cmp::Ordering, collections::BTreeMap, hash::Hash, marker::PhantomData, ops::Index};
+use std::{
+    cmp::Ordering,
+    collections::{BTreeMap, HashMap},
+    hash::Hash,
+    iter,
+    marker::PhantomData,
+    ops::Index,
+};
 
 /// Region within a specific [`Domain`] where bindings and queries can be scoped to.
 pub trait Region: Ord + Hash {}
@@ -10,6 +17,62 @@ pub trait Domain: PartialOrd + Eq + Hash {
 
     /// Regions associated with this domain.
     fn regions(&self) -> impl Iterator<Item = &Self::Region>;
+}
+
+pub type ResolveResult<'r, D, B> = Result<ResolveEntry<'r, D, B>, ResolveError<'r, D, B>>;
+
+/// Anything that allows resolving an identifier-domain pair to some binding.
+pub trait Resolver<I, D, B>
+where
+    D: Domain,
+{
+    /// Resolves a single identifier
+    fn resolve(&self, identifier: &I, domain: &D) -> ResolveResult<'_, D, B>;
+}
+
+const _: () = {
+    #[allow(dead_code)]
+    fn resolver_as_dyn<I, D: Domain, B>(_: &dyn Resolver<I, D, B>) {}
+};
+
+impl<I, D, B, R> Resolver<I, D, B> for &R
+where
+    R: Resolver<I, D, B>,
+    D: Domain,
+{
+    fn resolve(&self, identifier: &I, domain: &D) -> ResolveResult<'_, D, B> {
+        R::resolve(self, identifier, domain)
+    }
+}
+
+/// Resolution result, referring to the resolved domain and binding.
+#[derive(Debug)]
+pub struct ResolveEntry<'res, D, B> {
+    pub domain: &'res D,
+    pub binding: B,
+}
+
+impl<'res, D, B> Clone for ResolveEntry<'res, D, B>
+where
+    B: Clone,
+{
+    fn clone(&self) -> Self {
+        Self {
+            domain: self.domain,
+            binding: self.binding.clone(),
+        }
+    }
+}
+
+impl<'res, D, B> Copy for ResolveEntry<'res, D, B> where B: Copy {}
+
+/// Error while resolving an identifier within a [`Resolver`].
+#[derive(Debug, Clone)]
+pub enum ResolveError<'res, D, B> {
+    /// Multiple bindings are candidates for the given identifier.
+    Ambiguous(Box<[ResolveEntry<'res, D, B>]>),
+    /// No bindings were found for the given identifier.
+    Unbound,
 }
 
 pub mod scope {
@@ -49,8 +112,6 @@ pub mod scope {
         }
     }
 }
-
-pub use scope::{Scope, ScopeGen};
 
 pub mod scope_set {
     use std::{cmp::Ordering, collections::BTreeSet};
@@ -132,6 +193,7 @@ pub mod scope_set {
     }
 }
 
+pub use scope::{Scope, ScopeGen};
 pub use scope_set::ScopeSet;
 
 /// Identifier to name bindings within a particular [`Domain`].
@@ -180,48 +242,80 @@ where
         domains.push((domain, binding));
     }
 
-    pub fn resolve(
-        &self,
-        identifier: &I,
-        domain: &D,
-    ) -> Result<ResolveEntry<'_, D, B>, ResolveError<'_, D, B>> {
+    /// Resolves a single identifier-domain pair to a potential binding.
+    pub fn resolve(&self, identifier: &I, domain: &D) -> ResolveResult<'_, D, B>
+    where
+        B: Clone,
+    {
         let Some(domains) = self.bindings.get(identifier) else {
             return Err(ResolveError::Unbound);
         };
 
         // Find greatest-lower-bound of domain
-        let mut candidate_domain = domain;
-        let mut candidates = Vec::with_capacity(1);
+        glb_domains(domain, domains.iter().map(|(k, v)| (k, v)))
+    }
 
-        for (domain, binding) in domains {
-            // cases:
-            // domain < candidate: accept, in a weaker-bound scope
-            // domain = candidate: accept, in same scope
-            // domain > candidate: reject, in a tighter-bound scope
-            // domain <> candidate: accept, in a sibling scope
-            if domain
-                .partial_cmp(candidate_domain)
-                .is_some_and(Ordering::is_gt)
-            {
-                // Ignore tighter-bound scopes.
-                continue;
-            }
+    /// Map resolved bindings into a different binding type.
+    pub fn map_bindings<B2>(&self, f: impl Fn(B) -> B2) -> impl Resolver<I, D, B2>
+    where
+        B: Clone,
+    {
+        MapBinding::new(self, f)
+    }
+}
 
-            if domain.regions().count() > candidate_domain.regions().count() {
-                // Take candidate domain as the larger scope.
-                // ???: This feels like a union-find?
-                candidate_domain = domain;
-                candidates.clear();
-            }
+fn glb_domains<'i, 'r: 'i, D, B>(
+    mut candidate_domain: &'i D,
+    domains: impl Iterator<Item = (&'r D, &'i B)>,
+) -> ResolveResult<'r, D, B>
+where
+    D: Domain,
+    B: Clone + 'i,
+{
+    let mut candidates = Vec::with_capacity(1);
 
-            candidates.push(ResolveEntry { domain, binding });
+    for (domain, binding) in domains {
+        // cases:
+        // domain < candidate: accept, in a weaker-bound scope
+        // domain = candidate: accept, in same scope
+        // domain > candidate: reject, in a tighter-bound scope
+        // domain <> candidate: accept, in a sibling scope
+        if domain
+            .partial_cmp(candidate_domain)
+            .is_some_and(Ordering::is_gt)
+        {
+            // Ignore tighter-bound scopes.
+            continue;
         }
 
-        match candidates.as_slice() {
-            [] => Err(ResolveError::Unbound),
-            [entry] => Ok(*entry),
-            [..] => Err(ResolveError::Ambiguous(candidates.into_boxed_slice())),
+        if domain.regions().count() > candidate_domain.regions().count() {
+            // Take candidate domain as the larger scope.
+            // ???: This feels like a union-find?
+            candidate_domain = domain;
+            candidates.clear();
         }
+
+        candidates.push(ResolveEntry {
+            domain,
+            binding: binding.clone(),
+        });
+    }
+
+    match candidates.as_slice() {
+        [] => Err(ResolveError::Unbound),
+        [entry] => Ok(entry.clone()),
+        [..] => Err(ResolveError::Ambiguous(candidates.into_boxed_slice())),
+    }
+}
+
+impl<I, D, B> Resolver<I, D, B> for DomainBindings<I, D, B>
+where
+    I: Ord + salsa::Update,
+    D: Domain + salsa::Update,
+    B: Clone + salsa::Update,
+{
+    fn resolve(&self, identifier: &I, domain: &D) -> ResolveResult<'_, D, B> {
+        self.resolve(identifier, domain)
     }
 }
 
@@ -290,39 +384,159 @@ where
             .enumerate()
             .map(|(key, value)| (QueryKey(key, PhantomData), (&value.0, &value.1)))
     }
+
+    pub fn resolve_all<'r, B>(
+        &self,
+        resolvers: &[&'r (dyn Resolver<I, D, B> + 'r)],
+    ) -> ResolveList<'r, I, D, B>
+    where
+        D: Domain,
+        B: Clone,
+    {
+        /// An identifier can only move greater in the resolution ordering:
+        ///
+        /// Unbound < Resolved < Ambiguous
+        ///
+        /// Thus, for a best (row) and next (column) candidate:
+        ///
+        /// |           | Unbound   | Resolved  | Ambiguous |
+        /// |-----------|-----------|-----------|-----------|
+        /// | Unbound   | Unbound   | Resolved  | Ambiguous |
+        /// | Resolved  | Resolved  | Ambiguous | Ambiguous |
+        /// | Ambiguous | Ambiguous | Ambiguous | Ambiguous |
+        ///
+        fn pick_candidate<'r, D, B>(
+            best_candidate: ResolveResult<'r, D, B>,
+            next_candidate: ResolveResult<'r, D, B>,
+        ) -> ResolveResult<'r, D, B>
+        where
+            D: Domain,
+            B: Clone,
+        {
+            fn to_pair<'e, 'r: 'e, D, B>(entry: &'e ResolveEntry<'r, D, B>) -> (&'r D, &'e B) {
+                (entry.domain, &entry.binding)
+            }
+
+            match (best_candidate, next_candidate) {
+                // Prefer non-unbound over unbound errors
+                (best, Err(ResolveError::Unbound)) => best,
+                (Err(ResolveError::Unbound), next) => next,
+                // Pick glb of the domains
+                (Ok(best), Ok(next)) => glb_domains(
+                    best.domain,
+                    iter::once(to_pair(&best)).chain(iter::once(to_pair(&next))),
+                ),
+                (Ok(best), Err(ResolveError::Ambiguous(next_candidates))) => glb_domains(
+                    best.domain,
+                    iter::once((best.domain, &best.binding))
+                        .chain(next_candidates.iter().map(to_pair)),
+                ),
+                (Err(ResolveError::Ambiguous(best_candidates)), Ok(next)) => glb_domains(
+                    best_candidates[0].domain,
+                    best_candidates
+                        .iter()
+                        .map(to_pair)
+                        .chain(iter::once(to_pair(&next))),
+                ),
+                (
+                    Err(ResolveError::Ambiguous(best_candidates)),
+                    Err(ResolveError::Ambiguous(next_candidates)),
+                ) => glb_domains(
+                    best_candidates[0].domain,
+                    best_candidates
+                        .iter()
+                        .map(to_pair)
+                        .chain(next_candidates.iter().map(to_pair)),
+                ),
+            }
+        }
+
+        let mut list = ResolveList::default();
+
+        for (key, (identifier, domain)) in self.queries() {
+            let mut candidate = Err(ResolveError::Unbound);
+
+            for &resolver in resolvers {
+                let next_candidate = resolver.resolve(identifier, domain);
+                candidate = pick_candidate(candidate, next_candidate);
+            }
+
+            match candidate {
+                Ok(resolved) => {
+                    list.resolved.insert(key, resolved);
+                }
+                Err(ResolveError::Unbound) => {
+                    list.unresolved.push(key);
+                }
+                Err(ResolveError::Ambiguous(candidates)) => {
+                    list.ambiguous.insert(key, candidates);
+                }
+            }
+        }
+
+        list
+    }
 }
 
-#[derive(Debug)]
-pub struct ResolveEntry<'res, D, B> {
-    domain: &'res D,
-    binding: &'res B,
+pub struct ResolveList<'res, I, D, B> {
+    /// Resolved identifers.
+    pub resolved: HashMap<QueryKey<I, D>, ResolveEntry<'res, D, B>>,
+    /// Unresolved identifiers.
+    pub unresolved: Vec<QueryKey<I, D>>,
+    /// Identifiers resolving to multiple resolutions.
+    pub ambiguous: HashMap<QueryKey<I, D>, Box<[ResolveEntry<'res, D, B>]>>,
 }
 
-impl<'res, D, B> Clone for ResolveEntry<'res, D, B> {
-    fn clone(&self) -> Self {
+impl<'res, I, D, B> Default for ResolveList<'res, I, D, B> {
+    fn default() -> Self {
         Self {
-            domain: self.domain,
-            binding: self.binding,
+            resolved: Default::default(),
+            unresolved: Default::default(),
+            ambiguous: Default::default(),
         }
     }
 }
 
-impl<'res, D, B> Copy for ResolveEntry<'res, D, B> {}
+pub struct MapBinding<'r, R, F, B1, B2> {
+    resolver: &'r R,
+    map: F,
+    _binding: PhantomData<fn(B1) -> B2>,
+}
 
-impl<'res, D, B> ResolveEntry<'res, D, B> {
-    pub fn domain(&self) -> &'res D {
-        self.domain
-    }
-
-    pub fn binding(&self) -> &'res B {
-        self.binding
+impl<'r, R, F, B1, B2> MapBinding<'r, R, F, B1, B2> {
+    fn new(resolver: &'r R, map: F) -> Self {
+        Self {
+            resolver,
+            map,
+            _binding: PhantomData,
+        }
     }
 }
 
-/// Error while resolving an identifier within a [`DomainBindings`].
-pub enum ResolveError<'res, D, B> {
-    /// Multiple bindings are candidates for the given identifier.
-    Ambiguous(Box<[ResolveEntry<'res, D, B>]>),
-    /// No bindings were found for the given identifier.
-    Unbound,
+impl<'r, I, D, B1, B2, R, F> Resolver<I, D, B2> for MapBinding<'r, R, F, B1, B2>
+where
+    R: Resolver<I, D, B1>,
+    D: Domain + 'r,
+    F: Fn(B1) -> B2,
+{
+    fn resolve(&self, identifier: &I, domain: &D) -> ResolveResult<'r, D, B2> {
+        let result = self.resolver.resolve(identifier, domain);
+
+        match result {
+            Ok(resolved) => Ok(ResolveEntry {
+                domain: resolved.domain,
+                binding: (self.map)(resolved.binding),
+            }),
+            Err(ResolveError::Unbound) => Err(ResolveError::Unbound),
+            Err(ResolveError::Ambiguous(candidates)) => Err(ResolveError::Ambiguous(
+                candidates
+                    .into_iter()
+                    .map(|ResolveEntry { domain, binding }| ResolveEntry {
+                        domain,
+                        binding: (self.map)(binding),
+                    })
+                    .collect(),
+            )),
+        }
+    }
 }

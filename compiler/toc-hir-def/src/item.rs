@@ -7,6 +7,7 @@ use toc_vfs_db::SourceFile;
 use crate::{
     Db, IsMonitor, IsPervasive, IsRegister, ItemAttrs, Mutability, Symbol,
     body::{Body, BodyOrigin},
+    scope,
 };
 
 macro_rules! impl_item_ast_id {
@@ -362,6 +363,11 @@ impl<'db> ChildItems<'db> {
             .to_scopes(db)
             .get(&item)
             .unwrap_or_else(|| panic!("{item:?} does not have an associated item scope"))
+    }
+
+    #[salsa::tracked(returns(ref))]
+    pub fn item_bindings(self, db: &'db dyn Db) -> scope::ItemBindings<'db> {
+        lower::collect_item_bindings(db, self)
     }
 }
 
