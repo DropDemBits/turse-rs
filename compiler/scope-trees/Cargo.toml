@@ -1,0 +1,17 @@
+[package]
+name = "scope-trees"
+version = "0.0.0"
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+
+[dependencies]
+hashbrown = "0.15.4"
+indexmap = "2.7.1"
+rustc-hash = "2.1"
+
+salsa = { version = "0.23.0" }
+salsa-macros = { version = "0.23.0" }
+
+[lints]
+workspace = true

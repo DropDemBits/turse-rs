@@ -7,7 +7,8 @@ use toc_syntax::ast;
 
 use crate::{
     Db, ItemAttrs, Symbol,
-    item::{ChildItems, ConstVar, Item, Module},
+    item::{ChildItems, ConstVar, Item, ItemScope, Module},
+    scope,
 };
 
 /// Collects the immediately accessible items from a [`ast::StmtList`]
@@ -18,15 +19,16 @@ pub(crate) fn collect_items<'db>(
     let file = stmt_list.file();
     let ast_id_map = file.ast_id_map(db);
     let mut to_items = FxHashMap::default();
+    let mut to_scopes = FxHashMap::default();
     let stmt_list = stmt_list.to_node(db);
 
     let items = stmt_list
         .stmts()
-        .filter_map(|stmt| item(db, stmt, file, ast_id_map, &mut to_items))
+        .filter_map(|stmt| item(db, stmt, file, ast_id_map, &mut to_items, &mut to_scopes))
         .flatten()
         .collect::<Vec<_>>();
 
-    ChildItems::new(db, file, items.into(), to_items)
+    ChildItems::new(db, file, items.into(), to_items, to_scopes)
 }
 
 /// Lowers a potential item, and returns either the new item, or `None`
@@ -42,6 +44,7 @@ pub(crate) fn item<'db>(
     file: SemanticFile<'db>,
     ast_id_map: &'db AstIdMap,
     to_items: &mut FxHashMap<ErasedAstId, Item<'db>>,
+    to_scopes: &mut FxHashMap<Item<'db>, ItemScope<'db>>,
 ) -> Option<Vec<Item<'db>>> {
     Some(match stmt {
         ast::Stmt::ConstVarDecl(constvar) => {
@@ -70,6 +73,7 @@ pub(crate) fn item<'db>(
 
                 items.push(Item::ConstVar(item));
                 to_items.insert(ast_id.erased(), item.into());
+                to_scopes.insert(item.into(), ItemScope::new(db, item.into()));
             }
 
             items
@@ -96,6 +100,7 @@ pub(crate) fn item<'db>(
             let item = Module::new(db, name, loc, item_attrs);
 
             to_items.insert(ast_id.erased(), item.into());
+            to_scopes.insert(item.into(), ItemScope::new(db, item.into()));
             vec![Item::Module(item)]
         }
         // ast::Stmt::ClassDecl(_) => todo!(),
@@ -105,4 +110,26 @@ pub(crate) fn item<'db>(
         // ast::Stmt::PreprocGlob(_) => todo!(),
         _ => return None,
     })
+}
+
+/// Accumulates the simplified item binding set within the scope.
+pub(super) fn collect_item_bindings<'db>(
+    db: &'db dyn Db,
+    collection: ChildItems<'db>,
+) -> scope::ItemBindings<'db> {
+    let mut bindings = scope::ItemBindings::new();
+    let mut scope_set = scope::ScopeSet::empty();
+
+    for &item in collection.items(db) {
+        let scope = collection.item_scope(db, item);
+        scope_set.add_scope(scope.into());
+
+        bindings.add_binding(
+            item.name(db),
+            scope_set.clone(),
+            scope::ItemBinding::Item(item),
+        );
+    }
+
+    bindings
 }

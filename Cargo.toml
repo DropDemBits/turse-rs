@@ -55,6 +55,8 @@ toc-validate = { path = "compiler/toc-validate" }
 toc-vfs = { path = "compiler/toc-vfs" }
 toc-vfs-db = { path = "compiler/toc-vfs-db" }
 
+scope-trees = { path = "compiler/scope-trees" }
+
 # Instruction spec crates
 stackful-spec = { path = "spec/stackful-spec" }
 turing-bytecode = { path = "spec/turing-bytecode" }

@@ -1,0 +1,64 @@
+//! Common scoping types
+
+use crate::{
+    Symbol,
+    body::BodyScope,
+    item::{self, ItemScope},
+    local,
+};
+
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, salsa::Update, salsa::Supertype)]
+pub enum Scope<'db> {
+    ItemScope(ItemScope<'db>),
+    BodyScope(BodyScope<'db>),
+}
+
+impl<'db> std::fmt::Debug for Scope<'db> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if f.alternate() {
+            // Pass through formatting for default items.
+            match self {
+                Self::ItemScope(arg0) => arg0.fmt(f),
+                Self::BodyScope(arg0) => arg0.fmt(f),
+            }
+        } else {
+            match self {
+                Self::ItemScope(arg0) => f.debug_tuple("ItemScope").field(arg0).finish(),
+                Self::BodyScope(arg0) => f.debug_tuple("BodyScope").field(arg0).finish(),
+            }
+        }
+    }
+}
+
+impl<'db> scope_trees::Region for Scope<'db> {}
+
+pub type ScopeSet<'db> = scope_trees::ScopeSet<Scope<'db>>;
+pub type ItemBindings<'db> =
+    scope_trees::DomainBindings<Symbol<'db>, ScopeSet<'db>, ItemBinding<'db>>;
+pub type BodyBindings<'db> =
+    scope_trees::DomainBindings<Symbol<'db>, ScopeSet<'db>, BodyBinding<'db>>;
+pub type ScopeQueries<'db> = scope_trees::DomainQueries<Symbol<'db>, ScopeSet<'db>>;
+pub type QueryKey<'db> = scope_trees::QueryKey<Symbol<'db>, ScopeSet<'db>>;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, salsa::Update)]
+pub enum Binding<'db, Local = core::convert::Infallible>
+where
+    Local: salsa::Update,
+{
+    Item(item::Item<'db>),
+    Local(Local),
+}
+
+pub type ItemBinding<'db> = Binding<'db>;
+pub type BodyBinding<'db> = Binding<'db, local::LocalId<'db>>;
+
+impl<'db> From<ItemBinding<'db>> for BodyBinding<'db> {
+    fn from(binding: ItemBinding<'db>) -> Self {
+        match binding {
+            Binding::Item(item) => Self::Item(item),
+            Binding::Local(local) => match local {},
+        }
+    }
+}
+
+impl_into_conversions!(ItemScope, BodyScope for Scope<'db>);

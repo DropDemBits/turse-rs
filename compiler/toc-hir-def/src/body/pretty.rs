@@ -3,7 +3,7 @@ use std::{collections::VecDeque, fmt::Write};
 use toc_source_graph::Package;
 
 use crate::{
-    Db, DisplayWithDb,
+    Db, DisplayWithDb, Mutability,
     expr::{Expr, ExprId, Name},
     item::{AnyItem, HasItems},
     stmt::{Stmt, StmtId},
@@ -80,26 +80,42 @@ pub fn render_item_body<'db>(db: &'db dyn Db, item: AnyItem<'db>) -> String {
 
 fn render_stmt<'db>(db: &'db dyn Db, stmt: StmtId<'db>, indent: usize) -> String {
     let (body, stmt) = (stmt.body(), stmt.stmt());
+    let store = body.contents(db);
     let mut out = String::new();
 
     let indent_text = "  ".repeat(indent);
     out.push_str(&indent_text);
 
-    match body.contents(db).stmt(stmt) {
+    match store.stmt(stmt) {
         Stmt::InitializeConstVar(_item, _expr) => {
             write!(&mut out, "/* constvar initializer */").unwrap();
         }
         Stmt::InitializeBindItem(_item, _expr) => {
             write!(&mut out, "/* bind initializer */").unwrap();
         }
+        Stmt::LocalConstVar(stmt) => {
+            let local_id = stmt.local;
+            let local = &store[local_id];
+            let mutability = match stmt.mutability {
+                Mutability::Const => "const",
+                Mutability::Var => "var",
+            };
+            let name = local.name.text(db);
+            write!(&mut out, "{mutability} {name}@{local_id:?}").unwrap();
+
+            if let Some(init) = stmt.initializer {
+                let expr = render_expr(db, init.in_body(body), indent + 1);
+                write!(&mut out, " :=\n{expr}").unwrap();
+            }
+        }
         Stmt::Assign(stmt) => {
-            let lhs = render_expr(db, stmt.lhs.in_body(body));
+            let lhs = render_expr(db, stmt.lhs.in_body(body), indent + 1);
             let op_name = match stmt.op {
                 None => "Assign".to_owned(),
                 Some(op) => format!("{op:?}Assign"),
             };
-            let rhs = render_expr(db, stmt.rhs.in_body(body));
-            write!(&mut out, "{lhs} {op_name} {rhs}").unwrap();
+            let rhs = render_expr(db, stmt.rhs.in_body(body), indent + 1);
+            write!(&mut out, "{op_name}\n{lhs}\n{rhs}").unwrap();
         }
         Stmt::Put(stmt) => {
             write!(&mut out, "put ").unwrap();
@@ -107,39 +123,47 @@ fn render_stmt<'db>(db: &'db dyn Db, stmt: StmtId<'db>, indent: usize) -> String
                 write!(
                     &mut out,
                     ": {}, ",
-                    render_expr(db, stream_num.in_body(body))
+                    render_expr(db, stream_num.in_body(body), indent)
                 )
                 .unwrap();
             }
 
             for put_item in &stmt.items {
+                write!(&mut out, "\n{indent_text}  ").unwrap();
                 match put_item {
                     crate::stmt::Skippable::Skip => write!(&mut out, "skip, ").unwrap(),
                     crate::stmt::Skippable::Item(put_item) => {
                         write!(
                             &mut out,
-                            "PutItem({}",
-                            render_expr(db, put_item.expr.in_body(body))
+                            "PutItem(\n{}",
+                            render_expr(db, put_item.expr.in_body(body), indent + 1)
                         )
                         .unwrap();
 
                         if let Some(expr) = put_item.opts.width() {
-                            write!(&mut out, ", width: {}", render_expr(db, expr.in_body(body)))
-                                .unwrap()
-                        }
-                        if let Some(expr) = put_item.opts.precision() {
+                            write!(&mut out, "\n{indent_text}").unwrap();
                             write!(
                                 &mut out,
-                                ", precision: {}",
-                                render_expr(db, expr.in_body(body))
+                                "width: {}",
+                                render_expr(db, expr.in_body(body), indent)
+                            )
+                            .unwrap()
+                        }
+                        if let Some(expr) = put_item.opts.precision() {
+                            write!(&mut out, "\n{indent_text}").unwrap();
+                            write!(
+                                &mut out,
+                                "precision: {}",
+                                render_expr(db, expr.in_body(body), indent)
                             )
                             .unwrap()
                         }
                         if let Some(expr) = put_item.opts.exponent_width() {
+                            write!(&mut out, "\n{indent_text}").unwrap();
                             write!(
                                 &mut out,
-                                ", exponent_width: {}",
-                                render_expr(db, expr.in_body(body))
+                                "exponent_width: {}",
+                                render_expr(db, expr.in_body(body), indent)
                             )
                             .unwrap()
                         }
@@ -179,21 +203,37 @@ fn render_stmt<'db>(db: &'db dyn Db, stmt: StmtId<'db>, indent: usize) -> String
     out
 }
 
-fn render_expr(db: &dyn Db, expr: ExprId) -> String {
+fn render_expr(db: &dyn Db, expr: ExprId, indent: usize) -> String {
     let (body, expr) = (expr.body(), expr.expr());
+    let resolutions = body.resolved_names(db);
+    let mut out = String::new();
+
+    let indent_text = "  ".repeat(indent);
+    out.push_str(&indent_text);
 
     match body.contents(db).expr(expr) {
-        Expr::Missing => "<missing>".to_string(),
-        Expr::Literal(literal) => format!("{literal:?}"),
+        Expr::Missing => write!(&mut out, "<missing>").unwrap(),
+        Expr::Literal(literal) => write!(&mut out, "{literal:?}").unwrap(),
         Expr::Init(_) => todo!(),
         Expr::Binary(_) => todo!(),
         Expr::Unary(_) => todo!(),
         Expr::All => todo!(),
         Expr::Range(_) => todo!(),
-        Expr::Name(Name::Name(symbol)) => symbol.text(db).to_string(),
-        Expr::Name(Name::Self_) => "self".to_string(),
+        Expr::Name(Name::Name(query)) => {
+            let (name, scope_set) = &body.contents(db).queries[*query];
+            let name = name.text(db);
+
+            write!(&mut out, "{name}@({scope_set:#?}) -> ").unwrap();
+            match resolutions.binding_of(db, *query) {
+                Some(binding) => write!(&mut out, "{binding:?}").unwrap(),
+                None => write!(&mut out, "<unresolved>").unwrap(),
+            };
+        }
+        Expr::Name(Name::Self_) => write!(&mut out, "self").unwrap(),
         Expr::Field(_) => todo!(),
         Expr::Deref(_) => todo!(),
         Expr::Call(_) => todo!(),
-    }
+    };
+
+    out
 }

@@ -7,55 +7,8 @@ use toc_vfs_db::SourceFile;
 use crate::{
     Db, IsMonitor, IsPervasive, IsRegister, ItemAttrs, Mutability, Symbol,
     body::{Body, BodyOrigin},
+    scope,
 };
-
-macro_rules! impl_into_conversions {
-    ($($item:ident),+ for $wrapper:ident) => {
-        $(
-            impl From<$item> for $wrapper {
-                fn from(value: $item) -> Self {
-                    Self::$item(value)
-                }
-            }
-        )+
-
-        $(
-            impl TryFrom<$wrapper> for $item {
-                type Error = ();
-
-                fn try_from(value: $wrapper) -> Result<Self, Self::Error> {
-                    match value {
-                        $wrapper::$item(it) => Ok(it),
-                        _ => Err(()),
-                    }
-                }
-            }
-        )+
-    };
-
-    ($($item:ident),+ for $wrapper:ident<$lt:lifetime>) => {
-        $(
-            impl<$lt> From<$item<$lt>> for $wrapper<$lt> {
-                fn from(value: $item<$lt>) -> Self {
-                    Self::$item(value)
-                }
-            }
-        )+
-
-        $(
-            impl<$lt> TryFrom<$wrapper<$lt>> for $item<$lt> {
-                type Error = ();
-
-                fn try_from(value: $wrapper<$lt>) -> Result<Self, Self::Error> {
-                    match value {
-                        $wrapper::$item(it) => Ok(it),
-                        _ => Err(()),
-                    }
-                }
-            }
-        )+
-    };
-}
 
 macro_rules! impl_item_ast_id {
     (impl ItemAstId<$lt:lifetime> for $($item:ident => $ast:path),+ $(,)?) => {
@@ -93,6 +46,15 @@ pub enum Item<'db> {
 }
 
 impl_into_conversions!(ConstVar, Module for Item<'db>);
+
+impl<'db> Item<'db> {
+    pub fn name(self, db: &'db dyn Db) -> Symbol<'db> {
+        match self {
+            Item::ConstVar(const_var) => const_var.name(db),
+            Item::Module(module) => module.name(db),
+        }
+    }
+}
 
 #[salsa::tracked(debug)]
 #[derive(PartialOrd, Ord)]
@@ -316,6 +278,34 @@ impl<'db> HasItems<'db> for ModuleLike<'db> {
     }
 }
 
+/// Scope where an item is visible in.
+#[salsa::tracked]
+#[derive(PartialOrd, Ord)]
+pub struct ItemScope<'db> {
+    item: Item<'db>,
+}
+
+impl<'db> std::fmt::Debug for ItemScope<'db> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let res = if f.alternate() {
+            salsa::with_attached_database(|db| {
+                use salsa::plumbing::AsId;
+
+                let id_fmt = format!("[{}]", self.as_id().index());
+
+                match self.item(db) {
+                    Item::ConstVar(_) => f.write_fmt(format_args!("ConstVar{id_fmt}")),
+                    Item::Module(_) => f.write_fmt(format_args!("Module{id_fmt}")),
+                }
+            })
+        } else {
+            None
+        };
+
+        res.unwrap_or_else(|| Self::default_debug_fmt(*self, f))
+    }
+}
+
 /// Any AST node that can be looked up in a [`ChildItems`]
 pub trait ItemAstId<'db>: AstNode<Language = toc_syntax::Lang> {
     type Item: TryFrom<Item<'db>>;
@@ -340,6 +330,10 @@ pub struct ChildItems<'db> {
     #[tracked]
     #[returns(ref)]
     to_items: FxHashMap<ErasedAstId, Item<'db>>,
+
+    #[tracked]
+    #[returns(ref)]
+    to_scopes: FxHashMap<Item<'db>, ItemScope<'db>>,
 }
 
 #[salsa::tracked]
@@ -361,6 +355,19 @@ impl<'db> ChildItems<'db> {
 
         let item = self.get_item_erased(db, loc.into_erased().ast_id());
         T::Item::try_from(item).unwrap_or_else(|_| panic!("incorrect AstId, casting from {loc:#?}"))
+    }
+
+    #[salsa::tracked]
+    pub fn item_scope(self, db: &'db dyn Db, item: Item<'db>) -> ItemScope<'db> {
+        *self
+            .to_scopes(db)
+            .get(&item)
+            .unwrap_or_else(|| panic!("{item:?} does not have an associated item scope"))
+    }
+
+    #[salsa::tracked(returns(ref))]
+    pub fn item_bindings(self, db: &'db dyn Db) -> scope::ItemBindings<'db> {
+        lower::collect_item_bindings(db, self)
     }
 }
 

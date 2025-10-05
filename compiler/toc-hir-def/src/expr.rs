@@ -1,6 +1,6 @@
 //! Expression nodes
 
-use crate::{Symbol, body::Body};
+use crate::{Symbol, body::Body, scope};
 
 use toc_salsa_collections::arena::SalsaArenaMap;
 pub use toc_syntax::{InfixOp as BinaryOp, PrefixOp as UnaryOp};
@@ -10,7 +10,7 @@ crate::arena_id_wrapper!(
     ///
     /// [`Body`]: crate::body::Body
     pub struct LocalExpr<'db>(Expr<'db>);
-    /// Alias for the stmt arena index
+    /// Alias for the expr arena index
     pub(crate) type ExprIndex<'db> = Index;
 );
 
@@ -145,7 +145,7 @@ pub struct Unary<'db> {
 #[derive(Debug, PartialEq, Eq, Hash, salsa::Update)]
 pub enum Name<'db> {
     /// Normal identifier reference
-    Name(Symbol<'db>),
+    Name(scope::QueryKey<'db>),
     /// Reference to `self`
     // FIXME: Resolve to the appropriate class DefId
     Self_,

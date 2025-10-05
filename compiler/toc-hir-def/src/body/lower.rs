@@ -1,6 +1,6 @@
 //! Lowering from AST expressions and statements into a Body
 
-use toc_ast_db::ast_id::{AstId, AstIdMap};
+use toc_ast_db::ast_id::{AstId, AstIdMap, AstIdNode};
 use toc_hir_expand::{SemanticFile, SemanticLoc, SemanticNodePtr, UnstableSemanticLoc};
 use toc_syntax::{
     LiteralValue,
@@ -8,9 +8,11 @@ use toc_syntax::{
 };
 
 use crate::{
-    Db, Symbol,
+    Db, Mutability, Symbol,
+    body::BodyScope,
     expr::{self, LocalExpr},
     item::{self, HasItems},
+    local, scope,
     stmt::{self, LocalStmt},
 };
 
@@ -36,6 +38,7 @@ struct BodyLower<'db> {
     body: Body<'db>,
     contents: BodyContents<'db>,
     spans: BodySpans<'db>,
+    current_scope: scope::ScopeSet<'db>,
 
     errors: Vec<BodyLowerError<'db>>,
 }
@@ -57,6 +60,7 @@ impl<'db> BodyLower<'db> {
             contents: Default::default(),
             spans: Default::default(),
             errors: Default::default(),
+            current_scope: Default::default(),
         }
     }
 
@@ -64,6 +68,8 @@ impl<'db> BodyLower<'db> {
         mut self,
         root: ast::StmtList,
     ) -> (BodyContents<'db>, BodySpans<'db>, Vec<BodyLowerError<'db>>) {
+        // FIXME: Seed scopes from (parent) item, if applicable
+
         let module_block = self
             .ast_id_map
             .lookup_for_maybe(&root)
@@ -125,8 +131,7 @@ impl<'db> BodyLower<'db> {
                 return None;
             }
 
-            // these decls only introduce new definitions in scope,
-            // and that's handled by nameres later on
+            // these decls only introduce new definitions in scope
             ast::Stmt::TypeDecl(_)
             | ast::Stmt::BindDecl(_)
             | ast::Stmt::ProcDecl(_)
@@ -136,11 +141,11 @@ impl<'db> BodyLower<'db> {
             | ast::Stmt::ForwardDecl(_)
             | ast::Stmt::DeferredDecl(_)
             | ast::Stmt::BodyDecl(_)
-            | ast::Stmt::ModuleDecl(_)
             | ast::Stmt::ClassDecl(_)
             | ast::Stmt::MonitorDecl(_) => {
                 return None;
             }
+            ast::Stmt::ModuleDecl(item) => return self.declare_item(&item),
 
             ast::Stmt::AssignStmt(node) => Some(self.lower_assign_stmt(node)),
             ast::Stmt::OpenStmt(_) => None,
@@ -191,11 +196,29 @@ impl<'db> BodyLower<'db> {
         id
     }
 
+    fn declare_item<I>(&mut self, item: &I) -> Option<LocalStmt<'db>>
+    where
+        I: item::ItemAstId<'db> + AstIdNode,
+        <I as item::ItemAstId<'db>>::Item: Into<item::Item<'db>>,
+    {
+        let item = self.lookup_item(self.ast_id_map.lookup(item));
+        let item = item.into();
+        let scope = self.item_collection().item_scope(self.db, item);
+        self.current_scope.add_scope(scope.into());
+
+        None
+    }
+
+    fn item_collection(&self) -> item::ChildItems<'db> {
+        *self
+            .child_items
+            .last()
+            .unwrap_or_else(|| panic!("not in a scope with items"))
+    }
+
     fn lookup_item<T: item::ItemAstId<'db>>(&self, ast_id: AstId<T>) -> T::Item {
-        let Some(child_items) = self.child_items.last() else {
-            panic!("not in a scope with items")
-        };
-        child_items.get_item(self.db, SemanticLoc::new(self.file, ast_id))
+        self.item_collection()
+            .get_item(self.db, SemanticLoc::new(self.file, ast_id))
     }
 
     fn lower_constvar_init(
@@ -208,20 +231,58 @@ impl<'db> BodyLower<'db> {
         //
         // The initializer expression is always the same
         let names = node.constvar_names()?;
-        let init = self.lower_expr_opt(node.init());
+        let init = node.init().map(|expr| self.lower_expr(expr));
 
         for name in names.names() {
             // Initializer gets a consistent place for items
             match self.ast_id_map.lookup_for_maybe(&name) {
                 Some(ast_id) => {
                     let item = self.lookup_item(ast_id);
-                    let stmt_id =
-                        self.alloc_stmt(stmt::Stmt::InitializeConstVar(item, init), node.clone());
-                    stmts.push(stmt_id);
+
+                    if let Some(init) = init {
+                        let stmt_id = self
+                            .alloc_stmt(stmt::Stmt::InitializeConstVar(item, init), node.clone());
+                        stmts.push(stmt_id);
+                    }
+
+                    let scope = self.item_collection().item_scope(self.db, item.into());
+                    self.current_scope.add_scope(scope.into());
                 }
                 None => {
-                    // FIXME: Alloc local
-                    return None;
+                    let name = name.name();
+                    let text = name
+                        .map(|it| it.text_immutable().to_owned())
+                        .unwrap_or_else(|| "<missing name>".to_owned());
+                    let name = Symbol::new(self.db, text);
+                    let local = self.alloc_local(local::Local { name });
+
+                    let mutability = if node.var_token().is_some() {
+                        Mutability::Var
+                    } else {
+                        Mutability::Const
+                    };
+                    let stmt_id = self.alloc_stmt(
+                        stmt::Stmt::LocalConstVar(stmt::LocalConstVar {
+                            mutability,
+                            local,
+                            initializer: init,
+                        }),
+                        node.clone(),
+                    );
+                    stmts.push(stmt_id);
+
+                    // Bind local to statment
+                    self.contents.locals_owners.insert(local, stmt_id);
+
+                    // Attach local definition to a scope
+                    let local_scope = BodyScope::new(self.db);
+                    self.current_scope.add_scope(local_scope.into());
+
+                    self.contents.local_bindings.add_binding(
+                        name,
+                        self.current_scope.clone(),
+                        scope::Binding::Local(local),
+                    );
                 }
             }
         }
@@ -315,6 +376,10 @@ impl<'db> BodyLower<'db> {
             self.child_items.push(module_block.child_items(self.db));
         }
 
+        let block_scope = BodyScope::new(self.db);
+        let old_scope = self.current_scope.clone();
+        self.current_scope.add_scope(block_scope.into());
+
         // Lower child statements
         let mut child_stmts = Vec::with_capacity(stmts.stmts().count());
 
@@ -325,10 +390,15 @@ impl<'db> BodyLower<'db> {
             child_stmts.push(stmt_id);
         }
 
-        assert_eq!(
-            self.child_items.pop(),
-            module_block.map(|block| block.child_items(self.db))
-        );
+        self.current_scope = old_scope;
+
+        if let Some(module_block) = module_block {
+            assert_eq!(
+                self.child_items.pop(),
+                Some(module_block.child_items(self.db)),
+                "popping off a different child blocks' items"
+            );
+        }
 
         self.alloc_stmt(
             stmt::Stmt::Block(stmt::Block {
@@ -338,6 +408,11 @@ impl<'db> BodyLower<'db> {
             }),
             node,
         )
+    }
+
+    fn alloc_local(&mut self, local_def: local::Local<'db>) -> local::LocalId<'db> {
+        let place = self.contents.locals.alloc(local_def);
+        local::LocalId(place)
     }
 
     fn alloc_stmt(&mut self, stmt: stmt::Stmt<'db>, node: impl Into<ast::Stmt>) -> LocalStmt<'db> {
@@ -428,13 +503,12 @@ impl<'db> BodyLower<'db> {
             return self.missing_expr();
         };
 
-        self.alloc_expr(
-            expr::Expr::Name(expr::Name::Name(Symbol::new(
-                self.db,
-                name.text().to_owned(),
-            ))),
-            node,
-        )
+        let name = Symbol::new(self.db, name.text().to_owned());
+        let query = self
+            .contents
+            .queries
+            .add_query(name, self.current_scope.clone());
+        self.alloc_expr(expr::Expr::Name(expr::Name::Name(query)), node)
     }
 
     fn alloc_expr(&mut self, expr: expr::Expr<'db>, node: impl Into<ast::Expr>) -> LocalExpr<'db> {
