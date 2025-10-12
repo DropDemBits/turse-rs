@@ -1,16 +1,28 @@
 //! A type participant within the type system.
 
-#[derive(Debug, Clone)]
-pub struct Ty {
+use std::marker::PhantomData;
+
+use toc_hir_def::Mutability;
+
+#[salsa_macros::interned(debug)]
+pub struct Ty<'db> {
     pub kind: TyKind,
 }
 
+/// A placeholder representing flexible vars can never be present in a type.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum TyKind {
+pub enum NeverFlexVar {}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum TyKind<Flex = NeverFlexVar> {
     /// A type hole derived from a type system error. This allows type inference
     /// to make forward progress and discover more type errors without having to
     /// stop at the first type error.
     Error,
+    /// A placeholder flexible var used during type inference.
+    FlexVar(Flex),
+    /// Reference to a non-temporary memory value.
+    Place(Box<TyKind<Flex>>, Mutability),
     /// Boolean type.
     Boolean,
     /// Signed integer types (e.g. `int4`, `int`).
@@ -24,7 +36,7 @@ pub enum TyKind {
     /// Integer-variable type. This is a phony type that defaults to `int` if it
     /// is not unified with a concrete `int`, `nat`, or `real` type.
     Integer,
-    /// Integer-variable type. This is a phony type that defaults to `real` if it
+    /// Number-variable type. This is a phony type that defaults to `real` if it
     /// is not unified with a concrete `real` type.
     Number,
     /// Single character type.
@@ -107,4 +119,105 @@ pub enum RealSize {
     Real8,
     /// Initialization checked version of `Real8`
     Real,
+}
+
+/// A flexible inference variable that can be constrained to a more flexible type.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[repr(transparent)]
+pub struct FlexVar<'db>(u32, PhantomData<&'db ()>);
+
+impl<'db> ena::unify::UnifyKey for FlexVar<'db> {
+    type Value = FlexTy<'db>;
+
+    fn index(&self) -> u32 {
+        self.0
+    }
+
+    fn from_index(u: u32) -> Self {
+        FlexVar(u, PhantomData)
+    }
+
+    fn tag() -> &'static str {
+        "FlexVar"
+    }
+}
+
+/// The corresponding type of a [`FlexVar`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum FlexTy<'db> {
+    /// Type is unknown.
+    Unknown,
+    /// Corresponds to another flexible type variable.
+    Var(FlexVar<'db>),
+    /// Type corresponds to a known concrete type.
+    Concrete(Ty<'db>),
+    /// Corresponds to a type that may have flexible vars.
+    Ty(Box<TyKind<FlexVar<'db>>>),
+}
+
+impl<'db> ena::unify::EqUnifyValue for FlexTy<'db> {}
+
+impl<'db> From<Ty<'db>> for FlexTy<'db> {
+    fn from(value: Ty<'db>) -> Self {
+        Self::Concrete(value)
+    }
+}
+
+impl<'db> From<FlexVar<'db>> for FlexTy<'db> {
+    fn from(value: FlexVar<'db>) -> Self {
+        Self::Var(value)
+    }
+}
+
+pub mod make {
+    //! Creates commonly used simple types.
+
+    use crate::{
+        Db,
+        ty::{Ty, TyKind},
+    };
+
+    /// Constructs a placeholder error type.
+    #[salsa_macros::tracked]
+    pub fn mk_error<'db>(db: &'db dyn Db) -> Ty<'db> {
+        Ty::new(db, TyKind::Error)
+    }
+
+    /// Constructs an integer flexible type.
+    /// This defaults to a `int` type when not constrained by anything else.
+    #[salsa_macros::tracked]
+    pub fn mk_integer<'db>(db: &'db dyn Db) -> Ty<'db> {
+        Ty::new(db, TyKind::Integer)
+    }
+
+    /// Constructs a number flexible type.
+    /// This defaults to a `real` type when not constrained by anything else.
+    #[salsa_macros::tracked]
+    pub fn mk_number<'db>(db: &'db dyn Db) -> Ty<'db> {
+        Ty::new(db, TyKind::Number)
+    }
+
+    /// Constructs a `boolean` type.
+    #[salsa_macros::tracked]
+    pub fn mk_boolean<'db>(db: &'db dyn Db) -> Ty<'db> {
+        Ty::new(db, TyKind::Boolean)
+    }
+
+    /// Constructs an `int` type.
+    #[salsa_macros::tracked]
+    pub fn mk_int<'db>(db: &'db dyn Db) -> Ty<'db> {
+        Ty::new(db, TyKind::Int(crate::ty::IntSize::Int))
+    }
+
+    /// Constructs a `string` type.
+    #[salsa_macros::tracked]
+    pub fn mk_string<'db>(db: &'db dyn Db) -> Ty<'db> {
+        Ty::new(db, TyKind::String)
+    }
+
+    /// Constructs a `char` type.
+    #[salsa_macros::tracked]
+    pub fn mk_char<'db>(db: &'db dyn Db) -> Ty<'db> {
+        Ty::new(db, TyKind::Char)
+    }
 }

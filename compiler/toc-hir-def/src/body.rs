@@ -95,7 +95,7 @@ impl<'db> Body<'db> {
         &self.contents(db).top_level
     }
 
-    // FIXME: should be pub(crate), after making StmtId::get and ExprId::get
+    /// Contains all of the statements and expressions within a body.
     pub fn contents(self, db: &'db dyn Db) -> &'db BodyContents<'db> {
         self.lower_contents(db).contents(db)
     }

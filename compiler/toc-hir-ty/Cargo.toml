@@ -11,6 +11,7 @@ toc-hir-def.workspace = true
 
 salsa.workspace = true
 salsa-macros.workspace = true
+ena = "0.14.3"
 
 [lints]
 workspace = true
