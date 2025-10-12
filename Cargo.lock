@@ -1885,6 +1885,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "toc-hir-ty"
+version = "0.1.0"
+dependencies = [
+ "salsa",
+ "salsa-macros",
+ "toc-hir-def",
+]
+
+[[package]]
 name = "toc-ide-db"
 version = "0.1.0"
 dependencies = [
