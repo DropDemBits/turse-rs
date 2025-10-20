@@ -6,6 +6,7 @@ use toc_hir_def::Mutability;
 
 #[salsa_macros::interned(debug)]
 pub struct Ty<'db> {
+    #[returns(ref)]
     pub kind: TyKind,
 }
 

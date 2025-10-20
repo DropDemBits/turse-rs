@@ -15,7 +15,11 @@ use crate::{
 pub struct BodyInfer<'db> {
     #[tracked]
     #[returns(ref)]
-    expr_tys: HashMap<expr::LocalExpr<'db>, Ty<'db>>,
+    pub(crate) expr_tys: HashMap<expr::LocalExpr<'db>, Ty<'db>>,
+
+    #[tracked]
+    #[returns(ref)]
+    pub(crate) local_tys: HashMap<local::LocalId<'db>, Ty<'db>>,
 }
 
 #[derive(Debug, Default)]
@@ -52,9 +56,21 @@ pub fn infer_body<'db>(db: &'db dyn Db, body: body::Body<'db>) -> BodyInfer<'db>
         cctx.check_stmt(db, stmt.stmt());
     }
 
-    dbg!(&cctx);
+    let expr_tys = cctx
+        .env
+        .delayed_expr_tys
+        .into_keys()
+        .map(|expr| (expr, make::mk_error(db)))
+        .collect();
 
-    BodyInfer::new(db, Default::default())
+    let local_tys = cctx
+        .env
+        .delayed_local_tys
+        .into_keys()
+        .map(|local| (local, make::mk_error(db)))
+        .collect();
+
+    BodyInfer::new(db, expr_tys, local_tys)
 }
 
 /// A constraint against a set of flexible type variables.

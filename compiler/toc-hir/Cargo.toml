@@ -18,3 +18,4 @@ toc-source-graph = { workspace = true }
 
 toc-hir-expand.workspace = true
 toc-hir-def.workspace = true
+toc-hir-ty.workspace = true

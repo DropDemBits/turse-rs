@@ -61,8 +61,9 @@
 //!
 //! [`InferError`]: infer::InferError
 
-pub mod ty;
 pub mod infer;
+pub mod pretty;
+pub mod ty;
 
 #[salsa_macros::db]
 pub trait Db: toc_hir_def::Db {}
