@@ -24,6 +24,7 @@ use toc_ast_db::{
     ast_id::{AstId, AstIdMap, AstIdNode, ErasedAstId},
 };
 use toc_source_graph::Package;
+use toc_span::TextRange;
 use toc_syntax::{SyntaxNode, SyntaxNodePtr, ast::AstNode};
 use toc_vfs_db::SourceFile;
 
@@ -243,6 +244,11 @@ impl<'db, T: AstNode<Language = toc_syntax::Lang>> UnstableSemanticLoc<'db, T> {
     /// Gets which [`SemanticFile`] this unstable location comes from
     pub fn file(&self) -> SemanticFile<'db> {
         self.file
+    }
+
+    /// Gets the absolute span within the originating [`SemanticFile`].
+    pub fn absolute_text_range(&self) -> TextRange {
+        self.ptr.text_range()
     }
 
     /// Projects from `T` into `U`.

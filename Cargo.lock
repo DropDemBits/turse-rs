@@ -1854,6 +1854,7 @@ dependencies = [
  "salsa",
  "toc-ast-db",
  "toc-source-graph",
+ "toc-span",
  "toc-syntax",
  "toc-vfs-db",
 ]

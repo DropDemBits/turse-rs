@@ -12,9 +12,10 @@ edition.workspace = true
 toc-source-graph = { workspace = true }
 
 # hir::expand deps #
-toc-syntax = { workspace = true }
-toc-vfs-db = { workspace = true }
-toc-ast-db = { workspace = true }
+toc-span.workspace = true
+toc-syntax.workspace = true
+toc-vfs-db.workspace = true
+toc-ast-db.workspace = true
 rustc-hash.workspace = true
 
 salsa = { workspace = true }
