@@ -73,9 +73,20 @@ impl<'db> BodyContents<'db> {
 
 /// Spans of a body
 #[derive(Debug, Default, PartialEq, Eq, salsa::Update, Hash)]
-pub(crate) struct BodySpans<'db> {
+pub struct BodySpans<'db> {
     exprs: expr::ExprMap<'db, UnstableSemanticLoc<'db, ast::Expr>>,
     stmts: stmt::StmtMap<'db, UnstableSemanticLoc<'db, ast::Stmt>>,
+    locals: local::LocalMap<'db, UnstableSemanticLoc<'db, ast::Name>>,
+}
+
+impl<'db> BodySpans<'db> {
+    pub fn expr_span(&self, expr: expr::LocalExpr<'db>) -> UnstableSemanticLoc<'db, ast::Expr> {
+        self.exprs[expr.0].clone()
+    }
+
+    pub fn local_span(&self, local: local::LocalId<'db>) -> UnstableSemanticLoc<'db, ast::Name> {
+        self.locals[local.0].clone()
+    }
 }
 
 #[salsa::tracked(debug)]
@@ -98,6 +109,11 @@ impl<'db> Body<'db> {
     /// Contains all of the statements and expressions within a body.
     pub fn contents(self, db: &'db dyn Db) -> &'db BodyContents<'db> {
         self.lower_contents(db).contents(db)
+    }
+
+    /// Contains all of the spans for the entities within a body.
+    pub fn spans(self, db: &'db dyn Db) -> &'db BodySpans<'db> {
+        self.lower_contents(db).spans(db)
     }
 
     /// Resolutions for names that don't require looking outside of the body.

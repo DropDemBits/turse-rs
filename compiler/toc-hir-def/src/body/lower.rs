@@ -249,12 +249,14 @@ impl<'db> BodyLower<'db> {
                     self.current_scope.add_scope(scope.into());
                 }
                 None => {
-                    let name = name.name();
-                    let text = name
-                        .map(|it| it.text_immutable().to_owned())
-                        .unwrap_or_else(|| "<missing name>".to_owned());
+                    let Some(name_ast) = name.name() else {
+                        continue;
+                    };
+                    let text = name_ast.text_immutable().to_owned();
                     let name = Symbol::new(self.db, text);
-                    let local = self.alloc_local(local::Local { name });
+                    let local = self.alloc_local(local::Local { name }, name_ast);
+
+                    // TODO: Lower ty cons
 
                     let mutability = if node.var_token().is_some() {
                         Mutability::Var
@@ -410,8 +412,15 @@ impl<'db> BodyLower<'db> {
         )
     }
 
-    fn alloc_local(&mut self, local_def: local::Local<'db>) -> local::LocalId<'db> {
+    fn alloc_local(
+        &mut self,
+        local_def: local::Local<'db>,
+        node: ast::Name,
+    ) -> local::LocalId<'db> {
         let place = self.contents.locals.alloc(local_def);
+        self.spans
+            .locals
+            .insert(place, UnstableSemanticLoc::new(self.file, &node));
         local::LocalId(place)
     }
 

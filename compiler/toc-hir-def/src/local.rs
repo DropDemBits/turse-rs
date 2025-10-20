@@ -1,5 +1,7 @@
 //! Local-variable stuff
 
+use toc_salsa_collections::arena::SalsaArenaMap;
+
 use crate::Symbol;
 
 crate::arena_id_wrapper!(
@@ -15,3 +17,5 @@ crate::arena_id_wrapper!(
 pub struct Local<'db> {
     pub name: Symbol<'db>,
 }
+
+pub type LocalMap<'db, V> = SalsaArenaMap<LocalIndex<'db>, V>;
