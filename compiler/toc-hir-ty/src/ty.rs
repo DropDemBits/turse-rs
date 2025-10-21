@@ -4,6 +4,8 @@ use std::marker::PhantomData;
 
 use toc_hir_def::Mutability;
 
+use crate::Db;
+
 #[salsa_macros::interned(debug)]
 pub struct Ty<'db> {
     #[returns(ref)]
@@ -122,13 +124,33 @@ pub enum RealSize {
     Real,
 }
 
+impl<'db> From<TyKind> for TyKind<FlexVar<'db>> {
+    fn from(value: TyKind) -> Self {
+        match value {
+            TyKind::Error => Self::Error,
+            TyKind::FlexVar(var) => match var {},
+            TyKind::Place(ty_kind, mutability) => {
+                Self::Place(Box::new(Self::from(*ty_kind)), mutability)
+            }
+            TyKind::Boolean => Self::Boolean,
+            TyKind::Int(int_size) => Self::Int(int_size),
+            TyKind::Nat(nat_size) => Self::Nat(nat_size),
+            TyKind::Real(real_size) => Self::Real(real_size),
+            TyKind::Integer => Self::Integer,
+            TyKind::Number => Self::Number,
+            TyKind::Char => Self::Char,
+            TyKind::String => Self::String,
+        }
+    }
+}
+
 /// A flexible inference variable that can be constrained to a more flexible type.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(transparent)]
 pub struct FlexVar<'db>(u32, PhantomData<&'db ()>);
 
 impl<'db> ena::unify::UnifyKey for FlexVar<'db> {
-    type Value = FlexTy<'db>;
+    type Value = Option<FlexTy<'db>>;
 
     fn index(&self) -> u32 {
         self.0
@@ -146,13 +168,12 @@ impl<'db> ena::unify::UnifyKey for FlexVar<'db> {
 /// The corresponding type of a [`FlexVar`].
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum FlexTy<'db> {
-    /// Type is unknown.
-    Unknown,
     /// Corresponds to another flexible type variable.
     Var(FlexVar<'db>),
     /// Type corresponds to a known concrete type.
     Concrete(Ty<'db>),
     /// Corresponds to a type that may have flexible vars.
+    // FIXME: It'd be nice to describe a flexible type by its scheme (substs + structure) so that we can infer the structure
     Ty(Box<TyKind<FlexVar<'db>>>),
 }
 
@@ -170,12 +191,22 @@ impl<'db> From<FlexVar<'db>> for FlexTy<'db> {
     }
 }
 
+impl<'db> FlexTy<'db> {
+    pub fn into_ty_kind(self, db: &'db dyn Db) -> TyKind<FlexVar<'db>> {
+        match self {
+            FlexTy::Var(var) => TyKind::FlexVar(var),
+            FlexTy::Concrete(ty) => ty.kind(db).clone().into(),
+            FlexTy::Ty(ty_kind) => *ty_kind,
+        }
+    }
+}
+
 pub mod make {
     //! Creates commonly used simple types.
 
     use crate::{
         Db,
-        ty::{Ty, TyKind},
+        ty::{IntSize, NatSize, RealSize, Ty, TyKind},
     };
 
     /// Constructs a placeholder error type.
@@ -204,10 +235,76 @@ pub mod make {
         Ty::new(db, TyKind::Boolean)
     }
 
+    /// Constructs an `int1` type.
+    #[salsa_macros::tracked]
+    pub fn mk_int1<'db>(db: &'db dyn Db) -> Ty<'db> {
+        Ty::new(db, TyKind::Int(IntSize::Int1))
+    }
+
+    /// Constructs an `int2` type.
+    #[salsa_macros::tracked]
+    pub fn mk_int2<'db>(db: &'db dyn Db) -> Ty<'db> {
+        Ty::new(db, TyKind::Int(IntSize::Int2))
+    }
+
+    /// Constructs an `int4` type.
+    #[salsa_macros::tracked]
+    pub fn mk_int4<'db>(db: &'db dyn Db) -> Ty<'db> {
+        Ty::new(db, TyKind::Int(IntSize::Int4))
+    }
+
     /// Constructs an `int` type.
     #[salsa_macros::tracked]
     pub fn mk_int<'db>(db: &'db dyn Db) -> Ty<'db> {
-        Ty::new(db, TyKind::Int(crate::ty::IntSize::Int))
+        Ty::new(db, TyKind::Int(IntSize::Int))
+    }
+
+    /// Constructs a `nat1` type.
+    #[salsa_macros::tracked]
+    pub fn mk_nat1<'db>(db: &'db dyn Db) -> Ty<'db> {
+        Ty::new(db, TyKind::Nat(NatSize::Nat1))
+    }
+
+    /// Constructs a `nat2` type.
+    #[salsa_macros::tracked]
+    pub fn mk_nat2<'db>(db: &'db dyn Db) -> Ty<'db> {
+        Ty::new(db, TyKind::Nat(NatSize::Nat2))
+    }
+
+    /// Constructs a `nat4` type.
+    #[salsa_macros::tracked]
+    pub fn mk_nat4<'db>(db: &'db dyn Db) -> Ty<'db> {
+        Ty::new(db, TyKind::Nat(NatSize::Nat4))
+    }
+
+    /// Constructs a `nat` type.
+    #[salsa_macros::tracked]
+    pub fn mk_nat<'db>(db: &'db dyn Db) -> Ty<'db> {
+        Ty::new(db, TyKind::Nat(NatSize::Nat))
+    }
+
+    /// Constructs an `addressint` type.
+    #[salsa_macros::tracked]
+    pub fn mk_addressint<'db>(db: &'db dyn Db) -> Ty<'db> {
+        Ty::new(db, TyKind::Nat(NatSize::AddressInt))
+    }
+
+    /// Constructs a `real4` type.
+    #[salsa_macros::tracked]
+    pub fn mk_real4<'db>(db: &'db dyn Db) -> Ty<'db> {
+        Ty::new(db, TyKind::Real(RealSize::Real4))
+    }
+
+    /// Constructs a `real8` type.
+    #[salsa_macros::tracked]
+    pub fn mk_real8<'db>(db: &'db dyn Db) -> Ty<'db> {
+        Ty::new(db, TyKind::Real(RealSize::Real8))
+    }
+
+    /// Constructs a `real` type.
+    #[salsa_macros::tracked]
+    pub fn mk_real<'db>(db: &'db dyn Db) -> Ty<'db> {
+        Ty::new(db, TyKind::Real(RealSize::Real))
     }
 
     /// Constructs a `string` type.
