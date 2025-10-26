@@ -75,34 +75,12 @@ impl<'db> InferEnv<'db> {
                 None => make::mk_error(db),
             },
             FlexTy::Concrete(ty) => ty,
-            FlexTy::Ty(ty_kind) => match *ty_kind {
-                TyKind::Error => make::mk_error(db),
-                TyKind::Boolean => make::mk_boolean(db),
-                TyKind::Int(IntSize::Int1) => make::mk_int1(db),
-                TyKind::Int(IntSize::Int2) => make::mk_int2(db),
-                TyKind::Int(IntSize::Int4) => make::mk_int4(db),
-                TyKind::Int(IntSize::Int) => make::mk_int(db),
-                TyKind::Nat(NatSize::Nat1) => make::mk_nat1(db),
-                TyKind::Nat(NatSize::Nat2) => make::mk_nat2(db),
-                TyKind::Nat(NatSize::Nat4) => make::mk_nat4(db),
-                TyKind::Nat(NatSize::Nat) => make::mk_nat(db),
-                TyKind::Nat(NatSize::AddressInt) => make::mk_addressint(db),
-                TyKind::Real(RealSize::Real4) => make::mk_real4(db),
-                TyKind::Real(RealSize::Real8) => make::mk_real8(db),
-                TyKind::Real(RealSize::Real) => make::mk_real(db),
-                TyKind::Integer => make::mk_integer(db),
-                TyKind::Number => make::mk_number(db),
-                TyKind::Char => make::mk_char(db),
-                TyKind::String => make::mk_string(db),
-                // Flexible variables are normalized into their raw types
-                TyKind::FlexVar(var) => return self.substitute(db, FlexTy::Var(var)),
-                // Any other type that can contain other types has their component types normalized.
-                TyKind::Place(ty_kind, mutability) => {
-                    let place_ty = self.substitute(db, FlexTy::Ty(ty_kind)).kind(db).clone();
-
-                    Ty::new(db, TyKind::Place(Box::new(place_ty), mutability))
-                }
-            },
+            FlexTy::Ty(ty_kind) => ty_kind
+                .substitute(|var| match self.lookup_ty(var) {
+                    Some(ty) => self.substitute(db, ty).kind(db).clone(),
+                    None => TyKind::Error,
+                })
+                .intern(db),
         }
     }
 }
@@ -685,10 +663,9 @@ impl<'db> Solver<'db> {
         ty: FlexVar<'db>,
     ) -> ConstraintResult {
         let ty = self.normalize_ty(db, ty.into());
-        let kind = match ty.clone() {
-            FlexTy::Var(_) => return ConstraintResult::Stalled,
-            FlexTy::Concrete(ty) => ty.kind(db).clone().into(),
-            FlexTy::Ty(ty_kind) => *ty_kind,
+        let kind = match ty.clone().into_ty_kind(db) {
+            TyKind::FlexVar(_) => return ConstraintResult::Stalled,
+            kind => kind,
         };
 
         if matches!(kind, TyKind::Error) {

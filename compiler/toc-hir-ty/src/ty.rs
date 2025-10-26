@@ -124,22 +124,61 @@ pub enum RealSize {
     Real,
 }
 
-impl<'db> From<TyKind> for TyKind<FlexVar<'db>> {
-    fn from(value: TyKind) -> Self {
-        match value {
-            TyKind::Error => Self::Error,
-            TyKind::FlexVar(var) => match var {},
+impl<Var> TyKind<Var> {
+    fn fold_vars<U>(self, mut f: impl FnMut(Var) -> TyKind<U>) -> TyKind<U> {
+        match self {
+            TyKind::Error => TyKind::Error,
+            TyKind::FlexVar(v) => f(v),
             TyKind::Place(ty_kind, mutability) => {
-                Self::Place(Box::new(Self::from(*ty_kind)), mutability)
+                TyKind::Place(Box::new(ty_kind.fold_vars(f)), mutability)
             }
-            TyKind::Boolean => Self::Boolean,
-            TyKind::Int(int_size) => Self::Int(int_size),
-            TyKind::Nat(nat_size) => Self::Nat(nat_size),
-            TyKind::Real(real_size) => Self::Real(real_size),
-            TyKind::Integer => Self::Integer,
-            TyKind::Number => Self::Number,
-            TyKind::Char => Self::Char,
-            TyKind::String => Self::String,
+            TyKind::Boolean => TyKind::Boolean,
+            TyKind::Int(int_size) => TyKind::Int(int_size),
+            TyKind::Nat(nat_size) => TyKind::Nat(nat_size),
+            TyKind::Real(real_size) => TyKind::Real(real_size),
+            TyKind::Integer => TyKind::Integer,
+            TyKind::Number => TyKind::Number,
+            TyKind::Char => TyKind::Char,
+            TyKind::String => TyKind::String,
+        }
+    }
+}
+
+impl<'db> TyKind<FlexVar<'db>> {
+    /// Replaces any flexible type variables with concrete types and/or rigid type variables.
+    pub fn substitute(self, sub: impl FnMut(FlexVar<'db>) -> TyKind) -> TyKind {
+        self.fold_vars(sub)
+    }
+}
+
+impl TyKind {
+    /// Instantiates a type, replacing rigid type variables with flexible ones.
+    pub fn instantiate<'db>(self) -> TyKind<FlexVar<'db>> {
+        self.fold_vars(|v| match v {})
+    }
+
+    pub fn intern<'db>(self, db: &'db dyn Db) -> Ty<'db> {
+        match self {
+            TyKind::Error => make::mk_error(db),
+            TyKind::FlexVar(var) => match var {},
+            TyKind::Place(inner_ty, mutability) => Ty::new(db, TyKind::Place(inner_ty, mutability)),
+            TyKind::Boolean => make::mk_boolean(db),
+            TyKind::Int(IntSize::Int1) => make::mk_int1(db),
+            TyKind::Int(IntSize::Int2) => make::mk_int2(db),
+            TyKind::Int(IntSize::Int4) => make::mk_int4(db),
+            TyKind::Int(IntSize::Int) => make::mk_int(db),
+            TyKind::Nat(NatSize::Nat1) => make::mk_nat1(db),
+            TyKind::Nat(NatSize::Nat2) => make::mk_nat2(db),
+            TyKind::Nat(NatSize::Nat4) => make::mk_nat4(db),
+            TyKind::Nat(NatSize::Nat) => make::mk_nat(db),
+            TyKind::Nat(NatSize::AddressInt) => make::mk_addressint(db),
+            TyKind::Real(RealSize::Real4) => make::mk_real4(db),
+            TyKind::Real(RealSize::Real8) => make::mk_real8(db),
+            TyKind::Real(RealSize::Real) => make::mk_real(db),
+            TyKind::Integer => make::mk_integer(db),
+            TyKind::Number => make::mk_number(db),
+            TyKind::Char => make::mk_char(db),
+            TyKind::String => make::mk_string(db),
         }
     }
 }
@@ -195,7 +234,7 @@ impl<'db> FlexTy<'db> {
     pub fn into_ty_kind(self, db: &'db dyn Db) -> TyKind<FlexVar<'db>> {
         match self {
             FlexTy::Var(var) => TyKind::FlexVar(var),
-            FlexTy::Concrete(ty) => ty.kind(db).clone().into(),
+            FlexTy::Concrete(ty) => ty.kind(db).clone().instantiate(),
             FlexTy::Ty(ty_kind) => *ty_kind,
         }
     }
