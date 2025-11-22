@@ -6,6 +6,8 @@ use toc_hir_def::Mutability;
 
 use crate::Db;
 
+pub(crate) mod lower;
+
 #[salsa_macros::interned(debug)]
 pub struct Ty<'db> {
     #[returns(ref)]

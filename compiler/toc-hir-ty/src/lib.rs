@@ -61,6 +61,8 @@
 //!
 //! [`InferError`]: infer::InferError
 
+use toc_hir_def::{body, item};
+
 pub mod infer;
 pub mod pretty;
 pub mod ty;
@@ -78,8 +80,21 @@ pub trait BodyInferExt<'db> {
     fn infer(self, db: &'db dyn Db) -> infer::body::BodyInfer<'db>;
 }
 
-impl<'db> BodyInferExt<'db> for toc_hir_def::body::Body<'db> {
+impl<'db> BodyInferExt<'db> for body::Body<'db> {
     fn infer(self, db: &'db dyn Db) -> infer::body::BodyInfer<'db> {
         infer::body::infer_body(db, self)
+    }
+}
+
+pub trait ConstVarTyExt<'db> {
+    /// Constructs the type of a [`ConstVar`]
+    ///
+    /// [`ConstVar`]: item::ConstVar
+    fn type_of(self, db: &'db dyn Db) -> ty::Ty<'db>;
+}
+
+impl<'db> ConstVarTyExt<'db> for item::ConstVar<'db> {
+    fn type_of(self, db: &'db dyn Db) -> ty::Ty<'db> {
+        infer::item::type_of_constvar(db, self)
     }
 }

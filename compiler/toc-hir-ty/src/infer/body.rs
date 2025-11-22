@@ -2,11 +2,11 @@
 
 use std::collections::HashMap;
 
-use toc_hir_def::{body, expr, local, scope, stmt};
+use toc_hir_def::{body, expr, item, local, scope, stmt};
 
 use crate::{
-    Db,
-    infer::{BuiltinInterface, Constraint, InferEnv, Solver},
+    ConstVarTyExt, Db,
+    infer::{BuiltinInterface, Constraint, InferEnv, InferError, Solver},
     ty::{FlexTy, FlexVar, Ty, TyKind, make},
 };
 
@@ -62,6 +62,7 @@ struct ExprStoreConstraints<'db> {
     env: InferEnv<'db>,
     delayed_expr_tys: HashMap<expr::LocalExpr<'db>, FlexVar<'db>>,
     delayed_local_tys: HashMap<local::LocalId<'db>, FlexVar<'db>>,
+    errors: Vec<InferError<'db>>,
 }
 
 impl<'db> ExprStoreConstraints<'db> {
@@ -71,6 +72,7 @@ impl<'db> ExprStoreConstraints<'db> {
             env: Default::default(),
             delayed_expr_tys: Default::default(),
             delayed_local_tys: Default::default(),
+            errors: vec![],
         }
     }
 
@@ -328,9 +330,20 @@ impl<'db> ExprStoreConstraints<'db> {
                 Some(binding) => match binding {
                     scope::Binding::Item(item) => {
                         eprintln!("filling {to_var:?} with {item:?}");
-                        // TODO: Synthesize types from items
+
+                        let ty = match item {
+                            item::Item::ConstVar(const_var) => const_var.type_of(db),
+                            item @ item::Item::Module(_) => {
+                                self.errors.push(InferError::ItemNotAType {
+                                    item,
+                                    ty: FlexTy::Var(to_var),
+                                });
+                                make::mk_error(db)
+                            }
+                        };
+
                         self.env
-                            .unify_var_to(to_var, FlexTy::Concrete(make::mk_error(db)))
+                            .unify_var_to(to_var, FlexTy::Concrete(ty))
                             .expect("should always unify");
                     }
                     scope::Binding::Local(local) => {

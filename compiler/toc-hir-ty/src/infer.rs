@@ -12,6 +12,7 @@ use crate::{
 };
 
 pub mod body;
+pub mod item;
 
 #[derive(Debug, Default, Clone)]
 struct InferEnv<'db> {
@@ -124,6 +125,10 @@ pub enum InferError<'db> {
     },
     BuiltinNotImplemented {
         interface: BuiltinInterface<'db>,
+        ty: FlexTy<'db>,
+    },
+    ItemNotAType {
+        item: toc_hir_def::item::Item<'db>,
         ty: FlexTy<'db>,
     },
 }
