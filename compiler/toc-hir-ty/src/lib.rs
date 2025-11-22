@@ -70,3 +70,16 @@ pub trait Db: toc_hir_def::Db {}
 
 #[salsa_macros::db]
 impl<DB> Db for DB where DB: toc_hir_def::Db {}
+
+pub trait BodyInferExt<'db> {
+    /// Infers the types within a [`Body`].
+    ///
+    /// [`Body`]: toc_hir_def::body::Body
+    fn infer(self, db: &'db dyn Db) -> infer::body::BodyInfer<'db>;
+}
+
+impl<'db> BodyInferExt<'db> for toc_hir_def::body::Body<'db> {
+    fn infer(self, db: &'db dyn Db) -> infer::body::BodyInfer<'db> {
+        infer::body::infer_body(db, self)
+    }
+}

@@ -10,7 +10,7 @@ use camino::{Utf8Path, Utf8PathBuf};
 use salsa::Database;
 use toc_analysis::db::HirAnalysis;
 use toc_hir::{
-    AnyItem, HasItems,
+    AnyItem, BodyInferExt, HasItems,
     package_graph::{DependencyList, SourcePackage},
 };
 use toc_paths::RawPath;
@@ -153,7 +153,7 @@ fn main() {
 
                 db.attach(|db| {
                     for body in all_bodies {
-                        let infer = toc_hir::infer_body(db, body);
+                        let infer = body.infer(db);
                         let ascriptions = toc_hir::render_ascriptions(db, body, infer);
                         all_ascriptions.extend_from_slice(&ascriptions);
                     }

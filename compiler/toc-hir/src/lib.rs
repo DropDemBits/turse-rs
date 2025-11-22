@@ -164,8 +164,7 @@ pub use toc_hir_def::{
 };
 
 pub use toc_hir_ty::{
-    Db as TyDb,
-    infer::infer_body,
+    BodyInferExt, Db as TyDb,
     pretty::{Ascription, render_ascriptions},
     ty as infer_ty,
 };

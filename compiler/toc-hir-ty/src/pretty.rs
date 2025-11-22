@@ -21,7 +21,7 @@ pub struct Ascription {
 pub fn render_ascriptions<'db>(
     db: &'db dyn Db,
     body: body::Body<'db>,
-    infer: infer::BodyInfer<'db>,
+    infer: infer::body::BodyInfer<'db>,
 ) -> Vec<Ascription> {
     let store = body.contents(db);
     let spans = body.spans(db);
