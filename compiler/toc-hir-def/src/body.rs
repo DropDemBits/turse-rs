@@ -35,14 +35,15 @@ pub enum BodyOrigin<'db> {
 pub struct BodyContents<'db> {
     exprs: SalsaArena<expr::Expr<'db>>,
     stmts: SalsaArena<stmt::Stmt<'db>>,
+    /// Basic name scope queries (i.e. queries that don't depend on scope inference).
+    queries: scope::ScopeQueries<'db>,
+
     /// Local variable definitions.
     locals: SalsaArena<local::Local<'db>>,
     /// Which statements own a local.
     locals_owners: FxHashMap<local::LocalId<'db>, stmt::LocalStmt<'db>>,
     /// Local bindings defined within the body.
     local_bindings: scope::BodyBindings<'db>,
-    /// Basic name scope queries (i.e. queries that don't depend on scope inference).
-    queries: scope::ScopeQueries<'db>,
 
     top_level: Box<[StmtId<'db>]>,
     // `None` if the body's immediate block has no items, or if the body's origin owns the items.
