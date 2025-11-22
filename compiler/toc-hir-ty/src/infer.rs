@@ -4,11 +4,11 @@
 
 use std::{collections::VecDeque, mem};
 
-use toc_hir_def::scope;
+use toc_hir_def::{Mutability, scope};
 
 use crate::{
     Db,
-    ty::{FlexTy, FlexVar, IntSize, NatSize, RealSize, Ty, TyKind, make},
+    ty::{FlexTy, FlexVar, IntSize, NatSize, NeverFlexVar, RealSize, Ty, TyKind, Variance, make},
 };
 
 pub mod body;
@@ -262,11 +262,12 @@ impl<'db> Solver<'db> {
         left: FlexVar<'db>,
         right: FlexVar<'db>,
     ) -> ConstraintResult {
+        let variance = Variance::Covariant;
         let left = self.normalize_ty(db, left.into());
         let right = self.normalize_ty(db, right.into());
 
         match (left, right) {
-            (FlexTy::Concrete(left), FlexTy::Concrete(right)) if left == right => {}
+            // Equate any vars up-front.
             (FlexTy::Var(left), FlexTy::Var(right)) => {
                 if let Err((left, right)) = self.env.unify_vars(left, right) {
                     self.errors
@@ -279,9 +280,39 @@ impl<'db> Solver<'db> {
                         .push(InferError::MismatchedTypes { left, right });
                 }
             }
-            (left, right) => {
-                self.errors
-                    .push(InferError::MismatchedTypes { left, right });
+            // Try structurally relating.
+            (FlexTy::Concrete(left), FlexTy::Concrete(right)) => {
+                if let Err(()) = self.probe_and_relate_ty_ty(db, left, right, variance) {
+                    self.errors.push(InferError::MismatchedTypes {
+                        left: FlexTy::Concrete(left),
+                        right: FlexTy::Concrete(right),
+                    });
+                }
+            }
+            (FlexTy::Concrete(ty), FlexTy::Ty(flex_ty)) => {
+                if let Err(()) = self.probe_and_relate_ty_flex(db, ty, &flex_ty, variance) {
+                    self.errors.push(InferError::MismatchedTypes {
+                        left: FlexTy::Concrete(ty),
+                        right: FlexTy::Ty(flex_ty),
+                    });
+                }
+            }
+            (FlexTy::Ty(flex_ty), FlexTy::Concrete(ty)) => {
+                if let Err(()) = self.probe_and_relate_ty_flex(db, ty, &flex_ty, variance.invert())
+                {
+                    self.errors.push(InferError::MismatchedTypes {
+                        left: FlexTy::Ty(flex_ty),
+                        right: FlexTy::Concrete(ty),
+                    });
+                }
+            }
+            (FlexTy::Ty(left), FlexTy::Ty(right)) => {
+                if let Err(()) = self.probe_and_relate_flex_flex(&left, &right, variance) {
+                    self.errors.push(InferError::MismatchedTypes {
+                        left: FlexTy::Ty(left),
+                        right: FlexTy::Ty(right),
+                    });
+                }
             }
         }
 
@@ -384,5 +415,117 @@ impl<'db> Solver<'db> {
         }
 
         ConstraintResult::Finished
+    }
+
+    fn probe_and_relate_ty_ty(
+        &mut self,
+        db: &'db dyn Db,
+        left: Ty<'db>,
+        right: Ty<'db>,
+        variance: Variance,
+    ) -> Result<(), ()> {
+        self.probe_and_relate(
+            left.kind(db),
+            right.kind(db),
+            variance,
+            |_, relate| match relate.never() {},
+        )
+    }
+
+    fn probe_and_relate_ty_flex(
+        &mut self,
+        db: &'db dyn Db,
+        left: Ty<'db>,
+        right: &TyKind<FlexVar<'db>>,
+        variance: Variance,
+    ) -> Result<(), ()> {
+        self.probe_and_relate(
+            left.kind(db),
+            right,
+            variance,
+            |this, relate| match relate {
+                TyRelate::VarVar(left, _) | TyRelate::VarTy(left, _) => match *left {},
+                TyRelate::TyVar(ty, var) => this
+                    .env
+                    .unify_var_to(*var, FlexTy::Concrete(ty.clone().intern(db)))
+                    .map_err(|_| ()),
+            },
+        )
+    }
+
+    fn probe_and_relate_flex_flex(
+        &mut self,
+        left: &TyKind<FlexVar<'db>>,
+        right: &TyKind<FlexVar<'db>>,
+        variance: Variance,
+    ) -> Result<(), ()> {
+        self.probe_and_relate(left, right, variance, |this, relate| match relate {
+            TyRelate::VarVar(left, right) => this.env.unify_vars(*left, *right).map_err(|_| ()),
+            TyRelate::VarTy(var, ty) | TyRelate::TyVar(ty, var) => this
+                .env
+                .unify_var_to(*var, FlexTy::Ty(Box::new(ty.clone())))
+                .map_err(|_| ()),
+        })
+    }
+
+    fn probe_and_relate<'a, A, B>(
+        &mut self,
+        left: &'a TyKind<A>,
+        right: &'a TyKind<B>,
+        variance: Variance,
+        relate_ty_vars: impl Fn(&mut Self, TyRelate<'a, A, B>) -> Result<(), ()>,
+    ) -> Result<(), ()> {
+        match (left, right) {
+            // At inferrence variables, lift variance to variables.
+            (TyKind::FlexVar(left), TyKind::FlexVar(right)) => {
+                relate_ty_vars(self, TyRelate::VarVar(left, right))
+            }
+            (TyKind::FlexVar(left), right) => relate_ty_vars(self, TyRelate::VarTy(left, right)),
+            (left, TyKind::FlexVar(right)) => relate_ty_vars(self, TyRelate::TyVar(left, right)),
+            // Short-circuit on errors.
+            (TyKind::Error, _) | (_, TyKind::Error) => Ok(()),
+            // Apply variance structurally until we meet vars.
+            (TyKind::Place(left, left_mutl), TyKind::Place(right, right_mutl)) => {
+                self.probe_and_relate(left, right, variance, relate_ty_vars)?;
+
+                let (left_mutl, right_mutl) = match variance {
+                    Variance::Covariant | Variance::Invariant => (left_mutl, right_mutl),
+                    Variance::Contravariant => (right_mutl, left_mutl),
+                };
+
+                match (left_mutl, right_mutl) {
+                    (left, right) if left == right => Ok(()),
+                    (Mutability::Var, Mutability::Const) if !variance.is_invariant() => Ok(()),
+                    _ => return Err(()),
+                }
+            }
+            (TyKind::Boolean, TyKind::Boolean) => Ok(()),
+            (TyKind::Int(left), TyKind::Int(right)) if left == right => Ok(()),
+            (TyKind::Nat(left), TyKind::Nat(right)) if left == right => Ok(()),
+            (TyKind::Real(left), TyKind::Real(right)) if left == right => Ok(()),
+            (TyKind::Char, TyKind::Char) => Ok(()),
+            (TyKind::String, TyKind::String) => Ok(()),
+            // FIXME: These should be infer vars to propagate back up the actual type.
+            (TyKind::Integer, TyKind::Int(_) | TyKind::Nat(_) | TyKind::Real(_))
+            | (TyKind::Int(_) | TyKind::Nat(_) | TyKind::Real(_), TyKind::Integer) => Ok(()),
+            (TyKind::Number, TyKind::Real(_)) | (TyKind::Real(_), TyKind::Number) => Ok(()),
+            _ => return Err(()),
+        }
+    }
+}
+
+enum TyRelate<'a, A, B> {
+    VarVar(&'a A, &'a B),
+    VarTy(&'a A, &'a TyKind<B>),
+    TyVar(&'a TyKind<A>, &'a B),
+}
+
+impl<'a> TyRelate<'a, NeverFlexVar, NeverFlexVar> {
+    fn never(self) -> ! {
+        match self {
+            TyRelate::VarVar(never, _) | TyRelate::VarTy(never, _) | TyRelate::TyVar(_, never) => {
+                match *never {}
+            }
+        }
     }
 }

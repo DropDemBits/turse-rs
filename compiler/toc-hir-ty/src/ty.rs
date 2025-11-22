@@ -185,6 +185,33 @@ impl TyKind {
     }
 }
 
+/// In what does `A` relate to `B`?
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Variance {
+    /// `A` is a subtype of `B` (`A <: B`), following the subtyping relation.
+    Covariant,
+    /// `A` must be equal to `B` (`A = B`), and thus has no subtyping at all.
+    Invariant,
+    /// `B` is a subtype of `A` (`B <: A`), following the inverse subtyping relation.
+    Contravariant,
+}
+
+impl Variance {
+    /// Switches the direction of variance, going from covariant to contravariant
+    /// and vice versa.
+    pub fn invert(self) -> Self {
+        match self {
+            Variance::Covariant => Variance::Contravariant,
+            Variance::Invariant => Variance::Invariant,
+            Variance::Contravariant => Variance::Covariant,
+        }
+    }
+
+    pub fn is_invariant(self) -> bool {
+        matches!(self, Variance::Invariant)
+    }
+}
+
 /// A flexible inference variable that can be constrained to a more flexible type.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(transparent)]
@@ -242,6 +269,7 @@ impl<'db> FlexTy<'db> {
     }
 }
 
+// FIXME: Not great, instead use a popular types struct
 pub mod make {
     //! Creates commonly used simple types.
 
