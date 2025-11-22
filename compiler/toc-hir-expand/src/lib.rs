@@ -177,6 +177,20 @@ impl<'db, T: AstNode<Language = toc_syntax::Lang>> SemanticLoc<'db, T> {
         UnstableSemanticLoc::new(self.file(), &u)
     }
 
+    /// Fallibly Projects from `T` into `U`, without worrying about location stability.
+    ///
+    /// `U`'s node does not need to have a corresponding semantic location in the file,
+    /// but this comes with the caveat that this location is unstable
+    pub fn try_map_unstable<U: AstNode<Language = toc_syntax::Lang>>(
+        self,
+        db: &'db dyn Db,
+        f: impl FnOnce(T) -> Option<U>,
+    ) -> Option<UnstableSemanticLoc<'db, U>> {
+        let t = self.to_node(db);
+        let u = f(t)?;
+        Some(UnstableSemanticLoc::new(self.file(), &u))
+    }
+
     /// Equivalent to `Into<SemanticLoc<U>> for SemanticLoc<T>`, since
     /// actually implementing the trait resulting in overlapping implementations.
     pub fn into<U: AstNode<Language = toc_syntax::Lang> + From<T>>(self) -> SemanticLoc<'db, U> {
@@ -263,8 +277,6 @@ impl<'db, T: AstNode<Language = toc_syntax::Lang>> UnstableSemanticLoc<'db, T> {
     }
 
     /// Fallibly projects from `T` into `U`.
-    ///
-    /// `U`'s node must have a corresponding semantic location in the file
     pub fn try_map<U: AstNode<Language = toc_syntax::Lang>>(
         self,
         db: &'db dyn Db,
@@ -279,7 +291,7 @@ impl<'db, T: AstNode<Language = toc_syntax::Lang>> UnstableSemanticLoc<'db, T> {
 /// An untyped reference to a syntax node in a semantic file.
 ///
 /// Primarily used for diagnostic reporting
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, salsa::Update)]
 pub struct SemanticNodePtr<'db> {
     file: SemanticFile<'db>,
     ptr: SyntaxNodePtr,
