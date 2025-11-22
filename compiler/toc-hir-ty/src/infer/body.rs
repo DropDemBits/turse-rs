@@ -7,7 +7,7 @@ use toc_hir_def::{body, expr, item, local, scope, stmt};
 use crate::{
     ConstVarTyExt, Db,
     infer::{BuiltinInterface, Constraint, InferEnv, InferError, Solver},
-    ty::{FlexTy, FlexVar, Ty, TyKind, make},
+    ty::{self, FlexTy, FlexVar, Ty, TyKind, make},
 };
 
 #[salsa_macros::tracked]
@@ -81,22 +81,38 @@ impl<'db> ExprStoreConstraints<'db> {
             stmt::Stmt::InitializeConstVar(_, _) => todo!(),
             stmt::Stmt::InitializeBindItem(_, _) => todo!(),
             stmt::Stmt::LocalConstVar(local_const_var) => {
-                // FIXME: Handle inferring from tycons
-                // - invoke tycons wf
+                let decl_ty = local_const_var
+                    .ty_cons
+                    .map(|ty_cons| ty::lower::from_cons(db, ty_cons.cons(db)));
 
-                let expr_ty = match local_const_var.initializer {
-                    Some(expr) => self.infer_expr(db, expr),
-                    None => self.env.concrete_var(make::mk_error(db)),
+                let expr_ty = local_const_var
+                    .initializer
+                    .map(|expr| self.infer_expr(db, expr));
+
+                if let Some((decl_ty, expr_ty)) = decl_ty.zip(expr_ty) {
+                    // Initializer should be convertable into the declaration type>
+                    self.check_supertype_of(decl_ty.into(), expr_ty.into());
+                }
+
+                let inferred_ty = if let Some(decl_ty) = decl_ty {
+                    // Use the type spec as the canonical type.
+                    decl_ty.kind(db).clone().instantiate()
+                } else if let Some(expr_ty) = expr_ty {
+                    // Infer it from the initializer.
+                    TyKind::FlexVar(expr_ty)
+                } else {
+                    // No other place to infer it from.
+                    TyKind::Error
                 };
+
                 // Local constvars always correspond to a place of some type.
-                // For now, assume the type is inferred from the initializer.
-                let local_ty = self.env.flex_ty(FlexTy::Ty(Box::new(TyKind::Place(
-                    Box::new(TyKind::FlexVar(expr_ty)),
+                let inferred_ty = self.env.flex_ty(FlexTy::Ty(Box::new(TyKind::Place(
+                    Box::new(inferred_ty),
                     local_const_var.mutability,
                 ))));
 
                 self.delayed_local_tys
-                    .insert(local_const_var.local, local_ty);
+                    .insert(local_const_var.local, inferred_ty);
             }
             stmt::Stmt::Assign(_) => todo!(),
             stmt::Stmt::Put(put) => {
@@ -370,6 +386,12 @@ impl<'db> ExprStoreConstraints<'db> {
         let a = self.into_flex_var(a);
         let b = self.into_flex_var(b);
         self.env.constraints.push(Constraint::Subtype(a, b));
+    }
+
+    fn check_supertype_of(&mut self, a: FlexTy<'db>, b: FlexTy<'db>) {
+        let a = self.into_flex_var(a);
+        let b = self.into_flex_var(b);
+        self.env.constraints.push(Constraint::Subtype(b, a));
     }
 
     #[allow(unused)]
