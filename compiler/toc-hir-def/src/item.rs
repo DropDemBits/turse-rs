@@ -7,7 +7,7 @@ use toc_vfs_db::SourceFile;
 use crate::{
     Db, IsMonitor, IsPervasive, IsRegister, ItemAttrs, Mutability, Symbol,
     body::{Body, BodyOrigin},
-    scope,
+    scope, ty_cons,
 };
 
 macro_rules! impl_item_ast_id {
@@ -82,6 +82,22 @@ impl<'db> ConstVar<'db> {
     #[salsa::tracked]
     pub fn is_register(self, db: &'db dyn Db) -> IsRegister {
         self.item_attrs(db).is_register()
+    }
+
+    /// The explicit type constructor, if present.
+    #[salsa::tracked]
+    pub fn explicit_ty_cons(self, db: &'db dyn Db) -> Option<ty_cons::LoweredTyCons<'db>> {
+        let ty_spec = self.origin(db).try_map_unstable(db, |name_node| {
+            let decl_node = name_node
+                .syntax()
+                .ancestors()
+                .find_map(ast::ConstVarDecl::cast)
+                .expect("constvar names should be attached to a corresponding declaration node");
+
+            decl_node.type_spec()
+        })?;
+
+        Some(ty_cons::lower::lower_ty_cons(db, ty_spec))
     }
 }
 

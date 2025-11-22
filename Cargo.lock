@@ -1837,6 +1837,7 @@ dependencies = [
  "la-arena",
  "rustc-hash 2.1.1",
  "salsa",
+ "salsa-macros",
  "scope-trees",
  "toc-ast-db",
  "toc-hir-expand",
