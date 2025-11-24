@@ -1905,6 +1905,7 @@ dependencies = [
  "salsa",
  "salsa-macros",
  "toc-hir-def",
+ "toc-hir-expand",
 ]
 
 [[package]]

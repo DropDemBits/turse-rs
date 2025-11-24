@@ -8,6 +8,7 @@ edition.workspace = true
 
 [dependencies]
 toc-hir-def.workspace = true
+toc-hir-expand.workspace = true
 
 salsa.workspace = true
 salsa-macros.workspace = true

@@ -111,11 +111,14 @@ fn main() {
                 let mut all_ascriptions = vec![];
                 let mut amended_contents = source.contents(&db).to_owned();
 
-                // Discover all bodies
+                // Discover all bodies and item ascriptions
                 {
                     let mut explore_queue = VecDeque::new();
                     explore_queue.push_back(toc_hir::AnyItem::RootModule(root_module));
                     while let Some(item) = explore_queue.pop_front() {
+                        let ascriptions = toc_hir::render_item_ascriptions(&db, item);
+                        all_ascriptions.extend_from_slice(&ascriptions);
+
                         match item {
                             AnyItem::ConstVar(_) => {}
                             AnyItem::RootModule(root_module) => {
@@ -154,7 +157,7 @@ fn main() {
                 db.attach(|db| {
                     for body in all_bodies {
                         let infer = body.infer(db);
-                        let ascriptions = toc_hir::render_ascriptions(db, body, infer);
+                        let ascriptions = toc_hir::render_body_ascriptions(db, body, infer);
                         all_ascriptions.extend_from_slice(&ascriptions);
                     }
                 });

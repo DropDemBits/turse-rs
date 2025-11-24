@@ -2,10 +2,11 @@
 
 use std::fmt;
 
-use toc_hir_def::{Mutability, body, expr};
+use toc_hir_def::{Mutability, body, expr, item};
+use toc_hir_expand::HasSource;
 
 use crate::{
-    Db,
+    ConstVarTyExt, Db,
     infer::{self},
     ty::{IntSize, NatSize, RealSize, TyKind},
 };
@@ -18,7 +19,39 @@ pub struct Ascription {
     pub ascription: String,
 }
 
-pub fn render_ascriptions<'db>(
+pub fn render_item_ascriptions<'db>(db: &'db dyn Db, item: item::AnyItem) -> Vec<Ascription> {
+    let mut ascriptions = vec![];
+
+    match item {
+        item::AnyItem::ConstVar(const_var) => {
+            let ty = const_var.type_of(db);
+            let name = const_var.as_ast(db);
+            let span = name
+                .name()
+                .unwrap()
+                .identifier_token()
+                .unwrap()
+                .text_range();
+
+            use fmt::Write as _;
+            let mut out = String::new();
+            write!(&mut out, ": ").unwrap();
+            render_ty(db, ty.kind(db), true, &mut out).unwrap();
+
+            ascriptions.push(Ascription {
+                insert_at: span.end().into(),
+                ascription: out,
+            });
+        }
+        item::AnyItem::RootModule(_) | item::AnyItem::UnitModule(_) | item::AnyItem::Module(_) => {
+            return vec![];
+        }
+    }
+
+    ascriptions
+}
+
+pub fn render_body_ascriptions<'db>(
     db: &'db dyn Db,
     body: body::Body<'db>,
     infer: infer::body::BodyInfer<'db>,
