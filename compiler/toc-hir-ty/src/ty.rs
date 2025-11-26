@@ -6,6 +6,8 @@ use toc_hir_def::Mutability;
 
 use crate::Db;
 
+pub mod ir;
+
 pub(crate) mod lower;
 
 #[salsa_macros::interned(debug)]
@@ -14,20 +16,16 @@ pub struct Ty<'db> {
     pub kind: TyKind,
 }
 
-/// A placeholder representing flexible vars can never be present in a type.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum NeverFlexVar {}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum TyKind<Flex = NeverFlexVar> {
+pub enum TyKind<Ir: ir::TypeIr = ir::Rigid> {
     /// A type hole derived from a type system error. This allows type inference
     /// to make forward progress and discover more type errors without having to
     /// stop at the first type error.
     Error,
     /// A placeholder flexible var used during type inference.
-    FlexVar(Flex),
+    FlexVar(Ir::TyVar),
     /// Reference to a non-temporary memory value.
-    Place(Box<TyKind<Flex>>, Mutability),
+    Place(Box<Self>, Mutability),
     /// Boolean type.
     Boolean,
     /// Signed integer types (e.g. `int4`, `int`).
@@ -38,12 +36,6 @@ pub enum TyKind<Flex = NeverFlexVar> {
     Nat(NatSize),
     /// Floating point types (e.g. `real8`, `real`).
     Real(RealSize),
-    /// Integer-variable type. This is a phony type that defaults to `int` if it
-    /// is not unified with a concrete `int`, `nat`, or `real` type.
-    Integer,
-    /// Number-variable type. This is a phony type that defaults to `real` if it
-    /// is not unified with a concrete `real` type.
-    Number,
     /// Single character type.
     Char,
     /// Simple string type.
@@ -126,37 +118,51 @@ pub enum RealSize {
     Real,
 }
 
-impl<Var> TyKind<Var> {
-    fn fold_vars<U>(self, mut f: impl FnMut(Var) -> TyKind<U>) -> TyKind<U> {
+impl<Ir: ir::TypeIr> TyKind<Ir> {
+    fn fold_vars<F, U>(self, mut ty_expand: F) -> TyKind<U>
+    where
+        F: SubstFolder<Ir, U>,
+        U: ir::TypeIr,
+    {
         match self {
             TyKind::Error => TyKind::Error,
-            TyKind::FlexVar(v) => f(v),
+            TyKind::FlexVar(v) => ty_expand.subst_ty_var(v),
             TyKind::Place(ty_kind, mutability) => {
-                TyKind::Place(Box::new(ty_kind.fold_vars(f)), mutability)
+                TyKind::Place(Box::new(ty_kind.fold_vars(ty_expand)), mutability)
             }
             TyKind::Boolean => TyKind::Boolean,
             TyKind::Int(int_size) => TyKind::Int(int_size),
             TyKind::Nat(nat_size) => TyKind::Nat(nat_size),
             TyKind::Real(real_size) => TyKind::Real(real_size),
-            TyKind::Integer => TyKind::Integer,
-            TyKind::Number => TyKind::Number,
             TyKind::Char => TyKind::Char,
             TyKind::String => TyKind::String,
         }
     }
 }
 
-impl<'db> TyKind<FlexVar<'db>> {
+impl<'db> TyKind<ir::Infer<'db>> {
     /// Replaces any flexible type variables with concrete types and/or rigid type variables.
-    pub fn substitute(self, sub: impl FnMut(FlexVar<'db>) -> TyKind) -> TyKind {
+    pub fn substitute<F>(self, sub: F) -> TyKind
+    where
+        F: SubstFolder<ir::Infer<'db>, ir::Rigid>,
+    {
         self.fold_vars(sub)
     }
 }
 
 impl TyKind {
     /// Instantiates a type, replacing rigid type variables with flexible ones.
-    pub fn instantiate<'db>(self) -> TyKind<FlexVar<'db>> {
-        self.fold_vars(|v| match v {})
+    pub fn instantiate<'db>(self) -> TyKind<ir::Infer<'db>> {
+        struct RigidInst;
+        impl<'db> SubstFolder<ir::Rigid, ir::Infer<'db>> for RigidInst {
+            fn subst_ty_var(
+                &mut self,
+                var: <ir::Rigid as ir::TypeIr>::TyVar,
+            ) -> TyKind<ir::Infer<'db>> {
+                match var {}
+            }
+        }
+        self.fold_vars(RigidInst)
     }
 
     pub fn intern<'db>(self, db: &'db dyn Db) -> Ty<'db> {
@@ -177,8 +183,6 @@ impl TyKind {
             TyKind::Real(RealSize::Real4) => make::mk_real4(db),
             TyKind::Real(RealSize::Real8) => make::mk_real8(db),
             TyKind::Real(RealSize::Real) => make::mk_real(db),
-            TyKind::Integer => make::mk_integer(db),
-            TyKind::Number => make::mk_number(db),
             TyKind::Char => make::mk_char(db),
             TyKind::String => make::mk_string(db),
         }
@@ -194,6 +198,19 @@ pub enum Variance {
     Invariant,
     /// `B` is a subtype of `A` (`B <: A`), following the inverse subtyping relation.
     Contravariant,
+}
+
+pub trait SubstFolder<Ir, Out>
+where
+    Ir: ir::TypeIr,
+    Out: ir::TypeIr,
+{
+    fn subst_ty_var(&mut self, var: Ir::TyVar) -> TyKind<Out>;
+}
+
+pub struct WithSubstContext<F, C> {
+    pub folder: F,
+    pub context: C,
 }
 
 impl Variance {
@@ -242,7 +259,7 @@ pub enum FlexTy<'db> {
     Concrete(Ty<'db>),
     /// Corresponds to a type that may have flexible vars.
     // FIXME: It'd be nice to describe a flexible type by its scheme (substs + structure) so that we can infer the structure
-    Ty(Box<TyKind<FlexVar<'db>>>),
+    Ty(Box<TyKind<ir::Infer<'db>>>),
 }
 
 impl<'db> ena::unify::EqUnifyValue for FlexTy<'db> {}
@@ -260,7 +277,7 @@ impl<'db> From<FlexVar<'db>> for FlexTy<'db> {
 }
 
 impl<'db> FlexTy<'db> {
-    pub fn into_ty_kind(self, db: &'db dyn Db) -> TyKind<FlexVar<'db>> {
+    pub fn into_ty_kind(self, db: &'db dyn Db) -> TyKind<ir::Infer<'db>> {
         match self {
             FlexTy::Var(var) => TyKind::FlexVar(var),
             FlexTy::Concrete(ty) => ty.kind(db).clone().instantiate(),
@@ -282,20 +299,6 @@ pub mod make {
     #[salsa_macros::tracked]
     pub fn mk_error<'db>(db: &'db dyn Db) -> Ty<'db> {
         Ty::new(db, TyKind::Error)
-    }
-
-    /// Constructs an integer flexible type.
-    /// This defaults to a `int` type when not constrained by anything else.
-    #[salsa_macros::tracked]
-    pub fn mk_integer<'db>(db: &'db dyn Db) -> Ty<'db> {
-        Ty::new(db, TyKind::Integer)
-    }
-
-    /// Constructs a number flexible type.
-    /// This defaults to a `real` type when not constrained by anything else.
-    #[salsa_macros::tracked]
-    pub fn mk_number<'db>(db: &'db dyn Db) -> Ty<'db> {
-        Ty::new(db, TyKind::Number)
     }
 
     /// Constructs a `boolean` type.

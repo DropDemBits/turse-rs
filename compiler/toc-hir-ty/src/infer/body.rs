@@ -292,8 +292,10 @@ impl<'db> ExprStoreConstraints<'db> {
                 self.env.concrete_var(make::mk_error(db))
             }
             expr::Expr::Literal(literal) => self.env.concrete_var(match literal {
-                expr::Literal::Integer(_) => make::mk_integer(db),
-                expr::Literal::Real(_) => make::mk_number(db),
+                // FIXME: Make this 'a<int...>
+                expr::Literal::Integer(_) => make::mk_int(db),
+                // FIXME: Make this 'a<real...>
+                expr::Literal::Real(_) => make::mk_real(db),
                 expr::Literal::Char(_) => make::mk_char(db),
                 expr::Literal::CharSeq(_) => todo!(),
                 expr::Literal::String(_) => make::mk_string(db),

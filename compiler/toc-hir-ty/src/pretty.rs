@@ -151,8 +151,6 @@ pub fn render_ty<'db>(
         TyKind::Real(RealSize::Real4) => write!(out, "real4"),
         TyKind::Real(RealSize::Real8) => write!(out, "real8"),
         TyKind::Real(RealSize::Real) => write!(out, "real"),
-        TyKind::Integer => write!(out, "{{integer}}"),
-        TyKind::Number => write!(out, "{{number}}"),
         TyKind::Char => write!(out, "char"),
         TyKind::String => write!(out, "string"),
     }

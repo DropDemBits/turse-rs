@@ -8,7 +8,10 @@ use toc_hir_def::{Mutability, scope};
 
 use crate::{
     Db,
-    ty::{FlexTy, FlexVar, IntSize, NatSize, NeverFlexVar, RealSize, Ty, TyKind, Variance, make},
+    ty::{
+        FlexTy, FlexVar, IntSize, NatSize, RealSize, SubstFolder, Ty, TyKind, Variance,
+        WithSubstContext, ir, make,
+    },
 };
 
 pub mod body;
@@ -65,11 +68,23 @@ impl<'db> InferEnv<'db> {
             },
             FlexTy::Concrete(ty) => ty,
             FlexTy::Ty(ty_kind) => ty_kind
-                .substitute(|var| match self.lookup_ty(var) {
-                    Some(ty) => self.substitute(db, ty).kind(db).clone(),
-                    None => TyKind::Error,
+                .substitute(WithSubstContext {
+                    folder: self,
+                    context: db,
                 })
                 .intern(db),
+        }
+    }
+}
+
+impl<'db, 'i> SubstFolder<ir::Infer<'db>, ir::Rigid>
+    for WithSubstContext<&'i mut InferEnv<'db>, &'db dyn Db>
+{
+    fn subst_ty_var(&mut self, var: <ir::Infer<'db> as ir::TypeIr>::TyVar) -> TyKind<ir::Rigid> {
+        let db = self.context;
+        match self.folder.lookup_ty(var) {
+            Some(ty) => self.folder.substitute(db, ty).kind(db).clone(),
+            None => TyKind::Error,
         }
     }
 }
@@ -240,8 +255,6 @@ impl<'db> Solver<'db> {
                 TyKind::Real(RealSize::Real4) => FlexTy::Concrete(make::mk_real4(db)),
                 TyKind::Real(RealSize::Real8) => FlexTy::Concrete(make::mk_real8(db)),
                 TyKind::Real(RealSize::Real) => FlexTy::Concrete(make::mk_real(db)),
-                TyKind::Integer => FlexTy::Concrete(make::mk_integer(db)),
-                TyKind::Number => FlexTy::Concrete(make::mk_number(db)),
                 TyKind::Char => FlexTy::Concrete(make::mk_char(db)),
                 TyKind::String => FlexTy::Concrete(make::mk_string(db)),
                 // Flexible variables are normalized into their raw types
@@ -340,15 +353,13 @@ impl<'db> Solver<'db> {
             BuiltinInterface::GetLine => todo!(),
             BuiltinInterface::GetChars { width: _ } => todo!(),
             BuiltinInterface::Put => {
-                fn impls_put<V>(kind: &TyKind<V>) -> bool {
+                fn impls_put<I: ir::TypeIr>(kind: &TyKind<I>) -> bool {
                     match kind {
                         TyKind::Place(kind, _) => impls_put(kind),
                         TyKind::Boolean
                         | TyKind::Int(_)
                         | TyKind::Nat(_)
                         | TyKind::Real(_)
-                        | TyKind::Integer
-                        | TyKind::Number
                         | TyKind::Char
                         | TyKind::String => true,
                         _ => false,
@@ -358,14 +369,10 @@ impl<'db> Solver<'db> {
                 impls_put(&kind)
             }
             BuiltinInterface::PutWithPrecision { precision } => {
-                fn impls_put_with_precision<V>(kind: &TyKind<V>) -> bool {
+                fn impls_put_with_precision<I: ir::TypeIr>(kind: &TyKind<I>) -> bool {
                     match kind {
                         TyKind::Place(kind, _) => impls_put_with_precision(kind),
-                        TyKind::Int(_)
-                        | TyKind::Nat(_)
-                        | TyKind::Real(_)
-                        | TyKind::Integer
-                        | TyKind::Number => true,
+                        TyKind::Int(_) | TyKind::Nat(_) | TyKind::Real(_) => true,
                         _ => false,
                     }
                 }
@@ -381,14 +388,10 @@ impl<'db> Solver<'db> {
                 precision,
                 exponent,
             } => {
-                fn impls_put_with_exponent<V>(kind: &TyKind<V>) -> bool {
+                fn impls_put_with_exponent<I: ir::TypeIr>(kind: &TyKind<I>) -> bool {
                     match kind {
                         TyKind::Place(kind, _) => impls_put_with_exponent(kind),
-                        TyKind::Int(_)
-                        | TyKind::Nat(_)
-                        | TyKind::Real(_)
-                        | TyKind::Integer
-                        | TyKind::Number => true,
+                        TyKind::Int(_) | TyKind::Nat(_) | TyKind::Real(_) => true,
                         _ => false,
                     }
                 }
@@ -436,7 +439,7 @@ impl<'db> Solver<'db> {
         &mut self,
         db: &'db dyn Db,
         left: Ty<'db>,
-        right: &TyKind<FlexVar<'db>>,
+        right: &TyKind<ir::Infer<'db>>,
         variance: Variance,
     ) -> Result<(), ()> {
         self.probe_and_relate(
@@ -444,10 +447,10 @@ impl<'db> Solver<'db> {
             right,
             variance,
             |this, relate| match relate {
-                TyRelate::VarVar(left, _) | TyRelate::VarTy(left, _) => match *left {},
+                TyRelate::VarVar(left, _) | TyRelate::VarTy(left, _) => match left {},
                 TyRelate::TyVar(ty, var) => this
                     .env
-                    .unify_var_to(*var, FlexTy::Concrete(ty.clone().intern(db)))
+                    .unify_var_to(var, FlexTy::Concrete(ty.clone().intern(db)))
                     .map_err(|_| ()),
             },
         )
@@ -455,33 +458,37 @@ impl<'db> Solver<'db> {
 
     fn probe_and_relate_flex_flex(
         &mut self,
-        left: &TyKind<FlexVar<'db>>,
-        right: &TyKind<FlexVar<'db>>,
+        left: &TyKind<ir::Infer<'db>>,
+        right: &TyKind<ir::Infer<'db>>,
         variance: Variance,
     ) -> Result<(), ()> {
         self.probe_and_relate(left, right, variance, |this, relate| match relate {
-            TyRelate::VarVar(left, right) => this.env.unify_vars(*left, *right).map_err(|_| ()),
+            TyRelate::VarVar(left, right) => this.env.unify_vars(left, right).map_err(|_| ()),
             TyRelate::VarTy(var, ty) | TyRelate::TyVar(ty, var) => this
                 .env
-                .unify_var_to(*var, FlexTy::Ty(Box::new(ty.clone())))
+                .unify_var_to(var, FlexTy::Ty(Box::new(ty.clone())))
                 .map_err(|_| ()),
         })
     }
 
-    fn probe_and_relate<'a, A, B>(
+    fn probe_and_relate<'a, L, R>(
         &mut self,
-        left: &'a TyKind<A>,
-        right: &'a TyKind<B>,
+        left: &'a TyKind<L>,
+        right: &'a TyKind<R>,
         variance: Variance,
-        relate_ty_vars: impl Fn(&mut Self, TyRelate<'a, A, B>) -> Result<(), ()>,
-    ) -> Result<(), ()> {
+        relate_ty_vars: impl Fn(&mut Self, TyRelate<'a, L, R>) -> Result<(), ()>,
+    ) -> Result<(), ()>
+    where
+        L: ir::TypeIr,
+        R: ir::TypeIr,
+    {
         match (left, right) {
             // At inferrence variables, lift variance to variables.
             (TyKind::FlexVar(left), TyKind::FlexVar(right)) => {
-                relate_ty_vars(self, TyRelate::VarVar(left, right))
+                relate_ty_vars(self, TyRelate::VarVar(*left, *right))
             }
-            (TyKind::FlexVar(left), right) => relate_ty_vars(self, TyRelate::VarTy(left, right)),
-            (left, TyKind::FlexVar(right)) => relate_ty_vars(self, TyRelate::TyVar(left, right)),
+            (TyKind::FlexVar(left), right) => relate_ty_vars(self, TyRelate::VarTy(*left, right)),
+            (left, TyKind::FlexVar(right)) => relate_ty_vars(self, TyRelate::TyVar(left, *right)),
             // Short-circuit on errors.
             (TyKind::Error, _) | (_, TyKind::Error) => Ok(()),
             // Apply variance structurally until we meet vars.
@@ -505,26 +512,26 @@ impl<'db> Solver<'db> {
             (TyKind::Real(left), TyKind::Real(right)) if left == right => Ok(()),
             (TyKind::Char, TyKind::Char) => Ok(()),
             (TyKind::String, TyKind::String) => Ok(()),
-            // FIXME: These should be infer vars to propagate back up the actual type.
-            (TyKind::Integer, TyKind::Int(_) | TyKind::Nat(_) | TyKind::Real(_))
-            | (TyKind::Int(_) | TyKind::Nat(_) | TyKind::Real(_), TyKind::Integer) => Ok(()),
-            (TyKind::Number, TyKind::Real(_)) | (TyKind::Real(_), TyKind::Number) => Ok(()),
             _ => return Err(()),
         }
     }
 }
 
-enum TyRelate<'a, A, B> {
-    VarVar(&'a A, &'a B),
-    VarTy(&'a A, &'a TyKind<B>),
-    TyVar(&'a TyKind<A>, &'a B),
+enum TyRelate<'a, L, R>
+where
+    L: ir::TypeIr,
+    R: ir::TypeIr,
+{
+    VarVar(L::TyVar, R::TyVar),
+    VarTy(L::TyVar, &'a TyKind<R>),
+    TyVar(&'a TyKind<L>, R::TyVar),
 }
 
-impl<'a> TyRelate<'a, NeverFlexVar, NeverFlexVar> {
+impl<'a> TyRelate<'a, ir::Rigid, ir::Rigid> {
     fn never(self) -> ! {
         match self {
             TyRelate::VarVar(never, _) | TyRelate::VarTy(never, _) | TyRelate::TyVar(_, never) => {
-                match *never {}
+                match never {}
             }
         }
     }
