@@ -28,6 +28,7 @@ paste = "1.0.5"
 rowan = "0.16"
 rustc-hash = "2.1"
 salsa = "0.23.0"
+salsa-macros = "0.23.0"
 thiserror = "2.0"
 tracing = "0.1.37"
 tracing-subscriber = "0.3.16"
@@ -38,6 +39,7 @@ toc-analysis = { path = "compiler/toc-analysis" }
 toc-ast-db = { path = "compiler/toc-ast-db" }
 toc-hir-expand = { path = "compiler/toc-hir-expand" }
 toc-hir-def = { path = "compiler/toc-hir-def" }
+toc-hir-ty = { path = "compiler/toc-hir-ty" }
 toc-hir = { path = "compiler/toc-hir" }
 toc-hir-codegen = { path = "compiler/toc-hir-codegen" }
 toc-hir-db = { path = "compiler/toc-hir-db" }

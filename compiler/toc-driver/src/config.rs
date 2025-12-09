@@ -40,6 +40,8 @@ pub enum DumpMode {
     Hir,
     /// HIR Trees, as a GraphViz dot file
     HirGraph,
+    /// Types and constraints which are elaborated into the original text ast (only for the current file)
+    Types,
 }
 
 /// Format for report output

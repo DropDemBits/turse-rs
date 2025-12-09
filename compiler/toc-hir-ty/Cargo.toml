@@ -1,0 +1,22 @@
+[package]
+name = "toc-hir-ty"
+version = "0.1.0"
+
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+
+[dependencies]
+toc-hir-def.workspace = true
+toc-hir-expand.workspace = true
+
+salsa.workspace = true
+salsa-macros.workspace = true
+ena = "0.14.3"
+
+[lints]
+workspace = true
+
+[features]
+# Phony feature flag that is used to keep definitions we haven't implemented yet.
+unimplemented = []

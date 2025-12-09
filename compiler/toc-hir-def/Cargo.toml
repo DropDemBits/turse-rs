@@ -24,6 +24,7 @@ toc-vfs-db.workspace = true
 toc-hir-expand.workspace = true
 
 salsa.workspace = true
+salsa-macros.workspace = true
 
 [dev-dependencies]
 toc-paths.workspace = true

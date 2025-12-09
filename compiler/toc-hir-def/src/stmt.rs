@@ -9,7 +9,7 @@ use crate::{
     body::Body,
     expr,
     item::{self},
-    local,
+    local, ty_cons,
 };
 
 crate::arena_id_wrapper!(
@@ -115,6 +115,8 @@ pub struct LocalConstVar<'db> {
     pub mutability: Mutability,
     /// Local that this declares.
     pub local: local::LocalId<'db>,
+    /// Associated type constructor
+    pub ty_cons: Option<ty_cons::LoweredTyCons<'db>>,
     /// Value initializer, if present
     pub initializer: Option<expr::LocalExpr<'db>>,
 }

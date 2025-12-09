@@ -14,6 +14,7 @@ use crate::{
     item::{self, HasItems},
     local, scope,
     stmt::{self, LocalStmt},
+    ty_cons,
 };
 
 use super::{Body, BodyContents, BodySpans};
@@ -127,7 +128,7 @@ impl<'db> BodyLower<'db> {
 
         let id = match stmt {
             ast::Stmt::ConstVarDecl(node) => {
-                self.lower_constvar_init(node, stmts)?;
+                self.lower_constvar(node, stmts)?;
                 return None;
             }
 
@@ -221,15 +222,11 @@ impl<'db> BodyLower<'db> {
             .get_item(self.db, SemanticLoc::new(self.file, ast_id))
     }
 
-    fn lower_constvar_init(
+    fn lower_constvar(
         &mut self,
         node: ast::ConstVarDecl,
         stmts: &mut Vec<LocalStmt<'db>>,
     ) -> Option<()> {
-        // for now: treat all constvars and items the same (get referenced as stmts)
-        // and then lower them differently later
-        //
-        // The initializer expression is always the same
         let names = node.constvar_names()?;
         let init = node.init().map(|expr| self.lower_expr(expr));
 
@@ -249,12 +246,18 @@ impl<'db> BodyLower<'db> {
                     self.current_scope.add_scope(scope.into());
                 }
                 None => {
-                    let name = name.name();
-                    let text = name
-                        .map(|it| it.text_immutable().to_owned())
-                        .unwrap_or_else(|| "<missing name>".to_owned());
+                    let Some(name_ast) = name.name() else {
+                        continue;
+                    };
+                    let text = name_ast.text_immutable().to_owned();
                     let name = Symbol::new(self.db, text);
-                    let local = self.alloc_local(local::Local { name });
+                    let local = self.alloc_local(local::Local { name }, name_ast);
+                    let ty_cons = node.type_spec().map(|ty_cons| {
+                        ty_cons::lower::lower_ty_cons(
+                            self.db,
+                            UnstableSemanticLoc::new(self.file, &ty_cons),
+                        )
+                    });
 
                     let mutability = if node.var_token().is_some() {
                         Mutability::Var
@@ -265,6 +268,7 @@ impl<'db> BodyLower<'db> {
                         stmt::Stmt::LocalConstVar(stmt::LocalConstVar {
                             mutability,
                             local,
+                            ty_cons,
                             initializer: init,
                         }),
                         node.clone(),
@@ -410,8 +414,15 @@ impl<'db> BodyLower<'db> {
         )
     }
 
-    fn alloc_local(&mut self, local_def: local::Local<'db>) -> local::LocalId<'db> {
+    fn alloc_local(
+        &mut self,
+        local_def: local::Local<'db>,
+        node: ast::Name,
+    ) -> local::LocalId<'db> {
         let place = self.contents.locals.alloc(local_def);
+        self.spans
+            .locals
+            .insert(place, UnstableSemanticLoc::new(self.file, &node));
         local::LocalId(place)
     }
 

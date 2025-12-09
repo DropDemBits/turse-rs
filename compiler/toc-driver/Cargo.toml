@@ -30,3 +30,4 @@ clap = { version = "4.0.22", features = ["derive"] }
 salsa = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
+owo-colors = "4.2.3"

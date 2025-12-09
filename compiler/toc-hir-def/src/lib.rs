@@ -187,6 +187,7 @@ pub mod local;
 pub mod stmt;
 
 pub mod item;
+pub mod ty_cons;
 
 pub mod scope;
 

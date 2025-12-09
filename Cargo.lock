@@ -354,6 +354,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "48c757948c5ede0e46177b7add2e67155f70e33c07fea8284df6576da70b3719"
 
 [[package]]
+name = "ena"
+version = "0.14.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3d248bdd43ce613d87415282f69b9bb99d947d290b10962dd6c56233312c2ad5"
+dependencies = [
+ "log",
+]
+
+[[package]]
 name = "encode_unicode"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1110,9 +1119,9 @@ checksum = "b15813163c1d831bf4a13c3610c05c0d03b39feb07f7e09fa234dac9b15aaf39"
 
 [[package]]
 name = "owo-colors"
-version = "4.2.2"
+version = "4.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "48dd4f4a2c8405440fd0462561f0e5806bd0f77e86f51c761481bdd4018b545e"
+checksum = "9c6901729fa79e91a0913333229e9ca5dc725089d1c363b2f4b4760709dc4a52"
 
 [[package]]
 name = "papaya"
@@ -1756,6 +1765,7 @@ dependencies = [
  "ariadne",
  "camino",
  "clap",
+ "owo-colors",
  "salsa",
  "toc-analysis",
  "toc-ast-db",
@@ -1785,6 +1795,7 @@ dependencies = [
  "salsa",
  "toc-hir-def",
  "toc-hir-expand",
+ "toc-hir-ty",
  "toc-source-graph",
  "toc-span",
 ]
@@ -1826,6 +1837,7 @@ dependencies = [
  "la-arena",
  "rustc-hash 2.1.1",
  "salsa",
+ "salsa-macros",
  "scope-trees",
  "toc-ast-db",
  "toc-hir-expand",
@@ -1845,6 +1857,7 @@ dependencies = [
  "salsa",
  "toc-ast-db",
  "toc-source-graph",
+ "toc-span",
  "toc-syntax",
  "toc-vfs-db",
 ]
@@ -1882,6 +1895,17 @@ dependencies = [
  "toc-paths",
  "toc-source-graph",
  "toc-span",
+]
+
+[[package]]
+name = "toc-hir-ty"
+version = "0.1.0"
+dependencies = [
+ "ena",
+ "salsa",
+ "salsa-macros",
+ "toc-hir-def",
+ "toc-hir-expand",
 ]
 
 [[package]]

@@ -1,11 +1,18 @@
 //! Dummy bin for running the new scanner and parser
 
-use std::{collections::HashMap, fs, ops::Range};
+use std::{
+    collections::{HashMap, VecDeque},
+    fs,
+    ops::Range,
+};
 
 use camino::{Utf8Path, Utf8PathBuf};
 use salsa::Database;
 use toc_analysis::db::HirAnalysis;
-use toc_hir::package_graph::{DependencyList, SourcePackage};
+use toc_hir::{
+    AnyItem, BodyInferExt, HasItems,
+    package_graph::{DependencyList, SourcePackage},
+};
 use toc_paths::RawPath;
 use toc_source_graph::RootPackages;
 use toc_span::Span;
@@ -94,6 +101,78 @@ fn main() {
                 let out =
                     toc_hir_pretty::graph::pretty_print_graph(&db, |package| db.package(package));
                 println!("{out}");
+            }
+            config::DumpMode::Types => {
+                let source = toc_vfs_db::source_of(&db, root_file.raw_path(&db));
+                let root_source = toc_hir::SemanticFile::from_source_file(&db, source);
+                let root_module = toc_hir::root_module(&db, source);
+
+                let mut all_bodies = vec![];
+                let mut all_ascriptions = vec![];
+                let mut amended_contents = source.contents(&db).to_owned();
+
+                // Discover all bodies and item ascriptions
+                {
+                    let mut explore_queue = VecDeque::new();
+                    explore_queue.push_back(toc_hir::AnyItem::RootModule(root_module));
+                    while let Some(item) = explore_queue.pop_front() {
+                        let ascriptions = toc_hir::render_item_ascriptions(&db, item);
+                        all_ascriptions.extend_from_slice(&ascriptions);
+
+                        match item {
+                            AnyItem::ConstVar(_) => {}
+                            AnyItem::RootModule(root_module) => {
+                                all_bodies.push(root_module.body(&db));
+
+                                explore_queue.extend(
+                                    root_module
+                                        .child_items(&db)
+                                        .items(&db)
+                                        .iter()
+                                        .copied()
+                                        .map(toc_hir::AnyItem::from),
+                                );
+                            }
+                            AnyItem::UnitModule(_) => unimplemented!(),
+                            AnyItem::Module(module) => {
+                                if module.into_loc(&db).file() != root_source {
+                                    continue;
+                                }
+
+                                all_bodies.push(module.body(&db));
+
+                                explore_queue.extend(
+                                    module
+                                        .child_items(&db)
+                                        .items(&db)
+                                        .iter()
+                                        .copied()
+                                        .map(toc_hir::AnyItem::from),
+                                );
+                            }
+                        }
+                    }
+                }
+
+                db.attach(|db| {
+                    for body in all_bodies {
+                        let infer = body.infer(db);
+                        let ascriptions = toc_hir::render_body_ascriptions(db, body, infer);
+                        all_ascriptions.extend_from_slice(&ascriptions);
+                    }
+                });
+
+                all_ascriptions.sort_by_key(|it| it.insert_at);
+                all_ascriptions.reverse();
+
+                use owo_colors::OwoColorize as _;
+                for ascribe in all_ascriptions {
+                    amended_contents.insert_str(
+                        ascribe.insert_at,
+                        &format!("{}", ascribe.ascription.magenta()),
+                    );
+                }
+                println!("Types:\n{amended_contents}");
             }
         }
     }

@@ -163,6 +163,12 @@ pub use toc_hir_def::{
     stmt::*,
 };
 
+pub use toc_hir_ty::{
+    BodyInferExt, Db as TyDb,
+    pretty::{Ascription, render_body_ascriptions, render_item_ascriptions},
+    ty as infer_ty,
+};
+
 /// Helper trait equivalent to `Option::map_or(predicate)`
 pub trait OrMissingExt<T> {
     fn is_missing_or(&self, is_predicate: impl FnOnce(T) -> bool) -> bool;
