@@ -138,6 +138,49 @@ impl<Ir: ir::TypeIr> TyKind<Ir> {
             TyKind::String => TyKind::String,
         }
     }
+
+    pub fn relate_with<R>(
+        &self,
+        other: &TyKind<R>,
+        variance: Variance,
+        ctx: &mut impl RelateContext<Ir, R>,
+    ) -> Result<(), ()>
+    where
+        R: ir::TypeIr,
+    {
+        match (self, other) {
+            // At inference variables, lift variance to variables.
+            (TyKind::FlexVar(left), TyKind::FlexVar(right)) => {
+                ctx.relate_tys(TyRelation::VarVar(*left, *right))
+            }
+            (TyKind::FlexVar(left), right) => ctx.relate_tys(TyRelation::VarTy(*left, right)),
+            (left, TyKind::FlexVar(right)) => ctx.relate_tys(TyRelation::TyVar(left, *right)),
+            // Short-circuit on errors.
+            (TyKind::Error, _) | (_, TyKind::Error) => Ok(()),
+            // Apply variance structurally until we meet vars.
+            (TyKind::Place(left, left_mutl), TyKind::Place(right, right_mutl)) => {
+                left.relate_with(right, variance, ctx)?;
+
+                let (left_mutl, right_mutl) = match variance {
+                    Variance::Covariant | Variance::Invariant => (left_mutl, right_mutl),
+                    Variance::Contravariant => (right_mutl, left_mutl),
+                };
+
+                match (left_mutl, right_mutl) {
+                    (left, right) if left == right => Ok(()),
+                    (Mutability::Var, Mutability::Const) if !variance.is_invariant() => Ok(()),
+                    _ => return Err(()),
+                }
+            }
+            (TyKind::Boolean, TyKind::Boolean) => Ok(()),
+            (TyKind::Int(left), TyKind::Int(right)) if left == right => Ok(()),
+            (TyKind::Nat(left), TyKind::Nat(right)) if left == right => Ok(()),
+            (TyKind::Real(left), TyKind::Real(right)) if left == right => Ok(()),
+            (TyKind::Char, TyKind::Char) => Ok(()),
+            (TyKind::String, TyKind::String) => Ok(()),
+            _ => return Err(()),
+        }
+    }
 }
 
 impl<'db> TyKind<ir::Infer<'db>> {
@@ -214,18 +257,75 @@ pub struct WithSubstContext<F, C> {
 }
 
 impl Variance {
-    /// Switches the direction of variance, going from covariant to contravariant
-    /// and vice versa.
-    pub fn invert(self) -> Self {
-        match self {
-            Variance::Covariant => Variance::Contravariant,
-            Variance::Invariant => Variance::Invariant,
-            Variance::Contravariant => Variance::Covariant,
+    /// In the context of `ambient` variance, transforms the variance into the
+    /// actual variance to relate against.
+    ///
+    /// Source: Figure 1 of "Taming the Wildcards:
+    /// Combining Definition- and Use-Site Variance" published in PLDI'11.
+    pub fn in_ambient(self, ambient: Variance) -> Variance {
+        match (ambient, self) {
+            // Covariant context preserves the relation direction.
+            (Variance::Covariant, Variance::Covariant) => Variance::Covariant,
+            (Variance::Covariant, Variance::Contravariant) => Variance::Contravariant,
+            (Variance::Covariant, Variance::Invariant) => Variance::Invariant,
+
+            // Contravariant context inverts the relation direction.
+            (Variance::Contravariant, Variance::Covariant) => Variance::Contravariant,
+            (Variance::Contravariant, Variance::Contravariant) => Variance::Covariant,
+            (Variance::Contravariant, Variance::Invariant) => Variance::Invariant,
+
+            // Invariant context always forces everything to be invariant.
+            (Variance::Invariant, _) => Variance::Invariant,
         }
     }
 
     pub fn is_invariant(self) -> bool {
         matches!(self, Variance::Invariant)
+    }
+}
+
+/// Context where a type can be related inside of.
+///
+/// Allows relating between parts of types, consts, and other type system variables.
+pub trait RelateContext<L, R>
+where
+    L: ir::TypeIr,
+    R: ir::TypeIr,
+{
+    fn relate_tys(&mut self, relate: TyRelation<L, R>) -> Result<(), ()>;
+}
+
+pub enum TyRelation<'a, L, R>
+where
+    L: ir::TypeIr,
+    R: ir::TypeIr,
+{
+    VarVar(L::TyVar, R::TyVar),
+    VarTy(L::TyVar, &'a TyKind<R>),
+    TyVar(&'a TyKind<L>, R::TyVar),
+}
+
+impl<'a, L, R> TyRelation<'a, L, R>
+where
+    L: ir::TypeIr,
+    R: ir::TypeIr,
+{
+    pub fn reverse(self) -> TyRelation<'a, R, L> {
+        match self {
+            TyRelation::VarVar(left, right) => TyRelation::VarVar(right, left),
+            TyRelation::VarTy(left, right) => TyRelation::TyVar(right, left),
+            TyRelation::TyVar(left, right) => TyRelation::VarTy(right, left),
+        }
+    }
+}
+
+impl<'a> TyRelation<'a, ir::Rigid, ir::Rigid> {
+    pub fn always_rigid(self) -> ! {
+        match self {
+            TyRelation::VarVar(never, _)
+            | TyRelation::VarTy(never, _)
+            | TyRelation::TyVar(_, never) => match never {},
+        }
     }
 }
 
@@ -258,7 +358,7 @@ pub enum FlexTy<'db> {
     /// Type corresponds to a known concrete type.
     Concrete(Ty<'db>),
     /// Corresponds to a type that may have flexible vars.
-    // FIXME: It'd be nice to describe a flexible type by its scheme (substs + structure) so that we can infer the structure
+    // FIXME: It'd be nice to describe a flexible type by its scheme (substs + structure) so that we can intern the structure
     Ty(Box<TyKind<ir::Infer<'db>>>),
 }
 

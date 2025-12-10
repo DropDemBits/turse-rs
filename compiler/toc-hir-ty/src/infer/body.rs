@@ -32,8 +32,8 @@ pub(crate) fn infer_body<'db>(db: &'db dyn Db, body: body::Body<'db>) -> BodyInf
     }
     cctx.fill_body_resolutions(db, body.resolved_names(db));
 
-    let mut solver = Solver::new(cctx.env.clone());
-    if let Err(err) = solver.solve(db) {
+    let mut solver = Solver::new(db, cctx.env.clone());
+    if let Err(err) = solver.solve() {
         eprintln!("solver err: {err:?}");
     }
     if !solver.errors.is_empty() {
@@ -90,7 +90,7 @@ impl<'db> ExprStoreConstraints<'db> {
                     .map(|expr| self.infer_expr(db, expr));
 
                 if let Some((decl_ty, expr_ty)) = decl_ty.zip(expr_ty) {
-                    // Initializer should be convertable into the declaration type>
+                    // Initializer should be convertable into the declaration type
                     self.check_supertype_of(decl_ty.into(), expr_ty.into());
                 }
 
@@ -387,20 +387,26 @@ impl<'db> ExprStoreConstraints<'db> {
     fn check_subtype_of(&mut self, a: FlexTy<'db>, b: FlexTy<'db>) {
         let a = self.into_flex_var(a);
         let b = self.into_flex_var(b);
-        self.env.constraints.push(Constraint::Subtype(a, b));
+        self.env
+            .constraints
+            .push(Constraint::Relate(a, b, ty::Variance::Covariant));
     }
 
     fn check_supertype_of(&mut self, a: FlexTy<'db>, b: FlexTy<'db>) {
         let a = self.into_flex_var(a);
         let b = self.into_flex_var(b);
-        self.env.constraints.push(Constraint::Subtype(b, a));
+        self.env
+            .constraints
+            .push(Constraint::Relate(a, b, ty::Variance::Contravariant));
     }
 
     #[allow(unused)]
     fn check_unify_of(&mut self, a: FlexTy<'db>, b: FlexTy<'db>) {
         let a = self.into_flex_var(a);
         let b = self.into_flex_var(b);
-        self.env.constraints.push(Constraint::Unify(a, b));
+        self.env
+            .constraints
+            .push(Constraint::Relate(a, b, ty::Variance::Invariant));
     }
 
     fn check_resolution_of(&mut self, query_key: scope::QueryKey<'db>, ty_var: FlexVar<'db>) {

@@ -4,12 +4,12 @@
 
 use std::{collections::VecDeque, mem};
 
-use toc_hir_def::{Mutability, scope};
+use toc_hir_def::scope;
 
 use crate::{
     Db,
     ty::{
-        FlexTy, FlexVar, IntSize, NatSize, RealSize, SubstFolder, Ty, TyKind, Variance,
+        self, FlexTy, FlexVar, IntSize, NatSize, RealSize, SubstFolder, Ty, TyKind, Variance,
         WithSubstContext, ir, make,
     },
 };
@@ -94,10 +94,8 @@ impl<'db> SubstFolder<ir::Infer<'db>, ir::Rigid>
 /// Constraints direct what each flexible type variable should infer to.
 #[derive(Debug, Clone)]
 pub enum Constraint<'db> {
-    /// Constrains `'a` to be a subtype of `'b` (`'a <: 'b`).
-    Subtype(FlexVar<'db>, FlexVar<'db>),
-    /// Constrains `'a` to unify with `'b` (`'a = 'b`).
-    Unify(FlexVar<'db>, FlexVar<'db>),
+    /// Constrains `'a` to relate to`'b` (`'a • 'b`).
+    Relate(FlexVar<'db>, FlexVar<'db>, Variance),
     /// Infers `'a` from a resolution.
     ResolutionOf(scope::QueryKey<'db>, FlexVar<'db>),
     /// `'a` must be a type that implements a [`BuiltinInterface`].
@@ -135,8 +133,9 @@ const DEFAULT_FUEL: usize = 1000;
 #[derive(Debug)]
 pub enum InferError<'db> {
     MismatchedTypes {
-        left: FlexTy<'db>,
-        right: FlexTy<'db>,
+        left: FlexVar<'db>,
+        right: FlexVar<'db>,
+        variance: Variance,
     },
     BuiltinNotImplemented {
         interface: BuiltinInterface<'db>,
@@ -155,6 +154,7 @@ pub enum SolverError {
 }
 
 struct Solver<'db> {
+    db: &'db dyn Db,
     env: InferEnv<'db>,
     deferred_constraints: VecDeque<Constraint<'db>>,
     errors: Vec<InferError<'db>>,
@@ -166,15 +166,16 @@ pub enum ConstraintResult {
 }
 
 impl<'db> Solver<'db> {
-    fn new(env: InferEnv<'db>) -> Self {
+    fn new(db: &'db dyn Db, env: InferEnv<'db>) -> Self {
         Self {
+            db,
             env,
             deferred_constraints: Default::default(),
             errors: Default::default(),
         }
     }
 
-    fn solve(&mut self, db: &'db dyn Db) -> Result<(), SolverError> {
+    fn solve(&mut self) -> Result<(), SolverError> {
         let mut active_constraints = VecDeque::from(mem::take(&mut self.env.constraints));
         let mut stalled_constraints = VecDeque::with_capacity(active_constraints.len());
         let mut fuel = DEFAULT_FUEL;
@@ -203,12 +204,11 @@ impl<'db> Solver<'db> {
             eprintln!("solving {constraint:?}");
 
             let res = match constraint.clone() {
-                Constraint::Subtype(left, right) => self.try_subtype_of(db, left, right),
-                Constraint::Unify(_left, _right) => todo!(),
-                Constraint::ResolutionOf(_, _) => unreachable!("encountered unfilled resolution"),
-                Constraint::ImplsBuiltin(interface, ty) => {
-                    self.try_impls_builtin(db, interface, ty)
+                Constraint::Relate(left, right, variance) => {
+                    self.try_relate_of(left, right, variance)
                 }
+                Constraint::ResolutionOf(_, _) => unreachable!("encountered unfilled resolution"),
+                Constraint::ImplsBuiltin(interface, ty) => self.try_impls_builtin(interface, ty),
             };
 
             match res {
@@ -269,64 +269,45 @@ impl<'db> Solver<'db> {
         }
     }
 
-    fn try_subtype_of(
+    fn try_relate_of(
         &mut self,
-        db: &'db dyn Db,
         left: FlexVar<'db>,
         right: FlexVar<'db>,
+        variance: Variance,
     ) -> ConstraintResult {
-        let variance = Variance::Covariant;
-        let left = self.normalize_ty(db, left.into());
-        let right = self.normalize_ty(db, right.into());
+        let db = self.db;
+        let left_ty = self.normalize_ty(db, left.into());
+        let right_ty = self.normalize_ty(db, right.into());
 
-        match (left, right) {
+        let res = match (&left_ty, &right_ty) {
             // Equate any vars up-front.
             (FlexTy::Var(left), FlexTy::Var(right)) => {
-                if let Err((left, right)) = self.env.unify_vars(left, right) {
-                    self.errors
-                        .push(InferError::MismatchedTypes { left, right });
-                }
+                self.env.unify_vars(*left, *right).map_err(|_| ())
             }
-            (FlexTy::Var(var), ty) | (ty, FlexTy::Var(var)) => {
-                if let Err((left, right)) = self.env.unify_var_to(var, ty) {
-                    self.errors
-                        .push(InferError::MismatchedTypes { left, right });
-                }
+            (FlexTy::Var(var), _) | (_, FlexTy::Var(var)) => {
+                self.env.unify_var_to(*var, right_ty).map_err(|_| ())
             }
             // Try structurally relating.
-            (FlexTy::Concrete(left), FlexTy::Concrete(right)) => {
-                if let Err(()) = self.probe_and_relate_ty_ty(db, left, right, variance) {
-                    self.errors.push(InferError::MismatchedTypes {
-                        left: FlexTy::Concrete(left),
-                        right: FlexTy::Concrete(right),
-                    });
-                }
-            }
+            (FlexTy::Concrete(left_ty), FlexTy::Concrete(right_ty)) => left_ty
+                .kind(db)
+                .relate_with(right_ty.kind(db), variance, self),
             (FlexTy::Concrete(ty), FlexTy::Ty(flex_ty)) => {
-                if let Err(()) = self.probe_and_relate_ty_flex(db, ty, &flex_ty, variance) {
-                    self.errors.push(InferError::MismatchedTypes {
-                        left: FlexTy::Concrete(ty),
-                        right: FlexTy::Ty(flex_ty),
-                    });
-                }
+                ty.kind(db).relate_with(flex_ty, variance, self)
             }
             (FlexTy::Ty(flex_ty), FlexTy::Concrete(ty)) => {
-                if let Err(()) = self.probe_and_relate_ty_flex(db, ty, &flex_ty, variance.invert())
-                {
-                    self.errors.push(InferError::MismatchedTypes {
-                        left: FlexTy::Ty(flex_ty),
-                        right: FlexTy::Concrete(ty),
-                    });
-                }
+                flex_ty.relate_with(ty.kind(db), variance, self)
             }
-            (FlexTy::Ty(left), FlexTy::Ty(right)) => {
-                if let Err(()) = self.probe_and_relate_flex_flex(&left, &right, variance) {
-                    self.errors.push(InferError::MismatchedTypes {
-                        left: FlexTy::Ty(left),
-                        right: FlexTy::Ty(right),
-                    });
-                }
+            (FlexTy::Ty(left_flex), FlexTy::Ty(right_flex)) => {
+                left_flex.relate_with(right_flex, variance, self)
             }
+        };
+
+        if res.is_err() {
+            self.errors.push(InferError::MismatchedTypes {
+                left,
+                right,
+                variance,
+            });
         }
 
         ConstraintResult::Finished
@@ -334,12 +315,11 @@ impl<'db> Solver<'db> {
 
     fn try_impls_builtin(
         &mut self,
-        db: &'db dyn Db,
         interface: BuiltinInterface<'db>,
         ty: FlexVar<'db>,
     ) -> ConstraintResult {
-        let ty = self.normalize_ty(db, ty.into());
-        let kind = match ty.clone().into_ty_kind(db) {
+        let ty = self.normalize_ty(self.db, ty.into());
+        let kind = match ty.clone().into_ty_kind(self.db) {
             TyKind::FlexVar(_) => return ConstraintResult::Stalled,
             kind => kind,
         };
@@ -377,9 +357,10 @@ impl<'db> Solver<'db> {
                     }
                 }
 
-                self.deferred_constraints.push_front(Constraint::Subtype(
+                self.deferred_constraints.push_front(Constraint::Relate(
                     precision,
-                    self.env.concrete_var(make::mk_int(db)),
+                    self.env.concrete_var(make::mk_int(self.db)),
+                    Variance::Covariant,
                 ));
 
                 impls_put_with_precision(&kind)
@@ -396,13 +377,15 @@ impl<'db> Solver<'db> {
                     }
                 }
 
-                self.deferred_constraints.push_front(Constraint::Subtype(
+                self.deferred_constraints.push_front(Constraint::Relate(
                     precision,
-                    self.env.concrete_var(make::mk_int(db)),
+                    self.env.concrete_var(make::mk_int(self.db)),
+                    Variance::Covariant,
                 ));
-                self.deferred_constraints.push_front(Constraint::Subtype(
+                self.deferred_constraints.push_front(Constraint::Relate(
                     exponent,
-                    self.env.concrete_var(make::mk_int(db)),
+                    self.env.concrete_var(make::mk_int(self.db)),
+                    Variance::Covariant,
                 ));
 
                 impls_put_with_exponent(&kind)
@@ -419,120 +402,43 @@ impl<'db> Solver<'db> {
 
         ConstraintResult::Finished
     }
+}
 
-    fn probe_and_relate_ty_ty(
-        &mut self,
-        db: &'db dyn Db,
-        left: Ty<'db>,
-        right: Ty<'db>,
-        variance: Variance,
-    ) -> Result<(), ()> {
-        self.probe_and_relate(
-            left.kind(db),
-            right.kind(db),
-            variance,
-            |_, relate| match relate.never() {},
-        )
+impl<'db> ty::RelateContext<ir::Rigid, ir::Rigid> for Solver<'db> {
+    fn relate_tys(&mut self, relate: ty::TyRelation<ir::Rigid, ir::Rigid>) -> Result<(), ()> {
+        match relate.always_rigid() {}
     }
+}
 
-    fn probe_and_relate_ty_flex(
-        &mut self,
-        db: &'db dyn Db,
-        left: Ty<'db>,
-        right: &TyKind<ir::Infer<'db>>,
-        variance: Variance,
-    ) -> Result<(), ()> {
-        self.probe_and_relate(
-            left.kind(db),
-            right,
-            variance,
-            |this, relate| match relate {
-                TyRelate::VarVar(left, _) | TyRelate::VarTy(left, _) => match left {},
-                TyRelate::TyVar(ty, var) => this
-                    .env
-                    .unify_var_to(var, FlexTy::Concrete(ty.clone().intern(db)))
-                    .map_err(|_| ()),
-            },
-        )
-    }
-
-    fn probe_and_relate_flex_flex(
-        &mut self,
-        left: &TyKind<ir::Infer<'db>>,
-        right: &TyKind<ir::Infer<'db>>,
-        variance: Variance,
-    ) -> Result<(), ()> {
-        self.probe_and_relate(left, right, variance, |this, relate| match relate {
-            TyRelate::VarVar(left, right) => this.env.unify_vars(left, right).map_err(|_| ()),
-            TyRelate::VarTy(var, ty) | TyRelate::TyVar(ty, var) => this
+impl<'db> ty::RelateContext<ir::Rigid, ir::Infer<'db>> for Solver<'db> {
+    fn relate_tys(&mut self, relate: ty::TyRelation<ir::Rigid, ir::Infer<'db>>) -> Result<(), ()> {
+        match relate {
+            ty::TyRelation::VarVar(left, _) | ty::TyRelation::VarTy(left, _) => match left {},
+            ty::TyRelation::TyVar(ty, var) => self
                 .env
-                .unify_var_to(var, FlexTy::Ty(Box::new(ty.clone())))
+                .unify_var_to(var, FlexTy::Concrete(ty.clone().intern(self.db)))
                 .map_err(|_| ()),
-        })
-    }
-
-    fn probe_and_relate<'a, L, R>(
-        &mut self,
-        left: &'a TyKind<L>,
-        right: &'a TyKind<R>,
-        variance: Variance,
-        relate_ty_vars: impl Fn(&mut Self, TyRelate<'a, L, R>) -> Result<(), ()>,
-    ) -> Result<(), ()>
-    where
-        L: ir::TypeIr,
-        R: ir::TypeIr,
-    {
-        match (left, right) {
-            // At inferrence variables, lift variance to variables.
-            (TyKind::FlexVar(left), TyKind::FlexVar(right)) => {
-                relate_ty_vars(self, TyRelate::VarVar(*left, *right))
-            }
-            (TyKind::FlexVar(left), right) => relate_ty_vars(self, TyRelate::VarTy(*left, right)),
-            (left, TyKind::FlexVar(right)) => relate_ty_vars(self, TyRelate::TyVar(left, *right)),
-            // Short-circuit on errors.
-            (TyKind::Error, _) | (_, TyKind::Error) => Ok(()),
-            // Apply variance structurally until we meet vars.
-            (TyKind::Place(left, left_mutl), TyKind::Place(right, right_mutl)) => {
-                self.probe_and_relate(left, right, variance, relate_ty_vars)?;
-
-                let (left_mutl, right_mutl) = match variance {
-                    Variance::Covariant | Variance::Invariant => (left_mutl, right_mutl),
-                    Variance::Contravariant => (right_mutl, left_mutl),
-                };
-
-                match (left_mutl, right_mutl) {
-                    (left, right) if left == right => Ok(()),
-                    (Mutability::Var, Mutability::Const) if !variance.is_invariant() => Ok(()),
-                    _ => Err(()),
-                }
-            }
-            (TyKind::Boolean, TyKind::Boolean) => Ok(()),
-            (TyKind::Int(left), TyKind::Int(right)) if left == right => Ok(()),
-            (TyKind::Nat(left), TyKind::Nat(right)) if left == right => Ok(()),
-            (TyKind::Real(left), TyKind::Real(right)) if left == right => Ok(()),
-            (TyKind::Char, TyKind::Char) => Ok(()),
-            (TyKind::String, TyKind::String) => Ok(()),
-            _ => Err(()),
         }
     }
 }
 
-enum TyRelate<'a, L, R>
-where
-    L: ir::TypeIr,
-    R: ir::TypeIr,
-{
-    VarVar(L::TyVar, R::TyVar),
-    VarTy(L::TyVar, &'a TyKind<R>),
-    TyVar(&'a TyKind<L>, R::TyVar),
+impl<'db> ty::RelateContext<ir::Infer<'db>, ir::Rigid> for Solver<'db> {
+    fn relate_tys(&mut self, relate: ty::TyRelation<ir::Infer<'db>, ir::Rigid>) -> Result<(), ()> {
+        self.relate_tys(relate.reverse())
+    }
 }
 
-impl<'a> TyRelate<'a, ir::Rigid, ir::Rigid> {
-    fn never(self) -> ! {
-        match self {
-            TyRelate::VarVar(never, _) | TyRelate::VarTy(never, _) | TyRelate::TyVar(_, never) => {
-                match never {}
-            }
+impl<'db> ty::RelateContext<ir::Infer<'db>, ir::Infer<'db>> for Solver<'db> {
+    fn relate_tys(
+        &mut self,
+        relate: ty::TyRelation<ir::Infer<'db>, ir::Infer<'db>>,
+    ) -> Result<(), ()> {
+        match relate {
+            ty::TyRelation::VarVar(left, right) => self.env.unify_vars(left, right).map_err(|_| ()),
+            ty::TyRelation::VarTy(var, ty) | ty::TyRelation::TyVar(ty, var) => self
+                .env
+                .unify_var_to(var, FlexTy::Ty(Box::new(ty.clone())))
+                .map_err(|_| ()),
         }
     }
 }
