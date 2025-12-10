@@ -1,0 +1,10 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc 8ce9befc05caaf00acbf11d545dd59ed27ab042f408f9f2500b80c861a0dd980 # shrinks to (initial_state, transitions, seen_counter) = (RefBoundState { var_stack: 0, unique_upper: 0, unique_lower: 0, unique_invariant: 0 }, [LubTerms(1)], None)
+cc 5e6563caadb3aa0ba0cc62f6604458a22b03094824db6a7a6d337f6f0e1d4890 # shrinks to (initial_state, transitions, seen_counter) = (RefBoundState { var_stack: 0, unique_upper: 0, unique_lower: 0, unique_invariant: 0 }, [FreshVar, LubTerms(1), FreshVar, GlbTerms(1)], None)
+cc fef92f94f08719d3b6651125104fce8cb16203e40f8915f3f19c07987404fbae # shrinks to (initial_state, transitions, seen_counter) = (RefBoundState { var_stack: 0, unique_upper: 0, unique_lower: 0, unique_invariant: 0 }, [FreshVar, InvariantTerms(1)], None)
+cc d6a4c57e6372217adc74b5393f3cd308e7e087d6ab1bb0ae10b4efcddfc25d08 # shrinks to (initial_state, transitions, seen_counter) = (RefBoundState { var_stack: 0, unique_upper: 0, unique_lower: 0, unique_invariant: 0 }, [FreshVar, InvariantTerms(1), FreshVar, DualTerms(1)], None)

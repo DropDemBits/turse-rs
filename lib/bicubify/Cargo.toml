@@ -1,0 +1,15 @@
+[package]
+name = "bicubify"
+version = "0.0.0"
+edition = "2024"
+
+[dependencies]
+# FIXME(perfect-derive): We're only using derive_more to write debug impls that are subsumable by perfect-derive
+derive_more = { version = "2.1.1", features = ["debug"] }
+either = "1.15.0"
+ena = "0.14.3"
+ordermap = "1.0.0"
+
+[dev-dependencies]
+proptest = "1.9.0"
+proptest-state-machine = "0.6.0"
