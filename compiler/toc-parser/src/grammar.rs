@@ -487,8 +487,8 @@ fn param_list(p: &mut Parser) -> Option<CompletedMarker> {
     let m = p.start();
     p.bump();
 
-    if !p.at(TokenKind::RightParen) {
-        if let Some((_, true)) = param(p) {
+    if !p.at(TokenKind::RightParen)
+        && let Some((_, true)) = param(p) {
             loop {
                 match param(p) {
                     Some((_, true)) => {}      // parsed param, expecting more
@@ -500,7 +500,6 @@ fn param_list(p: &mut Parser) -> Option<CompletedMarker> {
                 }
             }
         }
-    }
 
     p.expect_punct(TokenKind::RightParen);
 

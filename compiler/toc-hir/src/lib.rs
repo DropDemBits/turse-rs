@@ -179,6 +179,6 @@ where
     T: Copy,
 {
     fn is_missing_or(&self, is_predicate: impl FnOnce(T) -> bool) -> bool {
-        self.map_or(true, is_predicate)
+        self.is_none_or(is_predicate)
     }
 }

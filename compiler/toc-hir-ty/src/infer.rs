@@ -77,8 +77,8 @@ impl<'db> InferEnv<'db> {
     }
 }
 
-impl<'db, 'i> SubstFolder<ir::Infer<'db>, ir::Rigid>
-    for WithSubstContext<&'i mut InferEnv<'db>, &'db dyn Db>
+impl<'db> SubstFolder<ir::Infer<'db>, ir::Rigid>
+    for WithSubstContext<&mut InferEnv<'db>, &'db dyn Db>
 {
     fn subst_ty_var(&mut self, var: <ir::Infer<'db> as ir::TypeIr>::TyVar) -> TyKind<ir::Rigid> {
         let db = self.context;
@@ -258,7 +258,7 @@ impl<'db> Solver<'db> {
                 TyKind::Char => FlexTy::Concrete(make::mk_char(db)),
                 TyKind::String => FlexTy::Concrete(make::mk_string(db)),
                 // Flexible variables are normalized into their raw types
-                TyKind::FlexVar(var) => return self.normalize_ty(db, FlexTy::Var(var)),
+                TyKind::FlexVar(var) => self.normalize_ty(db, FlexTy::Var(var)),
                 // Any other type that can contain other types has their component types normalized.
                 TyKind::Place(ty_kind, mutability) => {
                     let place_ty = self.normalize_ty(db, FlexTy::Ty(ty_kind)).into_ty_kind(db);
@@ -503,7 +503,7 @@ impl<'db> Solver<'db> {
                 match (left_mutl, right_mutl) {
                     (left, right) if left == right => Ok(()),
                     (Mutability::Var, Mutability::Const) if !variance.is_invariant() => Ok(()),
-                    _ => return Err(()),
+                    _ => Err(()),
                 }
             }
             (TyKind::Boolean, TyKind::Boolean) => Ok(()),
@@ -512,7 +512,7 @@ impl<'db> Solver<'db> {
             (TyKind::Real(left), TyKind::Real(right)) if left == right => Ok(()),
             (TyKind::Char, TyKind::Char) => Ok(()),
             (TyKind::String, TyKind::String) => Ok(()),
-            _ => return Err(()),
+            _ => Err(()),
         }
     }
 }

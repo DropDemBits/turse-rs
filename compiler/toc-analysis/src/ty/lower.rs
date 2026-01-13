@@ -103,7 +103,7 @@ fn alias_ty(
     };
 
     match def_id {
-        Some(def_id) if db.symbol_kind(def_id).map_or(true, SymbolKind::is_type) => {
+        Some(def_id) if db.symbol_kind(def_id).is_none_or(SymbolKind::is_type) => {
             // Defer to the type's definition
             db.type_of(def_id.into())
         }
@@ -134,13 +134,13 @@ fn constrained_ty(
         let end_tyref = end_tyref.peel_opaque(db, in_module).to_base_type(db);
 
         // Pick whichever is more concrete
-        let base_tyref = match (start_tyref.kind(db), end_tyref.kind(db)) {
+        
+
+        match (start_tyref.kind(db), end_tyref.kind(db)) {
             (TypeKind::Error, _) => end_tyref,
             (TypeKind::Integer, rhs) if rhs.is_number() => end_tyref,
             (_, _) => start_tyref,
-        };
-
-        base_tyref
+        }
     };
 
     // Require a concrete type
@@ -345,7 +345,7 @@ fn type_def_ty(
             .exports_of()
             .iter()
             .find(|export| export.exported_def == item.def_id)
-            .map_or(false, |export| export.is_opaque)
+            .is_some_and(|export| export.is_opaque)
     };
 
     // Wrap type inside of an `Opaque`, if required

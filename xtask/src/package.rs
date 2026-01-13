@@ -10,11 +10,11 @@ impl flags::Package {
     pub(crate) fn run(self, sh: &Shell) -> miette::Result<()> {
         match self.subcommand {
             flags::PackageCmd::Lsp(cmd) => {
-                if let Some(_) = cmd.server() {
+                if cmd.server().is_some() {
                     package_server(sh)?;
                 }
 
-                if let Some(_) = cmd.client() {
+                if cmd.client().is_some() {
                     package_client(sh)?;
                 }
 

@@ -224,13 +224,13 @@ fn try_as_list<'g>(rule: &'g Rule, g: &'g Grammar) -> Option<Child> {
         return None;
     };
 
-    if let Rule::Node(item) = rules.next()? {
-        if let Rule::Rep(inner) = rules.next()? {
-            if let Rule::Seq(others) = &**inner {
+    if let Rule::Node(item) = rules.next()?
+        && let Rule::Rep(inner) = rules.next()?
+            && let Rule::Seq(others) = &**inner {
                 let mut inner_rules = others.iter();
 
-                if let Rule::Token(_tk) = inner_rules.next()? {
-                    if let Rule::Node(other_item) = inner_rules.next()? {
+                if let Rule::Token(_tk) = inner_rules.next()?
+                    && let Rule::Node(other_item) = inner_rules.next()? {
                         // both iters must be exhausted
                         if rules.next().is_none()
                             && inner_rules.next().is_none()
@@ -247,10 +247,7 @@ fn try_as_list<'g>(rule: &'g Rule, g: &'g Grammar) -> Option<Child> {
                             return Some(list);
                         }
                     }
-                }
             }
-        }
-    }
 
     None
 }

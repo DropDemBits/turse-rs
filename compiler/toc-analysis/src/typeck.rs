@@ -1719,11 +1719,7 @@ impl TypeCheck<'_> {
                         lhs_span,
                     );
 
-                    let difference = if param_count > arg_count {
-                        param_count - arg_count
-                    } else {
-                        arg_count - param_count
-                    };
+                    let difference = param_count.abs_diff(arg_count);
                     let diff_arguments = arguments(difference);
 
                     builder = if param_count > arg_count {
@@ -2063,8 +2059,8 @@ impl TypeCheck<'_> {
             db.resolve_def(def_id).ok()
         };
 
-        if let Some(def_id) = def_id {
-            if !db.symbol_kind(def_id).is_missing_or(SymbolKind::is_type) {
+        if let Some(def_id) = def_id
+            && !db.symbol_kind(def_id).is_missing_or(SymbolKind::is_type) {
                 let span = span.lookup_in(package);
 
                 self.report_mismatched_binding(
@@ -2076,7 +2072,6 @@ impl TypeCheck<'_> {
                     None,
                 );
             }
-        }
     }
 
     fn typeck_constrained_ty(&self, id: toc_hir::ty::TypeId, ty: &toc_hir::ty::Constrained) {
@@ -2172,11 +2167,9 @@ impl TypeCheck<'_> {
         let mut state = self.state();
         if let Some(value) =
             check_const_bound(start_bound.clone(), ty::AllowDyn::No, &mut state.reporter)
-        {
-            if let Some((ordinal, min_value)) =
+            && let Some((ordinal, min_value)) =
                 Option::zip(value.ordinal(), base_tyref.min_int_of(db).ok())
-            {
-                if ordinal < min_value {
+                && ordinal < min_value {
                     state.reporter.error(
                         "computed value is outside the type's range",
                         format!(
@@ -2187,17 +2180,13 @@ impl TypeCheck<'_> {
                         start_span,
                     );
                 }
-            }
-        }
 
-        if let ty::EndBound::Expr(end_bound, allow_dyn) = end_bound {
-            if let Some(value) =
+        if let ty::EndBound::Expr(end_bound, allow_dyn) = end_bound
+            && let Some(value) =
                 check_const_bound(end_bound.clone(), *allow_dyn, &mut state.reporter)
-            {
-                if let Some((ordinal, max_value)) =
+                && let Some((ordinal, max_value)) =
                     value.ordinal().zip(base_tyref.max_int_of(db).ok())
-                {
-                    if max_value < ordinal {
+                    && max_value < ordinal {
                         state.reporter.error(
                             "computed value is outside the type's range",
                             format!(
@@ -2208,9 +2197,6 @@ impl TypeCheck<'_> {
                             end_span,
                         );
                     }
-                }
-            }
-        }
     }
 
     fn typeck_array_ty(&self, id: toc_hir::ty::TypeId, ty: &toc_hir::ty::Array) {
@@ -2256,7 +2242,7 @@ impl TypeCheck<'_> {
                         .element_count(db)
                         .ok()
                         .and_then(|sz| sz.into_u64())
-                        .map_or(false, |sz| sz > ELEM_LIMIT),
+                        .is_some_and(|sz| sz > ELEM_LIMIT),
                     _ => false,
                 };
 
@@ -2875,8 +2861,8 @@ impl TypeCheck<'_> {
         let db = self.db;
         let ty_ref = db.lower_hir_type(ty.in_package(self.package_id));
 
-        if let ty::TypeKind::Alias(def_id, to_ty) = ty_ref.kind(db) {
-            if to_ty.kind(db).is_forward() {
+        if let ty::TypeKind::Alias(def_id, to_ty) = ty_ref.kind(db)
+            && to_ty.kind(db).is_forward() {
                 let ty_span = self.package.lookup_type(ty).span;
                 let ty_span = ty_span.lookup_in(&self.package);
 
@@ -2889,7 +2875,6 @@ impl TypeCheck<'_> {
                     ty_span,
                 );
             }
-        }
     }
 }
 

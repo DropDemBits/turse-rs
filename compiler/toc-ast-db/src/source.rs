@@ -23,7 +23,7 @@ pub fn file_links<'db>(db: &'db dyn Db, source: SourceFile) -> toc_parser::Exter
         let child = toc_vfs_db::resolve_path(db, source.path(db), dep.relative_path.clone());
         let child = RawPath::new(db, child);
 
-        links.bind(dep.link_from.clone(), child.into());
+        links.bind(dep.link_from, child.into());
     }
 
     links

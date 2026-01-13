@@ -104,8 +104,8 @@ impl<'a> ResolveCtx<'a> {
             }
         };
 
-        if let Resolve::Def(def) = resolve {
-            if let DeclareKind::LimitedDeclared(limited) = self.scopes.declare_kind(def) {
+        if let Resolve::Def(def) = resolve
+            && let DeclareKind::LimitedDeclared(limited) = self.scopes.declare_kind(def) {
                 match limited {
                     LimitedKind::PostCondition => {
                         // FIXME: If we're in a post condition, don't report this error
@@ -117,7 +117,6 @@ impl<'a> ResolveCtx<'a> {
                     }
                 }
             }
-        }
 
         resolve
     }

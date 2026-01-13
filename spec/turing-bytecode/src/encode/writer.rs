@@ -80,7 +80,7 @@ fn write_code_unit(out: &mut impl Write, unit: &CodeUnit<ResolvedRelocs>) -> io:
     let code_size = unit.procedures().map(|it| it.size()).sum::<usize>() + 4;
     let code_size: u32 = code_size
         .try_into()
-        .map_err(|_| io::Error::new(io::ErrorKind::Other, "code section size is too big"))?;
+        .map_err(|_| io::Error::other("code section size is too big"))?;
     out.write_u32::<LE>(code_size)?;
 
     // - code_blob
@@ -108,7 +108,7 @@ fn write_code_unit(out: &mut impl Write, unit: &CodeUnit<ResolvedRelocs>) -> io:
     // - manifest_size
     let manifest_size: u32 =
         unit.manifest().size().try_into().map_err(|_| {
-            io::Error::new(io::ErrorKind::Other, "manifest section size is too big")
+            io::Error::other("manifest section size is too big")
         })?;
     out.write_u32::<LE>(manifest_size)?;
     // - manifest_blob
@@ -119,7 +119,7 @@ fn write_code_unit(out: &mut impl Write, unit: &CodeUnit<ResolvedRelocs>) -> io:
         .globals()
         .size()
         .try_into()
-        .map_err(|_| io::Error::new(io::ErrorKind::Other, "globals section size is too big"))?;
+        .map_err(|_| io::Error::other("globals section size is too big"))?;
     out.write_u32::<LE>(globals_size)?;
 
     // - manifest_patches

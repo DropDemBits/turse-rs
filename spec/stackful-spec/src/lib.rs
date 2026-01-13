@@ -62,8 +62,8 @@ impl BytecodeSpec {
         std::iter::from_fn(move || {
             let (index, instr) = next_instr.next()?;
 
-            if let Some((group_info, group_range)) = groups.peek() {
-                if group_range.contains(&index) {
+            if let Some((group_info, group_range)) = groups.peek()
+                && group_range.contains(&index) {
                     // Skip over group and instructions that are part of a group.
                     _ = groups.next();
                     // We've already consumed one instruction of the group, so we don't need to consume it again.
@@ -78,7 +78,6 @@ impl BytecodeSpec {
                             .expect("group range should be within instruction slice"),
                     ));
                 }
-            }
 
             Some(InstructionEntry::Instruction(instr))
         })

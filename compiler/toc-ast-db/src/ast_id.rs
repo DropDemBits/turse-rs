@@ -111,10 +111,10 @@ impl ErasedAstId {
     fn maybe_might_alloc(node: &SyntaxNode, has_items: HasItems) -> bool {
         if ast::ConstVarDeclName::can_cast(node.kind()) || ast::BindItem::can_cast(node.kind()) {
             // Bind & ConstVar items must be at the top level of a module like to be allocated.
-            return has_items == HasItems::ModuleLike;
+            has_items == HasItems::ModuleLike
         } else {
             // Another type of item.
-            return true;
+            true
         }
     }
 
@@ -131,7 +131,7 @@ impl ErasedAstId {
 
 impl std::fmt::Debug for ErasedAstId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let kind = self.kind() as u32;
+        let kind = self.kind();
         macro_rules! kind {
             ($($kind:ident),* $(,)?) => {
 
@@ -261,7 +261,7 @@ impl<N> AstId<N> {
 impl<N> Clone for AstId<N> {
     fn clone(&self) -> Self {
         Self {
-            erased: self.erased.clone(),
+            erased: self.erased,
             _node: PhantomData,
         }
     }
@@ -411,7 +411,7 @@ impl AstIdMap {
                             //
                             // For better stability, we never anchor items to blocks and instead to the containing item.
                             let block_ast_id = hash_impls::block_ast_id(
-                                block_ptr.to_node(&root),
+                                block_ptr.to_node(root),
                                 &mut id_gen,
                                 parent,
                             )
@@ -428,7 +428,7 @@ impl AstIdMap {
                     let idx = map.entries.alloc((syntax_ptr, ast_id));
 
                     if syntax_ptr.kind() == SyntaxKind::ConstVarDeclName
-                        && let node = syntax_ptr.to_node(&root)
+                        && let node = syntax_ptr.to_node(root)
                         && let Some(constvar_decl) =
                             node.ancestors().find_map(ast::ConstVarDecl::cast)
                     {

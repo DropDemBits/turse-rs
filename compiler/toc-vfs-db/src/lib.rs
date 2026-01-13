@@ -63,7 +63,7 @@ pub fn resolve_path<'db>(db: &'db dyn Db, anchor: &'db RawRefPath, path: String)
     };
 
     // Use the provided path normalizer to guarantee that we have a uniform path representation
-    let full_path = db.normalize_path(&full_path);
+    
 
-    full_path
+    db.normalize_path(&full_path)
 }

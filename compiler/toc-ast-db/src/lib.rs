@@ -49,7 +49,7 @@ pub trait SourceFileExt {
 }
 
 impl SourceFileExt for SourceFile {
-    fn ast_id_map<'db>(self, db: &'db dyn Db) -> &'db ast_id::AstIdMap {
+    fn ast_id_map(self, db: &dyn Db) -> &ast_id::AstIdMap {
         tracked_ast_id_map(db, self)
     }
 }
