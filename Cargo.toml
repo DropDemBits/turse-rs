@@ -13,16 +13,19 @@ edition = "2024"
 [workspace.dependencies]
 byteorder = "1.5.0"
 camino = "1.1.1"
+# FIXME(perfect-derive): We're only using derive_more to write debug impls that are subsumable by perfect-derive
+derive_more = { version = "2.1.1", features = ["debug"] }
 either = "1.13.0"
 hashbrown = "0.16.1"
+ena = "0.14.3"
 itertools = "0.14"
 indexmap = "2.7.1"
 insta = "1.28"
 la-arena = "0.3"
 # FIXME: tied to tower-lsp version, use separate structs so that changes are confined to lsp-server
 lsp-types = "0.94.1"
-tower-lsp = "0.20.0"
 miette = "7.4"
+ordermap = "1.0.0"
 proc-macro2 = "1.0.93"
 paste = "1.0.5"
 rowan = "0.16"
@@ -30,9 +33,14 @@ rustc-hash = "2.1"
 salsa = "0.25.2"
 salsa-macros = "0.25.2"
 thiserror = "2.0"
+tower-lsp = "0.20.0"
 tracing = "0.1.37"
 tracing-subscriber = "0.3.20"
 unindent = "0.2"
+
+# dev-deps
+proptest = "1.9.0"
+proptest-state-machine = "0.6.0"
 
 # Fuzzer crates
 afl = "0.17.0"
