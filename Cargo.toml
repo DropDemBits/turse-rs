@@ -62,7 +62,7 @@ stackful-spec.path = "spec/stackful-spec"
 turing-bytecode.path = "spec/turing-bytecode"
 
 # Library crates
-scope-trees.path = "compiler/scope-trees"
+scope-trees.path = "lib/scope-trees"
 
 [workspace.lints.rust]
 mismatched_lifetime_syntaxes = "forbid"
