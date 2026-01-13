@@ -175,6 +175,6 @@ pub(super) fn maybe_assoc_ast_id(
                 },
             ))
         }
-        _ => return None,
+        _ => None,
     }
 }

@@ -126,7 +126,7 @@ pub struct Subprogram {
 
 impl Subprogram {
     /// Looks up the associated parameter info
-    pub fn lookup_param_info(&self, param_def: symbol::LocalDefId) -> ParameterInfo {
+    pub fn lookup_param_info(&self, param_def: symbol::LocalDefId) -> ParameterInfo<'_> {
         // Try first in param list, then against result name
         self.param_list
             .as_ref()

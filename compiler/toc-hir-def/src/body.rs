@@ -143,7 +143,7 @@ impl<'db> Body<'db> {
             ambiguous: _,
         } = resolutions;
 
-        let names = ResolvedNames::new(
+        ResolvedNames::new(
             db,
             resolved
                 .into_iter()
@@ -151,9 +151,7 @@ impl<'db> Body<'db> {
                 .collect::<FxHashMap<_, _>>(),
             unresolved,
             (),
-        );
-
-        names
+        )
     }
 
     /// Fully resolved names, as well as definitely unresolved names.

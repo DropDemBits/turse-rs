@@ -226,11 +226,7 @@ impl<'ctx> FileLowering<'ctx> {
         // Lower stmts
         let span = stmt_list.syntax().text_range();
         let mut body = builder::BodyBuilder::default();
-        let body_stmts = {
-            let body_stmts = BodyLowering::new(self, &mut body).lower_stmt_list(stmt_list);
-
-            body_stmts
-        };
+        let body_stmts = { BodyLowering::new(self, &mut body).lower_stmt_list(stmt_list) };
 
         // Collect declared items
         let declared_items = {

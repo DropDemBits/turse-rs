@@ -9,21 +9,20 @@ edition.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-toc-analysis = { workspace = true }
-toc-ast-db = { workspace = true }
-toc-hir = { workspace = true }
-toc-hir-db = { workspace = true }
-toc-hir-lowering = { workspace = true }
-toc-reporting = { workspace = true }
-toc-paths = { workspace = true }
-toc-span = { workspace = true }
-toc-source-graph = { workspace = true }
-toc-vfs = { workspace = true }
-toc-vfs-db = { workspace = true }
+toc-analysis.workspace = true
+toc-ast-db.workspace = true
+toc-hir.workspace = true
+toc-hir-db.workspace = true
+toc-hir-lowering.workspace = true
+toc-reporting.workspace = true
+toc-paths.workspace = true
+toc-span.workspace = true
+toc-source-graph.workspace = true
+toc-vfs.workspace = true
+toc-vfs-db.workspace = true
 
 camino.workspace = true
-salsa = { workspace = true }
+salsa.workspace = true
 
-[target.'cfg(target_os = "linux")'.dependencies.afl]
-package = "afl"
-version = "0.15"
+[target.'cfg(target_os = "linux")'.dependencies]
+afl.workspace = true

@@ -215,7 +215,7 @@ impl<M: DisplayLocation<L>, L: Location> fmt::Display
 }
 
 /// When a [`ReportMessage`] should be reported
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub enum ReportWhen {
     /// Allow this message to be occluded by later messages.
     /// Used when a later stage improves the message at this span
@@ -228,18 +228,13 @@ pub enum ReportWhen {
     FirstAlways,
     /// Always have this message reported (not occluded by other spans).
     /// This is the default option.
+    #[default]
     Always,
 }
 
 impl ReportWhen {
     fn report_always(self) -> bool {
         matches!(self, Self::FirstAlways | Self::Always)
-    }
-}
-
-impl Default for ReportWhen {
-    fn default() -> Self {
-        Self::Always
     }
 }
 

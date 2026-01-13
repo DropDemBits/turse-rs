@@ -179,6 +179,6 @@ where
     T: HasName,
 {
     fn name(&self) -> Spanned<&str> {
-        <T as HasName>::name(&self)
+        <T as HasName>::name(self)
     }
 }

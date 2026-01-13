@@ -251,17 +251,17 @@ pub(super) fn validate_new_open(open: ast::NewOpen, ctx: &mut ValidateCtx) {
     let mut used_caps = vec![];
 
     for cap in open.io_caps() {
-        if let Some(kind) = cap.io_kind() {
-            if !used_caps.iter().any(|(k, _)| *k == kind) {
-                // don't insert duplicates
-                used_caps.push((kind, cap.syntax().text_range()));
-            }
+        if let Some(kind) = cap.io_kind()
+            && !used_caps.iter().any(|(k, _)| *k == kind)
+        {
+            // don't insert duplicates
+            used_caps.push((kind, cap.syntax().text_range()));
         }
     }
 
     // Conflicting caps:
     // - Any text cap with a binary cap present (and the other way too)
-    let find_cap_pair: _ = |a, b| used_caps.iter().find(|cap| cap.0 == a || cap.0 == b);
+    let find_cap_pair = |a, b| used_caps.iter().find(|cap| cap.0 == a || cap.0 == b);
 
     let text_cap = find_cap_pair(IoKind::Get, IoKind::Put);
     let binary_cap = find_cap_pair(IoKind::Read, IoKind::Write);
@@ -619,23 +619,23 @@ fn check_matching_names(
     end_group: Option<ast::EndGroup>,
     ctx: &mut ValidateCtx,
 ) {
-    if let Some(decl_name) = decl_name.and_then(|end| end.identifier_token()) {
-        if let Some(end_name) = end_group.and_then(|end| end.identifier_token()) {
-            let decl_span = ctx.mk_span(decl_name.text_range());
-            let end_span = ctx.mk_span(end_name.text_range());
+    if let Some(decl_name) = decl_name.and_then(|end| end.identifier_token())
+        && let Some(end_name) = end_group.and_then(|end| end.identifier_token())
+    {
+        let decl_span = ctx.mk_span(decl_name.text_range());
+        let end_span = ctx.mk_span(end_name.text_range());
 
-            if end_name.text() != decl_name.text() {
-                ctx.push_detailed_error(
-                    "mismatched identifier names",
-                    ctx.mk_span(end_name.text_range()),
-                )
-                .with_note(
-                    format!("`{}` does not match...", decl_name.text()),
-                    decl_span,
-                )
-                .with_note(format!("...`{}` defined here", end_name.text()), end_span)
-                .finish();
-            }
+        if end_name.text() != decl_name.text() {
+            ctx.push_detailed_error(
+                "mismatched identifier names",
+                ctx.mk_span(end_name.text_range()),
+            )
+            .with_note(
+                format!("`{}` does not match...", decl_name.text()),
+                decl_span,
+            )
+            .with_note(format!("...`{}` defined here", end_name.text()), end_span)
+            .finish();
         }
     }
 }

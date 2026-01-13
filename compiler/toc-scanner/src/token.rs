@@ -360,7 +360,7 @@ pub enum TokenKind {
     Whitespace,
 
     /// All comments
-    #[regex("%[^\r\n]*")]
+    #[regex("%[^\r\n]*?")]
     #[token("/*", lex_block_comment)]
     Comment,
 

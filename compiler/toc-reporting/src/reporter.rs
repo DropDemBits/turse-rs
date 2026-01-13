@@ -50,7 +50,7 @@ impl<L: Location> MessageSink<L> {
         kind: AnnotateKind,
         message: impl Into<String>,
         span: L,
-    ) -> MessageBuilder<L> {
+    ) -> MessageBuilder<'_, L> {
         MessageBuilder::new(self, kind, message.into(), span)
     }
 

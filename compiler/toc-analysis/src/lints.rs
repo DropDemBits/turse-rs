@@ -41,7 +41,7 @@ struct LintContext<'db> {
 
 impl<'db> LintContext<'db> {
     // Helper for borrowing the reporter mutably
-    fn reporter(&self) -> RefMut<MessageSink> {
+    fn reporter(&self) -> RefMut<'_, MessageSink> {
         self.reporter.borrow_mut()
     }
 }

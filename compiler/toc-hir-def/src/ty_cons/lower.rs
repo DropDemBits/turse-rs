@@ -84,9 +84,7 @@ impl<'db> LowerCtx<'db> {
             | ast::Type::ProcType(_)
             | ast::Type::CollectionType(_)
             | ast::Type::ConditionType(_)) => {
-                self.errors.push(TyLowerError::UnhandledTy {
-                    ty: SemanticNodePtr::from(ptr),
-                });
+                self.errors.push(TyLowerError::UnhandledTy { ty: ptr });
                 self.alloc_ty(TyKind::Missing, ty)
             }
         }

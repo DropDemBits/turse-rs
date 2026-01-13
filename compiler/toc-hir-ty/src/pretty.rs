@@ -19,7 +19,7 @@ pub struct Ascription {
     pub ascription: String,
 }
 
-pub fn render_item_ascriptions<'db>(db: &'db dyn Db, item: item::AnyItem) -> Vec<Ascription> {
+pub fn render_item_ascriptions(db: &dyn Db, item: item::AnyItem) -> Vec<Ascription> {
     let mut ascriptions = vec![];
 
     match item {

@@ -235,8 +235,8 @@ impl<'t, 'src> Parser<'t, 'src> {
             .expect("warning of alias at end of file");
 
         self.msg_sink.warn(
-            &format!("{found} found"),
-            &format!("assuming it to be {normal}"),
+            format!("{found} found"),
+            format!("assuming it to be {normal}"),
             range.into(),
         );
     }
@@ -248,7 +248,7 @@ impl<'t, 'src> Parser<'t, 'src> {
 
     /// Checks if the current token is in the given set
     fn at_set(&self, set: &[TokenKind]) -> bool {
-        self.peek().map_or(false, |k| set.contains(&k))
+        self.peek().is_some_and(|k| set.contains(&k))
     }
 
     /// Creates a new `Marker` at the current position
@@ -355,7 +355,7 @@ impl<'p, 't, 's> UnexpectedBuilder<'p, 't, 's> {
             .msg_sink
             .error_detailed(header, range.into())
             .with_error(
-                &format!(
+                format!(
                     "{}",
                     ParseMessage::UnexpectedToken {
                         expected: mem::take(&mut self.p.expected_kinds),

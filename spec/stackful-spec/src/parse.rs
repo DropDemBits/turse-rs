@@ -401,14 +401,14 @@ fn parse_enum(node: &kdl::KdlNode, slot: TypeRef) -> Result<Enum, ParseError> {
                 };
 
                 // Ensure property type is consistent
-                if let Some(expected_ty) = property_types.insert(name.to_owned(), value.kind()) {
-                    if expected_ty != value.kind() {
-                        return Err(ParseError::MismatchedPropertyTypes(
-                            value_span,
-                            expected_ty,
-                            value.kind(),
-                        ));
-                    }
+                if let Some(expected_ty) = property_types.insert(name.to_owned(), value.kind())
+                    && expected_ty != value.kind()
+                {
+                    return Err(ParseError::MismatchedPropertyTypes(
+                        value_span,
+                        expected_ty,
+                        value.kind(),
+                    ));
                 }
 
                 property_names.track_def(name.to_owned(), property_entry.name().span())?;
@@ -679,7 +679,7 @@ fn parse_stack_after_list<'kdl>(
 fn parse_stack_before_operand<'kdl>(
     node: &'kdl kdl::KdlNode,
 ) -> Result<ast::Spanned<ast::StackBeforeOperand<'kdl>>, ParseError> {
-    expect_attribute_names(node, &STACK_BEFORE_OPERAND_ATTRS)?;
+    expect_attribute_names(node, STACK_BEFORE_OPERAND_ATTRS)?;
 
     let name = ast::Spanned::new(node.name().value(), node.name().span());
     let ty = parse_required_spanned_string_entry(node, 0)?;
@@ -1195,7 +1195,7 @@ fn lower_predicate_value(
                     Ok(PredicateValue::UnionVariantRef(variant))
                 }
                 other_ty @ (Type::Scalar(_) | Type::Struct(_)) => {
-                    return Err(ParseError::UnexpectedTypeKind(
+                    Err(ParseError::UnexpectedTypeKind(
                         TypeKindNames::from(other_ty),
                         base_ty.span(),
                         StringList(
@@ -1204,7 +1204,7 @@ fn lower_predicate_value(
                                 .map(|it| it.to_string())
                                 .collect(),
                         ),
-                    ));
+                    ))
                 }
             })
         }
@@ -1251,9 +1251,9 @@ fn lower_stack_before_operand<'kdl>(
         name: ast.name.map_inner(String::from),
         ty,
         description: ast.description.map(|it| it.map_inner(String::from)),
-        unused: ast.unused.map_or(false, |it| it.into_inner()),
+        unused: ast.unused.is_some_and(|it| it.into_inner()),
         special: StackBefore {
-            variadic: ast.variadic.map_or(false, |it| it.into_inner()),
+            variadic: ast.variadic.is_some_and(|it| it.into_inner()),
             computed: None,
             computed_offset: None,
         },
@@ -1276,7 +1276,7 @@ fn lower_stack_after_operand<'kdl>(
         name: ast.name.map_inner(String::from),
         ty,
         description: ast.description.map(|it| it.map_inner(String::from)),
-        unused: ast.unused.map_or(false, |it| it.into_inner()),
+        unused: ast.unused.is_some_and(|it| it.into_inner()),
         special: StackAfter {
             preserves: None,
             computed: None,
@@ -1363,20 +1363,19 @@ fn parse_conditional_predicate_node(
     expect_attribute_names(node, NO_ATTRS)?;
     expect_child_names(node.children(), NO_CHILDREN)?;
 
-    if let Some(maybe_otherwise) = node.entry(0) {
-        if maybe_otherwise.ty().is_none()
-            && maybe_otherwise
-                .value()
-                .as_string()
-                .is_some_and(|it| it == "otherwise")
-        {
-            return Ok(Either::Right(ast::OtherwisePredicate {
-                _otherwise: ast::Spanned::new(
-                    maybe_otherwise.value().as_string().unwrap(),
-                    maybe_otherwise.span(),
-                ),
-            }));
-        }
+    if let Some(maybe_otherwise) = node.entry(0)
+        && maybe_otherwise.ty().is_none()
+        && maybe_otherwise
+            .value()
+            .as_string()
+            .is_some_and(|it| it == "otherwise")
+    {
+        return Ok(Either::Right(ast::OtherwisePredicate {
+            _otherwise: ast::Spanned::new(
+                maybe_otherwise.value().as_string().unwrap(),
+                maybe_otherwise.span(),
+            ),
+        }));
     }
 
     let (_, immediate_operand) = parse_required_spanned_field_entry(node, 0, Some(&["operands"]))?;
@@ -1613,8 +1612,8 @@ fn parse_repr_type(node: &kdl::KdlNode) -> Result<Option<&str>, ParseError> {
 }
 
 /// Ensure that there are no unexpected attributes for a certain node.
-fn expect_attribute_names<'node>(
-    node: &'node kdl::KdlNode,
+fn expect_attribute_names(
+    node: &kdl::KdlNode,
     accepted_attrs: &'static [KnownAttrs],
 ) -> Result<(), ParseError> {
     let Some(children) = node.children() else {
@@ -1795,13 +1794,13 @@ fn parse_spanned_field_entry<'node>(
         return Err(ParseError::InvalidFieldName(entry.span()));
     };
 
-    if let Some(accepted_bases) = accepted_bases {
-        if !accepted_bases.contains(&field_base.value()) {
-            return Err(ParseError::InvalidFieldBase(
-                field_base.span(),
-                StringList(accepted_bases.iter().map(|it| String::from(*it)).collect()),
-            ));
-        }
+    if let Some(accepted_bases) = accepted_bases
+        && !accepted_bases.contains(&field_base.value())
+    {
+        return Err(ParseError::InvalidFieldBase(
+            field_base.span(),
+            StringList(accepted_bases.iter().map(|it| String::from(*it)).collect()),
+        ));
     }
 
     Ok(Some((
@@ -1816,7 +1815,7 @@ fn parse_required_spanned_field_entry<'node>(
     accepted_bases: Option<&'static [&'static str]>,
 ) -> Result<(ast::Spanned<&'node str>, ast::Spanned<&'node str>), ParseError> {
     parse_spanned_field_entry(node, key, accepted_bases)?
-        .ok_or_else(|| return ParseError::MissingField(node.name().span()))
+        .ok_or_else(|| ParseError::MissingField(node.name().span()))
 }
 
 fn parse_required_u32_entry(

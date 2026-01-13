@@ -9,25 +9,25 @@ edition.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-toc-analysis = { workspace = true }
-toc-ast-db = { workspace = true }
-toc-hir = { workspace = true }
-toc-hir-codegen = { workspace = true }
-toc-hir-db = { workspace = true }
-toc-hir-lowering = { workspace = true }
-toc-hir-pretty = { workspace = true }
-toc-paths = { workspace = true }
-toc-reporting = { workspace = true }
-toc-source-graph = { workspace = true }
-toc-span = { workspace = true }
-toc-syntax = { workspace = true }
-toc-vfs = { workspace = true }
-toc-vfs-db = { workspace = true }
+toc-analysis.workspace = true
+toc-ast-db.workspace = true
+toc-hir.workspace = true
+toc-hir-codegen.workspace = true
+toc-hir-db.workspace = true
+toc-hir-lowering.workspace = true
+toc-hir-pretty.workspace = true
+toc-paths.workspace = true
+toc-reporting.workspace = true
+toc-source-graph.workspace = true
+toc-span.workspace = true
+toc-syntax.workspace = true
+toc-vfs.workspace = true
+toc-vfs-db.workspace = true
 
-ariadne = { version = "0.5" }
-camino = { workspace = true }
+ariadne = "0.6"
+camino.workspace = true
 clap = { version = "4.0.22", features = ["derive"] }
-salsa = { workspace = true }
-tracing = { workspace = true }
-tracing-subscriber = { workspace = true }
+salsa.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
 owo-colors = "4.2.3"

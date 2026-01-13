@@ -230,7 +230,7 @@ impl<'db, T: AstNode> Clone for UnstableSemanticLoc<'db, T> {
     fn clone(&self) -> Self {
         Self {
             file: self.file,
-            ptr: self.ptr.clone(),
+            ptr: self.ptr,
             _node: PhantomData,
         }
     }

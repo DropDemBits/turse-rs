@@ -1,7 +1,7 @@
 //! Events produced during parsing
 use toc_syntax::SyntaxKind;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Default)]
 pub(crate) enum Event {
     StartNode {
         kind: SyntaxKind,
@@ -10,13 +10,8 @@ pub(crate) enum Event {
     },
     AddToken,
     FinishNode,
+    #[default]
     Placeholder,
     /// Dropped start node
     Tombstone,
-}
-
-impl Default for Event {
-    fn default() -> Self {
-        Self::Placeholder
-    }
 }

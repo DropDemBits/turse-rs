@@ -12,7 +12,7 @@ impl<'t, 'src> Source<'t, 'src> {
         Self { tokens, cursor: 0 }
     }
 
-    pub(crate) fn next_token(&mut self) -> Option<&Token> {
+    pub(crate) fn next_token(&mut self) -> Option<&Token<'_>> {
         self.cursor = self.skip_trivia(self.cursor)?;
         let token = self.tokens.get(self.cursor)?;
 
@@ -27,7 +27,7 @@ impl<'t, 'src> Source<'t, 'src> {
     }
 
     /// Peeks at the next `Token`
-    pub(crate) fn peek_token(&self) -> Option<&Token> {
+    pub(crate) fn peek_token(&self) -> Option<&Token<'_>> {
         let peek_to = self.skip_trivia(self.cursor)?;
         self.token_at(peek_to)
     }
@@ -46,7 +46,7 @@ impl<'t, 'src> Source<'t, 'src> {
         self.token_at(cursor).map(|tok| tok.kind)
     }
 
-    fn token_at(&self, cursor: usize) -> Option<&Token> {
+    fn token_at(&self, cursor: usize) -> Option<&Token<'_>> {
         self.tokens.get(cursor)
     }
 
@@ -62,8 +62,7 @@ impl<'t, 'src> Source<'t, 'src> {
     }
 
     fn at_trivia(&self, cursor: usize) -> bool {
-        self.token_kind_at(cursor)
-            .map_or(false, TokenKind::is_trivia)
+        self.token_kind_at(cursor).is_some_and(TokenKind::is_trivia)
     }
 }
 

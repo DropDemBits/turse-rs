@@ -37,10 +37,10 @@ impl<S: SectionInfo> SectionAllocator<S> {
             let padding_offset = current_offset.next_multiple_of(alloc.align as usize);
             offsets.push(padding_offset as u32);
 
-            if let Some(padding_count) = padding_offset.checked_sub(current_offset) {
-                if padding_count > 0 {
-                    bytes.extend(std::iter::repeat_n(0x00, padding_count));
-                }
+            if let Some(padding_count) = padding_offset.checked_sub(current_offset)
+                && padding_count > 0
+            {
+                bytes.extend(std::iter::repeat_n(0x00, padding_count));
             }
 
             match &alloc.data {
