@@ -62,8 +62,7 @@ impl<'t, 'src> Source<'t, 'src> {
     }
 
     fn at_trivia(&self, cursor: usize) -> bool {
-        self.token_kind_at(cursor)
-            .is_some_and(TokenKind::is_trivia)
+        self.token_kind_at(cursor).is_some_and(TokenKind::is_trivia)
     }
 }
 

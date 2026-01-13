@@ -134,7 +134,6 @@ fn constrained_ty(
         let end_tyref = end_tyref.peel_opaque(db, in_module).to_base_type(db);
 
         // Pick whichever is more concrete
-        
 
         match (start_tyref.kind(db), end_tyref.kind(db)) {
             (TypeKind::Error, _) => end_tyref,

@@ -150,8 +150,16 @@ fn emit_debug_ty(
                         PassBy::Reference(symbol::Mutability::Const) => "pass(const ref) ",
                         PassBy::Reference(symbol::Mutability::Var) => "pass(var ref) ",
                     };
-                    let register = if param.is_register { "register " } else { Default::default() };
-                    let cheat = if param.coerced_type { "cheat " } else { Default::default() };
+                    let register = if param.is_register {
+                        "register "
+                    } else {
+                        Default::default()
+                    };
+                    let cheat = if param.coerced_type {
+                        "cheat "
+                    } else {
+                        Default::default()
+                    };
                     write!(out, "{pass_by}{register}{cheat}")?;
                     emit_debug_ty(db, out, param.param_ty)?;
                     write!(out, ", ")?;
@@ -305,9 +313,21 @@ fn emit_display_ty(
                         PassBy::Reference(symbol::Mutability::Const) => "const ",
                         PassBy::Reference(symbol::Mutability::Var) => "var ",
                     };
-                    let register = if param.is_register { "register " } else { Default::default() };
-                    let separator = if with_separator { ": " } else { Default::default() };
-                    let cheat = if param.coerced_type { "cheat " } else { Default::default() };
+                    let register = if param.is_register {
+                        "register "
+                    } else {
+                        Default::default()
+                    };
+                    let separator = if with_separator {
+                        ": "
+                    } else {
+                        Default::default()
+                    };
+                    let cheat = if param.coerced_type {
+                        "cheat "
+                    } else {
+                        Default::default()
+                    };
 
                     if !first {
                         write!(out, ", ")?;

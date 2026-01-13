@@ -63,21 +63,22 @@ impl BytecodeSpec {
             let (index, instr) = next_instr.next()?;
 
             if let Some((group_info, group_range)) = groups.peek()
-                && group_range.contains(&index) {
-                    // Skip over group and instructions that are part of a group.
-                    _ = groups.next();
-                    // We've already consumed one instruction of the group, so we don't need to consume it again.
-                    for _ in 0..(group_range.len().saturating_sub(1)) {
-                        _ = next_instr.next();
-                    }
-
-                    return Some(InstructionEntry::Group(
-                        group_info,
-                        self.instructions
-                            .get(group_range.clone())
-                            .expect("group range should be within instruction slice"),
-                    ));
+                && group_range.contains(&index)
+            {
+                // Skip over group and instructions that are part of a group.
+                _ = groups.next();
+                // We've already consumed one instruction of the group, so we don't need to consume it again.
+                for _ in 0..(group_range.len().saturating_sub(1)) {
+                    _ = next_instr.next();
                 }
+
+                return Some(InstructionEntry::Group(
+                    group_info,
+                    self.instructions
+                        .get(group_range.clone())
+                        .expect("group range should be within instruction slice"),
+                ));
+            }
 
             Some(InstructionEntry::Instruction(instr))
         })

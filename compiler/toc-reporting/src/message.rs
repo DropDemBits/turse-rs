@@ -215,8 +215,7 @@ impl<M: DisplayLocation<L>, L: Location> fmt::Display
 }
 
 /// When a [`ReportMessage`] should be reported
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[derive(Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub enum ReportWhen {
     /// Allow this message to be occluded by later messages.
     /// Used when a later stage improves the message at this span
@@ -238,7 +237,6 @@ impl ReportWhen {
         matches!(self, Self::FirstAlways | Self::Always)
     }
 }
-
 
 #[cfg(test)]
 mod tests {

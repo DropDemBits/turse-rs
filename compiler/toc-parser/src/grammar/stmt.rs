@@ -645,9 +645,10 @@ fn module_body(p: &mut Parser) {
 
     if p.at(TokenKind::Implement)
         && let (_, false) = implement_or_implement_by_stmt(p)
-            && p.at(TokenKind::Implement) {
-                implement_by_stmt(p);
-            }
+        && p.at(TokenKind::Implement)
+    {
+        implement_by_stmt(p);
+    }
 
     if p.at(TokenKind::Import) {
         import_stmt(p);

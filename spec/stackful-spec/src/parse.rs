@@ -402,13 +402,14 @@ fn parse_enum(node: &kdl::KdlNode, slot: TypeRef) -> Result<Enum, ParseError> {
 
                 // Ensure property type is consistent
                 if let Some(expected_ty) = property_types.insert(name.to_owned(), value.kind())
-                    && expected_ty != value.kind() {
-                        return Err(ParseError::MismatchedPropertyTypes(
-                            value_span,
-                            expected_ty,
-                            value.kind(),
-                        ));
-                    }
+                    && expected_ty != value.kind()
+                {
+                    return Err(ParseError::MismatchedPropertyTypes(
+                        value_span,
+                        expected_ty,
+                        value.kind(),
+                    ));
+                }
 
                 property_names.track_def(name.to_owned(), property_entry.name().span())?;
 
@@ -1364,18 +1365,18 @@ fn parse_conditional_predicate_node(
 
     if let Some(maybe_otherwise) = node.entry(0)
         && maybe_otherwise.ty().is_none()
-            && maybe_otherwise
-                .value()
-                .as_string()
-                .is_some_and(|it| it == "otherwise")
-        {
-            return Ok(Either::Right(ast::OtherwisePredicate {
-                _otherwise: ast::Spanned::new(
-                    maybe_otherwise.value().as_string().unwrap(),
-                    maybe_otherwise.span(),
-                ),
-            }));
-        }
+        && maybe_otherwise
+            .value()
+            .as_string()
+            .is_some_and(|it| it == "otherwise")
+    {
+        return Ok(Either::Right(ast::OtherwisePredicate {
+            _otherwise: ast::Spanned::new(
+                maybe_otherwise.value().as_string().unwrap(),
+                maybe_otherwise.span(),
+            ),
+        }));
+    }
 
     let (_, immediate_operand) = parse_required_spanned_field_entry(node, 0, Some(&["operands"]))?;
     let op = parse_required_spanned_string_entry(node, 1)?.try_fold(|it| {
@@ -1794,12 +1795,13 @@ fn parse_spanned_field_entry<'node>(
     };
 
     if let Some(accepted_bases) = accepted_bases
-        && !accepted_bases.contains(&field_base.value()) {
-            return Err(ParseError::InvalidFieldBase(
-                field_base.span(),
-                StringList(accepted_bases.iter().map(|it| String::from(*it)).collect()),
-            ));
-        }
+        && !accepted_bases.contains(&field_base.value())
+    {
+        return Err(ParseError::InvalidFieldBase(
+            field_base.span(),
+            StringList(accepted_bases.iter().map(|it| String::from(*it)).collect()),
+        ));
+    }
 
     Ok(Some((
         ast::Spanned::new(field_base.value(), field_base.span()),

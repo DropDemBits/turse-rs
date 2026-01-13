@@ -1,8 +1,7 @@
 //! Events produced during parsing
 use toc_syntax::SyntaxKind;
 
-#[derive(Debug, PartialEq)]
-#[derive(Default)]
+#[derive(Debug, PartialEq, Default)]
 pub(crate) enum Event {
     StartNode {
         kind: SyntaxKind,
@@ -16,4 +15,3 @@ pub(crate) enum Event {
     /// Dropped start node
     Tombstone,
 }
-

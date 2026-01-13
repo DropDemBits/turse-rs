@@ -45,17 +45,14 @@ pub enum DumpMode {
 }
 
 /// Format for report output
-#[derive(clap::ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]
-#[derive(Default)]
+#[derive(clap::ValueEnum, Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum ReportFormat {
     /// CLI report format, with color. This is the default format.
     #[default]
     Cli,
 }
 
-
-#[derive(clap::ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]
-#[derive(Default)]
+#[derive(clap::ValueEnum, Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum LogLevel {
     Trace,
     Debug,
@@ -82,4 +79,3 @@ impl From<LogLevel> for tracing::level_filters::LevelFilter {
         <LogLevel as Into<tracing::Level>>::into(level).into()
     }
 }
-

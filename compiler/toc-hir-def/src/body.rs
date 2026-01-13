@@ -143,8 +143,6 @@ impl<'db> Body<'db> {
             ambiguous: _,
         } = resolutions;
 
-        
-
         ResolvedNames::new(
             db,
             resolved

@@ -226,28 +226,27 @@ fn try_as_list<'g>(rule: &'g Rule, g: &'g Grammar) -> Option<Child> {
 
     if let Rule::Node(item) = rules.next()?
         && let Rule::Rep(inner) = rules.next()?
-            && let Rule::Seq(others) = &**inner {
-                let mut inner_rules = others.iter();
+        && let Rule::Seq(others) = &**inner
+    {
+        let mut inner_rules = others.iter();
 
-                if let Rule::Token(_tk) = inner_rules.next()?
-                    && let Rule::Node(other_item) = inner_rules.next()? {
-                        // both iters must be exhausted
-                        if rules.next().is_none()
-                            && inner_rules.next().is_none()
-                            && item == other_item
-                        {
-                            // It's a list
-                            let item = NodeOrToken::Node(g[*item].name.clone());
+        if let Rule::Token(_tk) = inner_rules.next()?
+            && let Rule::Node(other_item) = inner_rules.next()?
+        {
+            // both iters must be exhausted
+            if rules.next().is_none() && inner_rules.next().is_none() && item == other_item {
+                // It's a list
+                let item = NodeOrToken::Node(g[*item].name.clone());
 
-                            let list = Child {
-                                provided_name: maybe_name.map(|s| s.to_string()),
-                                kind: ChildKind::List(item),
-                            };
+                let list = Child {
+                    provided_name: maybe_name.map(|s| s.to_string()),
+                    kind: ChildKind::List(item),
+                };
 
-                            return Some(list);
-                        }
-                    }
+                return Some(list);
             }
+        }
+    }
 
     None
 }

@@ -38,9 +38,10 @@ impl<S: SectionInfo> SectionAllocator<S> {
             offsets.push(padding_offset as u32);
 
             if let Some(padding_count) = padding_offset.checked_sub(current_offset)
-                && padding_count > 0 {
-                    bytes.extend(std::iter::repeat_n(0x00, padding_count));
-                }
+                && padding_count > 0
+            {
+                bytes.extend(std::iter::repeat_n(0x00, padding_count));
+            }
 
             match &alloc.data {
                 SectionData::Zeroed(size) => bytes.extend(std::iter::repeat_n(0x00, *size)),

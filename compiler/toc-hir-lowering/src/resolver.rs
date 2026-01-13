@@ -105,18 +105,19 @@ impl<'a> ResolveCtx<'a> {
         };
 
         if let Resolve::Def(def) = resolve
-            && let DeclareKind::LimitedDeclared(limited) = self.scopes.declare_kind(def) {
-                match limited {
-                    LimitedKind::PostCondition => {
-                        // FIXME: If we're in a post condition, don't report this error
-                        self.messages.error(
-                            format!("`cannot use {name}` here"),
-                            format!("`{name}` can only be used in a `post` statement"),
-                            span.lookup_in(self.package),
-                        );
-                    }
+            && let DeclareKind::LimitedDeclared(limited) = self.scopes.declare_kind(def)
+        {
+            match limited {
+                LimitedKind::PostCondition => {
+                    // FIXME: If we're in a post condition, don't report this error
+                    self.messages.error(
+                        format!("`cannot use {name}` here"),
+                        format!("`{name}` can only be used in a `post` statement"),
+                        span.lookup_in(self.package),
+                    );
                 }
             }
+        }
 
         resolve
     }

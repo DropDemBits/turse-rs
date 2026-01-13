@@ -106,10 +106,11 @@ fn write_code_unit(out: &mut impl Write, unit: &CodeUnit<ResolvedRelocs>) -> io:
     }
 
     // - manifest_size
-    let manifest_size: u32 =
-        unit.manifest().size().try_into().map_err(|_| {
-            io::Error::other("manifest section size is too big")
-        })?;
+    let manifest_size: u32 = unit
+        .manifest()
+        .size()
+        .try_into()
+        .map_err(|_| io::Error::other("manifest section size is too big"))?;
     out.write_u32::<LE>(manifest_size)?;
     // - manifest_blob
     out.write_all(unit.manifest().data())?;

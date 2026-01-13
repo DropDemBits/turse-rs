@@ -65,10 +65,11 @@ fn add_preamble(gen_ty: flags::CodegenType, mut text: String) -> String {
 fn ensure_file_contents(cg: flags::CodegenType, file: &Path, contents: &str, check: bool) -> bool {
     let contents = normalize_newlines(contents);
     if let Ok(old_contents) = fs::read_to_string(file)
-        && normalize_newlines(&old_contents) == contents {
-            // File is already up to date.
-            return false;
-        }
+        && normalize_newlines(&old_contents) == contents
+    {
+        // File is already up to date.
+        return false;
+    }
 
     let display_path = file.strip_prefix(project_root()).unwrap_or(file);
     if check {

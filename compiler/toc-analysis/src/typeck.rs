@@ -2060,18 +2060,19 @@ impl TypeCheck<'_> {
         };
 
         if let Some(def_id) = def_id
-            && !db.symbol_kind(def_id).is_missing_or(SymbolKind::is_type) {
-                let span = span.lookup_in(package);
+            && !db.symbol_kind(def_id).is_missing_or(SymbolKind::is_type)
+        {
+            let span = span.lookup_in(package);
 
-                self.report_mismatched_binding(
-                    SymbolKind::Type,
-                    def_id.into(),
-                    span,
-                    span,
-                    |thing| format!("cannot use {thing} as a type alias"),
-                    None,
-                );
-            }
+            self.report_mismatched_binding(
+                SymbolKind::Type,
+                def_id.into(),
+                span,
+                span,
+                |thing| format!("cannot use {thing} as a type alias"),
+                None,
+            );
+        }
     }
 
     fn typeck_constrained_ty(&self, id: toc_hir::ty::TypeId, ty: &toc_hir::ty::Constrained) {
@@ -2169,34 +2170,35 @@ impl TypeCheck<'_> {
             check_const_bound(start_bound.clone(), ty::AllowDyn::No, &mut state.reporter)
             && let Some((ordinal, min_value)) =
                 Option::zip(value.ordinal(), base_tyref.min_int_of(db).ok())
-                && ordinal < min_value {
-                    state.reporter.error(
-                        "computed value is outside the type's range",
-                        format!(
-                            "`{value}` is smaller than the smallest possible `{base_tyref}`",
-                            value = value.display(db),
-                            base_tyref = base_tyref.display(db)
-                        ),
-                        start_span,
-                    );
-                }
+            && ordinal < min_value
+        {
+            state.reporter.error(
+                "computed value is outside the type's range",
+                format!(
+                    "`{value}` is smaller than the smallest possible `{base_tyref}`",
+                    value = value.display(db),
+                    base_tyref = base_tyref.display(db)
+                ),
+                start_span,
+            );
+        }
 
         if let ty::EndBound::Expr(end_bound, allow_dyn) = end_bound
             && let Some(value) =
                 check_const_bound(end_bound.clone(), *allow_dyn, &mut state.reporter)
-                && let Some((ordinal, max_value)) =
-                    value.ordinal().zip(base_tyref.max_int_of(db).ok())
-                    && max_value < ordinal {
-                        state.reporter.error(
-                            "computed value is outside the type's range",
-                            format!(
-                                "`{value}` is larger than the largest possible `{base}`",
-                                value = value.display(db),
-                                base = base_tyref.display(db)
-                            ),
-                            end_span,
-                        );
-                    }
+            && let Some((ordinal, max_value)) = value.ordinal().zip(base_tyref.max_int_of(db).ok())
+            && max_value < ordinal
+        {
+            state.reporter.error(
+                "computed value is outside the type's range",
+                format!(
+                    "`{value}` is larger than the largest possible `{base}`",
+                    value = value.display(db),
+                    base = base_tyref.display(db)
+                ),
+                end_span,
+            );
+        }
     }
 
     fn typeck_array_ty(&self, id: toc_hir::ty::TypeId, ty: &toc_hir::ty::Array) {
@@ -2862,19 +2864,20 @@ impl TypeCheck<'_> {
         let ty_ref = db.lower_hir_type(ty.in_package(self.package_id));
 
         if let ty::TypeKind::Alias(def_id, to_ty) = ty_ref.kind(db)
-            && to_ty.kind(db).is_forward() {
-                let ty_span = self.package.lookup_type(ty).span;
-                let ty_span = ty_span.lookup_in(&self.package);
+            && to_ty.kind(db).is_forward()
+        {
+            let ty_span = self.package.lookup_type(ty).span;
+            let ty_span = ty_span.lookup_in(&self.package);
 
-                let def_package = db.package(def_id.0);
-                let name = def_package.local_def(def_id.1).name;
+            let def_package = db.package(def_id.0);
+            let name = def_package.local_def(def_id.1).name;
 
-                self.state().reporter.error(
-                    format!("`{name}` has not been resolved at this point"),
-                    format!("`{name}` is required to be resolved at this point"),
-                    ty_span,
-                );
-            }
+            self.state().reporter.error(
+                format!("`{name}` has not been resolved at this point"),
+                format!("`{name}` is required to be resolved at this point"),
+                ty_span,
+            );
+        }
     }
 }
 
