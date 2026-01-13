@@ -6,10 +6,11 @@ license.workspace = true
 edition.workspace = true
 
 [dependencies]
-hashbrown = "0.15.4"
+hashbrown = "0.16.1"
 indexmap = "2.7.1"
 rustc-hash = "2.1"
 
+# FIXME: Ideally these should be optional dependencies
 salsa = { version = "0.23.0" }
 salsa-macros = { version = "0.23.0" }
 
