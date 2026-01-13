@@ -41,11 +41,11 @@ pub trait Db: salsa::Database + toc_paths::Db + VfsBridge {}
 #[salsa::db]
 impl<DB> Db for DB where DB: salsa::Database + toc_paths::Db + VfsBridge {}
 
-/// Resolves a path relative to a given [`RawPath`].
+/// Resolves a path relative to a given [`RawPath`](toc_paths::RawPath).
 /// If `path` expands into an absolute path, then `relative_to` is ignored.
 ///
 /// Performs path normalization using [`VfsBridge::normalize_path`]
-#[salsa::tracked]
+// FIXME: Should be tracked and use RawPath
 pub fn resolve_path<'db>(db: &'db dyn Db, anchor: &'db RawRefPath, path: String) -> RawOwnedPath {
     // Convert `path` into an absolute one
     let path = toc_paths::expand_path(db, Utf8PathBuf::from(path));

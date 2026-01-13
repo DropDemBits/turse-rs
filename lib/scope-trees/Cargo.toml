@@ -11,8 +11,8 @@ indexmap = "2.7.1"
 rustc-hash = "2.1"
 
 # FIXME: Ideally these should be optional dependencies
-salsa = { version = "0.23.0" }
-salsa-macros = { version = "0.23.0" }
+salsa = { version = "0.25.2" }
+salsa-macros = { version = "0.25.2" }
 
 [lints]
 workspace = true
