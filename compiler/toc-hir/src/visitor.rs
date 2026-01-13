@@ -203,7 +203,7 @@ impl<'hir> Walker<'hir> {
     }
 
     /// Peeks at the next walking event
-    pub fn peek_event(&self) -> Option<&WalkEvent> {
+    pub fn peek_event(&self) -> Option<&WalkEvent<'_>> {
         self.process.front()
     }
 
@@ -213,7 +213,7 @@ impl<'hir> Walker<'hir> {
     }
 
     /// Gets the next walking event
-    pub fn next_event(&mut self) -> Option<WalkEvent> {
+    pub fn next_event(&mut self) -> Option<WalkEvent<'_>> {
         let event = self.process.pop_front()?;
 
         if let WalkEvent::Enter(node) = &event {

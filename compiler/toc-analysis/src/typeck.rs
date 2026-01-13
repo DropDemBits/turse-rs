@@ -117,7 +117,7 @@ impl<'db> TypeCheck<'db> {
         CompileResult::new((), reporter.finish())
     }
 
-    fn state(&self) -> std::cell::RefMut<TypeCheckState> {
+    fn state(&self) -> std::cell::RefMut<'_, TypeCheckState> {
         self.state.borrow_mut()
     }
 }

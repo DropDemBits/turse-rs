@@ -176,7 +176,7 @@ impl ConstValue {
                 chars
                     .next()
                     .filter(|_| chars.next().is_none())
-                    .ok_or_else(|| (ConstError::without_span(ErrorKind::WrongOperandType)))
+                    .ok_or_else(|| ConstError::without_span(ErrorKind::WrongOperandType))
             }
             _ => Err(ConstError::without_span(ErrorKind::WrongOperandType)),
         }
