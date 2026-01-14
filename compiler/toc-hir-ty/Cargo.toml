@@ -13,6 +13,8 @@ toc-hir-expand.workspace = true
 salsa.workspace = true
 salsa-macros.workspace = true
 ena = "0.14.3"
+bicubify.workspace = true
+either.workspace = true
 
 [lints]
 workspace = true

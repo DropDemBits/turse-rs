@@ -119,10 +119,10 @@ pub(crate) struct VarBounds {
 }
 
 type PolarSet = OrderSet<InferValue>;
-type InvariantSet = OrderMap<InferValue, Polarity>;
+type InvariantSet = OrderMap<InferValue, InvariantPolarity>;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum Polarity {
+pub enum InvariantPolarity {
     Upper,
     Lower,
 }

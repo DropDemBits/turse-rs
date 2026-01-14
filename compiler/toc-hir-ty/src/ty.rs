@@ -334,10 +334,10 @@ impl<'a> TyRelation<'a, ir::Rigid, ir::Rigid> {
 #[repr(transparent)]
 pub struct FlexVar<'db>(u32, PhantomData<&'db ()>);
 
-impl<'db> ena::unify::UnifyKey for FlexVar<'db> {
-    type Value = Option<FlexTy<'db>>;
+impl<'db> bicubify::unify::UnifyKey for FlexVar<'db> {
+    type Value = FlexTy<'db>;
 
-    fn index(&self) -> u32 {
+    fn index(self) -> u32 {
         self.0
     }
 
@@ -361,8 +361,6 @@ pub enum FlexTy<'db> {
     // FIXME: It'd be nice to describe a flexible type by its scheme (substs + structure) so that we can intern the structure
     Ty(Box<TyKind<ir::Infer<'db>>>),
 }
-
-impl<'db> ena::unify::EqUnifyValue for FlexTy<'db> {}
 
 impl<'db> From<Ty<'db>> for FlexTy<'db> {
     fn from(value: Ty<'db>) -> Self {

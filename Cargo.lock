@@ -2034,6 +2034,8 @@ dependencies = [
 name = "toc-hir-ty"
 version = "0.1.0"
 dependencies = [
+ "bicubify",
+ "either",
  "ena",
  "salsa",
  "salsa-macros",

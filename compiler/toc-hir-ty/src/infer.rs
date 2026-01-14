@@ -4,6 +4,7 @@
 
 use std::{collections::VecDeque, mem};
 
+use either::Either;
 use toc_hir_def::scope;
 
 use crate::{
@@ -18,46 +19,62 @@ pub mod body;
 pub mod item;
 
 #[derive(Debug, Default, Clone)]
+struct ConstraintGenEnv<'db> {
+    flex_vars: bicubify::BiunificationVariables<FlexVar<'db>>,
+    constraints: Vec<Constraint<'db>>,
+}
+
+impl<'db> ConstraintGenEnv<'db> {
+    pub fn fresh_var(&mut self) -> FlexVar<'db> {
+        self.flex_vars.fresh_var()
+    }
+
+    pub fn concrete_var(&mut self, ty: Ty<'db>) -> FlexVar<'db> {
+        let var = self.flex_vars.fresh_var();
+        self.constraints.push(Constraint::Relate(
+            FlexTy::Var(var),
+            FlexTy::Concrete(ty),
+            Variance::Covariant,
+        ));
+        var
+    }
+
+    fn clone_for_solving(&self) -> InferEnv<'db> {
+        InferEnv {
+            unify: self.flex_vars.clone_for_solving(),
+            constraints: self.constraints.clone(),
+        }
+    }
+}
+
+#[derive(Debug, Default, Clone)]
 struct InferEnv<'db> {
-    flex_vars: ena::unify::InPlaceUnificationTable<FlexVar<'db>>,
+    unify: bicubify::BiunificationTable<FlexVar<'db>>,
     constraints: Vec<Constraint<'db>>,
 }
 
 impl<'db> InferEnv<'db> {
-    pub fn fresh_var(&mut self) -> FlexVar<'db> {
-        self.flex_vars.new_key(None)
-    }
-
-    pub fn concrete_var(&mut self, ty: Ty<'db>) -> FlexVar<'db> {
-        self.flex_vars.new_key(Some(FlexTy::Concrete(ty)))
-    }
-
-    pub fn flex_ty(&mut self, flex_ty: FlexTy<'db>) -> FlexVar<'db> {
-        self.flex_vars.new_key(Some(flex_ty))
+    pub fn _fresh_var(&mut self) -> FlexVar<'db> {
+        self.unify.fresh_var()
     }
 
     pub fn lookup_ty(&mut self, ty_var: FlexVar<'db>) -> Option<FlexTy<'db>> {
-        self.flex_vars.probe_value(ty_var)
-    }
+        let ty_var = self.unify.root_var(ty_var);
 
-    pub fn normalize_var(&mut self, ty_var: FlexVar<'db>) -> FlexVar<'db> {
-        self.flex_vars.find(ty_var)
-    }
+        let bounds = self.unify.get_var_bounds(ty_var);
 
-    pub fn unify_vars(
-        &mut self,
-        a: FlexVar<'db>,
-        b: FlexVar<'db>,
-    ) -> Result<(), (FlexTy<'db>, FlexTy<'db>)> {
-        self.flex_vars.unify_var_var(a, b)
-    }
+        let inv_len = bounds.bounds_len(bicubify::unify::Polarity::Invariant);
+        let upper_len = bounds.bounds_len(bicubify::unify::Polarity::Upper);
+        let lower_len = bounds.bounds_len(bicubify::unify::Polarity::Lower);
 
-    pub fn unify_var_to(
-        &mut self,
-        var: FlexVar<'db>,
-        ty: FlexTy<'db>,
-    ) -> Result<(), (FlexTy<'db>, FlexTy<'db>)> {
-        self.flex_vars.unify_var_value(var, Some(ty))
+        // Preference:
+        // Invariant > Upper > Lower
+        match (lower_len, inv_len, upper_len) {
+            (_, inv_len, _) if inv_len == 1 => bounds.invariant_bounds().next().cloned(),
+            (0, 0, 1) => bounds.upper_bounds().next().cloned(),
+            (1, 0, 0) => bounds.lower_bounds().next().cloned(),
+            _ => None,
+        }
     }
 
     pub fn substitute(&mut self, db: &'db dyn Db, ty: FlexTy<'db>) -> Ty<'db> {
@@ -95,7 +112,7 @@ impl<'db> SubstFolder<ir::Infer<'db>, ir::Rigid>
 #[derive(Debug, Clone)]
 pub enum Constraint<'db> {
     /// Constrains `'a` to relate to`'b` (`'a • 'b`).
-    Relate(FlexVar<'db>, FlexVar<'db>, Variance),
+    Relate(FlexTy<'db>, FlexTy<'db>, Variance),
     /// Infers `'a` from a resolution.
     ResolutionOf(scope::QueryKey<'db>, FlexVar<'db>),
     /// `'a` must be a type that implements a [`BuiltinInterface`].
@@ -133,8 +150,8 @@ const DEFAULT_FUEL: usize = 1000;
 #[derive(Debug)]
 pub enum InferError<'db> {
     MismatchedTypes {
-        left: FlexVar<'db>,
-        right: FlexVar<'db>,
+        left: FlexTy<'db>,
+        right: FlexTy<'db>,
         variance: Variance,
     },
     BuiltinNotImplemented {
@@ -189,6 +206,11 @@ impl<'db> Solver<'db> {
                 }
 
                 if !progress_made {
+                    dbg!((
+                        active_constraints,
+                        stalled_constraints,
+                        self.deferred_constraints.clone()
+                    ));
                     return Err(SolverError::NoProgress);
                 }
                 let Some(next_fuel) = fuel.checked_sub(1) else {
@@ -231,14 +253,11 @@ impl<'db> Solver<'db> {
 
     fn normalize_ty(&mut self, db: &'db dyn Db, ty: FlexTy<'db>) -> FlexTy<'db> {
         match ty {
-            // Normalize to either the representative var, or the original type
-            FlexTy::Var(var) => match self.env.lookup_ty(var) {
-                Some(ty) => self.normalize_ty(db, ty),
-                None => FlexTy::Var(self.env.normalize_var(var)),
-            },
-            // Concrete types always normalize to themselves
+            // Normalize to the representative variable.
+            FlexTy::Var(var) => FlexTy::Var(self.env.unify.root_var(var)),
+            // Concrete types always normalize to themselves>
             FlexTy::Concrete(ty) => FlexTy::Concrete(ty),
-            // Deep-normalize any types with flexible vars
+            // Deep-normalize any types with flexible vars.
             FlexTy::Ty(ty) => match *ty {
                 // Types that cannot be made flexible are converted into their corresponding concrete types
                 TyKind::Error => FlexTy::Concrete(make::mk_error(db)),
@@ -257,7 +276,7 @@ impl<'db> Solver<'db> {
                 TyKind::Real(RealSize::Real) => FlexTy::Concrete(make::mk_real(db)),
                 TyKind::Char => FlexTy::Concrete(make::mk_char(db)),
                 TyKind::String => FlexTy::Concrete(make::mk_string(db)),
-                // Flexible variables are normalized into their raw types
+                // Flexible variables are normalized into their representative variables.
                 TyKind::FlexVar(var) => self.normalize_ty(db, FlexTy::Var(var)),
                 // Any other type that can contain other types has their component types normalized.
                 TyKind::Place(ty_kind, mutability) => {
@@ -271,21 +290,65 @@ impl<'db> Solver<'db> {
 
     fn try_relate_of(
         &mut self,
-        left: FlexVar<'db>,
-        right: FlexVar<'db>,
+        left: FlexTy<'db>,
+        right: FlexTy<'db>,
         variance: Variance,
     ) -> ConstraintResult {
         let db = self.db;
-        let left_ty = self.normalize_ty(db, left.into());
-        let right_ty = self.normalize_ty(db, right.into());
+        let left_ty = self.normalize_ty(db, left.clone());
+        let right_ty = self.normalize_ty(db, right.clone());
+
+        let (left_ty, right_ty) = match variance {
+            Variance::Covariant | Variance::Invariant => (left_ty, right_ty),
+            Variance::Contravariant => (right_ty, left_ty),
+        };
+
+        let mut relate_ty_ty = |relate: Either<
+            bicubify::unify::LowerBound<'_, FlexVar<'db>>,
+            bicubify::unify::UpperBound<'_, FlexVar<'db>>,
+        >| {
+            match relate {
+                Either::Left(lower) => {
+                    self.deferred_constraints.push_front(Constraint::Relate(
+                        lower.lower.clone(),
+                        lower.term.clone(),
+                        Variance::Covariant,
+                    ));
+                }
+                Either::Right(upper) => {
+                    self.deferred_constraints.push_front(Constraint::Relate(
+                        upper.upper.clone(),
+                        upper.term.clone(),
+                        Variance::Contravariant,
+                    ));
+                }
+            }
+        };
 
         let res = match (&left_ty, &right_ty) {
             // Equate any vars up-front.
             (FlexTy::Var(left), FlexTy::Var(right)) => {
-                self.env.unify_vars(*left, *right).map_err(|_| ())
+                let (left, right) = (*left, *right);
+
+                if self.env.unify.shallow_unify_vars(left, right).is_err() {
+                    self.env.unify.full_unify_var_var(left, right, relate_ty_ty);
+                }
+
+                Ok(())
             }
-            (FlexTy::Var(var), _) | (_, FlexTy::Var(var)) => {
-                self.env.unify_var_to(*var, right_ty).map_err(|_| ())
+            (FlexTy::Var(var), right_ty) => {
+                self.env.unify.lub_var(*var, right_ty.clone(), |relate| {
+                    relate_ty_ty(Either::Left(relate))
+                });
+
+                Ok(())
+            }
+            (left_ty, FlexTy::Var(var)) => {
+                self.env.unify.glb_var(left_ty.clone(), *var, |relate| {
+                    relate_ty_ty(Either::Right(relate))
+                });
+
+                Ok(())
             }
             // Try structurally relating.
             (FlexTy::Concrete(left_ty), FlexTy::Concrete(right_ty)) => left_ty
@@ -358,8 +421,8 @@ impl<'db> Solver<'db> {
                 }
 
                 self.deferred_constraints.push_front(Constraint::Relate(
-                    precision,
-                    self.env.concrete_var(make::mk_int(self.db)),
+                    FlexTy::Var(precision),
+                    FlexTy::Concrete(make::mk_int(self.db)),
                     Variance::Covariant,
                 ));
 
@@ -378,13 +441,13 @@ impl<'db> Solver<'db> {
                 }
 
                 self.deferred_constraints.push_front(Constraint::Relate(
-                    precision,
-                    self.env.concrete_var(make::mk_int(self.db)),
+                    FlexTy::Var(precision),
+                    FlexTy::Concrete(make::mk_int(self.db)),
                     Variance::Covariant,
                 ));
                 self.deferred_constraints.push_front(Constraint::Relate(
-                    exponent,
-                    self.env.concrete_var(make::mk_int(self.db)),
+                    FlexTy::Var(exponent),
+                    FlexTy::Concrete(make::mk_int(self.db)),
                     Variance::Covariant,
                 ));
 
@@ -414,10 +477,15 @@ impl<'db> ty::RelateContext<ir::Rigid, ir::Infer<'db>> for Solver<'db> {
     fn relate_tys(&mut self, relate: ty::TyRelation<ir::Rigid, ir::Infer<'db>>) -> Result<(), ()> {
         match relate {
             ty::TyRelation::VarVar(left, _) | ty::TyRelation::VarTy(left, _) => match left {},
-            ty::TyRelation::TyVar(ty, var) => self
-                .env
-                .unify_var_to(var, FlexTy::Concrete(ty.clone().intern(self.db)))
-                .map_err(|_| ()),
+            ty::TyRelation::TyVar(ty, var) => {
+                self.deferred_constraints.push_front(Constraint::Relate(
+                    FlexTy::Concrete(ty.clone().intern(self.db)),
+                    FlexTy::Var(var),
+                    Variance::Covariant,
+                ));
+
+                Ok(())
+            }
         }
     }
 }
@@ -434,11 +502,33 @@ impl<'db> ty::RelateContext<ir::Infer<'db>, ir::Infer<'db>> for Solver<'db> {
         relate: ty::TyRelation<ir::Infer<'db>, ir::Infer<'db>>,
     ) -> Result<(), ()> {
         match relate {
-            ty::TyRelation::VarVar(left, right) => self.env.unify_vars(left, right).map_err(|_| ()),
-            ty::TyRelation::VarTy(var, ty) | ty::TyRelation::TyVar(ty, var) => self
-                .env
-                .unify_var_to(var, FlexTy::Ty(Box::new(ty.clone())))
-                .map_err(|_| ()),
+            ty::TyRelation::VarVar(left, right) => {
+                self.deferred_constraints.push_front(Constraint::Relate(
+                    FlexTy::Var(left),
+                    FlexTy::Var(right),
+                    Variance::Covariant,
+                ));
+
+                Ok(())
+            }
+            ty::TyRelation::VarTy(var, ty) => {
+                self.deferred_constraints.push_front(Constraint::Relate(
+                    FlexTy::Var(var),
+                    FlexTy::Ty(Box::new(ty.clone())),
+                    Variance::Covariant,
+                ));
+
+                Ok(())
+            }
+            ty::TyRelation::TyVar(ty, var) => {
+                self.deferred_constraints.push_front(Constraint::Relate(
+                    FlexTy::Ty(Box::new(ty.clone())),
+                    FlexTy::Var(var),
+                    Variance::Covariant,
+                ));
+
+                Ok(())
+            }
         }
     }
 }

@@ -6,7 +6,7 @@ use toc_hir_def::{body, expr, item, local, scope, stmt};
 
 use crate::{
     ConstVarTyExt, Db,
-    infer::{BuiltinInterface, Constraint, InferEnv, InferError, Solver},
+    infer::{BuiltinInterface, Constraint, ConstraintGenEnv, InferError, Solver},
     ty::{self, FlexTy, FlexVar, Ty, TyKind, make},
 };
 
@@ -32,25 +32,25 @@ pub(crate) fn infer_body<'db>(db: &'db dyn Db, body: body::Body<'db>) -> BodyInf
     }
     cctx.fill_body_resolutions(db, body.resolved_names(db));
 
-    let mut solver = Solver::new(db, cctx.env.clone());
+    let mut solver = Solver::new(db, cctx.env.clone_for_solving());
     if let Err(err) = solver.solve() {
         eprintln!("solver err: {err:?}");
     }
     if !solver.errors.is_empty() {
         eprintln!("infer err: {:#?}", solver.errors);
     }
-    cctx.env = solver.env;
+    let mut env = solver.env;
 
     let expr_tys = cctx
         .delayed_expr_tys
         .into_iter()
-        .map(|(expr, var)| (expr, cctx.env.substitute(db, var.into())))
+        .map(|(expr, var)| (expr, env.substitute(db, var.into())))
         .collect();
 
     let local_tys = cctx
         .delayed_local_tys
         .into_iter()
-        .map(|(local, var)| (local, cctx.env.substitute(db, var.into())))
+        .map(|(local, var)| (local, env.substitute(db, var.into())))
         .collect();
 
     BodyInfer::new(db, expr_tys, local_tys)
@@ -59,9 +59,9 @@ pub(crate) fn infer_body<'db>(db: &'db dyn Db, body: body::Body<'db>) -> BodyInf
 #[derive(Debug)]
 struct ExprStoreConstraints<'db> {
     store: &'db body::BodyContents<'db>,
-    env: InferEnv<'db>,
+    env: ConstraintGenEnv<'db>,
     delayed_expr_tys: HashMap<expr::LocalExpr<'db>, FlexVar<'db>>,
-    delayed_local_tys: HashMap<local::LocalId<'db>, FlexVar<'db>>,
+    delayed_local_tys: HashMap<local::LocalId<'db>, FlexTy<'db>>,
     errors: Vec<InferError<'db>>,
 }
 
@@ -106,10 +106,10 @@ impl<'db> ExprStoreConstraints<'db> {
                 };
 
                 // Local constvars always correspond to a place of some type.
-                let inferred_ty = self.env.flex_ty(FlexTy::Ty(Box::new(TyKind::Place(
+                let inferred_ty = FlexTy::Ty(Box::new(TyKind::Place(
                     Box::new(inferred_ty),
                     local_const_var.mutability,
-                ))));
+                )));
 
                 self.delayed_local_tys
                     .insert(local_const_var.local, inferred_ty);
@@ -360,9 +360,7 @@ impl<'db> ExprStoreConstraints<'db> {
                             }
                         };
 
-                        self.env
-                            .unify_var_to(to_var, FlexTy::Concrete(ty))
-                            .expect("should always unify");
+                        self.check_subtype_of(FlexTy::Var(to_var), FlexTy::Concrete(ty));
                     }
                     scope::Binding::Local(local) => {
                         eprintln!("filling {to_var:?} with {local:?}");
@@ -371,30 +369,26 @@ impl<'db> ExprStoreConstraints<'db> {
                             .get(&local)
                             .expect("should have encountered local");
 
-                        self.env
-                            .unify_vars(to_var, *local_ty)
-                            .expect("should always unify");
+                        self.check_subtype_of(FlexTy::Var(to_var), local_ty.clone());
                     }
                 },
-                None => self
-                    .env
-                    .unify_var_to(to_var, FlexTy::Concrete(make::mk_error(db)))
-                    .expect("should be unresolved"),
+                None => {
+                    self.check_subtype_of(
+                        FlexTy::Var(to_var),
+                        FlexTy::Concrete(make::mk_error(db)),
+                    );
+                }
             }
         }
     }
 
     fn check_subtype_of(&mut self, a: FlexTy<'db>, b: FlexTy<'db>) {
-        let a = self.into_flex_var(a);
-        let b = self.into_flex_var(b);
         self.env
             .constraints
             .push(Constraint::Relate(a, b, ty::Variance::Covariant));
     }
 
     fn check_supertype_of(&mut self, a: FlexTy<'db>, b: FlexTy<'db>) {
-        let a = self.into_flex_var(a);
-        let b = self.into_flex_var(b);
         self.env
             .constraints
             .push(Constraint::Relate(a, b, ty::Variance::Contravariant));
@@ -402,8 +396,6 @@ impl<'db> ExprStoreConstraints<'db> {
 
     #[allow(unused)]
     fn check_unify_of(&mut self, a: FlexTy<'db>, b: FlexTy<'db>) {
-        let a = self.into_flex_var(a);
-        let b = self.into_flex_var(b);
         self.env
             .constraints
             .push(Constraint::Relate(a, b, ty::Variance::Invariant));
@@ -413,13 +405,5 @@ impl<'db> ExprStoreConstraints<'db> {
         self.env
             .constraints
             .push(Constraint::ResolutionOf(query_key, ty_var));
-    }
-
-    fn into_flex_var(&mut self, flex_ty: FlexTy<'db>) -> FlexVar<'db> {
-        match flex_ty {
-            FlexTy::Var(flex_var) => flex_var,
-            FlexTy::Concrete(ty) => self.env.concrete_var(ty),
-            flex_ty @ FlexTy::Ty(_) => self.env.flex_ty(flex_ty),
-        }
     }
 }

@@ -24,7 +24,7 @@ use either::Either;
 use ordermap::OrderSet;
 
 use crate::unify::{
-    bounds::{Bounds, Polarity},
+    bounds::{Bounds, InvariantPolarity},
     index::{BoundsState, InferNode, InferValue, InferVar},
 };
 
@@ -384,7 +384,7 @@ where
                 redirect_bounds
                     .upper
                     .intersection(root_bounds.lower)
-                    .map(|value| (*value, Polarity::Upper)),
+                    .map(|value| (*value, bounds::InvariantPolarity::Upper)),
             );
 
             if old_invariant != redirect_bounds.invariant.len() {
@@ -402,7 +402,7 @@ where
                 redirect_bounds
                     .lower
                     .intersection(root_bounds.upper)
-                    .map(|value| (*value, Polarity::Lower)),
+                    .map(|value| (*value, bounds::InvariantPolarity::Lower)),
             );
 
             // If new invariant bounds were discovered, remove them from the originating bounds list
@@ -418,14 +418,18 @@ where
                 redirect_bounds
                     .invariant
                     .iter()
-                    .flat_map(|(value, polarity)| (polarity == &Polarity::Upper).then_some(*value)),
+                    .flat_map(|(value, polarity)| {
+                        (polarity == &InvariantPolarity::Upper).then_some(*value)
+                    }),
             );
 
             let redirect_lower_bounds = redirect_bounds.lower.iter().copied().chain(
                 redirect_bounds
                     .invariant
                     .iter()
-                    .flat_map(|(value, polarity)| (polarity == &Polarity::Lower).then_some(*value)),
+                    .flat_map(|(value, polarity)| {
+                        (polarity == &InvariantPolarity::Lower).then_some(*value)
+                    }),
             );
 
             // Perform lubs first...
@@ -506,7 +510,7 @@ where
             var_bounds.lower.sort_unstable();
             var_bounds
                 .invariant
-                .insert_sorted(value_index, Polarity::Upper);
+                .insert_sorted(value_index, InvariantPolarity::Upper);
 
             // We don't need to issue any relates since they've been made during glb_var
             return;
@@ -545,7 +549,7 @@ where
             var_bounds.upper.sort_unstable();
             var_bounds
                 .invariant
-                .insert_sorted(value_index, Polarity::Lower);
+                .insert_sorted(value_index, InvariantPolarity::Lower);
 
             // We don't need to issue any relates since they've been made during glb_var
             return;
@@ -581,6 +585,17 @@ pub struct UpperBound<'u, K: UnifyKey> {
     pub upper: &'u K::Value,
 }
 
+/// Which bound polarity to look at.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum Polarity {
+    /// Lower bounds of a variable.
+    Lower,
+    /// Invariant bounds of a variable.
+    Invariant,
+    /// Upper bounds of a variable.
+    Upper,
+}
+
 /// The upper, lower, and invariant bounds of a variable.
 #[derive(derive_more::Debug, Clone, Copy)]
 pub struct VarBounds<'u, K: UnifyKey> {
@@ -592,6 +607,15 @@ impl<'u, K: UnifyKey> VarBounds<'u, K>
 where
     K::Value: Eq + Hash,
 {
+    /// Gets the number of values in a given bound [`Polarity`].
+    pub fn bounds_len(&self, polarity: Polarity) -> usize {
+        match polarity {
+            Polarity::Lower => self.bounds.lower.len(),
+            Polarity::Invariant => self.bounds.invariant.len(),
+            Polarity::Upper => self.bounds.upper.len(),
+        }
+    }
+
     /// Gets the upper bounds of the given variable.
     pub fn upper_bounds(&self) -> impl Iterator<Item = &'_ K::Value> + use<'_, K> {
         self.bounds
