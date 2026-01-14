@@ -91,7 +91,7 @@ impl<'db> ExprStoreConstraints<'db> {
 
                 if let Some((decl_ty, expr_ty)) = decl_ty.zip(expr_ty) {
                     // Initializer should be convertable into the declaration type
-                    self.check_supertype_of(decl_ty.into(), expr_ty.into());
+                    self.env.check_supertype_of(decl_ty.into(), expr_ty.into());
                 }
 
                 let inferred_ty = if let Some(decl_ty) = decl_ty {
@@ -133,11 +133,9 @@ impl<'db> ExprStoreConstraints<'db> {
                         self.check_expr(db, width_opt, make::mk_int(db).into());
                     }
 
-                    match put_item.opts {
+                    let interface = match put_item.opts {
                         stmt::PutOpts::None | stmt::PutOpts::WithWidth { width: _ } => {
-                            self.env
-                                .constraints
-                                .push(Constraint::ImplsBuiltin(BuiltinInterface::Put, item_ty));
+                            BuiltinInterface::Put
                         }
                         stmt::PutOpts::WithPrecision {
                             width: _,
@@ -145,12 +143,9 @@ impl<'db> ExprStoreConstraints<'db> {
                         } => {
                             let precision_ty = self.infer_expr(db, precision);
 
-                            self.env.constraints.push(Constraint::ImplsBuiltin(
-                                BuiltinInterface::PutWithPrecision {
-                                    precision: precision_ty,
-                                },
-                                item_ty,
-                            ));
+                            BuiltinInterface::PutWithPrecision {
+                                precision: precision_ty,
+                            }
                         }
                         stmt::PutOpts::WithExponentWidth {
                             width: _,
@@ -160,15 +155,14 @@ impl<'db> ExprStoreConstraints<'db> {
                             let precision_ty = self.infer_expr(db, precision);
                             let exponent_ty = self.infer_expr(db, exponent_width);
 
-                            self.env.constraints.push(Constraint::ImplsBuiltin(
-                                BuiltinInterface::PutWithExponent {
-                                    precision: precision_ty,
-                                    exponent: exponent_ty,
-                                },
-                                item_ty,
-                            ));
+                            BuiltinInterface::PutWithExponent {
+                                precision: precision_ty,
+                                exponent: exponent_ty,
+                            }
                         }
-                    }
+                    };
+
+                    self.env.check_impls_builtin(interface, item_ty);
                 }
             }
             stmt::Stmt::Get(get) => {
@@ -184,27 +178,16 @@ impl<'db> ExprStoreConstraints<'db> {
 
                     let item_ty = self.infer_expr(db, get_item.expr);
 
-                    match get_item.width {
-                        stmt::GetWidth::Token => {
-                            self.env.constraints.push(Constraint::ImplsBuiltin(
-                                BuiltinInterface::GetToken,
-                                item_ty,
-                            ));
-                        }
-                        stmt::GetWidth::Line => {
-                            self.env.constraints.push(Constraint::ImplsBuiltin(
-                                BuiltinInterface::GetToken,
-                                item_ty,
-                            ));
-                        }
+                    let interface = match get_item.width {
+                        stmt::GetWidth::Token => BuiltinInterface::GetToken,
+                        stmt::GetWidth::Line => BuiltinInterface::GetLine,
                         stmt::GetWidth::Chars(expr) => {
                             let width_ty = self.infer_expr(db, expr);
-                            self.env.constraints.push(Constraint::ImplsBuiltin(
-                                BuiltinInterface::GetChars { width: width_ty },
-                                item_ty,
-                            ));
+                            BuiltinInterface::GetChars { width: width_ty }
                         }
-                    }
+                    };
+
+                    self.env.check_impls_builtin(interface, item_ty);
                 }
             }
             stmt::Stmt::For(_) => todo!(),
@@ -280,7 +263,7 @@ impl<'db> ExprStoreConstraints<'db> {
             }
             _ => {
                 let expr_ty = self.infer_expr(db, expr);
-                self.check_subtype_of(FlexTy::Var(expr_ty), flex_ty);
+                self.env.check_subtype_of(FlexTy::Var(expr_ty), flex_ty);
             }
         }
     }
@@ -313,7 +296,7 @@ impl<'db> ExprStoreConstraints<'db> {
                 expr::Name::Name(query_key) => {
                     // Type inference is deferred to solving
                     let ty_var = self.env.fresh_var();
-                    self.check_resolution_of(*query_key, ty_var);
+                    self.env.check_resolution_of(*query_key, ty_var);
                     ty_var
                 }
                 expr::Name::Self_ => unimplemented!(),
@@ -360,7 +343,8 @@ impl<'db> ExprStoreConstraints<'db> {
                             }
                         };
 
-                        self.check_subtype_of(FlexTy::Var(to_var), FlexTy::Concrete(ty));
+                        self.env
+                            .check_subtype_of(FlexTy::Var(to_var), FlexTy::Concrete(ty));
                     }
                     scope::Binding::Local(local) => {
                         eprintln!("filling {to_var:?} with {local:?}");
@@ -369,41 +353,17 @@ impl<'db> ExprStoreConstraints<'db> {
                             .get(&local)
                             .expect("should have encountered local");
 
-                        self.check_subtype_of(FlexTy::Var(to_var), local_ty.clone());
+                        self.env
+                            .check_subtype_of(FlexTy::Var(to_var), local_ty.clone());
                     }
                 },
                 None => {
-                    self.check_subtype_of(
+                    self.env.check_subtype_of(
                         FlexTy::Var(to_var),
                         FlexTy::Concrete(make::mk_error(db)),
                     );
                 }
             }
         }
-    }
-
-    fn check_subtype_of(&mut self, a: FlexTy<'db>, b: FlexTy<'db>) {
-        self.env
-            .constraints
-            .push(Constraint::Relate(a, b, ty::Variance::Covariant));
-    }
-
-    fn check_supertype_of(&mut self, a: FlexTy<'db>, b: FlexTy<'db>) {
-        self.env
-            .constraints
-            .push(Constraint::Relate(a, b, ty::Variance::Contravariant));
-    }
-
-    #[allow(unused)]
-    fn check_unify_of(&mut self, a: FlexTy<'db>, b: FlexTy<'db>) {
-        self.env
-            .constraints
-            .push(Constraint::Relate(a, b, ty::Variance::Invariant));
-    }
-
-    fn check_resolution_of(&mut self, query_key: scope::QueryKey<'db>, ty_var: FlexVar<'db>) {
-        self.env
-            .constraints
-            .push(Constraint::ResolutionOf(query_key, ty_var));
     }
 }

@@ -4,7 +4,9 @@
 
 use std::{collections::VecDeque, mem};
 
+use bicubify::unify::Polarity;
 use either::Either;
+use ordermap::OrderMap;
 use toc_hir_def::scope;
 
 use crate::{
@@ -22,6 +24,7 @@ pub mod item;
 struct ConstraintGenEnv<'db> {
     flex_vars: bicubify::BiunificationVariables<FlexVar<'db>>,
     constraints: Vec<Constraint<'db>>,
+    obligations: OrderMap<FlexVar<'db>, Vec<Obligation<'db>>, rustc_hash::FxBuildHasher>,
 }
 
 impl<'db> ConstraintGenEnv<'db> {
@@ -39,10 +42,39 @@ impl<'db> ConstraintGenEnv<'db> {
         var
     }
 
-    fn clone_for_solving(&self) -> InferEnv<'db> {
+    pub fn check_subtype_of(&mut self, a: FlexTy<'db>, b: FlexTy<'db>) {
+        self.constraints
+            .push(Constraint::Relate(a, b, ty::Variance::Covariant));
+    }
+
+    pub fn check_supertype_of(&mut self, a: FlexTy<'db>, b: FlexTy<'db>) {
+        self.constraints
+            .push(Constraint::Relate(a, b, ty::Variance::Contravariant));
+    }
+
+    #[allow(unused)]
+    pub fn check_unify_of(&mut self, a: FlexTy<'db>, b: FlexTy<'db>) {
+        self.constraints
+            .push(Constraint::Relate(a, b, ty::Variance::Invariant));
+    }
+
+    pub fn check_resolution_of(&mut self, query_key: scope::QueryKey<'db>, ty_var: FlexVar<'db>) {
+        self.constraints
+            .push(Constraint::ResolutionOf(query_key, ty_var));
+    }
+
+    pub fn check_impls_builtin(&mut self, interface: BuiltinInterface<'db>, ty_var: FlexVar<'db>) {
+        self.obligations
+            .entry(ty_var)
+            .or_default()
+            .push(Obligation::ImplsBuiltin(interface));
+    }
+
+    pub fn clone_for_solving(&self) -> InferEnv<'db> {
         InferEnv {
             unify: self.flex_vars.clone_for_solving(),
             constraints: self.constraints.clone(),
+            obligations: self.obligations.clone(),
         }
     }
 }
@@ -51,6 +83,7 @@ impl<'db> ConstraintGenEnv<'db> {
 struct InferEnv<'db> {
     unify: bicubify::BiunificationTable<FlexVar<'db>>,
     constraints: Vec<Constraint<'db>>,
+    obligations: OrderMap<FlexVar<'db>, Vec<Obligation<'db>>, rustc_hash::FxBuildHasher>,
 }
 
 impl<'db> InferEnv<'db> {
@@ -111,12 +144,20 @@ impl<'db> SubstFolder<ir::Infer<'db>, ir::Rigid>
 /// Constraints direct what each flexible type variable should infer to.
 #[derive(Debug, Clone)]
 pub enum Constraint<'db> {
-    /// Constrains `'a` to relate to`'b` (`'a • 'b`).
+    /// Constrains `'a` to relate to `'b` (`'a • 'b`).
     Relate(FlexTy<'db>, FlexTy<'db>, Variance),
     /// Infers `'a` from a resolution.
     ResolutionOf(scope::QueryKey<'db>, FlexVar<'db>),
+}
+
+/// An obligation that gets re-ran whenever a type variable.
+///
+/// Obligations project information from one type variable to potentially
+/// another type variable.
+#[derive(Debug, Clone)]
+pub enum Obligation<'db> {
     /// `'a` must be a type that implements a [`BuiltinInterface`].
-    ImplsBuiltin(BuiltinInterface<'db>, FlexVar<'db>),
+    ImplsBuiltin(BuiltinInterface<'db>),
 }
 
 /// Built-in interfaces that the language implements for certain types.
@@ -156,6 +197,7 @@ pub enum InferError<'db> {
     },
     BuiltinNotImplemented {
         interface: BuiltinInterface<'db>,
+        var: FlexVar<'db>,
         ty: FlexTy<'db>,
     },
     ItemNotAType {
@@ -170,10 +212,19 @@ pub enum SolverError {
     FuelExhausted,
 }
 
+#[derive(Debug)]
+struct DeferredObligation<'db> {
+    origin_var: FlexVar<'db>,
+    variance: Variance,
+    ty: FlexTy<'db>,
+    obligation: Obligation<'db>,
+}
+
 struct Solver<'db> {
     db: &'db dyn Db,
     env: InferEnv<'db>,
     deferred_constraints: VecDeque<Constraint<'db>>,
+    deferred_obligations: VecDeque<DeferredObligation<'db>>,
     errors: Vec<InferError<'db>>,
 }
 
@@ -188,6 +239,7 @@ impl<'db> Solver<'db> {
             db,
             env,
             deferred_constraints: Default::default(),
+            deferred_obligations: Default::default(),
             errors: Default::default(),
         }
     }
@@ -230,7 +282,6 @@ impl<'db> Solver<'db> {
                     self.try_relate_of(left, right, variance)
                 }
                 Constraint::ResolutionOf(_, _) => unreachable!("encountered unfilled resolution"),
-                Constraint::ImplsBuiltin(interface, ty) => self.try_impls_builtin(interface, ty),
             };
 
             match res {
@@ -244,10 +295,42 @@ impl<'db> Solver<'db> {
                 }
             }
 
-            // Evaluate any deferred constraints first.
+            // Evaluate any deferred obligations first.
+            let mut deferred_obligations = mem::take(&mut self.deferred_obligations);
+            for deferred in deferred_obligations.drain(..).rev() {
+                eprintln!("evaluating obligation {deferred:?}");
+
+                self.eval_obligation(
+                    deferred.origin_var,
+                    deferred.variance,
+                    deferred.ty,
+                    deferred.obligation,
+                );
+            }
+
+            // Evaluate any deferred constraints second.
             for deferred in self.deferred_constraints.drain(..).rev() {
                 active_constraints.push_front(deferred);
             }
+        }
+    }
+
+    fn defer_obligations(
+        &mut self,
+        origin_var: FlexVar<'db>,
+        variance: Variance,
+        ty: FlexTy<'db>,
+        obligations: Vec<Obligation<'db>>,
+    ) {
+        self.deferred_obligations.reserve(obligations.len());
+
+        for obligation in obligations.into_iter() {
+            self.deferred_obligations.push_front(DeferredObligation {
+                origin_var,
+                variance,
+                ty: ty.clone(),
+                obligation,
+            });
         }
     }
 
@@ -302,6 +385,96 @@ impl<'db> Solver<'db> {
             Variance::Covariant | Variance::Invariant => (left_ty, right_ty),
             Variance::Contravariant => (right_ty, left_ty),
         };
+
+        // Defer any obligations associated with either type
+        match (&left_ty, &right_ty) {
+            // FIXME: var + var side is a mess....
+            (FlexTy::Var(left), FlexTy::Var(right))
+                if self.env.unify.root_var(*left) != self.env.unify.root_var(*right) =>
+            {
+                let obligation_pairs = [(*left, *right), (*right, *left)];
+
+                for (from_var, to_var) in obligation_pairs {
+                    let from_root_var = self.env.unify.root_var(from_var);
+
+                    let Some(obligations) = self.env.obligations.get(&from_root_var) else {
+                        continue;
+                    };
+                    let obligations = obligations.clone();
+
+                    let to_bounds = self.env.unify.get_var_bounds(to_var);
+                    if to_bounds.bounds_len(Polarity::Upper) > 0 {
+                        for upper in to_bounds.upper_bounds().cloned() {
+                            for obligation in obligations.clone() {
+                                self.deferred_obligations.push_front(DeferredObligation {
+                                    origin_var: from_var,
+                                    variance: Variance::Covariant,
+                                    ty: upper.clone(),
+                                    obligation,
+                                });
+                            }
+                        }
+                    }
+
+                    if to_bounds.bounds_len(Polarity::Lower) > 0 {
+                        for lower in to_bounds.lower_bounds().cloned() {
+                            for obligation in obligations.clone() {
+                                self.deferred_obligations.push_front(DeferredObligation {
+                                    origin_var: from_var,
+                                    variance: Variance::Contravariant,
+                                    ty: lower.clone(),
+                                    obligation,
+                                });
+                            }
+                        }
+                    }
+                }
+
+                // Merge right obligations into the left's list.
+                let left_root_var = self.env.unify.root_var(*left);
+                let right_root_var = self.env.unify.root_var(*right);
+
+                let [Some(root_obs), Some(merge_obs)] = self
+                    .env
+                    .obligations
+                    .get_disjoint_mut([&left_root_var, &right_root_var])
+                else {
+                    unreachable!()
+                };
+
+                let merge_obs = mem::take(merge_obs);
+                root_obs.extend(merge_obs.into_iter());
+            }
+            (FlexTy::Var(left_var), right_ty) => {
+                let root_var = self.env.unify.root_var(*left_var);
+
+                if let Some(obligations) = self.env.obligations.get(&root_var) {
+                    let obligations = obligations.clone();
+
+                    self.defer_obligations(
+                        *left_var,
+                        Variance::Covariant,
+                        right_ty.clone(),
+                        obligations,
+                    );
+                }
+            }
+            (left_ty, FlexTy::Var(right_var)) => {
+                let root_var = self.env.unify.root_var(*right_var);
+
+                if let Some(obligations) = self.env.obligations.get(&root_var) {
+                    let obligations = obligations.clone();
+
+                    self.defer_obligations(
+                        *right_var,
+                        Variance::Contravariant,
+                        left_ty.clone(),
+                        obligations,
+                    );
+                }
+            }
+            _ => {}
+        }
 
         let mut relate_ty_ty = |relate: Either<
             bicubify::unify::LowerBound<'_, FlexVar<'db>>,
@@ -376,19 +549,37 @@ impl<'db> Solver<'db> {
         ConstraintResult::Finished
     }
 
+    fn eval_obligation(
+        &mut self,
+        var: FlexVar<'db>,
+        variance: Variance,
+        ty: FlexTy<'db>,
+        obligation: Obligation<'db>,
+    ) {
+        match obligation {
+            Obligation::ImplsBuiltin(interface) => {
+                self.try_impls_builtin(interface, var, variance, ty)
+            }
+        };
+    }
+
     fn try_impls_builtin(
         &mut self,
         interface: BuiltinInterface<'db>,
-        ty: FlexVar<'db>,
-    ) -> ConstraintResult {
+        var: FlexVar<'db>,
+        variance: Variance,
+        ty: FlexTy<'db>,
+    ) {
         let ty = self.normalize_ty(self.db, ty.into());
         let kind = match ty.clone().into_ty_kind(self.db) {
-            TyKind::FlexVar(_) => return ConstraintResult::Stalled,
+            TyKind::FlexVar(_) => {
+                unreachable!("impls relate should never happen on a type variable")
+            }
             kind => kind,
         };
 
         if matches!(kind, TyKind::Error) {
-            return ConstraintResult::Finished;
+            return;
         }
 
         let impls_interface = match interface {
@@ -423,7 +614,7 @@ impl<'db> Solver<'db> {
                 self.deferred_constraints.push_front(Constraint::Relate(
                     FlexTy::Var(precision),
                     FlexTy::Concrete(make::mk_int(self.db)),
-                    Variance::Covariant,
+                    Variance::Covariant.in_ambient(variance),
                 ));
 
                 impls_put_with_precision(&kind)
@@ -443,12 +634,12 @@ impl<'db> Solver<'db> {
                 self.deferred_constraints.push_front(Constraint::Relate(
                     FlexTy::Var(precision),
                     FlexTy::Concrete(make::mk_int(self.db)),
-                    Variance::Covariant,
+                    Variance::Covariant.in_ambient(variance),
                 ));
                 self.deferred_constraints.push_front(Constraint::Relate(
                     FlexTy::Var(exponent),
                     FlexTy::Concrete(make::mk_int(self.db)),
-                    Variance::Covariant,
+                    Variance::Covariant.in_ambient(variance),
                 ));
 
                 impls_put_with_exponent(&kind)
@@ -460,10 +651,8 @@ impl<'db> Solver<'db> {
 
         if !impls_interface {
             self.errors
-                .push(InferError::BuiltinNotImplemented { interface, ty });
+                .push(InferError::BuiltinNotImplemented { interface, var, ty });
         }
-
-        ConstraintResult::Finished
     }
 }
 
